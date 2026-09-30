@@ -1,0 +1,452 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #050505;
+    color: #ededed;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  ::selection {
+    background-color: #22c55e;
+    color: #000000;
+  }
+}
+
+/* Light Mode Overrides */
+html.light,
+html.light body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html.light ::selection {
+  background-color: #10b981;
+  color: #ffffff;
+}
+
+/* Light Mode Background Mappings */
+html.light [class*="bg-[#050505]"]:not([class*="/"]) {
+  background-color: #f8fafc !important;
+}
+
+html.light [class*="bg-[#07070a]"]:not([class*="/"]),
+html.light [class*="bg-[#08080c]"]:not([class*="/"]) {
+  background-color: #f1f5f9 !important;
+}
+
+html.light [class*="bg-[#0c0c0f]"]:not([class*="/"]),
+html.light [class*="bg-[#0c0c11]"]:not([class*="/"]),
+html.light [class*="bg-[#0d0d12]"]:not([class*="/"]),
+html.light [class*="bg-[#0f0f15]"]:not([class*="/"]),
+html.light [class*="bg-[#101017]"]:not([class*="/"]),
+html.light [class*="bg-[#09090d]"]:not([class*="/"]) {
+  background-color: #ffffff !important;
+}
+
+html.light [class*="bg-[#121216]"]:not([class*="/"]),
+html.light [class*="bg-[#121218]"]:not([class*="/"]),
+html.light [class*="bg-[#121219]"]:not([class*="/"]),
+html.light [class*="bg-[#14141c]"]:not([class*="/"]),
+html.light [class*="bg-[#15151c]"]:not([class*="/"]),
+html.light [class*="bg-[#16161f]"]:not([class*="/"]),
+html.light [class*="bg-[#161620]"]:not([class*="/"]),
+html.light [class*="bg-[#161622]"]:not([class*="/"]),
+html.light [class*="bg-[#171722]"]:not([class*="/"]),
+html.light [class*="bg-[#181822]"]:not([class*="/"]),
+html.light [class*="bg-[#181824]"]:not([class*="/"]) {
+  background-color: #f8fafc !important;
+}
+
+html.light [class*="bg-[#1a1a22]"]:not([class*="/"]),
+html.light [class*="bg-[#1a1a24]"]:not([class*="/"]),
+html.light [class*="bg-[#1c1c24]"]:not([class*="/"]),
+html.light [class*="bg-[#1e1e28]"]:not([class*="/"]),
+html.light [class*="bg-[#20202d]"]:not([class*="/"]),
+html.light [class*="bg-[#22222f]"]:not([class*="/"]),
+html.light [class*="bg-[#232333]"]:not([class*="/"]),
+html.light [class*="bg-[#262638]"]:not([class*="/"]) {
+  background-color: #f1f5f9 !important;
+}
+
+/* Light Mode Borders */
+html.light [class*="border-[#1"]:not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]),
+html.light [class*="border-[#2"]:not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]),
+html.light [class*="border-[#0"]:not([class*="border-emerald"]):not([class*="border-rose"]):not([class*="border-amber"]):not([class*="border-blue"]) {
+  border-color: #e2e8f0 !important;
+}
+
+/* Light Mode Hover States */
+html.light [class*="hover:bg-[#1a1a22]"]:hover,
+html.light [class*="hover:bg-[#1a1a24]"]:hover,
+html.light [class*="hover:bg-[#1c1c24]"]:hover,
+html.light [class*="hover:bg-[#1f1f2a]"]:hover,
+html.light [class*="hover:bg-[#242432]"]:hover,
+html.light [class*="hover:bg-[#20202e]"]:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* Light Mode Text Overrides */
+html.light [class*="text-white"]:not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-blue"]):not([class*="badge"]):not(button.bg-emerald-500 *):not(button.bg-rose-500 *):not(button.bg-emerald-600 *):not(.keep-white) {
+  color: #0f172a !important;
+}
+html.light [class*="text-slate-100"] {
+  color: #1e293b !important;
+}
+html.light [class*="text-slate-200"] {
+  color: #334155 !important;
+}
+html.light [class*="text-slate-300"] {
+  color: #475569 !important;
+}
+html.light [class*="text-slate-400"] {
+  color: #64748b !important;
+}
+html.light [class*="text-slate-500"] {
+  color: #64748b !important;
+}
+
+/* Colored accent texts in light mode for AA contrast */
+html.light .text-emerald-400 {
+  color: #059669 !important;
+}
+html.light .text-rose-400 {
+  color: #e11d48 !important;
+}
+html.light .text-amber-400 {
+  color: #d97706 !important;
+}
+html.light .text-blue-400 {
+  color: #2563eb !important;
+}
+
+/* Form Inputs in Light Mode */
+html.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus {
+  border-color: #10b981 !important;
+  outline-color: #10b981 !important;
+}
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Card & Modal Shadows in Light Mode */
+html.light .rounded-2xl.border,
+html.light .rounded-xl.border {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+}
+
+/* Light Mode Backdrop */
+html.light [class*="bg-[#050505]/"],
+html.light [class*="bg-black/"] {
+  background-color: rgba(15, 23, 42, 0.5) !important;
+}
+
+/* Light Mode Footer & Bottom Navigation */
+html.light footer {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light footer .border-b {
+  border-color: #f1f5f9 !important;
+}
+
+html.light nav.fixed.bottom-0 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.04);
+}
+
+html.light nav.fixed.bottom-0 button:not(.bg-emerald-950\/70) {
+  color: #64748b;
+}
+
+html.light nav.fixed.bottom-0 button:not(.bg-emerald-950\/70):hover {
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+
+html.light nav.fixed.bottom-0 .bg-emerald-950\/70 {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #047857 !important;
+}
+
+/* Light Scrollbar */
+html.light .custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+html.light .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Sleek dark scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #0c0c0f;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #1e1e24;
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #272730;
+}
+
+/* Hisabuk Brand Identity Helpers */
+:root {
+  --hisabuk-gold: #c59b48;
+  --hisabuk-gold-dark: #9b7226;
+  --hisabuk-navy: #182230;
+  --hisabuk-surface: #0f151e;
+}
+
+html.light {
+  --hisabuk-gold: #b3852b;
+  --hisabuk-navy: #1e293b;
+  --hisabuk-surface: #f8fafc;
+}
+
+.brand-gradient-text {
+  background: linear-gradient(135deg, #dfaa42 0%, #c59b48 50%, #e6be65 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+html.light .brand-gradient-text {
+  background: linear-gradient(135deg, #9b7226 0%, #b3852b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@media print {
+  /* Page dimensions and margins */
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
+  /* Reset layout bounds and remove overflow clipping */
+  html,
+  body {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+
+  #root,
+  #root > div {
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide application shell navigation, header, main, and footer completely */
+  .no-print,
+  .no-print *,
+  header,
+  footer,
+  nav,
+  aside,
+  #root > div > header,
+  #root > div > main,
+  #root > div > footer,
+  #root > div > nav {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* De-frame and un-transform modal dialogs in print mode */
+  .fixed,
+  .fixed.inset-0,
+  [role="dialog"],
+  div[class*="fixed"],
+  div[class*="backdrop-blur"],
+  div[class*="animate-in"] {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transform: none !important;
+    -webkit-transform: none !important;
+    animation: none !important;
+    -webkit-animation: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Flow printable containers naturally into the page stream */
+  #printable-invoice,
+  #printable-invoice *,
+  #printable-receipt,
+  #printable-receipt * {
+    visibility: visible !important;
+  }
+
+  #printable-invoice,
+  #printable-receipt {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* High contrast readable text */
+  #printable-invoice,
+  #printable-invoice h1,
+  #printable-invoice h2,
+  #printable-invoice h3,
+  #printable-invoice h4,
+  #printable-invoice p,
+  #printable-invoice span,
+  #printable-invoice div,
+  #printable-invoice td,
+  #printable-invoice th,
+  #printable-receipt,
+  #printable-receipt h1,
+  #printable-receipt h2,
+  #printable-receipt h3,
+  #printable-receipt h4,
+  #printable-receipt p,
+  #printable-receipt span,
+  #printable-receipt div,
+  #printable-receipt td,
+  #printable-receipt th {
+    color: #0f172a !important;
+  }
+
+  #printable-invoice .text-white,
+  #printable-receipt .text-white {
+    color: #0f172a !important;
+  }
+
+  #printable-invoice .text-slate-400,
+  #printable-invoice .text-slate-300,
+  #printable-invoice .text-slate-500,
+  #printable-receipt .text-slate-400,
+  #printable-receipt .text-slate-300,
+  #printable-receipt .text-slate-500 {
+    color: #334155 !important;
+  }
+
+  #printable-invoice .text-emerald-400,
+  #printable-invoice .text-emerald-500,
+  #printable-receipt .text-emerald-400,
+  #printable-receipt .text-emerald-500 {
+    color: #047857 !important;
+    font-weight: 700 !important;
+  }
+
+  #printable-invoice .text-rose-400,
+  #printable-invoice .text-rose-500,
+  #printable-receipt .text-rose-400,
+  #printable-receipt .text-rose-500 {
+    color: #b91c1c !important;
+    font-weight: 700 !important;
+  }
+
+  /* Replace dark cards with crisp clean borders and light background */
+  #printable-invoice .bg-\[\#0c0c0f\],
+  #printable-invoice .bg-\[\#121216\],
+  #printable-invoice .bg-\[\#15151c\],
+  #printable-invoice .bg-\[\#181820\],
+  #printable-invoice .bg-emerald-950\/30,
+  #printable-invoice .bg-emerald-500\/10,
+  #printable-receipt .bg-\[\#0c0c0f\],
+  #printable-receipt .bg-\[\#121216\],
+  #printable-receipt .bg-\[\#15151c\],
+  #printable-receipt .bg-\[\#181820\],
+  #printable-receipt .bg-emerald-950\/30,
+  #printable-receipt .bg-emerald-500\/10 {
+    background-color: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+  }
+
+  #printable-invoice table,
+  #printable-receipt table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  #printable-invoice th,
+  #printable-receipt th {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-bottom: 2px solid #94a3b8 !important;
+    padding: 8px 10px !important;
+  }
+
+  #printable-invoice td,
+  #printable-receipt td {
+    border-bottom: 1px solid #e2e8f0 !important;
+    padding: 8px 10px !important;
+  }
+
+  #printable-invoice tr,
+  #printable-receipt tr {
+    page-break-inside: avoid !important;
+  }
+
+  #printable-invoice .grid,
+  #printable-invoice .border-b,
+  #printable-invoice table,
+  #printable-receipt .grid,
+  #printable-receipt .border-b,
+  #printable-receipt table {
+    page-break-inside: avoid;
+  }
+
+  #printable-invoice img,
+  #printable-receipt img {
+    max-height: 48px !important;
+    object-fit: contain !important;
+  }
+}

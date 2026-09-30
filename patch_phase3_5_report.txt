@@ -1,0 +1,143 @@
+================================================================================
+حسابك – HESABAK
+PHASE 3.5 PATCH REPORT
+Invoice Modal Auto-Close After Successful Save & Regression Verification
+Date: 2026-09-06
+Status: PATCH APPLIED & VERIFIED
+Format: Plain Text (.txt)
+================================================================================
+
+1. ISSUE DIAGNOSIS & ROOT CAUSE ANALYSIS
+--------------------------------------------------------------------------------
+* Problem:
+  Following the implementation of duplicate invoice prevention and transaction
+  atomicity, users reported that the Invoice Modal ("إنشاء فاتورة جديدة") remained
+  open after successful invoice creation, requiring manual dismissal.
+
+* Root Cause:
+  In `src/components/InvoiceFormModal.tsx`:
+  The component interface declared `onInvoiceCreated: (invoice: Invoice) => void;`.
+  However, in `src/App.tsx`, the modal was instantiated without providing this
+  callback (`onInvoiceCreated` was undefined).
+  In `handleSubmit`, the code executed:
+    `onInvoiceCreated(created);`
+    `onClose();`
+  Because `onInvoiceCreated` was undefined, invoking it threw a runtime
+  `TypeError: onInvoiceCreated is not a function`.
+  This exception immediately aborted normal execution flow and transferred control
+  to the `catch (err: any)` block, completely bypassing the `onClose()` invocation.
+  Consequently, even though the invoice was successfully committed to Firestore,
+  local state, inventory movements, and journal entries, the modal never closed.
+
+
+2. ARCHITECTURAL IDENTIFICATION OF REACT STATE
+--------------------------------------------------------------------------------
+* Modal Visibility State:
+  - Name: `isNewInvoiceOpen` (in `src/App.tsx`)
+  - Setter: `setIsNewInvoiceOpen(boolean)`
+  - Context: Paired with `prefilledCustomer` and `setPrefilledCustomer(Customer | null)`
+
+* Component Props & Signature:
+  - Component: `InvoiceFormModal` (in `src/components/InvoiceFormModal.tsx`)
+  - Props:
+    * `isOpen: boolean`
+    * `onClose: () => void`
+    * `onInvoiceCreated?: (invoice: Invoice) => void` (made optional)
+    * `prefilledCustomer?: Customer | null`
+    * `initialCustomer?: Customer`
+
+* Submit Handler Flow:
+  - Function: `handleSubmit(e: React.FormEvent)` in `InvoiceFormModal.tsx`
+  - Result: `const created = await createInvoice({...})`
+
+* Lifecycle Resolution Paths:
+  [SUCCESS PATH]
+  1. `await createInvoice(...)` executes atomic Firestore transaction & state update.
+  2. Result verification: `if (created && created.id)` confirms valid invoice generation.
+  3. Safe callback execution: `if (typeof onInvoiceCreated === 'function') onInvoiceCreated(created);`.
+  4. State cleanup: `setErrorMessage(null); submissionLockRef.current = false; setIsSubmitting(false);`.
+  5. Modal closure: `onClose()` triggers `setIsNewInvoiceOpen(false)`.
+
+  [FAILURE PATH]
+  1. Validation failure, Firestore transaction error, or network fault throws exception.
+  2. Execution enters `catch (err: any)`.
+  3. Error display: `setErrorMessage(err.message || 'حدث خطأ أثناء حفظ الفاتورة.')`.
+  4. Unlock for retry: `submissionLockRef.current = false; setIsSubmitting(false);`.
+  5. `onClose()` is NOT called. The modal remains open so the user can fix errors or retry.
+
+
+3. TEST CASE VERIFICATION
+--------------------------------------------------------------------------------
+TEST 01: Standard Invoice Creation
+- Action: Fill valid details and click "إصدار الفاتورة وحفظها".
+- Result: Transaction succeeds, `created.id` verified, modal closes automatically. (PASS)
+
+TEST 02: Rapid Multiple Clicks (Double-Click Prevention)
+- Action: User clicks the submit button multiple times in rapid succession.
+- Result: `submissionLockRef.current` and `isSubmitting` lock immediately. Only one
+  invoice is created. Upon completion, the modal closes automatically. (PASS)
+
+TEST 03: Firestore / Transaction Failure
+- Action: Error encountered during Firestore write or transaction execution.
+- Result: Exception caught, error message rendered in modal alert box, submission
+  locks released for user retry, modal remains open. (PASS)
+
+TEST 04: Form Validation Error (Missing customer, empty lines, zero rate)
+- Action: Attempt to submit with incomplete fields.
+- Result: Validation check flags the issue before async call, error displayed,
+  modal remains open. (PASS)
+
+TEST 05: Network Timeout / Idempotent Retry
+- Action: Transient network delay during operation.
+- Result: `operation_id` prevents duplicate creation in both memory and Firestore.
+  On resolution or retry, single invoice verified and modal closes cleanly. (PASS)
+
+TEST 06: Cash Sale
+- Action: Issue invoice with immediate full payment.
+- Result: Correct ledger and customer reconciliation; modal closes automatically. (PASS)
+
+TEST 07: Credit Sale
+- Action: Issue invoice with remaining balance.
+- Result: Customer balance updated; modal closes automatically. (PASS)
+
+TEST 08: Multi-Currency Invoice (SDG & USD)
+- Action: Invoice using dual-currency mode and locked exchange rate.
+- Result: Deterministic recalculation and voucher generated; modal closes automatically. (PASS)
+
+TEST 09: Invoice with Inventory Tracking
+- Action: Invoice containing tracked items with stock decrement.
+- Result: Single inventory movement recorded per tracked item, stock updated,
+  modal closes automatically. (PASS)
+
+TEST 10: Double-Entry Accounting Posting
+- Action: Invoice generated with automatic Journal Voucher (JV).
+- Result: Atomic commit of invoice and JV in a single transaction; modal closes
+  automatically without orphan entries. (PASS)
+
+
+4. REGRESSION CHECKS
+--------------------------------------------------------------------------------
+* TypeScript Static Analysis (`tsc --noEmit` via `npm run lint`):
+  -> 0 errors, 0 warnings.
+* Production Bundle Compilation (`npm run build`):
+  -> Succeeded. All modules and server bundle compiled without issues.
+* Duplicate Prevention Regression:
+  -> Idempotency key (`operation_id`), `inFlightInvoiceCreations` mutex, and UI lock ref
+     remain intact and active.
+* Accounting Engine Regression:
+  -> Atomic transaction inclusion of journal entries (ACC-01) and expense reversal (ACC-02)
+     remain fully preserved.
+
+
+5. SUMMARY OF CHANGES
+--------------------------------------------------------------------------------
+* Modified Files:
+  1. `src/components/InvoiceFormModal.tsx`:
+     - Made `onInvoiceCreated` optional in `InvoiceFormModalProps`.
+     - Added `prefilledCustomer?: Customer | null` to props and `useEffect` initializer.
+     - Hardened `handleSubmit` to verify `created && created.id`, wrap `onInvoiceCreated` in
+       a safe type check, unlock submission state, and execute `onClose()`.
+  2. `src/App.tsx`:
+     - Explicitly provided `onInvoiceCreated` callback to `InvoiceFormModal` to cleanly
+       reset `isNewInvoiceOpen` and `prefilledCustomer`.
+================================================================================

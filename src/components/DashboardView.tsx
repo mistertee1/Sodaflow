@@ -1,0 +1,772 @@
+import React, { useState } from 'react';
+import { useApp } from '../context/AppContext';
+import {
+  FileText,
+  Users,
+  CreditCard,
+  TrendingUp,
+  ArrowLeftRight,
+  ChevronLeft,
+  Clock,
+  Eye,
+  Plus,
+  Receipt,
+  MessageCircle,
+  AlertOctagon,
+  Package,
+  AlertTriangle,
+  Send,
+  Calendar,
+  Sparkles,
+  BookOpen,
+} from 'lucide-react';
+import {
+  formatMoney,
+  convertCurrency,
+  getInvoiceStatusInfo,
+  safeAdd,
+  validateExchangeRate,
+} from '../lib/currency';
+import { Invoice } from '../types';
+import { TopProductsChart } from './TopProductsChart';
+import { InventoryAuditModal } from './InventoryAuditModal';
+import { AdBanner } from './AdBanner';
+import { ErrorBoundary } from './ErrorBoundary';
+
+interface DashboardViewProps {
+  onOpenNewInvoice: () => void;
+  onOpenNewCustomer?: () => void;
+  onOpenNewProduct?: () => void;
+  onOpenNewExpense?: () => void;
+  onViewInvoice: (invoice: Invoice) => void;
+  onOpenRecordPayment?: (invoice: Invoice) => void;
+  onNavigateToTab?: (tab: any) => void;
+  onNavigate?: (tab: any) => void;
+}
+
+export const DashboardView: React.FC<DashboardViewProps> = ({
+  onOpenNewInvoice,
+  onOpenNewCustomer,
+  onOpenNewProduct,
+  onOpenNewExpense,
+  onViewInvoice,
+  onOpenRecordPayment,
+  onNavigateToTab,
+  onNavigate,
+}) => {
+  const { invoices, customers, products, settings, updateSettings, counters } = useApp();
+  const [isInventoryAuditOpen, setIsInventoryAuditOpen] = useState(false);
+
+  // Manual Exchange Rate quick edit states
+  const [rateInput, setRateInput] = useState<string>(settings.default_exchange_rate.toString());
+  const [isRateUpdating, setIsRateUpdating] = useState(false);
+  const [rateToast, setRateToast] = useState<string | null>(null);
+
+  const handleApplyNewRate = async (newVal: number) => {
+    const rateVal = validateExchangeRate(newVal);
+    if (!rateVal.isValid) return;
+    setIsRateUpdating(true);
+    try {
+      await updateSettings({ default_exchange_rate: rateVal.rate });
+      setRateInput(rateVal.rate.toString());
+      setRateToast(`تم تحديث سعر الصرف يدوياً إلى: 1$ = ${rateVal.rate.toLocaleString()} ج.س`);
+      setTimeout(() => setRateToast(null), 3500);
+    } finally {
+      setIsRateUpdating(false);
+    }
+  };
+
+  const handleNavigate = (tab: string) => {
+    if (onNavigate) onNavigate(tab);
+    if (onNavigateToTab) onNavigateToTab(tab);
+  };
+
+  // Quick Currency Calculator State
+  const [calcAmount, setCalcAmount] = useState<string>('100');
+  const [calcFrom, setCalcFrom] = useState<'USD' | 'SDG'>('USD');
+
+  const currentRate = settings.default_exchange_rate || 0;
+
+  // Monthly Sales Calculations
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  const thisMonthInvoices = invoices.filter((inv) => {
+    if (!inv.issue_date) return false;
+    const invDate = new Date(inv.issue_date);
+    return (
+      invDate.getFullYear() === currentYear &&
+      invDate.getMonth() === currentMonth &&
+      inv.status !== 'cancelled'
+    );
+  });
+
+  const totalSalesSdg = thisMonthInvoices.reduce((acc, inv) => safeAdd(acc, inv.grand_total_sdg || 0, 0), 0);
+  const totalSalesUsd = thisMonthInvoices.reduce((acc, inv) => safeAdd(acc, inv.grand_total_usd || 0, 2), 0);
+
+  // Outstanding Balances across all customers
+  const totalReceivablesSdg = customers.reduce((acc, c) => safeAdd(acc, c.balance_sdg || 0, 0), 0);
+  const totalReceivablesUsd = customers.reduce((acc, c) => safeAdd(acc, c.balance_usd || 0, 2), 0);
+
+  // Unpaid invoices count
+  const unpaidInvoices = invoices.filter(
+    (inv) => inv.status !== 'paid' && inv.status !== 'cancelled'
+  );
+
+  // OVERDUE INVOICES (Due date passed and status is not paid)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const overdueInvoices = invoices.filter((inv) => {
+    if (!inv.due_date || inv.status === 'paid' || inv.status === 'cancelled') return false;
+    return inv.due_date < todayStr;
+  });
+
+  // Calculate total overdue amount
+  const totalOverdueSdg = overdueInvoices.reduce((acc, inv) => safeAdd(acc, inv.remaining_sdg || 0, 0), 0);
+  const totalOverdueUsd = overdueInvoices.reduce((acc, inv) => safeAdd(acc, inv.remaining_usd || 0, 2), 0);
+
+  // LOW STOCK PRODUCTS
+  const lowStockProducts = products.filter(
+    (p) =>
+      typeof p.stock_quantity === 'number' &&
+      typeof p.min_stock_alert === 'number' &&
+      p.stock_quantity <= p.min_stock_alert
+  );
+
+  // Calculator Result
+  const parsedCalcAmount = parseFloat(calcAmount) || 0;
+  const convertedCalcResult =
+    parsedCalcAmount > 0 && currentRate > 0
+      ? (calcFrom === 'USD'
+          ? convertCurrency(parsedCalcAmount, 'USD', 'SDG', currentRate, settings)
+          : convertCurrency(parsedCalcAmount, 'SDG', 'USD', currentRate, settings))
+      : 0;
+
+  // Recent 5 invoices
+  const recentInvoices = [...invoices]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
+
+  // Send WhatsApp reminder handler
+  const sendWhatsAppReminder = (inv: Invoice) => {
+    const rawPhone =
+      inv.customer_phone || customers.find((c) => c.id === inv.customer_id)?.phone || '';
+
+    let cleanPhone = rawPhone.replace(/\D/g, '');
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '249' + cleanPhone.substring(1);
+    } else if (cleanPhone.length === 9) {
+      cleanPhone = '249' + cleanPhone;
+    }
+
+    const daysOverdue = inv.due_date
+      ? Math.max(1, Math.floor((new Date().getTime() - new Date(inv.due_date).getTime()) / (1000 * 3600 * 24)))
+      : 1;
+
+    const invoiceUrl = `${window.location.origin}?inv=${inv.id}`;
+
+    const text = `السلام عليكم ورحمة الله وبركاته،
+السيد/السادة: ${inv.customer_name} المحترمون،
+تحية طيبة وبعد،
+
+نود تذكيركم بلطف بأن الفاتورة رقم (${inv.invoice_number}) قد استحق سدادها في تاريخ ${inv.due_date} (متأخرة منذ ${daysOverdue} يوم).
+
+المبلغ المتبقي للتحصيل:
+• بالجنيه السوداني: ${formatMoney(inv.remaining_sdg, 'SDG', settings)}
+• المقابل بالدولار: ${formatMoney(inv.remaining_usd, 'USD', settings)}
+
+بيانات السداد والتحويل:
+${settings.bank_details || 'عبر تطبيق بنكك أو نقدًا مع إرسال إشعار السداد.'}
+
+رابط تفاصيل الفاتورة:
+${invoiceUrl}
+
+شاكرين لكم حسن تعاونكم وثقتكم الكريمة.
+${settings.business_name}`;
+
+    const whatsappUrl = cleanPhone
+      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
+      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+
+    window.open(whatsappUrl, '_blank');
+  };
+
+  return (
+    <div className="space-y-6 pb-12">
+      {/* Welcome Banner / Overview */}
+      <div className="bg-[#0c0c0f] text-slate-100 rounded-2xl p-5 sm:p-7 border border-[#1e1e24] relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        <div className="relative z-10 max-w-2xl">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/70 text-emerald-400 text-xs font-semibold mb-3 border border-emerald-800/50">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>نظام الفوترة المزدوجة + إدارة المخزون والجرد</span>
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold mb-2 text-white">
+            {settings.business_name ? `مرحبًا بك في لوحة تحكم ${settings.business_name}` : 'مرحبًا بك في لوحة تحكم حسابك'}
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+            تابع مبيعاتك، تحصيلاتك، الفواتير المتأخرة، والمخزون المتبقي لحظياً بالعملتين (ج.س والدولار) مع تجميد سعر الصرف لكل فاتورة.
+          </p>
+        </div>
+      </div>
+
+      {/* Manual Exchange Rate Control Widget (Requirement: تعديل سعر الصرف يدوياً) */}
+      <div className="bg-[#0c0c0f] border border-[#1e1e24] rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1e1e24] pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0 font-mono font-black text-base">
+              $
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-sm text-white">تعديل سعر الصرف المعتمد يدويًا</h3>
+                <span className="font-mono font-black text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/90 text-emerald-400 border border-emerald-800/60">
+                  1 $ = {settings.default_exchange_rate.toLocaleString()} ج.س
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                يمكنك كتابة السعر يدوياً في أي وقت، وسيتم اعتماده للفواتير الجديدة والحسابات فوراً دون المساس بالفواتير السابقة.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Step Buttons */}
+          <div className="flex items-center gap-1.5 self-start sm:self-auto">
+            <button
+              onClick={() => handleApplyNewRate(settings.default_exchange_rate - 50)}
+              disabled={isRateUpdating}
+              className="px-2.5 py-1 text-xs font-mono font-bold rounded-lg bg-[#14141a] text-slate-300 hover:text-white hover:bg-[#1f1f2a] border border-[#22222d] transition-colors"
+              title="إنقاص 50 جنيه"
+            >
+              -50
+            </button>
+            <button
+              onClick={() => handleApplyNewRate(settings.default_exchange_rate + 50)}
+              disabled={isRateUpdating}
+              className="px-2.5 py-1 text-xs font-mono font-bold rounded-lg bg-[#14141a] text-slate-300 hover:text-white hover:bg-[#1f1f2a] border border-[#22222d] transition-colors"
+              title="زيادة 50 جنيه"
+            >
+              +50
+            </button>
+          </div>
+        </div>
+
+        {/* Interactive Rate Adjuster Form & Market Presets */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pt-1">
+          {/* Manual Input Form */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleApplyNewRate(Number(rateInput));
+            }}
+            className="flex items-center gap-2 flex-1 max-w-md"
+          >
+            <div className="relative flex-1">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={rateInput}
+                onChange={(e) => setRateInput(e.target.value)}
+                placeholder="أدخل السعر يدويًا..."
+                className="w-full bg-[#121216] border border-[#22222c] rounded-xl px-3 py-2 text-sm font-bold font-mono text-emerald-400 focus:outline-none focus:border-emerald-500 shadow-inner"
+              />
+              <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-sans">
+                ج.س / $
+              </span>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isRateUpdating || Number(rateInput) === settings.default_exchange_rate}
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 shrink-0"
+            >
+              {isRateUpdating ? 'جارٍ الحفظ...' : 'تثبيت السعر'}
+            </button>
+          </form>
+
+          {/* Quick Preset Buttons */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[11px] text-slate-400 font-medium">خيارات سريعة:</span>
+            {[2600, 2700, 2750, 2800, 2850, 2900, 3000].map((rate) => (
+              <button
+                key={rate}
+                onClick={() => handleApplyNewRate(rate)}
+                disabled={isRateUpdating}
+                className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border transition-all ${
+                  settings.default_exchange_rate === rate
+                    ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-sm shadow-emerald-500/20'
+                    : 'bg-[#14141a] text-slate-300 border-[#22222d] hover:border-slate-500'
+                }`}
+              >
+                {rate.toLocaleString()}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Confirmation Toast */}
+        {rateToast && (
+          <div className="bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs px-3 py-2 rounded-xl flex items-center gap-2 animate-in fade-in">
+            <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{rateToast}</span>
+          </div>
+        )}
+      </div>
+
+      {/* OVERDUE INVOICES ALERT CARD (Requirement: إظهار الفواتير المتأخرة وزر واتساب) */}
+      <div className="bg-[#0f1115] border border-rose-900/40 rounded-2xl overflow-hidden shadow-lg">
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-rose-950/40 to-[#0f1115] border-b border-rose-900/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+              <AlertOctagon className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-bold text-white">
+                  الفواتير المتأخرة عن موعد السداد
+                </h3>
+                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-rose-950 text-rose-400 border border-rose-800/60 font-mono">
+                  {overdueInvoices.length} فواتير
+                </span>
+              </div>
+              <p className="text-xs text-slate-400">
+                فواتير تجاوزت تاريخ الاستحقاق ولم تسدد بالكامل - اضغط زر الواتساب لإرسال تذكير فوري للعميل
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span className="text-slate-400">إجمالي المتأخرات:</span>
+            <span className="text-rose-400 font-bold">
+              {formatMoney(totalOverdueSdg, 'SDG', settings)}
+            </span>
+            <span className="text-slate-500">|</span>
+            <span className="text-white font-bold">
+              {formatMoney(totalOverdueUsd, 'USD', settings)}
+            </span>
+          </div>
+        </div>
+
+        {(overdueInvoices || []).length === 0 ? (
+          <div className="p-6 text-center text-slate-400">
+            <div className="w-8 h-8 mx-auto mb-2 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+              ✓
+            </div>
+            <p className="text-xs text-slate-300 font-semibold">
+              ممتاز! لا توجد فواتير متأخرة السداد حالياً في سجلك.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-[#1e1e24] max-h-80 overflow-y-auto custom-scrollbar">
+            {(overdueInvoices || []).map((inv) => {
+              const daysOverdue = inv.due_date
+                ? Math.max(1, Math.floor((new Date().getTime() - new Date(inv.due_date).getTime()) / (1000 * 3600 * 24)))
+                : 1;
+
+              return (
+                <div
+                  key={inv.id}
+                  className="p-4 hover:bg-[#15151a] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono font-bold text-xs text-white bg-[#1a1a22] border border-[#2a2a35] px-2 py-0.5 rounded">
+                        {inv.invoice_number}
+                      </span>
+                      <span className="text-[11px] font-bold text-rose-400 bg-rose-950/70 border border-rose-800/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        متأخرة منذ {daysOverdue} يوم
+                      </span>
+                      <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        الاستحقاق: {inv.due_date}
+                      </span>
+                    </div>
+
+                    <div className="font-bold text-sm text-white flex items-center gap-2">
+                      <span>{inv.customer_name}</span>
+                      {inv.customer_phone && (
+                        <span className="text-xs text-slate-400 font-mono" dir="ltr">
+                          ({inv.customer_phone})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between md:justify-end gap-4">
+                    <div className="text-left">
+                      <div className="text-[11px] text-slate-400">المبلغ المتبقي:</div>
+                      <div className="font-mono font-bold text-sm text-rose-400">
+                        {formatMoney(inv.remaining_sdg, 'SDG', settings)}
+                      </div>
+                      <div className="font-mono text-xs text-slate-300">
+                        {formatMoney(inv.remaining_usd, 'USD', settings)}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {/* Quick WhatsApp Reminder Button */}
+                      <button
+                        onClick={() => sendWhatsAppReminder(inv)}
+                        className="px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 transition-all active:scale-95"
+                        title="إرسال تذكير عبر واتساب مع رابط الفاتورة وحساب بنكك"
+                      >
+                        <MessageCircle className="w-4 h-4 fill-slate-950" />
+                        <span>تذكير واتساب</span>
+                      </button>
+
+                      {onOpenRecordPayment && (
+                        <button
+                          onClick={() => onOpenRecordPayment(inv)}
+                          className="px-3 py-2 bg-[#1b1b22] hover:bg-[#252530] text-slate-200 font-bold text-xs rounded-xl border border-[#2b2b35] transition-colors"
+                        >
+                          سداد
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() => onViewInvoice(inv)}
+                        className="p-2 text-slate-400 hover:text-white bg-[#141418] hover:bg-[#1e1e24] rounded-xl border border-[#24242d] transition-colors"
+                        title="معاينة الفاتورة"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Primary KPI Cards (Dual Currency) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Sales This Month Card */}
+        <div className="bg-[#0c0c0f] rounded-2xl border border-[#1e1e24] p-5 shadow-sm flex flex-col justify-between hover:border-emerald-500/40 transition-colors">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-400">إجمالي مبيعات الشهر الحالي</span>
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl font-black text-white font-mono tracking-tight">
+              {formatMoney(totalSalesSdg, 'SDG', settings)}
+            </div>
+            <div className="text-sm font-semibold text-emerald-400 mt-1 font-mono flex items-center gap-1">
+              <span>ما يعادل:</span>
+              <span>{formatMoney(totalSalesUsd, 'USD', settings)}</span>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-[#1e1e24] flex items-center justify-between text-xs text-slate-400">
+            <span>عدد فواتير الشهر: {thisMonthInvoices.length}</span>
+            <button
+              onClick={() => handleNavigate('invoices')}
+              className="text-emerald-400 hover:underline font-semibold inline-flex items-center gap-1"
+            >
+              عرض الفواتير <ChevronLeft className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Outstanding Balances Card */}
+        <div className="bg-[#0c0c0f] rounded-2xl border border-[#1e1e24] p-5 shadow-sm flex flex-col justify-between hover:border-amber-500/40 transition-colors">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-400">إجمالي الديون المستحقة على العملاء</span>
+            <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <CreditCard className="w-5 h-5" />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl font-black text-amber-400 font-mono tracking-tight">
+              {formatMoney(totalReceivablesSdg, 'SDG', settings)}
+            </div>
+            <div className="text-sm font-semibold text-slate-300 mt-1 font-mono flex items-center gap-1">
+              <span>+ مبالغ بالدولار:</span>
+              <span className="text-amber-300 font-bold">{formatMoney(totalReceivablesUsd, 'USD', settings)}</span>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-[#1e1e24] flex items-center justify-between text-xs text-slate-400">
+            <span>على {customers.filter((c) => c.balance_sdg > 0 || c.balance_usd > 0).length} عميل</span>
+            <button
+              onClick={() => handleNavigate('customers')}
+              className="text-amber-400 hover:underline font-semibold inline-flex items-center gap-1"
+            >
+              كشوف حساب العملاء <ChevronLeft className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+
+        {/* Inventory & Low Stock Card */}
+        <div className="bg-[#0c0c0f] rounded-2xl border border-[#1e1e24] p-5 shadow-sm flex flex-col justify-between sm:col-span-2 lg:col-span-1 hover:border-emerald-500/40 transition-colors">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-slate-400">مراقبة المخزون والجرد</span>
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Package className="w-5 h-5" />
+            </div>
+          </div>
+          <div>
+            <div className="text-2xl font-black text-white font-mono tracking-tight">
+              {counters.product_count > 0 ? counters.product_count : products.length} <span className="text-sm font-normal text-slate-400">صنف مسجل</span>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              {lowStockProducts.length > 0 ? (
+                <span className="text-xs font-bold text-amber-400 bg-amber-950/60 border border-amber-800/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  {lowStockProducts.length} أصناف منخفضة المخزون
+                </span>
+              ) : (
+                <span className="text-xs text-emerald-400">المخزون متوازن ومستقر</span>
+              )}
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-[#1e1e24] flex items-center justify-between text-xs text-slate-400">
+            <span>حساب تلقائي للمتبقي</span>
+            <button
+              onClick={() => setIsInventoryAuditOpen(true)}
+              className="text-emerald-400 hover:underline font-bold inline-flex items-center gap-1"
+            >
+              جرد المخزون الآن <ChevronLeft className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Recharts Top 5 Best-Selling Products Chart */}
+      <ErrorBoundary fallbackTitle="تحليل المنتجات الأكثر مبيعاً">
+        <TopProductsChart
+          invoices={invoices || []}
+          products={products || []}
+          settings={settings}
+        />
+      </ErrorBoundary>
+
+      {/* Quick Actions Grid */}
+      <div>
+        <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+          <span>إجراءات التاجر السريعة</span>
+        </h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <button
+            onClick={onOpenNewInvoice}
+            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition-transform active:scale-95 text-center gap-2"
+          >
+            <FileText className="w-5 h-5 text-slate-950" />
+            <span>+ إنشاء فاتورة جديدة</span>
+          </button>
+
+          <button
+            onClick={() => setIsInventoryAuditOpen(true)}
+            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#121216] hover:bg-[#181820] text-slate-200 border border-[#1e1e24] hover:border-emerald-500/30 font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-95 text-center gap-2"
+          >
+            <Package className="w-5 h-5 text-emerald-400" />
+            <span>جرد المخزون الفعلي</span>
+          </button>
+
+          <button
+            onClick={onOpenNewCustomer || (() => handleNavigate('customers'))}
+            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#121216] hover:bg-[#181820] text-slate-200 border border-[#1e1e24] hover:border-slate-700 font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-95 text-center gap-2"
+          >
+            <Users className="w-5 h-5 text-slate-300" />
+            <span>+ إضافة عميل جديد</span>
+          </button>
+
+          <button
+            onClick={onOpenNewProduct || (() => handleNavigate('products'))}
+            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#121216] hover:bg-[#181820] text-slate-200 border border-[#1e1e24] hover:border-slate-700 font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-95 text-center gap-2"
+          >
+            <Plus className="w-5 h-5 text-slate-300" />
+            <span>+ إضافة منتج / صنف</span>
+          </button>
+
+          <button
+            onClick={onOpenNewExpense || (() => handleNavigate('expenses'))}
+            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#121216] hover:bg-[#181820] text-slate-200 border border-[#1e1e24] hover:border-slate-700 font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-95 text-center gap-2"
+          >
+            <Receipt className="w-5 h-5 text-amber-400" />
+            <span>+ تسجيل مصروف</span>
+          </button>
+
+          <button
+            onClick={() => handleNavigate('accounting')}
+            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-[#121216] hover:bg-[#181820] text-slate-200 border border-[#1e1e24] hover:border-emerald-500/40 font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-95 text-center gap-2"
+          >
+            <BookOpen className="w-5 h-5 text-emerald-400" />
+            <span>دفتر الحسابات والقيود</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Live Market Exchange Calculator for Sudanese Merchants */}
+      <div className="bg-[#0c0c0f] border border-[#1e1e24] rounded-2xl p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <ArrowLeftRight className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm text-white">حاسبة تحويل العملات السريعة</h4>
+              <p className="text-xs text-slate-400">
+                حساب فوري للمبالغ بسعر السوق المعتمد ({currentRate > 0 ? `1$ = ${formatMoney(currentRate, 'SDG', settings)}` : 'سعر الصرف غير محدد بالإعدادات'})
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setCalcFrom(calcFrom === 'USD' ? 'SDG' : 'USD')}
+            className="text-xs font-semibold px-2.5 py-1 bg-[#16161d] hover:bg-[#1f1f29] text-slate-200 rounded-lg border border-[#262633] transition-colors flex items-center gap-1"
+          >
+            <span>عكس التحويل</span>
+            <ArrowLeftRight className="w-3 h-3" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+          <div className="sm:col-span-5">
+            <label className="block text-[11px] font-medium text-slate-400 mb-1">
+              المبلغ المراد تحويله ({calcFrom === 'USD' ? 'دولار أمريكي $' : 'جنيه سوداني ج.س'})
+            </label>
+            <div className="relative">
+              <input
+                type="number"
+                value={calcAmount}
+                onChange={(e) => setCalcAmount(e.target.value)}
+                className="w-full bg-[#121216] border border-[#1e1e24] rounded-xl px-3 py-2 text-base font-bold font-mono text-white focus:outline-none focus:border-emerald-500"
+                placeholder="أدخل المبلغ..."
+              />
+              <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-sans">
+                {calcFrom === 'USD' ? 'USD' : 'SDG'}
+              </span>
+            </div>
+          </div>
+
+          <div className="sm:col-span-2 flex justify-center py-1 sm:py-0">
+            <div className="text-slate-600 font-bold text-lg hidden sm:block">=</div>
+          </div>
+
+          <div className="sm:col-span-5 bg-[#121216] border border-[#1e1e24] rounded-xl p-3">
+            <div className="text-[11px] font-medium text-slate-400 mb-0.5">القيمة المقابلة فورًا:</div>
+            <div className="text-lg sm:text-xl font-black text-emerald-400 font-mono">
+              {calcFrom === 'USD'
+                ? formatMoney(convertedCalcResult, 'SDG', settings)
+                : formatMoney(convertedCalcResult, 'USD', settings)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Strategic Non-disruptive AdSense Banner */}
+      <AdBanner format="horizontal" label="إعلان ممول / AdSense Dashboard" />
+
+      {/* Recent Invoices Table */}
+      <div className="bg-[#0c0c0f] rounded-2xl border border-[#1e1e24] overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-[#1e1e24] flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-sm text-white">أحدث الفواتير الصادرة</h3>
+            <p className="text-xs text-slate-400">الفواتير الأخيرة مع العرض المزدوج للمبالغ وسعر الصرف المجمّد</p>
+          </div>
+          <button
+            onClick={() => handleNavigate('invoices')}
+            className="text-xs text-emerald-400 hover:underline font-semibold flex items-center gap-1"
+          >
+            عرض كافة الفواتير ({counters.invoice_count > 0 ? counters.invoice_count : invoices.length})
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {recentInvoices.length === 0 ? (
+          <div className="p-8 text-center text-slate-400">
+            <FileText className="w-10 h-10 mx-auto mb-2 opacity-40 text-slate-500" />
+            <p className="text-sm font-semibold text-slate-200">لا توجد بيانات حتى الآن. أضف أول فاتورة لبدء المتابعة</p>
+            <p className="text-xs text-slate-400 mt-1">
+              ابدأ بإنشاء أول فاتورة لتتبع المبيعات والمدفوعات ومطابقة المخزون.
+            </p>
+            <button
+              onClick={onOpenNewInvoice}
+              className="mt-4 px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl shadow-md shadow-emerald-500/20 inline-flex items-center gap-1.5 transition-all active:scale-95"
+            >
+              <Plus className="w-4 h-4 text-slate-950" />
+              <span>+ فاتورة جديدة</span>
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-[#1e1e24]">
+            {(recentInvoices || []).map((inv) => {
+              const statusInfo = getInvoiceStatusInfo(inv.status);
+              return (
+                <div
+                  key={inv.id}
+                  className="p-4 hover:bg-[#121216] transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-xs text-slate-200 bg-[#15151c] px-2 py-0.5 rounded-md border border-[#22222d]">
+                        {inv.invoice_number}
+                      </span>
+                      <span
+                        className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${statusInfo.bg} ${statusInfo.color}`}
+                      >
+                        {statusInfo.label}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        {inv.issue_date}
+                      </span>
+                    </div>
+                    <div className="font-semibold text-sm text-white">
+                      {inv.customer_name}
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      سعر الصرف المجمّد: 1$ = {formatMoney(inv.exchange_rate_used, 'SDG', settings)}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-4">
+                    <div className="text-left">
+                      <div className="font-mono font-bold text-sm text-white">
+                        {formatMoney(inv.grand_total_sdg, 'SDG', settings)}
+                      </div>
+                      <div className="font-mono text-xs text-emerald-400 font-semibold">
+                        {formatMoney(inv.grand_total_usd, 'USD', settings)}
+                      </div>
+                      {inv.remaining_sdg > 0 && inv.status !== 'paid' && (
+                        <div className="text-[10px] text-rose-400 font-mono font-bold">
+                          متبقي: {formatMoney(inv.remaining_sdg, 'SDG', settings)}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      {inv.status !== 'paid' && inv.status !== 'cancelled' && onOpenRecordPayment && (
+                        <button
+                          onClick={() => onOpenRecordPayment(inv)}
+                          title="تسجيل دفعة"
+                          className="px-2.5 py-1 text-xs font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-lg transition-colors shadow-xs"
+                        >
+                          تحصيل
+                        </button>
+                      )}
+                      <button
+                        onClick={() => onViewInvoice(inv)}
+                        title="معاينة وطباعة الفاتورة"
+                        className="p-1.5 text-slate-400 hover:text-white bg-[#15151c] hover:bg-[#1e1e28] rounded-lg border border-[#22222d] transition-colors"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Inventory Audit Modal */}
+      <InventoryAuditModal
+        isOpen={isInventoryAuditOpen}
+        onClose={() => setIsInventoryAuditOpen(false)}
+      />
+    </div>
+  );
+};

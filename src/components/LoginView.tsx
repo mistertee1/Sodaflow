@@ -1,0 +1,504 @@
+import React, { useState } from 'react';
+import {
+  signInWithGoogle,
+  loginWithEmailOrPhone,
+  registerMerchant,
+  isIframeEnvironment,
+} from '../lib/firebase';
+import { BrandLogo } from './BrandLogo';
+import {
+  Store,
+  ShieldCheck,
+  RefreshCw,
+  Package,
+  Share2,
+  AlertCircle,
+  ArrowLeft,
+  Sparkles,
+  ExternalLink,
+  Mail,
+  Phone,
+  Lock,
+  UserPlus,
+  LogIn,
+  KeyRound,
+} from 'lucide-react';
+
+interface LoginViewProps {
+  onContinueAsGuest: () => void;
+}
+
+export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
+  const [activeTab, setActiveTab] = useState<'google' | 'credentials'>('google');
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  
+  // Credentials state
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const isInIframe = isIframeEnvironment();
+
+  const handleOpenInNewTab = () => {
+    try {
+      window.open(window.location.href, '_blank', 'noopener,noreferrer');
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      console.warn('Google login in LoginView:', err?.code);
+      if (err?.code === 'auth/network-request-failed') {
+        setError(
+          'تعذر فتح نافذة Google للمصادقة من داخل إطار المعاينة المضمن (بسبب قيود المتصفح على ملفات تعريف الارتباط للطرف الثالث). يمكنك استخدام تسجيل الدخول بالبريد/رقم الهاتف، أو المتابعة كضيف، أو فتح التطبيق في نافذة مستقلة.'
+        );
+      } else if (err?.code === 'auth/popup-blocked') {
+        setError('تم حظر النافذة المنبثقة بواسطة المتصفح. يرجى السماح بالنوافذ المنبثقة والمحاولة مجدداً.');
+      } else if (err?.code === 'auth/popup-closed-by-user') {
+        setError('تم إغلاق نافذة تسجيل الدخول.');
+      } else {
+        setError(err?.friendlyMessage || 'تعذر إكمال تسجيل الدخول بحساب Google. يمكنك الدخول بالبريد/الهاتف أو كضيف.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCredentialsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+
+    if (!identifier.trim() || !password) {
+      setError('يرجى إدخال البريد أو رقم الهاتف وكلمة المرور.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('كلمة المرور يجب أن لا تقل عن 6 خانات.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (authMode === 'register') {
+        await registerMerchant(identifier, password, displayName.trim() || 'تاجر حسابك');
+        setSuccessMsg('تم إنشاء الحساب بنجاح، جاري التحويل...');
+      } else {
+        await loginWithEmailOrPhone(identifier, password);
+        setSuccessMsg('تم تسجيل الدخول بنجاح...');
+      }
+    } catch (err: any) {
+      console.warn('Credentials auth notice:', err?.code);
+      setError(
+        err?.friendlyMessage ||
+          (authMode === 'register'
+            ? 'تعذر إنشاء الحساب. تأكد من صحة البيانات أو حاول تسجيل الدخول إذا كنت مسجلاً مسبقاً.'
+            : 'بيانات الدخول غير صحيحة. تأكد من البريد أو رقم الهاتف وكلمة المرور.')
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#050505] text-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950 relative overflow-hidden">
+      {/* Background Decorative Emerald Glows */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -mt-20"></div>
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-emerald-600/5 rounded-full blur-3xl pointer-events-none -mb-20"></div>
+
+      {/* Top Simple Bar */}
+      <header className="max-w-6xl w-full mx-auto px-4 py-5 flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-3">
+          <BrandLogo size="md" />
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-black text-base sm:text-lg text-white tracking-tight">
+                حِسَابُك
+              </h1>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#c59b48]/15 text-[#d4a34b] border border-[#c59b48]/40 font-bold">
+                Hisabuk
+              </span>
+            </div>
+            <p className="text-[11px] text-[#d4a34b] font-medium">نظام الفوترة السحابية والمخزون</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isInIframe && (
+            <button
+              onClick={handleOpenInNewTab}
+              className="text-xs text-amber-300 hover:text-amber-200 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-800/60 px-3 py-1.5 rounded-xl transition-all hidden sm:flex items-center gap-1.5"
+              title="فتح التطبيق في نافذة مستقلة لتجاوز قيود النوافذ المنبثقة"
+            >
+              <span>فتح في نافذة مستقلة</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          <button
+            onClick={onContinueAsGuest}
+            className="text-xs text-slate-400 hover:text-white bg-[#121216] hover:bg-[#1c1c24] border border-[#1e1e24] px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
+          >
+            <span>المتابعة كضيف</span>
+            <ArrowLeft className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </header>
+
+      {/* Main Login Card Section */}
+      <main className="max-w-5xl w-full mx-auto px-4 py-6 sm:py-8 flex-1 flex flex-col justify-center relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          
+          {/* Left/Main Column: Welcome & Value Propositions */}
+          <div className="lg:col-span-6 space-y-5 text-right">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-950/70 text-emerald-400 text-xs font-bold border border-emerald-800/50 shadow-inner">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>إدارة تجارية متكاملة ومصممة للسوق السوداني</span>
+            </div>
+
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight">
+              فواتير احترافية مزدوجة، تجميد لسعر الصرف، ومراقبة دقيقة للمخزون
+            </h2>
+
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              النظام الأول المصمم لتمكين التجار وأصحاب المحلات في السودان من إصدار الفواتير بالجنيه السوداني والدولار، ومتابعة نقص المخزون، مع إرسال تذكيرات سداد فورية عبر واتساب وربط الحساب البنكي (بنكك).
+            </p>
+
+            {/* Feature Highlights Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="bg-[#0c0c0f] border border-[#1e1e24] p-3 rounded-xl flex items-start gap-2.5">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <RefreshCw className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-white mb-0.5">تجميد سعر الصرف</h4>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    تثبيت سعر صرف الدولار لكل فاتورة لحمايتك من تقلبات العملة.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[#0c0c0f] border border-[#1e1e24] p-3 rounded-xl flex items-start gap-2.5">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <Package className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-white mb-0.5">تنبيهات المخزون</h4>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    خصم فوري عند كل بيع وتنبيه عند الوصول لحد الأمان.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[#0c0c0f] border border-[#1e1e24] p-3 rounded-xl flex items-start gap-2.5">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <Share2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-white mb-0.5">واتساب وبنكك</h4>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    مشاركة الفاتورة وبيانات الحساب البنكي بضغطة زر واحدة.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-[#0c0c0f] border border-[#1e1e24] p-3 rounded-xl flex items-start gap-2.5">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-xs text-white mb-0.5">حفظ سحابي مشفر</h4>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    مزامنة فورية ودعم كامل للعمل دون انقطاع حتى مع ضعف الشبكة.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Multi-Method Authentication Box */}
+          <div className="lg:col-span-6">
+            <div className="bg-[#0c0c0f] border border-[#1e1e24] rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-right">
+                  <h3 className="text-lg font-black text-white">الدخول لمنظومة حسابك</h3>
+                  <p className="text-[11px] text-slate-400">اختر طريقة تسجيل الدخول المناسبة لك</p>
+                </div>
+                <BrandLogo size="md" />
+              </div>
+
+              {/* Authentication Mode Tabs */}
+              <div className="grid grid-cols-2 p-1 bg-[#15151c] rounded-xl border border-[#1e1e24] mb-4 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('google');
+                    setError(null);
+                  }}
+                  className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    activeTab === 'google'
+                      ? 'bg-emerald-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span>حساب Google</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('credentials');
+                    setError(null);
+                  }}
+                  className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    activeTab === 'credentials'
+                      ? 'bg-emerald-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>البريد أو الهاتف</span>
+                </button>
+              </div>
+
+              {/* Status & Error Messages */}
+              {error && (
+                <div className="mb-4 p-3 rounded-xl bg-rose-950/50 border border-rose-800/60 text-xs text-rose-300 text-right space-y-2">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{error}</span>
+                  </div>
+
+                  {/* Fallback actions if Google OAuth popup fails */}
+                  {activeTab === 'google' && (
+                    <div className="pt-2 border-t border-rose-900/40 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab('credentials');
+                          setError(null);
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-[11px] transition-colors"
+                      >
+                        الدخول بالبريد / الهاتف
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onContinueAsGuest}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-medium text-[11px] transition-colors"
+                      >
+                        المتابعة كضيف محلياً
+                      </button>
+                      {isInIframe && (
+                        <button
+                          type="button"
+                          onClick={handleOpenInNewTab}
+                          className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-medium text-[11px] flex items-center gap-1 transition-colors"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          <span>نافذة مستقلة</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {successMsg && (
+                <div className="mb-4 p-3 rounded-xl bg-emerald-950/60 border border-emerald-800/70 text-xs text-emerald-300 text-right flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{successMsg}</span>
+                </div>
+              )}
+
+              {/* Tab 1: Google Authentication */}
+              {activeTab === 'google' && (
+                <div className="space-y-4 text-right">
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    سجّل الدخول بنقرة واحدة لربط فواتيرك ومنتجاتك بحسابك السحابي الآمن.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    disabled={loading}
+                    className="w-full bg-white hover:bg-slate-100 text-slate-900 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                      />
+                    </svg>
+                    <span className="text-sm font-black">
+                      {loading ? 'جاري الاتصال بـ Google...' : 'المتابعة بحساب Google'}
+                    </span>
+                  </button>
+
+                  {isInIframe && (
+                    <div className="p-2.5 rounded-lg bg-[#14141a] border border-[#22222b] flex items-center justify-between text-[11px] text-slate-400">
+                      <span>هل تواجه قيود النوافذ المنبثقة؟</span>
+                      <button
+                        type="button"
+                        onClick={handleOpenInNewTab}
+                        className="text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1"
+                      >
+                        <span>فتح بنافذة جديدة</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 2: Email or Sudanese Phone + Password */}
+              {activeTab === 'credentials' && (
+                <form onSubmit={handleCredentialsSubmit} className="space-y-3 text-right">
+                  {authMode === 'register' && (
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                        اسم المتجر أو التاجر
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={displayName}
+                          onChange={(e) => setDisplayName(e.target.value)}
+                          placeholder="مثال: متجر البركة للأجهزة"
+                          className="w-full bg-[#15151c] border border-[#262633] focus:border-emerald-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors"
+                        />
+                        <Store className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                      البريد الإلكتروني أو رقم الهاتف السوداني
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={identifier}
+                        onChange={(e) => setIdentifier(e.target.value)}
+                        placeholder="0912345678 أو merchant@gmail.com"
+                        dir="ltr"
+                        className="w-full bg-[#15151c] border border-[#262633] focus:border-emerald-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors text-right"
+                      />
+                      <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                      كلمة المرور (6 خانات على الأقل)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        dir="ltr"
+                        className="w-full bg-[#15151c] border border-[#262633] focus:border-emerald-500 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 outline-none transition-colors text-right"
+                      />
+                      <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98] disabled:opacity-50 mt-2"
+                  >
+                    {loading ? (
+                      <span>جاري المعالجة...</span>
+                    ) : authMode === 'register' ? (
+                      <>
+                        <UserPlus className="w-4 h-4" />
+                        <span>إنشاء حساب تاجر جديد</span>
+                      </>
+                    ) : (
+                      <>
+                        <LogIn className="w-4 h-4" />
+                        <span>تسجيل الدخول</span>
+                      </>
+                    )}
+                  </button>
+
+                  <div className="pt-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMode(authMode === 'login' ? 'register' : 'login');
+                        setError(null);
+                      }}
+                      className="text-[11px] text-slate-400 hover:text-emerald-400 transition-colors"
+                    >
+                      {authMode === 'login'
+                        ? 'ليس لديك حساب؟ اضغط لإنشاء حساب تاجر جديد'
+                        : 'لديك حساب مسجل بالفعل؟ اضغط لتسجيل الدخول'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Divider for Instant Guest Access */}
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[#1e1e24]"></div>
+                </div>
+                <div className="relative flex justify-center text-[11px]">
+                  <span className="px-2 bg-[#0c0c0f] text-slate-500">أو البدء الفوري بدون تسجيل</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={onContinueAsGuest}
+                className="w-full bg-[#15151c] hover:bg-[#1d1d26] text-emerald-400 border border-emerald-500/30 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+              >
+                <span>المتابعة كضيف (تخزين محلي فوري)</span>
+                <ArrowLeft className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="mt-4 pt-3 border-t border-[#1e1e24] flex items-center justify-center gap-2 text-[11px] text-slate-500">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>حماية سحابية مشفرة 100% عبر Firebase & Cloud Run</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+
+      {/* Simple Footer */}
+      <footer className="max-w-6xl w-full mx-auto px-4 py-4 text-center text-xs text-slate-500 border-t border-[#1e1e24] relative z-10">
+        <p>© {new Date().getFullYear()} نظام حِسَابُك — المحاسبة والفوترة الذكية للشركات والمتاجر في السودان</p>
+      </footer>
+    </div>
+  );
+};

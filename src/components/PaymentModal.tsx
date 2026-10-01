@@ -5,6 +5,7 @@ import { X, CheckCircle2, CreditCard, AlertCircle, Receipt } from 'lucide-react'
 import { formatMoney, convertCurrency, safeSub, validateExchangeRate } from '../lib/currency';
 import { receivableCurrency, paymentQuote } from '../domain/financial';
 import { applyRounding } from '../lib/currency';
+import { Dialog } from './Dialog';
 
 interface PaymentModalProps {
   invoice: Invoice | null;
@@ -110,8 +111,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-sf-surface rounded-2xl shadow-2xl border border-sf-border max-w-md w-full p-5 sm:p-6 animate-in fade-in zoom-in-95 text-xs sm:text-sm text-sf-text">
+    <Dialog label="تسجيل دفعة" onClose={() => { if (!isSubmitting) onClose(); }} className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-sf-surface rounded-xl shadow-2xl border border-sf-border max-w-md w-full p-6 sm:p-6 animate-in fade-in zoom-in-95 text-xs sm:text-sm text-sf-text">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-sf-border pb-3 mb-4">
           <div className="flex items-center gap-2">
@@ -119,11 +120,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <CreditCard className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-base text-sf-text">تسجيل دفعة جديدة</h3>
+              <h3 className="font-semibold text-base text-sf-text">تسجيل دفعة جديدة</h3>
               <p className="text-xs text-sf-muted font-mono">فاتورة #{invoice.invoice_number}</p>
             </div>
           </div>
-          <button
+          <button disabled={isSubmitting} aria-label="إغلاق النافذة"
             onClick={onClose}
             className="p-1 rounded-md text-sf-muted hover:text-sf-text hover:bg-sf-raised transition-colors"
           >
@@ -132,7 +133,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         </div>
 
         {error && (
-          <div className="p-2.5 mb-3 bg-sf-danger-bg/40 border border-sf-danger/60 rounded-lg text-sf-danger text-xs flex items-center gap-2">
+          <div className="p-3 mb-3 bg-sf-danger-bg/40 border border-sf-danger/60 rounded-lg text-sf-danger text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-sf-danger shrink-0" />
             <span>{error}</span>
           </div>
@@ -142,15 +143,15 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         <div className="bg-sf-raised p-3 rounded-xl border border-sf-border mb-4 space-y-1 text-xs">
           <div className="flex justify-between text-sf-muted">
             <span>العميل:</span>
-            <span className="font-bold text-sf-text">{invoice.customer_name}</span>
+            <span className="font-semibold text-sf-text">{invoice.customer_name}</span>
           </div>
           <div className="flex justify-between text-sf-muted">
             <span>إجمالي الفاتورة:</span>
-            <span className="font-mono font-bold text-sf-text">
+            <span className="font-mono font-semibold text-sf-text">
               {formatMoney(invoice.grand_total_sdg, 'SDG', settings)} ({formatMoney(invoice.grand_total_usd, 'USD', settings)})
             </span>
           </div>
-          <div className="flex justify-between text-sf-danger font-bold pt-1 border-t border-sf-border">
+          <div className="flex justify-between text-sf-danger font-semibold pt-1 border-t border-sf-border">
             <span>المتبقي المطلوب:</span>
             <span className="font-mono">
               {formatMoney(invoice.remaining_sdg, 'SDG', settings)} ({formatMoney(invoice.remaining_usd, 'USD', settings)})
@@ -166,7 +167,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleCurrencySwitch('SDG')}
-                className={`py-2 px-3 rounded-lg border text-xs font-bold transition-all ${
+                className={`py-2 px-3 rounded-lg border text-xs font-semibold transition-all ${
                   currency === 'SDG'
                     ? 'bg-sf-action text-sf-on-action border-sf-action shadow-sm'
                     : 'bg-sf-raised text-sf-text border-sf-border hover:bg-sf-raised'
@@ -177,7 +178,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <button
                 type="button"
                 onClick={() => handleCurrencySwitch('USD')}
-                className={`py-2 px-3 rounded-lg border text-xs font-bold transition-all ${
+                className={`py-2 px-3 rounded-lg border text-xs font-semibold transition-all ${
                   currency === 'USD'
                     ? 'bg-sf-action text-sf-on-action border-sf-action shadow-sm'
                     : 'bg-sf-raised text-sf-text border-sf-border hover:bg-sf-raised'
@@ -192,7 +193,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="font-semibold text-sf-text text-xs">المبلغ المدفوع *</label>
-              <div className="flex items-center gap-1.5 text-[11px]">
+              <div className="flex items-center gap-2 text-xs">
                 <button
                   type="button"
                   onClick={() => handleQuickFill('full')}
@@ -219,13 +220,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 aria-label="مبلغ الدفعة"
                 onChange={(e) => setAmount(Number(e.target.value))}
                 required
-                className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-base font-bold font-mono text-sf-text focus:outline-none focus:border-sf-action"
+                className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-base font-semibold font-mono text-sf-text focus:outline-none focus:border-sf-action"
               />
-              <span className="absolute left-3 top-2.5 text-xs text-sf-action font-bold">
+              <span className="absolute left-3 top-2.5 text-xs text-sf-action font-semibold">
                 {currency === 'SDG' ? 'ج.س' : 'USD'}
               </span>
             </div>
-            <div className="flex items-center justify-between text-[11px] text-sf-muted mt-1">
+            <div className="flex items-center justify-between text-xs text-sf-muted mt-1">
               <span>سعر الصرف عند إصدار الفاتورة: 1$ = {formatMoney(invRate, 'SDG', settings)}</span>
             </div>
           </div>
@@ -234,7 +235,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <div className="bg-sf-raised p-3 rounded-xl border border-sf-border space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-sf-text">سعر الصرف عند السداد (ج.س لكل $)</label>
-              <span className="text-[11px] text-sf-muted font-mono">
+              <span className="text-xs text-sf-muted font-mono">
                 الحالي: {formatMoney(exchangeRateUsed, 'SDG', settings)}
               </span>
             </div>
@@ -245,11 +246,11 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               value={exchangeRateUsed}
               aria-label="سعر الصرف عند السداد"
               onChange={(e) => setExchangeRateUsed(Number(e.target.value))}
-              className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-sf-text focus:outline-none focus:border-sf-action"
+              className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs font-mono font-semibold text-sf-text focus:outline-none focus:border-sf-action"
             />
             {rateDiff !== 0 && (
               <div
-                className={`text-[11px] p-2 rounded-lg border font-medium flex items-center justify-between ${
+                className={`text-xs p-2 rounded-lg border font-medium flex items-center justify-between ${
                   rateDiff > 0
                     ? 'bg-sf-selected/40 border-sf-action/50 text-sf-action'
                     : 'bg-sf-danger-bg/40 border-sf-danger/50 text-sf-danger'
@@ -258,7 +259,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 <span>
                   {rateDiff > 0 ? 'أرباح فروقات عملة (FX Gain)' : 'خسائر فروقات عملة (FX Loss)'}:
                 </span>
-                <span className="font-mono font-bold dir-ltr">
+                <span className="font-mono font-semibold dir-ltr">
                   {rateDiff > 0 ? `+${rateDiff}` : rateDiff} ج.س/$
                 </span>
               </div>
@@ -291,7 +292,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               value={referenceNumber}
               onChange={(e) => setReferenceNumber(e.target.value)}
               placeholder="مثال: رقم المعاملة في تطبيق بنكك..."
-              className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action font-mono"
+              className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action font-mono"
             />
           </div>
 
@@ -303,13 +304,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="ملاحظات حول الدفعة..."
-              className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+              className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
             />
           </div>
 
           {/* Submit */}
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-sf-border">
-            <button
+            <button disabled={isSubmitting}
               type="button"
               onClick={onClose}
               className="px-4 py-2 text-xs font-semibold text-sf-text hover:bg-sf-raised rounded-lg border border-sf-border bg-sf-raised transition-colors"
@@ -319,7 +320,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-5 py-2 text-xs font-bold text-sf-on-action bg-sf-action hover:bg-sf-action-hover rounded-lg shadow-lg shadow-sf-action/20 flex items-center gap-1.5 transition-all disabled:opacity-50 active:scale-95"
+              className="px-6 py-2 text-xs font-semibold text-sf-on-action bg-sf-action hover:bg-sf-action-hover rounded-lg shadow-lg shadow-sf-action/20 flex items-center gap-2 transition-all disabled:opacity-50 "
             >
               <CheckCircle2 className="w-4 h-4 text-sf-on-action" />
               <span>تأكيد استلام الدفعة</span>
@@ -327,6 +328,6 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </Dialog>
   );
 };

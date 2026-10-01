@@ -9,22 +9,19 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
   return (
-    <footer className="mt-auto border-t border-sf-border bg-sf-canvas text-sf-muted py-8 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <footer className="mt-auto border-t border-sf-border bg-sf-canvas text-sf-muted py-8">
+      <div className="sf-content space-y-6">
 
         {/* Main Footer Row */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-6 border-b border-sf-border text-center md:text-right">
 
           {/* Brand Info */}
-          <div className="space-y-1.5 max-w-sm">
-            <div className="flex items-center justify-center md:justify-start gap-2.5">
-              <BrandLogo size="sm" />
-              <span className="font-black text-sf-text text-base tracking-tight">
-                سودافلو <span className="text-sf-action font-sans text-xs">/ SudaFlow</span>
-              </span>
+          <div className="space-y-2 max-w-sm">
+            <div className="flex items-center justify-center md:justify-start gap-3">
+              <BrandLogo size="md" showText />
             </div>
             <p className="text-xs text-sf-muted leading-relaxed">
-              المنظومة المحاسبية المتكاملة لإصدار الفواتير المزدوجة بالجنيه والدولار وإدارة المخزون والتحصيل للشركات والمتاجر.
+              شغلك أوضح. فواتير ومخزون وتحصيل، بالجنيه السوداني والدولار.
             </p>
           </div>
 
@@ -35,25 +32,25 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
               onClick={() => onOpenLegal('privacy')}
               className="text-sf-muted hover:text-sf-action transition-colors py-1"
             >
-              سياسة الخصوصية (Privacy Policy)
+              سياسة الخصوصية
             </button>
-            <span className="text-slate-700 hidden sm:inline">•</span>
+            <span className="text-sf-muted hidden sm:inline">•</span>
             <button
               type="button"
               onClick={() => onOpenLegal('terms')}
               className="text-sf-muted hover:text-sf-action transition-colors py-1"
             >
-              شروط الاستخدام (Terms of Service)
+              شروط الاستخدام
             </button>
-            <span className="text-slate-700 hidden sm:inline">•</span>
+            <span className="text-sf-muted hidden sm:inline">•</span>
             <button
               type="button"
               onClick={() => onOpenLegal('about')}
               className="text-sf-muted hover:text-sf-action transition-colors py-1"
             >
-              من نحن (About Us)
+              من نحن
             </button>
-            <span className="text-slate-700 hidden sm:inline">•</span>
+            <span className="text-sf-muted hidden sm:inline">•</span>
             <button
               type="button"
               onClick={() => onOpenLegal('contact')}
@@ -67,7 +64,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenLegal }) => {
         </div>
 
         {/* Bottom Sub-row: AdSense and Copyright note */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-sf-muted">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-sf-muted">
           <div className="flex items-center gap-2">
 
             <span>جميع الحقوق محفوظة © {new Date().getFullYear()} — سودافلو | SudaFlow</span>

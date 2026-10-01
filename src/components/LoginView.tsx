@@ -119,19 +119,19 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
       <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-sf-action/5 rounded-full blur-3xl pointer-events-none -mb-20"></div>
 
       {/* Top Simple Bar */}
-      <header className="max-w-6xl w-full mx-auto px-4 py-5 flex items-center justify-between relative z-10">
+      <header className="max-w-6xl w-full mx-auto px-4 py-6 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-3">
           <BrandLogo size="md" />
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-black text-base sm:text-lg text-sf-text tracking-tight">
+              <h1 className="font-semibold text-base sm:text-lg text-sf-text tracking-tight">
                 سودافلو
               </h1>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-sf-action/15 text-sf-action border border-sf-action/40 font-bold">
+              <span className="text-xs px-2 py-1 rounded-full bg-sf-action/15 text-sf-action border border-sf-action/40 font-semibold">
                 SudaFlow
               </span>
             </div>
-            <p className="text-[11px] text-sf-action font-medium">نظام الفوترة السحابية والمخزون</p>
+            <p className="text-xs text-sf-action font-medium">نظام الفوترة السحابية والمخزون</p>
           </div>
         </div>
 
@@ -139,7 +139,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
           {isInIframe && (
             <button
               onClick={handleOpenInNewTab}
-              className="text-xs text-sf-warning hover:text-sf-warning bg-sf-warning-bg/40 hover:bg-sf-warning-bg/50 border border-sf-warning/60 px-3 py-1.5 rounded-xl transition-all hidden sm:flex items-center gap-1.5"
+              className="text-xs text-sf-warning hover:text-sf-warning bg-sf-warning-bg/40 hover:bg-sf-warning-bg/50 border border-sf-warning/60 px-3 py-2 rounded-xl transition-all hidden sm:flex items-center gap-2"
               title="فتح التطبيق في نافذة مستقلة لتجاوز قيود النوافذ المنبثقة"
             >
               <span>فتح في نافذة مستقلة</span>
@@ -149,7 +149,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
 
           <button
             onClick={onContinueAsGuest}
-            className="text-xs text-sf-muted hover:text-sf-text bg-sf-raised hover:bg-sf-raised border border-sf-border px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5"
+            className="text-xs text-sf-muted hover:text-sf-text bg-sf-raised hover:bg-sf-raised border border-sf-border px-4 py-2 rounded-xl transition-all flex items-center gap-2"
           >
             <span>المتابعة كضيف</span>
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -162,13 +162,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           
           {/* Left/Main Column: Welcome & Value Propositions */}
-          <div className="lg:col-span-6 space-y-5 text-right">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-sf-selected/70 text-sf-action text-xs font-bold border border-sf-action/50 shadow-inner">
+          <div className="lg:col-span-6 space-y-6 text-right">
+            <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-sf-selected/70 text-sf-action text-xs font-semibold border border-sf-action/50 shadow-inner">
               <Sparkles className="w-3.5 h-3.5 text-sf-action" />
               <span>إدارة تجارية متكاملة ومصممة للسوق السوداني</span>
             </div>
 
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-sf-text leading-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-sf-text leading-tight">
               فواتير احترافية مزدوجة، تجميد لسعر الصرف، ومراقبة دقيقة للمخزون
             </h2>
 
@@ -178,49 +178,49 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
 
             {/* Feature Highlights Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-              <div className="bg-sf-surface border border-sf-border p-3 rounded-xl flex items-start gap-2.5">
+              <div className="bg-sf-surface border border-sf-border p-3 rounded-xl flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-sf-action/10 text-sf-action shrink-0">
                   <RefreshCw className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-xs text-sf-text mb-0.5">تجميد سعر الصرف</h4>
-                  <p className="text-[11px] text-sf-muted leading-snug">
+                  <h4 className="font-semibold text-xs text-sf-text mb-1">تجميد سعر الصرف</h4>
+                  <p className="text-xs text-sf-muted leading-snug">
                     تثبيت سعر صرف الدولار لكل فاتورة لحمايتك من تقلبات العملة.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-sf-surface border border-sf-border p-3 rounded-xl flex items-start gap-2.5">
+              <div className="bg-sf-surface border border-sf-border p-3 rounded-xl flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-sf-action/10 text-sf-action shrink-0">
                   <Package className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-xs text-sf-text mb-0.5">تنبيهات المخزون</h4>
-                  <p className="text-[11px] text-sf-muted leading-snug">
+                  <h4 className="font-semibold text-xs text-sf-text mb-1">تنبيهات المخزون</h4>
+                  <p className="text-xs text-sf-muted leading-snug">
                     خصم فوري عند كل بيع وتنبيه عند الوصول لحد الأمان.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-sf-surface border border-sf-border p-3 rounded-xl flex items-start gap-2.5">
+              <div className="bg-sf-surface border border-sf-border p-3 rounded-xl flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-sf-action/10 text-sf-action shrink-0">
                   <Share2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-xs text-sf-text mb-0.5">واتساب وبنكك</h4>
-                  <p className="text-[11px] text-sf-muted leading-snug">
+                  <h4 className="font-semibold text-xs text-sf-text mb-1">واتساب وبنكك</h4>
+                  <p className="text-xs text-sf-muted leading-snug">
                     مشاركة الفاتورة وبيانات الحساب البنكي بضغطة زر واحدة.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-sf-surface border border-sf-border p-3 rounded-xl flex items-start gap-2.5">
+              <div className="bg-sf-surface border border-sf-border p-3 rounded-xl flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-sf-action/10 text-sf-action shrink-0">
                   <ShieldCheck className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-xs text-sf-text mb-0.5">حفظ سحابي مشفر</h4>
-                  <p className="text-[11px] text-sf-muted leading-snug">
+                  <h4 className="font-semibold text-xs text-sf-text mb-1">حفظ سحابي مشفر</h4>
+                  <p className="text-xs text-sf-muted leading-snug">
                     مزامنة فورية ودعم كامل للعمل دون انقطاع حتى مع ضعف الشبكة.
                   </p>
                 </div>
@@ -230,24 +230,24 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
 
           {/* Right Column: Multi-Method Authentication Box */}
           <div className="lg:col-span-6">
-            <div className="bg-sf-surface border border-sf-border rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+            <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
               <div className="flex items-center justify-between mb-4">
                 <div className="text-right">
-                  <h3 className="text-lg font-black text-sf-text">الدخول لمنظومة سودافلو</h3>
-                  <p className="text-[11px] text-sf-muted">اختر طريقة تسجيل الدخول المناسبة لك</p>
+                  <h3 className="text-lg font-semibold text-sf-text">الدخول لمنظومة سودافلو</h3>
+                  <p className="text-xs text-sf-muted">اختر طريقة تسجيل الدخول المناسبة لك</p>
                 </div>
                 <BrandLogo size="md" />
               </div>
 
               {/* Authentication Mode Tabs */}
-              <div className="grid grid-cols-2 p-1 bg-sf-raised rounded-xl border border-sf-border mb-4 text-xs font-bold">
+              <div className="grid grid-cols-2 p-1 bg-sf-raised rounded-xl border border-sf-border mb-4 text-xs font-semibold">
                 <button
                   type="button"
                   onClick={() => {
                     setActiveTab('google');
                     setError(null);
                   }}
-                  className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-2 ${
                     activeTab === 'google'
                       ? 'bg-sf-action text-sf-on-action shadow-md'
                       : 'text-sf-muted hover:text-sf-text'
@@ -261,7 +261,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                     setActiveTab('credentials');
                     setError(null);
                   }}
-                  className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-2 ${
                     activeTab === 'credentials'
                       ? 'bg-sf-action text-sf-on-action shadow-md'
                       : 'text-sf-muted hover:text-sf-text'
@@ -276,7 +276,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
               {error && (
                 <div className="mb-4 p-3 rounded-xl bg-sf-danger-bg/50 border border-sf-danger/60 text-xs text-sf-danger text-right space-y-2">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-sf-danger shrink-0 mt-0.5" />
+                    <AlertCircle className="w-4 h-4 text-sf-danger shrink-0 mt-1" />
                     <span className="leading-relaxed">{error}</span>
                   </div>
 
@@ -289,14 +289,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                           setActiveTab('credentials');
                           setError(null);
                         }}
-                        className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sf-text font-medium text-[11px] transition-colors"
+                        className="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-sf-text font-medium text-xs transition-colors"
                       >
                         الدخول بالبريد / الهاتف
                       </button>
                       <button
                         type="button"
                         onClick={onContinueAsGuest}
-                        className="px-2.5 py-1 rounded-lg bg-sf-action/20 hover:bg-sf-action/30 text-sf-action font-medium text-[11px] transition-colors"
+                        className="px-3 py-1 rounded-lg bg-sf-action/20 hover:bg-sf-action/30 text-sf-action font-medium text-xs transition-colors"
                       >
                         المتابعة كضيف محلياً
                       </button>
@@ -304,7 +304,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                         <button
                           type="button"
                           onClick={handleOpenInNewTab}
-                          className="px-2.5 py-1 rounded-lg bg-sf-warning-bg/20 hover:bg-sf-warning-bg/30 text-sf-warning font-medium text-[11px] flex items-center gap-1 transition-colors"
+                          className="px-3 py-1 rounded-lg bg-sf-warning-bg/20 hover:bg-sf-warning-bg/30 text-sf-warning font-medium text-xs flex items-center gap-1 transition-colors"
                         >
                           <ExternalLink className="w-3 h-3" />
                           <span>نافذة مستقلة</span>
@@ -333,7 +333,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                     type="button"
                     onClick={handleGoogleLogin}
                     disabled={loading}
-                    className="w-full bg-sf-surface hover:bg-sf-raised text-sf-text font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
+                    className="w-full bg-sf-surface hover:bg-sf-raised text-sf-text font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all duration-(--sf-motion-state) active:scale-[0.98] disabled:opacity-50"
                   >
                     <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                       <path
@@ -353,18 +353,18 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                         d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                       />
                     </svg>
-                    <span className="text-sm font-black">
+                    <span className="text-sm font-semibold">
                       {loading ? 'جاري الاتصال بـ Google...' : 'المتابعة بحساب Google'}
                     </span>
                   </button>
 
                   {isInIframe && (
-                    <div className="p-2.5 rounded-lg bg-sf-raised border border-sf-border flex items-center justify-between text-[11px] text-sf-muted">
+                    <div className="p-3 rounded-lg bg-sf-raised border border-sf-border flex items-center justify-between text-xs text-sf-muted">
                       <span>هل تواجه قيود النوافذ المنبثقة؟</span>
                       <button
                         type="button"
                         onClick={handleOpenInNewTab}
-                        className="text-sf-warning hover:text-sf-warning font-bold flex items-center gap-1"
+                        className="text-sf-warning hover:text-sf-warning font-semibold flex items-center gap-1"
                       >
                         <span>فتح بنافذة جديدة</span>
                         <ExternalLink className="w-3 h-3" />
@@ -379,7 +379,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                 <form onSubmit={handleCredentialsSubmit} className="space-y-3 text-right">
                   {authMode === 'register' && (
                     <div>
-                      <label className="block text-[11px] font-bold text-sf-text mb-1">
+                      <label className="block text-xs font-semibold text-sf-text mb-1">
                         اسم المتجر أو التاجر
                       </label>
                       <div className="relative">
@@ -388,7 +388,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                           value={displayName}
                           onChange={(e) => setDisplayName(e.target.value)}
                           placeholder="مثال: متجر البركة للأجهزة"
-                          className="w-full bg-sf-raised border border-sf-border focus:border-sf-action rounded-xl px-3.5 py-2 text-xs text-sf-text placeholder-slate-500 outline-none transition-colors"
+                          className="w-full bg-sf-raised border border-sf-border focus:border-sf-action rounded-xl px-4 py-2 text-xs text-sf-text placeholder-sf-muted outline-none transition-colors"
                         />
                         <Store className="w-4 h-4 text-sf-muted absolute left-3 top-2.5" />
                       </div>
@@ -396,7 +396,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                   )}
 
                   <div>
-                    <label className="block text-[11px] font-bold text-sf-text mb-1">
+                    <label className="block text-xs font-semibold text-sf-text mb-1">
                       البريد الإلكتروني أو رقم الهاتف السوداني
                     </label>
                     <div className="relative">
@@ -406,14 +406,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                         onChange={(e) => setIdentifier(e.target.value)}
                         placeholder="0912345678 أو merchant@gmail.com"
                         dir="ltr"
-                        className="w-full bg-sf-raised border border-sf-border focus:border-sf-action rounded-xl px-3.5 py-2 text-xs text-sf-text placeholder-slate-500 outline-none transition-colors text-right"
+                        className="w-full bg-sf-raised border border-sf-border focus:border-sf-action rounded-xl px-4 py-2 text-xs text-sf-text placeholder-sf-muted outline-none transition-colors text-right"
                       />
                       <Phone className="w-4 h-4 text-sf-muted absolute left-3 top-2.5" />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-sf-text mb-1">
+                    <label className="block text-xs font-semibold text-sf-text mb-1">
                       كلمة المرور (6 خانات على الأقل)
                     </label>
                     <div className="relative">
@@ -423,7 +423,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         dir="ltr"
-                        className="w-full bg-sf-raised border border-sf-border focus:border-sf-action rounded-xl px-3.5 py-2 text-xs text-sf-text placeholder-slate-500 outline-none transition-colors text-right"
+                        className="w-full bg-sf-raised border border-sf-border focus:border-sf-action rounded-xl px-4 py-2 text-xs text-sf-text placeholder-sf-muted outline-none transition-colors text-right"
                       />
                       <Lock className="w-4 h-4 text-sf-muted absolute left-3 top-2.5" />
                     </div>
@@ -432,7 +432,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-black py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-sf-action/20 transition-all active:scale-[0.98] disabled:opacity-50 mt-2"
+                    className="w-full bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-sf-action/20 transition-all active:scale-[0.98] disabled:opacity-50 mt-2"
                   >
                     {loading ? (
                       <span>جاري المعالجة...</span>
@@ -456,7 +456,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                         setAuthMode(authMode === 'login' ? 'register' : 'login');
                         setError(null);
                       }}
-                      className="text-[11px] text-sf-muted hover:text-sf-action transition-colors"
+                      className="text-xs text-sf-muted hover:text-sf-action transition-colors"
                     >
                       {authMode === 'login'
                         ? 'ليس لديك حساب؟ اضغط لإنشاء حساب تاجر جديد'
@@ -471,7 +471,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-sf-border"></div>
                 </div>
-                <div className="relative flex justify-center text-[11px]">
+                <div className="relative flex justify-center text-xs">
                   <span className="px-2 bg-sf-surface text-sf-muted">أو البدء الفوري بدون تسجيل</span>
                 </div>
               </div>
@@ -479,13 +479,13 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
               <button
                 type="button"
                 onClick={onContinueAsGuest}
-                className="w-full bg-sf-raised hover:bg-sf-raised text-sf-action border border-sf-action/30 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                className="w-full bg-sf-raised hover:bg-sf-raised text-sf-action border border-sf-action/30 font-semibold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
               >
                 <span>المتابعة كضيف (تخزين محلي فوري)</span>
                 <ArrowLeft className="w-3.5 h-3.5" />
               </button>
 
-              <div className="mt-4 pt-3 border-t border-sf-border flex items-center justify-center gap-2 text-[11px] text-sf-muted">
+              <div className="mt-4 pt-3 border-t border-sf-border flex items-center justify-center gap-2 text-xs text-sf-muted">
                 <ShieldCheck className="w-3.5 h-3.5 text-sf-action" />
                 <span>حماية سحابية مشفرة 100% عبر Firebase & Cloud Run</span>
               </div>

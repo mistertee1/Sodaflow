@@ -7,7 +7,6 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  Cell,
 } from 'recharts';
 import { Package, TrendingUp, DollarSign, Layers } from 'lucide-react';
 import { Invoice, Product, MerchantSettings } from '../types';
@@ -131,35 +130,32 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
     });
   }, [invoices, products, settings, metric]);
 
-  // Color palette for the bars in inverted light theme
-  const barColors = ['var(--sf-action)', 'var(--sf-info)', 'var(--sf-warning)', 'var(--sf-text-muted)', 'var(--sf-text)'];
-
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-sf-surface border border-sf-border text-sf-text p-3 rounded-xl shadow-xl text-xs space-y-1.5 z-50">
-          <div className="font-bold text-sf-text flex items-center gap-1.5">
+        <div className="bg-sf-surface border border-sf-border text-sf-text p-3 rounded-xl shadow-xl text-xs space-y-2 z-50">
+          <div className="font-semibold text-sf-text flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-sf-raised"></span>
             <span>{data.name}</span>
           </div>
           <div className="text-sf-muted flex items-center justify-between gap-4">
             <span>الكمية المباعة:</span>
-            <span className="font-mono font-bold text-sf-text">
+            <span className="font-mono font-semibold text-sf-text">
               {data.quantity} {data.unit}
             </span>
           </div>
           <div className="text-sf-muted flex items-center justify-between gap-4 border-t border-sf-border pt-1">
             <span>إجمالي الإيرادات:</span>
-            <span className="font-mono font-bold text-sf-action">
+            <span className="font-mono font-semibold text-sf-text">
               {formatMoney(data.revenueSdg, 'SDG', settings)}
             </span>
           </div>
-          <div className="text-sf-muted text-[10px] text-left font-mono">
+          <div className="text-sf-muted text-xs text-left font-mono">
             ≈ {formatMoney(data.revenueUsd, 'USD', settings)}
           </div>
           {data.invoiceCount > 0 && (
-            <div className="text-[10px] text-sf-muted border-t border-sf-border pt-1">
+            <div className="text-xs text-sf-muted border-t border-sf-border pt-1">
               مذكور في {data.invoiceCount} فاتورة
             </div>
           )}
@@ -173,21 +169,21 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
   const hasSales = safeChartData.some((p) => p && (p.quantity || 0) > 0);
 
   return (
-    <div className="bg-sf-surface border border-sf-border rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
+    <div className="bg-sf-surface border border-sf-border rounded-xl p-4 sm:p-6 shadow-xs space-y-4">
       {/* Header & Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-sf-raised text-sf-text border border-sf-border">
             <TrendingUp className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-sm sm:text-base text-sf-text flex items-center gap-2">
+            <h3 className="font-semibold text-sm sm:text-base text-sf-text flex items-center gap-2">
               <span>أكثر 5 منتجات مبيعًا</span>
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-sf-raised text-sf-text border border-sf-border font-semibold">
+              <span className="text-xs font-mono px-2 py-1 rounded-full bg-sf-raised text-sf-text border border-sf-border font-semibold">
                 Top 5
               </span>
             </h3>
-            <p className="text-[11px] text-sf-muted">
+            <p className="text-xs text-sf-muted">
               تحليل فوري لحركة المبيعات والمنتجات الأكثر طلبًا من واقع الفواتير
             </p>
           </div>
@@ -198,9 +194,9 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
           <button
             type="button"
             onClick={() => setMetric('quantity')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
               metric === 'quantity'
-                ? 'bg-sf-raised text-sf-text font-bold shadow-xs'
+                ? 'bg-sf-raised text-sf-text font-semibold shadow-xs'
                 : 'text-sf-muted hover:text-sf-text'
             }`}
           >
@@ -210,9 +206,9 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
           <button
             type="button"
             onClick={() => setMetric('revenue')}
-            className={`px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
+            className={`px-3 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
               metric === 'revenue'
-                ? 'bg-sf-raised text-sf-text font-bold shadow-xs'
+                ? 'bg-sf-raised text-sf-text font-semibold shadow-xs'
                 : 'text-sf-muted hover:text-sf-text'
             }`}
           >
@@ -227,13 +223,13 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
         <div className="h-56 flex flex-col items-center justify-center text-sf-muted border border-dashed border-sf-border rounded-xl p-6 text-center">
           <Package className="w-8 h-8 mb-2 opacity-40 text-sf-muted" />
           <p className="text-xs text-sf-muted font-semibold">سيظهر الرسم البياني عند تسجيل المبيعات</p>
-          <p className="text-[11px] text-sf-muted mt-1">
+          <p className="text-xs text-sf-muted mt-1">
             لا توجد مبيعات مسجلة حتى الآن. أضف أول فاتورة لبدء التحليل والمتابعة.
           </p>
         </div>
       ) : (
         <div className="w-full">
-          <div className="h-64 sm:h-72 w-full pt-2">
+          <div className="h-64 sm:h-72 w-full pt-2" dir="ltr" role="img" aria-label={metric === 'quantity' ? 'الكمية المباعة حسب المنتج؛ التفاصيل في الجدول' : 'إيرادات الفواتير بالجنيه السوداني حسب المنتج؛ التفاصيل في الجدول'}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={safeChartData}
@@ -243,7 +239,7 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
                 <XAxis
                   dataKey="shortName"
                   stroke="var(--sf-text-muted)"
-                  fontSize={11}
+                  fontSize={12}
                   tickLine={false}
                   axisLine={{ stroke: 'var(--sf-border)' }}
                   interval={0}
@@ -253,7 +249,7 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
                 />
                 <YAxis
                   stroke="var(--sf-text-muted)"
-                  fontSize={10}
+                  fontSize={14}
                   tickLine={false}
                   axisLine={{ stroke: 'var(--sf-border)' }}
                   tickFormatter={(val) =>
@@ -270,51 +266,30 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
                 <Bar
                   dataKey="value"
                   radius={[6, 6, 0, 0]}
-                  animationDuration={900}
+                  isAnimationActive={false}
+                  name={metric === 'quantity' ? 'الكمية المباعة' : 'إيراد الفواتير (SDG)'}
+                  fill="var(--sf-action)"
                 >
-                  {safeChartData.map((_, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={barColors[index % barColors.length]}
-                    />
-                  ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          {/* Top 5 Micro Rank Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5 pt-3 border-t border-sf-border">
-            {safeChartData.map((item, idx) => (
-              <div
-                key={item.id}
-                className="bg-sf-raised border border-sf-border hover:border-sf-border rounded-xl p-2.5 flex sm:flex-col justify-between items-center sm:items-start gap-2 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-mono font-black ${
-                      idx === 0
-                        ? 'bg-sf-raised text-sf-text'
-                        : 'bg-sf-selected text-sf-muted'
-                    }`}
-                  >
-                    #{item.rank}
-                  </span>
-                  <span className="font-semibold text-xs text-sf-text truncate max-w-[130px] sm:max-w-full" title={item.name}>
-                    {item.name}
-                  </span>
-                </div>
-                <div className="text-left sm:w-full sm:flex sm:justify-between sm:items-baseline sm:pt-1 sm:border-t sm:border-sf-border">
-                  <span className="font-mono font-bold text-xs text-sf-text">
-                    {item.quantity} {item.unit}
-                  </span>
-                  <span className="text-[10px] text-sf-muted font-mono hidden sm:inline">
-                    {formatMoney(item.revenueSdg, 'SDG', settings)}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <details className="border-t border-sf-border pt-4">
+            <summary className="text-sm text-sf-text cursor-pointer">عرض أرقام الرسم في جدول</summary>
+            <div className="sf-table-scroll mt-4" role="region" aria-label="أرقام مبيعات المنتجات" tabIndex={0}>
+              <table className="sf-table min-w-[560px]">
+                <caption>الكمية والإيراد من الفواتير الصادرة؛ يستبعد المسودات والملغاة والمبطلة.</caption>
+                <thead><tr><th scope="col">المنتج</th><th scope="col">الكمية</th><th scope="col">الإيراد (SDG)</th><th scope="col">العرض الثاني (USD)</th></tr></thead>
+                <tbody>{safeChartData.map(item => <tr key={item.id}>
+                  <td>{item.name}</td>
+                  <td><bdi dir="ltr" className="sf-number">{item.quantity}</bdi> {item.unit}</td>
+                  <td><bdi dir="ltr" className="sf-number">{formatMoney(item.revenueSdg, 'SDG', settings)}</bdi></td>
+                  <td><bdi dir="ltr" className="sf-number">{formatMoney(item.revenueUsd, 'USD', settings)}</bdi></td>
+                </tr>)}</tbody>
+              </table>
+            </div>
+          </details>
         </div>
       )}
     </div>

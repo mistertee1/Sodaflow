@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { formatMoney, getInvoiceStatusInfo } from '../lib/currency';
 import { getPlanConfig, isUnlimited } from '../lib/plans';
+import { Dialog } from './Dialog';
 
 interface CustomersViewProps {
   onOpenNewInvoiceForCustomer: (customer: Customer) => void;
@@ -178,18 +179,18 @@ ${settings.phone}`;
   };
 
   return (
-    <div className="space-y-5 pb-16">
+    <div className="space-y-6 pb-16">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-sf-surface p-4 rounded-2xl border border-sf-border shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-sf-surface p-4 rounded-xl border border-sf-border shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-sf-text">سجل العملاء والأرصدة</h2>
+          <h2 className="text-lg font-semibold text-sf-text">سجل العملاء والأرصدة</h2>
           <p className="text-xs text-sf-muted">
             متابعة ديون ومعاملات كل عميل بالجنيه السوداني والدولار مع كشف حساب فوري
           </p>
         </div>
         <button
           disabled={!isActionAllowed('customers:create')} onClick={handleOpenAdd}
-          className="bg-sf-action hover:bg-sf-action-hover text-sf-on-action text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-sf-action/20 transition-all active:scale-95"
+          className="bg-sf-action hover:bg-sf-action-hover text-sf-on-action text-xs sm:text-sm font-semibold px-4 py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sf-action/20 transition-all "
         >
           <Plus className="w-4 h-4 text-sf-on-action" />
           <span>إضافة عميل جديد</span>
@@ -204,44 +205,44 @@ ${settings.phone}`;
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="بحث باسم العميل أو رقم الهاتف أو المنطقة..."
-          className="w-full bg-sf-surface border border-sf-border rounded-xl pr-9 pl-4 py-2.5 text-xs sm:text-sm text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action shadow-sm"
+          className="w-full bg-sf-surface border border-sf-border rounded-xl pr-12 pl-4 py-3 text-xs sm:text-sm text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action shadow-sm"
         />
       </div>
 
       {/* Customers List */}
       {safeCustomers.length === 0 ? (
-        <div className="bg-sf-surface border border-sf-border rounded-2xl p-12 text-center text-sf-muted shadow-sm">
+        <div className="bg-sf-surface border border-sf-border rounded-xl p-12 text-center text-sf-muted shadow-sm">
           <Users className="w-12 h-12 mx-auto mb-3 opacity-40 text-sf-muted" />
-          <p className="text-base font-bold text-sf-text mb-1">لا توجد بيانات عملاء حتى الآن</p>
-          <p className="text-xs text-sf-muted max-w-md mx-auto mb-5">
+          <p className="text-base font-semibold text-sf-text mb-1">لا توجد بيانات عملاء حتى الآن</p>
+          <p className="text-xs text-sf-muted max-w-md mx-auto mb-6">
             أضف عملاءك لتتبع حساباتهم، ديونهم المستحقة بالجنيه والدولار، ومشاركة كشوف الحسابات.
           </p>
           <button
             disabled={!isActionAllowed('customers:create')} onClick={handleOpenAdd}
-            className="px-5 py-2.5 bg-sf-action hover:bg-sf-action-hover text-sf-on-action text-xs sm:text-sm font-black rounded-xl shadow-lg shadow-sf-action/20 inline-flex items-center gap-2 transition-all active:scale-95"
+            className="px-6 py-3 bg-sf-action hover:bg-sf-action-hover text-sf-on-action text-xs sm:text-sm font-semibold rounded-xl shadow-lg shadow-sf-action/20 inline-flex items-center gap-2 transition-all "
           >
             <Plus className="w-4 h-4 text-sf-on-action" />
             <span>+ إضافة عميل جديد</span>
           </button>
         </div>
       ) : filteredCustomers.length === 0 ? (
-        <div className="bg-sf-surface border border-sf-border rounded-2xl p-10 text-center text-sf-muted shadow-sm">
+        <div className="bg-sf-surface border border-sf-border rounded-xl p-12 text-center text-sf-muted shadow-sm">
           <p className="text-sm font-medium text-sf-text">لم يتم العثور على أي عملاء يطابقون البحث</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {(filteredCustomers || []).map((cust) => {
             const hasDebt = cust.balance_sdg > 0 || cust.balance_usd > 0;
             return (
               <div
                 key={cust.id}
-                className="bg-sf-surface border border-sf-border hover:border-sf-border rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between transition-all"
+                className="bg-sf-surface border border-sf-border hover:border-sf-border rounded-xl p-4 sm:p-6 shadow-sm flex flex-col justify-between transition-all"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
-                      <h3 className="font-bold text-base text-sf-text">{cust.name}</h3>
-                      <div className="flex items-center gap-2 text-xs text-sf-muted mt-0.5">
+                      <h3 className="font-semibold text-base text-sf-text">{cust.name}</h3>
+                      <div className="flex items-center gap-2 text-xs text-sf-muted mt-1">
                         {cust.phone && (
                           <span className="flex items-center gap-1 font-mono">
                             <Phone className="w-3 h-3 text-sf-action" />
@@ -261,14 +262,14 @@ ${settings.phone}`;
                       <button
                         disabled={!isActionAllowed('customers:update')} onClick={() => handleOpenEdit(cust)}
                         title="تعديل بيانات العميل"
-                        className="p-1.5 text-sf-muted hover:text-sf-text hover:bg-sf-raised rounded-lg transition-colors"
+                        className="p-2 text-sf-muted hover:text-sf-text hover:bg-sf-raised rounded-lg transition-colors"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         disabled={!isActionAllowed('customers:delete')} onClick={() => handleDelete(cust.id, cust.name)}
                         title="حذف العميل"
-                        className="p-1.5 text-sf-muted hover:text-sf-danger hover:bg-sf-danger-bg/30 rounded-lg transition-colors"
+                        className="p-2 text-sf-muted hover:text-sf-danger hover:bg-sf-danger-bg/30 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -278,26 +279,26 @@ ${settings.phone}`;
                   {/* Balance Display (Dual Currency) */}
                   <div className="bg-sf-raised rounded-xl p-3 border border-sf-border my-3 flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] text-sf-muted block mb-0.5">الرصيد المستحق (الديون):</span>
+                      <span className="text-xs text-sf-muted block mb-1">الرصيد المستحق (الديون):</span>
                       <div className="flex items-baseline gap-2">
                         <span
-                          className={`font-mono font-bold text-sm ${
-                            hasDebt ? 'text-sf-danger font-black' : 'text-sf-text'
+                          className={`font-mono font-semibold text-sm ${
+                            hasDebt ? 'text-sf-danger font-semibold' : 'text-sf-text'
                           }`}
                         >
                           {formatMoney(cust.balance_sdg, 'SDG', settings)}
                         </span>
-                        <span className="font-mono text-xs text-sf-action font-semibold">
+                        <span className="font-mono text-xs text-sf-text font-semibold">
                           ({formatMoney(cust.balance_usd, 'USD', settings)})
                         </span>
                       </div>
                     </div>
                     {hasDebt ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-sf-danger-bg/80 text-sf-danger border border-sf-danger/60 font-bold">
+                      <span className="text-xs px-2 py-1 rounded-full bg-sf-danger-bg/80 text-sf-danger border border-sf-danger/60 font-semibold">
                         مطلوب سداد
                       </span>
                     ) : (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-sf-selected/80 text-sf-action border border-sf-action/60 font-medium">
+                      <span className="text-xs px-2 py-1 rounded-full bg-sf-selected/80 text-sf-action border border-sf-action/60 font-medium">
                         خالص
                       </span>
                     )}
@@ -308,7 +309,7 @@ ${settings.phone}`;
                 <div className="flex items-center gap-2 pt-3 border-t border-sf-border">
                   <button
                     onClick={() => setStatementCustomer(cust)}
-                    className="flex-1 py-2 px-2 text-xs font-semibold text-sf-text bg-sf-raised hover:bg-sf-raised border border-sf-border rounded-xl text-center transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                    className="flex-1 py-2 px-2 text-xs font-semibold text-sf-text bg-sf-raised hover:bg-sf-raised border border-sf-border rounded-xl text-center transition-colors flex items-center justify-center gap-2 shadow-sm"
                   >
                     <FileText className="w-3.5 h-3.5 text-sf-action" />
                     <span>كشف الحساب</span>
@@ -316,7 +317,7 @@ ${settings.phone}`;
 
                   <button
                     onClick={() => onOpenNewInvoiceForCustomer(cust)}
-                    className="flex-1 py-2 px-2 text-xs font-bold text-sf-on-action bg-sf-action hover:bg-sf-action-hover rounded-xl text-center transition-colors flex items-center justify-center gap-1.5 shadow-lg shadow-sf-action/20"
+                    className="flex-1 py-2 px-2 text-xs font-semibold text-sf-on-action bg-sf-action hover:bg-sf-action-hover rounded-xl text-center transition-colors flex items-center justify-center gap-2 shadow-lg shadow-sf-action/20"
                   >
                     <Plus className="w-3.5 h-3.5 text-sf-on-action" />
                     <span>فاتورة جديدة</span>
@@ -338,13 +339,13 @@ ${settings.phone}`;
 
       {/* Add / Edit Customer Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-sf-surface rounded-2xl shadow-2xl border border-sf-border max-w-md w-full p-5 sm:p-6 animate-in fade-in zoom-in-95 text-xs sm:text-sm text-sf-text">
+        <Dialog label="إضافة أو تعديل عميل" onClose={() => { if (!isSaving) setIsAddModalOpen(false); }} className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-sf-surface rounded-xl shadow-2xl border border-sf-border max-w-md w-full p-6 sm:p-6 animate-in fade-in zoom-in-95 text-xs sm:text-sm text-sf-text">
             <div className="flex items-center justify-between border-b border-sf-border pb-3 mb-4">
-              <h3 className="font-bold text-base text-sf-text">
+              <h3 className="font-semibold text-base text-sf-text">
                 {editingCustomer ? 'تعديل بيانات العميل' : 'إضافة عميل جديد'}
               </h3>
-              <button
+              <button disabled={isSaving} aria-label="إغلاق النافذة"
                 onClick={() => setIsAddModalOpen(false)}
                 className="p-1 text-sf-muted hover:text-sf-text"
               >
@@ -368,7 +369,7 @@ ${settings.phone}`;
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-3.5">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block font-semibold text-sf-text mb-1 text-xs">
                   اسم العميل أو المحل *
@@ -379,7 +380,7 @@ ${settings.phone}`;
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="مثال: محلات البركة (أحمد إبراهيم)"
-                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
 
@@ -391,7 +392,7 @@ ${settings.phone}`;
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="مثال: 0912345678"
-                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action font-mono"
+                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action font-mono"
                 />
               </div>
 
@@ -404,7 +405,7 @@ ${settings.phone}`;
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="الخرطوم، أم درمان، بورتسودان..."
-                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
 
@@ -429,12 +430,12 @@ ${settings.phone}`;
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="ملاحظات حول طريقة الدفع أو التعامل..."
-                  className="w-full bg-sf-raised border border-sf-border rounded-xl p-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-xl p-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-sf-border">
-                <button
+                <button disabled={isSaving}
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2 border border-sf-border bg-sf-raised rounded-xl text-xs font-semibold text-sf-text hover:bg-sf-raised"
@@ -444,10 +445,10 @@ ${settings.phone}`;
                 <button
                   type="submit"
                   disabled={isSaving || !editingCustomer && isCustomerLimitReached}
-                  className={`px-5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  className={`px-6 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
                     !editingCustomer && isCustomerLimitReached
                       ? 'bg-sf-raised text-sf-muted cursor-not-allowed border border-sf-border'
-                      : 'bg-sf-action hover:bg-sf-action-hover text-sf-on-action shadow-lg shadow-sf-action/20 active:scale-95'
+                      : 'bg-sf-action hover:bg-sf-action-hover text-sf-on-action shadow-lg shadow-sf-action/20 '
                   }`}
                 >
                   {!editingCustomer && isCustomerLimitReached ? (
@@ -465,31 +466,31 @@ ${settings.phone}`;
               </div>
             </form>
           </div>
-        </div>
+        </Dialog>
       )}
 
       {/* Statement of Account Modal */}
       {statementCustomer && (
-        <div className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-sf-surface rounded-2xl shadow-2xl border border-sf-border max-w-2xl w-full my-auto max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 text-xs sm:text-sm text-sf-text">
+        <Dialog label="كشف حساب العميل" onClose={() => setStatementCustomer(null)} className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-sf-surface rounded-xl shadow-2xl border border-sf-border max-w-2xl w-full my-auto max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 text-xs sm:text-sm text-sf-text">
             {/* Header */}
-            <div className="p-4 sm:p-5 border-b border-sf-border bg-sf-raised rounded-t-2xl flex items-center justify-between">
+            <div className="p-4 sm:p-6 border-b border-sf-border bg-sf-raised rounded-t-2xl flex items-center justify-between">
               <div>
-                <span className="text-[11px] text-sf-muted block">كشف حساب العميل</span>
-                <h3 className="font-bold text-base text-sf-text">{statementCustomer.name}</h3>
-                <p className="text-xs text-sf-action font-mono">{statementCustomer.phone}</p>
+                <span className="text-xs text-sf-muted block">كشف حساب العميل</span>
+                <h3 className="font-semibold text-base text-sf-text">{statementCustomer.name}</h3>
+                <p className="text-xs text-sf-text font-mono">{statementCustomer.phone}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleShareStatement(statementCustomer)}
-                  className="px-3.5 py-1.5 text-xs font-bold bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-xl flex items-center gap-1.5 shadow-lg shadow-sf-action/20"
+                  className="px-4 py-2 text-xs font-semibold bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-xl flex items-center gap-2 shadow-lg shadow-sf-action/20"
                 >
                   <Share2 className="w-3.5 h-3.5 text-sf-on-action" />
                   <span>واتساب</span>
                 </button>
-                <button
+                <button aria-label="إغلاق النافذة"
                   onClick={() => setStatementCustomer(null)}
-                  className="p-1.5 text-sf-muted hover:text-sf-text rounded-lg hover:bg-sf-raised"
+                  className="p-2 text-sf-muted hover:text-sf-text rounded-lg hover:bg-sf-raised"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -504,13 +505,13 @@ ${settings.phone}`;
                   <span className="text-xs font-semibold text-sf-warning block mb-1">
                     صافي الرصيد المستحق على العميل:
                   </span>
-                  <div className="font-mono font-black text-xl text-sf-warning">
+                  <div className="font-mono font-semibold text-xl text-sf-warning">
                     {formatMoney(statementCustomer.balance_sdg, 'SDG', settings)}
                   </div>
                 </div>
                 <div className="text-left font-mono">
                   <span className="text-xs text-sf-muted block">ما يعادل بالدولار:</span>
-                  <span className="font-bold text-base text-sf-action">
+                  <span className="font-semibold text-base text-sf-action">
                     {formatMoney(statementCustomer.balance_usd, 'USD', settings)}
                   </span>
                 </div>
@@ -518,7 +519,7 @@ ${settings.phone}`;
 
               {/* Invoices List for this customer */}
               <div>
-                <h4 className="font-bold text-xs text-sf-text mb-2">
+                <h4 className="font-semibold text-xs text-sf-text mb-2">
                   سجل الفواتير الصادرة للعميل ({customerInvoices.length})
                 </h4>
                 {customerInvoices.length === 0 ? (
@@ -536,21 +537,21 @@ ${settings.phone}`;
                         >
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-sf-text">{inv.invoice_number}</span>
-                              <span className={`text-[10px] px-2 py-0.5 rounded border ${st.bg} ${st.color}`}>
+                              <span className="font-mono font-semibold text-sf-text">{inv.invoice_number}</span>
+                              <span className={`text-xs px-2 py-1 rounded border ${st.bg} ${st.color}`}>
                                 {st.label}
                               </span>
                             </div>
-                            <span className="text-[10px] text-sf-muted block mt-0.5">
+                            <span className="text-xs text-sf-muted block mt-1">
                               {inv.issue_date} • سعر الصرف: 1$ = {formatMoney(inv.exchange_rate_used, 'SDG', settings)}
                             </span>
                           </div>
                           <div className="text-left">
-                            <div className="font-mono font-bold text-sf-text">
+                            <div className="font-mono font-semibold text-sf-text">
                               {formatMoney(inv.grand_total_sdg, 'SDG', settings)}
                             </div>
                             {inv.remaining_sdg > 0 && inv.status !== 'paid' && (
-                              <div className="text-[10px] text-sf-danger font-mono">
+                              <div className="text-xs text-sf-danger font-mono">
                                 باقي: {formatMoney(inv.remaining_sdg, 'SDG', settings)}
                               </div>
                             )}
@@ -565,17 +566,17 @@ ${settings.phone}`;
               {/* Payments List for this customer */}
               {customerPayments.length > 0 && (
                 <div>
-                  <h4 className="font-bold text-xs text-sf-text mb-2">
+                  <h4 className="font-semibold text-xs text-sf-text mb-2">
                     سجل الدفعات المستلمة من العميل ({customerPayments.length})
                   </h4>
                   <div className="border border-sf-border rounded-xl overflow-hidden divide-y divide-sf-border text-xs">
                     {(customerPayments || []).map((p) => (
-                      <div key={p.id} className="p-2.5 flex items-center justify-between">
+                      <div key={p.id} className="p-3 flex items-center justify-between">
                         <div>
                           <span className="font-mono text-sf-muted">{p.payment_date.split('T')[0]}</span>
                           <span className="text-sf-text mr-2">• فاتورة #{p.invoice_number}</span>
                         </div>
-                        <span className="font-mono font-bold text-sf-action">
+                        <span className="font-mono font-semibold text-sf-text">
                           {formatMoney(p.amount, p.currency, settings)}
                         </span>
                       </div>
@@ -585,7 +586,7 @@ ${settings.phone}`;
               )}
             </div>
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );

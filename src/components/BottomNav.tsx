@@ -7,8 +7,8 @@ import {
   Package,
   Receipt,
   BookOpen,
-  Settings,
 } from 'lucide-react';
+import { BrandLogo } from './BrandLogo';
 
 export type TabType = 'dashboard' | 'invoices' | 'customers' | 'products' | 'expenses' | 'accounting' | 'settings';
 
@@ -36,8 +36,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab, on
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-sf-surface/95 border-t border-sf-border py-2 px-2 sm:px-6 shadow-2xl backdrop-blur-md">
-      <div className="max-w-6xl mx-auto flex items-center justify-around">
+    <nav className="sf-nav no-print" aria-label="التنقل الرئيسي">
+      <div className="sf-nav-brand"><BrandLogo showText size="md" /></div>
+      <div className="sf-nav-items">
         {tabs.filter(tab => tab.id !== 'expenses' && tab.id !== 'accounting' || isActionAllowed(tab.id === 'expenses' ? 'expenses:read' : 'journal:read')).map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -46,18 +47,16 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab, on
               key={tab.id}
               id={`tab-${tab.id}`}
               onClick={() => handleSelect(tab.id)}
-              className={`flex flex-col items-center gap-1 px-2.5 sm:px-4 py-1.5 rounded-xl transition-all text-xs ${
-                isActive
-                  ? 'text-sf-action bg-sf-selected/70 border border-sf-action/50 font-black shadow-sm'
-                  : 'text-sf-muted hover:text-sf-text hover:bg-sf-raised border border-transparent font-medium'
-              }`}
+              aria-current={isActive ? 'page' : undefined}
+              className="sf-nav-item"
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'text-sf-action' : 'text-sf-muted'}`} />
-              <span className="text-[11px] whitespace-nowrap">{tab.label}</span>
+              <Icon aria-hidden="true" />
+              <span className="whitespace-nowrap">{tab.label}</span>
             </button>
           );
         })}
       </div>
+      <p className="sf-nav-caption">شغلك أوضح.<br />فواتير ومخزون وتحصيل</p>
     </nav>
   );
 };

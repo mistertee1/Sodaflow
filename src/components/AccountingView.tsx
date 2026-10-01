@@ -40,6 +40,7 @@ import { TrialBalanceReport } from './accounting/TrialBalanceReport';
 import { IncomeReport } from './accounting/IncomeReport';
 import { BalanceSheetReport } from './accounting/BalanceSheetReport';
 import { CashFlowReport } from './accounting/CashFlowReport';
+import { Dialog } from './Dialog';
 export const AccountingView: React.FC = () => {
   const {
     accounts,
@@ -162,9 +163,9 @@ export const AccountingView: React.FC = () => {
 
   // Account Categories Map
   const categoryLabels: Record<AccountCategory, { label: string; color: string }> = {
-    ASSET: { label: 'أصول (Assets)', color: 'text-sky-400 bg-sky-950/40 border-sky-800/40' },
+    ASSET: { label: 'أصول (Assets)', color: 'text-sf-text bg-sf-raised border-sf-border' },
     LIABILITY: { label: 'خصوم والتزامات (Liabilities)', color: 'text-sf-warning bg-sf-warning-bg/40 border-sf-warning/40' },
-    EQUITY: { label: 'حقوق الملكية (Equity)', color: 'text-purple-400 bg-purple-950/40 border-purple-800/40' },
+    EQUITY: { label: 'حقوق الملكية (Equity)', color: 'text-sf-text bg-sf-raised border-sf-border' },
     REVENUE: { label: 'إيرادات (Revenue)', color: 'text-sf-action bg-sf-selected/40 border-sf-action/40' },
     EXPENSE: { label: 'مصروفات (Expenses)', color: 'text-sf-danger bg-sf-danger-bg/40 border-sf-danger/40' },
   };
@@ -358,21 +359,21 @@ export const AccountingView: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Header Card */}
-      <div className="bg-sf-surface border border-sf-border rounded-2xl p-5 sm:p-6 shadow-sm">
+      <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-sf-action/10 border border-sf-action/30 flex items-center justify-center text-sf-action">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-sf-action/10 border border-sf-action/30 flex items-center justify-center text-sf-action">
               <BookOpen className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl font-black text-sf-text">دفتر الأستاذ والمحاسبة العامة</h2>
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-sf-selected/70 text-sf-action border border-sf-action/40 font-bold flex items-center gap-1">
+                <h2 className="text-xl font-semibold text-sf-text">دفتر الأستاذ والمحاسبة العامة</h2>
+                <span className="text-xs px-3 py-1 rounded-full bg-sf-selected/70 text-sf-action border border-sf-action/40 font-semibold flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" />
                   قيد مزدوج آلي
                 </span>
               </div>
-              <p className="text-xs text-sf-muted mt-0.5">
+              <p className="text-xs text-sf-muted mt-1">
                 دليل الحسابات المتوافق مع الأنشطة التجارية السودانية، اليومية العامة، ميزان المراجعة، وقائمة الدخل.
               </p>
             </div>
@@ -382,7 +383,7 @@ export const AccountingView: React.FC = () => {
             {isActionAllowed('journal:create') && (
               <button
                 onClick={() => setIsNewEntryOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-sf-action/20 transition-all active:scale-95"
+                className="px-4 py-2 rounded-xl bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold text-xs flex items-center gap-2 shadow-lg shadow-sf-action/20 transition-all "
               >
                 <Plus className="w-4 h-4" />
                 <span>قيد يومية يدوي</span>
@@ -392,7 +393,7 @@ export const AccountingView: React.FC = () => {
             {isActionAllowed('accounts:create') && (
               <button
                 onClick={() => setIsAddAccountOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border font-bold text-xs flex items-center gap-1.5 transition-all"
+                className="px-4 py-2 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border font-semibold text-xs flex items-center gap-2 transition-all"
               >
                 <Plus className="w-4 h-4 text-sf-action" />
                 <span>إضافة حساب</span>
@@ -416,10 +417,10 @@ export const AccountingView: React.FC = () => {
         </div>
 
         {/* Sub-Navigation Tabs */}
-        <div className="flex items-center gap-2 border-t border-sf-border mt-5 pt-4 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 border-t border-sf-border mt-6 pt-4 overflow-x-auto pb-1">
           <button
             onClick={() => setActiveSubTab('coa')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
               activeSubTab === 'coa'
                 ? 'bg-sf-action/10 text-sf-action border border-sf-action/30'
                 : 'text-sf-muted hover:text-sf-text hover:bg-sf-raised'
@@ -431,7 +432,7 @@ export const AccountingView: React.FC = () => {
 
           <button
             onClick={() => setActiveSubTab('journal')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
               activeSubTab === 'journal'
                 ? 'bg-sf-action/10 text-sf-action border border-sf-action/30'
                 : 'text-sf-muted hover:text-sf-text hover:bg-sf-raised'
@@ -443,7 +444,7 @@ export const AccountingView: React.FC = () => {
 
           <button
             onClick={() => setActiveSubTab('trial')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
               activeSubTab === 'trial'
                 ? 'bg-sf-action/10 text-sf-action border border-sf-action/30'
                 : 'text-sf-muted hover:text-sf-text hover:bg-sf-raised'
@@ -460,7 +461,7 @@ export const AccountingView: React.FC = () => {
 
           <button
             onClick={() => setActiveSubTab('income')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
               activeSubTab === 'income'
                 ? 'bg-sf-action/10 text-sf-action border border-sf-action/30'
                 : 'text-sf-muted hover:text-sf-text hover:bg-sf-raised'
@@ -472,7 +473,7 @@ export const AccountingView: React.FC = () => {
 
           <button
             onClick={() => setActiveSubTab('balance_sheet')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
               activeSubTab === 'balance_sheet'
                 ? 'bg-sf-action/10 text-sf-action border border-sf-action/30'
                 : 'text-sf-muted hover:text-sf-text hover:bg-sf-raised'
@@ -489,7 +490,7 @@ export const AccountingView: React.FC = () => {
 
           <button
             onClick={() => setActiveSubTab('cash_flow')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
               activeSubTab === 'cash_flow'
                 ? 'bg-sf-action/10 text-sf-action border border-sf-action/30'
                 : 'text-sf-muted hover:text-sf-text hover:bg-sf-raised'
@@ -501,7 +502,7 @@ export const AccountingView: React.FC = () => {
 
           <button
             onClick={() => setActiveSubTab('period_lock')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
               activeSubTab === 'period_lock'
                 ? 'bg-sf-warning-bg/15 text-sf-warning border border-sf-warning/40'
                 : 'text-sf-muted hover:text-sf-text hover:bg-sf-raised'
@@ -514,7 +515,7 @@ export const AccountingView: React.FC = () => {
             )}
             <span>إقفال الفترات</span>
             {settings.period_lock_date && (
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-sf-warning-bg/80 text-sf-warning font-mono border border-sf-warning/50">
+              <span className="text-xs px-2 py-1 rounded bg-sf-warning-bg/80 text-sf-warning font-mono border border-sf-warning/50">
                 مقفلة
               </span>
             )}
@@ -534,14 +535,14 @@ export const AccountingView: React.FC = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="ابحث برمز الحساب أو الاسم..."
-                className="w-full bg-sf-raised border border-sf-border rounded-lg pr-9 pl-3 py-2 text-xs text-sf-text placeholder:text-sf-muted focus:outline-none focus:border-sf-action"
+                className="w-full bg-sf-raised border border-sf-border rounded-lg pr-12 pl-3 py-2 text-xs text-sf-text placeholder:text-sf-muted focus:outline-none focus:border-sf-action"
               />
             </div>
 
             <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
               <button
                 onClick={() => setCategoryFilter('ALL')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                   categoryFilter === 'ALL'
                     ? 'bg-sf-action/20 text-sf-action border border-sf-action/40'
                     : 'text-sf-muted hover:text-sf-text bg-sf-raised'
@@ -553,7 +554,7 @@ export const AccountingView: React.FC = () => {
                 <button
                   key={cat}
                   onClick={() => setCategoryFilter(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
+                  className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                     categoryFilter === cat
                       ? 'bg-sf-action/20 text-sf-action border border-sf-action/40'
                       : 'text-sf-muted hover:text-sf-text bg-sf-raised'
@@ -566,10 +567,10 @@ export const AccountingView: React.FC = () => {
           </div>
 
           {/* Accounts Grid / Table */}
-          <div className="bg-sf-surface border border-sf-border rounded-2xl overflow-hidden shadow-sm">
+          <div className="bg-sf-surface border border-sf-border rounded-xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-right text-xs">
-                <thead className="bg-sf-raised text-sf-muted font-bold border-b border-sf-border">
+                <thead className="bg-sf-raised text-sf-muted font-semibold border-b border-sf-border">
                   <tr>
                     <th className="py-3 px-4">رمز الحساب</th>
                     <th className="py-3 px-4">اسم الحساب</th>
@@ -588,34 +589,34 @@ export const AccountingView: React.FC = () => {
 
                     return (
                       <tr key={acc.code} className="hover:bg-sf-raised/80 transition-colors">
-                        <td className="py-3 px-4 font-mono font-bold text-sf-action">
+                        <td className="py-3 px-4 font-mono font-semibold text-sf-text">
                           {acc.code}
                         </td>
                         <td className="py-3 px-4">
-                          <div className="font-bold text-sf-text">{acc.name_ar}</div>
+                          <div className="font-semibold text-sf-text">{acc.name_ar}</div>
                           {acc.name_en && (
-                            <div className="text-[10px] text-sf-muted font-mono">{acc.name_en}</div>
+                            <div className="text-xs text-sf-muted font-mono">{acc.name_en}</div>
                           )}
                         </td>
                         <td className="py-3 px-4">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${categoryLabels[acc.type]?.color}`}
+                            className={`px-2 py-1 rounded-full text-xs font-semibold border ${categoryLabels[acc.type]?.color}`}
                           >
                             {categoryLabels[acc.type]?.label}
                           </span>
                         </td>
                         <td className="py-3 px-4">
                           <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                            className={`px-2 py-1 rounded-md text-xs font-semibold ${
                               acc.nature === 'DEBIT'
-                                ? 'bg-sky-950/50 text-sky-400 border border-sky-800/40'
+                                ? 'bg-sf-raised text-sf-text border border-sf-border'
                                 : 'bg-sf-warning-bg/50 text-sf-warning border border-sf-warning/40'
                             }`}
                           >
                             {acc.nature === 'DEBIT' ? 'مدين (Debit)' : 'دائن (Credit)'}
                           </span>
                         </td>
-                        <td className="py-3 px-4 font-mono font-bold text-sf-text">
+                        <td className="py-3 px-4 font-mono font-semibold text-sf-text">
                           {formatMoney(balSdg, 'SDG')}
                         </td>
                         <td className="py-3 px-4 font-mono text-sf-muted">
@@ -623,11 +624,11 @@ export const AccountingView: React.FC = () => {
                         </td>
                         <td className="py-3 px-4">
                           {acc.is_system ? (
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-sf-raised text-sf-muted font-medium">
+                            <span className="text-xs px-2 py-1 rounded bg-sf-raised text-sf-muted font-medium">
                               نظامي أساسي
                             </span>
                           ) : (
-                            <span className="text-[10px] px-2 py-0.5 rounded bg-sf-selected text-sf-action font-medium">
+                            <span className="text-xs px-2 py-1 rounded bg-sf-selected text-sf-action font-medium">
                               مخصص
                             </span>
                           )}
@@ -652,7 +653,7 @@ export const AccountingView: React.FC = () => {
       {/* SUB-TAB 2: GENERAL JOURNAL (دفتر اليومية العامة والقيود) */}
       {activeSubTab === 'journal' && (
         <div className="space-y-4">
-          <div className="bg-sf-surface border border-sf-border p-4 rounded-2xl space-y-3">
+          <div className="bg-sf-surface border border-sf-border p-4 rounded-xl space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="relative">
                 <Search className="w-4 h-4 text-sf-muted absolute right-3 top-2.5" />
@@ -664,7 +665,7 @@ export const AccountingView: React.FC = () => {
                     setJournalPage(1);
                   }}
                   placeholder="ابحث برقم القيد أو البيان..."
-                  className="w-full bg-sf-raised border border-sf-border rounded-xl pr-9 pl-3 py-2 text-xs text-sf-text placeholder:text-sf-muted focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-xl pr-12 pl-3 py-2 text-xs text-sf-text placeholder:text-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
 
@@ -687,7 +688,7 @@ export const AccountingView: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-sf-muted whitespace-nowrap">من:</span>
+                <span className="text-xs text-sf-muted whitespace-nowrap">من:</span>
                 <input
                   type="date"
                   value={journalStartDate}
@@ -695,12 +696,12 @@ export const AccountingView: React.FC = () => {
                     setJournalStartDate(e.target.value);
                     setJournalPage(1);
                   }}
-                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-2 py-1.5 text-xs text-sf-text focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-2 py-2 text-xs text-sf-text focus:outline-none focus:border-sf-action"
                 />
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-sf-muted whitespace-nowrap">إلى:</span>
+                <span className="text-xs text-sf-muted whitespace-nowrap">إلى:</span>
                 <input
                   type="date"
                   value={journalEndDate}
@@ -708,14 +709,14 @@ export const AccountingView: React.FC = () => {
                     setJournalEndDate(e.target.value);
                     setJournalPage(1);
                   }}
-                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-2 py-1.5 text-xs text-sf-text focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-2 py-2 text-xs text-sf-text focus:outline-none focus:border-sf-action"
                 />
               </div>
             </div>
 
             <div className="flex items-center justify-between text-xs text-sf-muted pt-2 border-t border-sf-border flex-wrap gap-2">
               <div>
-                إجمالي القيود المطابقة: <span className="font-mono text-sf-action font-bold">{filteredEntries.length}</span> من أصل {journalEntries.length}
+                إجمالي القيود المطابقة: <span className="font-mono text-sf-text font-semibold">{filteredEntries.length}</span> من أصل {journalEntries.length}
               </div>
 
               {(searchQuery || journalStartDate || journalEndDate || journalTypeFilter !== 'ALL') && (
@@ -739,24 +740,24 @@ export const AccountingView: React.FC = () => {
             {paginatedEntries.map((entry) => (
               <div
                 key={entry.id}
-                className="bg-sf-surface border border-sf-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3"
+                className="bg-sf-surface border border-sf-border rounded-xl p-4 sm:p-6 shadow-sm space-y-3"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-sf-border pb-3">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <span className="font-mono font-black text-sm text-sf-action">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="font-mono font-semibold text-sm text-sf-text">
                       {entry.entry_number}
                     </span>
                     <span className="text-xs text-sf-muted font-medium">| {entry.date}</span>
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
+                      className={`text-xs px-2 py-1 rounded-full font-semibold border ${
                         entry.reference_type === 'invoice'
                           ? 'bg-sf-selected/60 text-sf-action border-sf-action/40'
                           : entry.reference_type === 'payment'
-                          ? 'bg-sky-950/60 text-sky-400 border-sky-800/40'
+                          ? 'bg-sf-raised text-sf-text border-sf-border'
                           : entry.reference_type === 'expense'
                           ? 'bg-sf-danger-bg/60 text-sf-danger border-sf-danger/40'
                           : entry.reference_type === 'void'
-                          ? 'bg-purple-950/60 text-purple-400 border-purple-800/40'
+                          ? 'bg-sf-raised text-sf-text border-sf-border'
                           : 'bg-sf-raised text-sf-text border-sf-border'
                       }`}
                     >
@@ -773,10 +774,10 @@ export const AccountingView: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <div className="text-xs font-mono font-bold text-sf-text">
+                    <div className="text-xs font-mono font-semibold text-sf-text">
                       الإجمالي: {formatMoney(entry.total_debit_sdg, 'SDG')}
                     </div>
-                    <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded bg-sf-selected/80 text-sf-action border border-sf-action/40 font-bold">
+                    <span className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-sf-selected/80 text-sf-action border border-sf-action/40 font-semibold">
                       <CheckCircle2 className="w-3 h-3" />
                       متزن
                     </span>
@@ -788,7 +789,7 @@ export const AccountingView: React.FC = () => {
                 {/* Journal Entry Lines Table */}
                 <div className="overflow-x-auto">
                   <table className="w-full text-right text-xs">
-                    <thead className="bg-sf-raised text-sf-muted font-bold border-b border-sf-border">
+                    <thead className="bg-sf-raised text-sf-muted font-semibold border-b border-sf-border">
                       <tr>
                         <th className="py-2 px-3">رقم الحساب</th>
                         <th className="py-2 px-3">اسم الحساب</th>
@@ -802,15 +803,15 @@ export const AccountingView: React.FC = () => {
                     <tbody className="divide-y divide-sf-border">
                       {entry.lines.map((line, idx) => (
                         <tr key={idx} className="hover:bg-sf-raised">
-                          <td className="py-2 px-3 font-mono font-bold text-sf-action">
+                          <td className="py-2 px-3 font-mono font-semibold text-sf-text">
                             {line.account_code}
                           </td>
                           <td className="py-2 px-3 font-medium text-sf-text">{line.account_name}</td>
-                          <td className="py-2 px-3 text-sf-muted text-[11px]">{line.description || '-'}</td>
-                          <td className="py-2 px-3 font-mono font-bold text-sky-400">
+                          <td className="py-2 px-3 text-sf-muted text-xs">{line.description || '-'}</td>
+                          <td className="py-2 px-3 font-mono font-semibold text-sf-text">
                             {line.debit_sdg > 0 ? formatMoney(line.debit_sdg, 'SDG') : '-'}
                           </td>
-                          <td className="py-2 px-3 font-mono font-bold text-sf-warning">
+                          <td className="py-2 px-3 font-mono font-semibold text-sf-warning">
                             {line.credit_sdg > 0 ? formatMoney(line.credit_sdg, 'SDG') : '-'}
                           </td>
                           <td className="py-2 px-3 font-mono text-sf-muted">
@@ -828,14 +829,14 @@ export const AccountingView: React.FC = () => {
             ))}
 
             {filteredEntries.length === 0 && (
-              <div className="bg-sf-surface border border-sf-border rounded-2xl p-8 text-center text-sf-muted">
+              <div className="bg-sf-surface border border-sf-border rounded-xl p-8 text-center text-sf-muted">
                 لا توجد قيود يومية مطابقة لمعايير البحث المحددة
               </div>
             )}
 
             {/* Pagination Controls */}
             {filteredEntries.length > 0 && (
-              <div className="bg-sf-surface border border-sf-border rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+              <div className="bg-sf-surface border border-sf-border rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
                 <div className="flex items-center gap-2">
                   <span className="text-sf-muted">عدد القيود في الصفحة:</span>
                   <select
@@ -855,7 +856,7 @@ export const AccountingView: React.FC = () => {
 
                 <div className="flex items-center gap-3">
                   <span className="text-sf-muted">
-                    الصفحة <span className="font-mono text-sf-action font-bold">{journalPage}</span> من{' '}
+                    الصفحة <span className="font-mono text-sf-text font-semibold">{journalPage}</span> من{' '}
                     <span className="font-mono text-sf-text">{totalJournalPages}</span>
                   </span>
 
@@ -863,14 +864,14 @@ export const AccountingView: React.FC = () => {
                     <button
                       onClick={() => setJournalPage((p) => Math.max(1, p - 1))}
                       disabled={journalPage === 1}
-                      className="p-1.5 rounded-lg bg-sf-raised border border-sf-border text-sf-text disabled:opacity-40 disabled:cursor-not-allowed hover:bg-sf-raised"
+                      className="p-2 rounded-lg bg-sf-raised border border-sf-border text-sf-text disabled:opacity-40 disabled:cursor-not-allowed hover:bg-sf-raised"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setJournalPage((p) => Math.min(totalJournalPages, p + 1))}
                       disabled={journalPage === totalJournalPages}
-                      className="p-1.5 rounded-lg bg-sf-raised border border-sf-border text-sf-text disabled:opacity-40 disabled:cursor-not-allowed hover:bg-sf-raised"
+                      className="p-2 rounded-lg bg-sf-raised border border-sf-border text-sf-text disabled:opacity-40 disabled:cursor-not-allowed hover:bg-sf-raised"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
@@ -898,11 +899,11 @@ export const AccountingView: React.FC = () => {
       {activeSubTab === 'period_lock' && (
         <div className="space-y-6">
           {/* Status Card */}
-          <div className="bg-sf-surface border border-sf-border rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
+              <div className="flex items-center gap-4">
                 <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                     settings.period_lock_date
                       ? 'bg-sf-warning-bg/10 border border-sf-warning/30 text-sf-warning'
                       : 'bg-sf-raised/40 border border-sf-border/40 text-sf-muted'
@@ -916,20 +917,20 @@ export const AccountingView: React.FC = () => {
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base font-bold text-sf-text">إقفال الفترات المحاسبية</h3>
+                    <h3 className="text-base font-semibold text-sf-text">إقفال الفترات المحاسبية</h3>
                     {settings.period_lock_date ? (
-                      <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-sf-warning-bg/80 text-sf-warning border border-sf-warning/40 font-bold flex items-center gap-1">
+                      <span className="text-xs px-3 py-1 rounded-full bg-sf-warning-bg/80 text-sf-warning border border-sf-warning/40 font-semibold flex items-center gap-1">
                         <Lock className="w-3.5 h-3.5" />
                         الفترة مقفلة حتى: {settings.period_lock_date}
                       </span>
                     ) : (
-                      <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-sf-selected/60 text-sf-action border border-sf-action/40 font-bold flex items-center gap-1">
+                      <span className="text-xs px-3 py-1 rounded-full bg-sf-selected/60 text-sf-action border border-sf-action/40 font-semibold flex items-center gap-1">
                         <Unlock className="w-3.5 h-3.5" />
                         كافة الفترات المحاسبية مفتوحة
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-sf-muted mt-0.5">
+                  <p className="text-xs text-sf-muted mt-1">
                     حماية العمليات والقيود التاريخية من التعديل أو الحذف بعد اعتماد الميزانيات أو الإقرارات الضريبية.
                   </p>
                 </div>
@@ -940,7 +941,7 @@ export const AccountingView: React.FC = () => {
                   type="button"
                   onClick={handleUnlockPeriod}
                   disabled={isUpdatingLock}
-                  className="px-4 py-2 rounded-xl bg-sf-danger-bg/10 hover:bg-sf-danger-bg/20 text-sf-danger border border-sf-danger/30 font-bold text-xs flex items-center gap-1.5 transition-all"
+                  className="px-4 py-2 rounded-xl bg-sf-danger-bg/10 hover:bg-sf-danger-bg/20 text-sf-danger border border-sf-danger/30 font-semibold text-xs flex items-center gap-2 transition-all"
                 >
                   <Unlock className="w-4 h-4" />
                   <span>فك إقفال الفترة المحاسبية</span>
@@ -952,7 +953,7 @@ export const AccountingView: React.FC = () => {
           {/* Feedback message */}
           {lockFeedback && (
             <div
-              className={`p-4 rounded-xl border text-xs flex items-center gap-2.5 ${
+              className={`p-4 rounded-xl border text-xs flex items-center gap-3 ${
                 lockFeedback.type === 'success'
                   ? 'bg-sf-selected/70 border-sf-action text-sf-action'
                   : 'bg-sf-danger-bg/70 border-sf-danger text-sf-danger'
@@ -968,15 +969,15 @@ export const AccountingView: React.FC = () => {
           )}
 
           {/* Lock Action Form Card */}
-          <div className="bg-sf-surface border border-sf-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-            <h4 className="font-bold text-sm text-sf-text border-b border-sf-border pb-3 flex items-center gap-2">
+          <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-6 shadow-sm space-y-4">
+            <h4 className="font-semibold text-sm text-sf-text border-b border-sf-border pb-3 flex items-center gap-2">
               <Clock className="w-4 h-4 text-sf-warning" />
               <span>تحديد تاريخ إقفال الفترة المحاسبية</span>
             </h4>
 
             <form onSubmit={handleLockPeriod} className="space-y-4 max-w-lg">
               <div>
-                <label className="block text-xs text-sf-text font-bold mb-1.5">
+                <label className="block text-xs text-sf-text font-semibold mb-2">
                   إقفال كافة العمليات والقيود حتى تاريخ (شاملاً هذا التاريخ):
                 </label>
                 <input
@@ -986,7 +987,7 @@ export const AccountingView: React.FC = () => {
                   className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text focus:outline-none focus:border-sf-warning"
                   required
                 />
-                <span className="text-[11px] text-sf-muted mt-1 block">
+                <span className="text-xs text-sf-muted mt-1 block">
                   لن يُسمح بإنشاء أو تعديل أو إبطال أو حذف أي فواتير أو سندات أو مصروفات أو قيود بتاريخ يسبق أو يطابق هذا التاريخ.
                 </span>
               </div>
@@ -995,7 +996,7 @@ export const AccountingView: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isUpdatingLock || !lockDateInput}
-                  className="px-5 py-2.5 rounded-xl bg-sf-warning-bg hover:bg-sf-warning-bg text-sf-warning font-black text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="px-6 py-3 rounded-xl bg-sf-warning-bg hover:bg-sf-warning-bg text-sf-warning font-semibold text-xs flex items-center gap-2 shadow-lg shadow-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   <Lock className="w-4 h-4" />
                   <span>{settings.period_lock_date ? 'تحديث تاريخ إقفال الفترة' : 'تفعيل إقفال الفترة المحاسبية'}</span>
@@ -1005,8 +1006,8 @@ export const AccountingView: React.FC = () => {
           </div>
 
           {/* Guidelines & Controls Info Card */}
-          <div className="bg-sf-surface border border-sf-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-3">
-            <h4 className="font-bold text-xs text-sf-text">قواعد الضبط المحاسبي عند إقفال الفترة:</h4>
+          <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-6 shadow-sm space-y-3">
+            <h4 className="font-semibold text-xs text-sf-text">قواعد الضبط المحاسبي عند إقفال الفترة:</h4>
             <ul className="text-xs text-sf-muted space-y-2 list-disc list-inside">
               <li>
                 <strong className="text-sf-text">الفواتير:</strong> يُمنع إصدار أو تعديل أو إبطال الفواتير المؤرخة في تاريخ مقفل.
@@ -1025,22 +1026,22 @@ export const AccountingView: React.FC = () => {
         </div>
       )}
       {isAddAccountOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-sf-surface border border-sf-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h3 className="font-bold text-base text-sf-text border-b border-sf-border pb-3">
+        <Dialog label="إضافة حساب جديد" onClose={() => setIsAddAccountOpen(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-sf-ink/60 backdrop-blur-sm">
+          <div className="bg-sf-surface border border-sf-border rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 className="font-semibold text-base text-sf-text border-b border-sf-border pb-3">
               إضافة حساب جديد إلى دليل الحسابات
             </h3>
 
             {accFormError && (
-              <div className="p-3 rounded-xl bg-sf-danger-bg/70 border border-sf-danger text-sf-danger text-xs flex items-center gap-2">
+              <div role="alert" className="p-3 rounded-xl bg-sf-danger-bg/70 border border-sf-danger text-sf-danger text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{accFormError}</span>
               </div>
             )}
 
-            <form onSubmit={handleCreateAccount} className="space-y-3.5 text-xs">
+            <form onSubmit={handleCreateAccount} className="space-y-4 text-xs">
               <div>
-                <label className="block text-sf-text font-bold mb-1">رمز الحساب (رقم فريد)</label>
+                <label className="block text-sf-text font-semibold mb-1">رمز الحساب (رقم فريد)</label>
                 <input
                   type="text"
                   value={newAccCode}
@@ -1052,7 +1053,7 @@ export const AccountingView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sf-text font-bold mb-1">اسم الحساب باللغة العربية</label>
+                <label className="block text-sf-text font-semibold mb-1">اسم الحساب باللغة العربية</label>
                 <input
                   type="text"
                   value={newAccNameAr}
@@ -1064,7 +1065,7 @@ export const AccountingView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sf-text font-bold mb-1">الاسم بالإنجليزية (اختياري)</label>
+                <label className="block text-sf-text font-semibold mb-1">الاسم بالإنجليزية (اختياري)</label>
                 <input
                   type="text"
                   value={newAccNameEn}
@@ -1076,7 +1077,7 @@ export const AccountingView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sf-text font-bold mb-1">التبويب</label>
+                  <label className="block text-sf-text font-semibold mb-1">التبويب</label>
                   <select
                     value={newAccType}
                     onChange={(e) => setNewAccType(e.target.value as AccountCategory)}
@@ -1091,7 +1092,7 @@ export const AccountingView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sf-text font-bold mb-1">الطبيعة المحاسبية</label>
+                  <label className="block text-sf-text font-semibold mb-1">الطبيعة المحاسبية</label>
                   <select
                     value={newAccNature}
                     onChange={(e) => setNewAccNature(e.target.value as AccountNature)}
@@ -1104,7 +1105,7 @@ export const AccountingView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sf-text font-bold mb-1">وصف أو ملاحظات</label>
+                <label className="block text-sf-text font-semibold mb-1">وصف أو ملاحظات</label>
                 <textarea
                   value={newAccDesc}
                   onChange={(e) => setNewAccDesc(e.target.value)}
@@ -1118,41 +1119,41 @@ export const AccountingView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsAddAccountOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text font-bold"
+                  className="px-4 py-2 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text font-semibold"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-black shadow-lg shadow-sf-action/20"
+                  className="px-6 py-2 rounded-xl bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold shadow-lg shadow-sf-action/20"
                 >
                   حفظ الحساب
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </Dialog>
       )}
 
       {/* MODAL 2: MANUAL JOURNAL ENTRY */}
       {isNewEntryOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-sf-surface border border-sf-border rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 my-8">
+        <Dialog label="إنشاء قيد يومية" onClose={() => setIsNewEntryOpen(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-sf-ink/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-sf-surface border border-sf-border rounded-xl max-w-2xl w-full p-6 shadow-2xl space-y-4 my-8">
             <div className="flex items-center justify-between border-b border-sf-border pb-3">
               <div>
-                <h3 className="font-bold text-base text-sf-text">إنشاء قيد يومية عامة يدوي</h3>
-                <p className="text-xs text-sf-muted mt-0.5">
+                <h3 className="font-semibold text-base text-sf-text">إنشاء قيد يومية عامة يدوي</h3>
+                <p className="text-xs text-sf-muted mt-1">
                   قيد مزدوج يتطلب توازن كامل بين أطراف المدين والدائن.
                 </p>
               </div>
               <div className="text-xs font-mono">
                 {modalIsBalanced ? (
-                  <span className="px-2.5 py-1 rounded-full bg-sf-selected text-sf-action border border-sf-action font-bold flex items-center gap-1">
+                  <span className="px-3 py-1 rounded-full bg-sf-selected text-sf-action border border-sf-action font-semibold flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" />
                     القيد متزن
                   </span>
                 ) : (
-                  <span className="px-2.5 py-1 rounded-full bg-sf-danger-bg text-sf-danger border border-sf-danger font-bold flex items-center gap-1">
+                  <span className="px-3 py-1 rounded-full bg-sf-danger-bg text-sf-danger border border-sf-danger font-semibold flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5" />
                     فرق: {Math.abs(modalDebitSdg - modalCreditSdg).toLocaleString()} ج.س
                   </span>
@@ -1170,7 +1171,7 @@ export const AccountingView: React.FC = () => {
             <form onSubmit={handleCreateJournalEntry} className="space-y-4 text-xs">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sf-text font-bold mb-1">تاريخ القيد</label>
+                  <label className="block text-sf-text font-semibold mb-1">تاريخ القيد</label>
                   <input
                     type="date"
                     value={entryDate}
@@ -1181,7 +1182,7 @@ export const AccountingView: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sf-text font-bold mb-1">البيان العام للقيد</label>
+                  <label className="block text-sf-text font-semibold mb-1">البيان العام للقيد</label>
                   <input
                     type="text"
                     value={entryDescription}
@@ -1196,18 +1197,18 @@ export const AccountingView: React.FC = () => {
               {/* Lines editor */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-sf-text">أطراف القيد (الحسابات والعمليات)</span>
+                  <span className="font-semibold text-sf-text">أطراف القيد (الحسابات والعمليات)</span>
                   <button
                     type="button"
                     onClick={handleAddEntryLine}
-                    className="text-xs font-bold text-sf-action hover:text-sf-action flex items-center gap-1"
+                    className="text-xs font-semibold text-sf-action hover:text-sf-action flex items-center gap-1"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     إضافة طرف آخر
                   </button>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {entryLines.map((line, idx) => (
                     <div
                       key={idx}
@@ -1217,7 +1218,7 @@ export const AccountingView: React.FC = () => {
                         <select
                           value={line.account_code}
                           onChange={(e) => handleLineChange(idx, 'account_code', e.target.value)}
-                          className="w-full bg-sf-raised border border-sf-border rounded-lg px-2.5 py-1.5 text-xs text-sf-text focus:outline-none focus:border-sf-action"
+                          className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text focus:outline-none focus:border-sf-action"
                           required
                         >
                           <option value="">-- اختر الحساب --</option>
@@ -1238,7 +1239,7 @@ export const AccountingView: React.FC = () => {
                             value={line.debit_sdg || ''}
                             onChange={(e) => handleLineChange(idx, 'debit_sdg', parseFloat(e.target.value) || 0)}
                             placeholder="مدين ج.س"
-                            className="w-full bg-sf-raised border border-sf-border rounded-lg px-2 py-1.5 text-xs font-mono font-bold text-sky-400 focus:outline-none focus:border-sky-500"
+                            className="w-full bg-sf-raised border border-sf-border rounded-lg px-2 py-2 text-xs font-mono font-semibold text-sf-text focus:outline-none focus:border-sf-action"
                           />
                         </div>
                       </div>
@@ -1252,7 +1253,7 @@ export const AccountingView: React.FC = () => {
                             value={line.credit_sdg || ''}
                             onChange={(e) => handleLineChange(idx, 'credit_sdg', parseFloat(e.target.value) || 0)}
                             placeholder="دائن ج.س"
-                            className="w-full bg-sf-raised border border-sf-border rounded-lg px-2 py-1.5 text-xs font-mono font-bold text-sf-warning focus:outline-none focus:border-sf-warning"
+                            className="w-full bg-sf-raised border border-sf-border rounded-lg px-2 py-2 text-xs font-mono font-semibold text-sf-warning focus:outline-none focus:border-sf-warning"
                           />
                         </div>
                       </div>
@@ -1262,7 +1263,7 @@ export const AccountingView: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleRemoveEntryLine(idx)}
-                            className="text-sf-danger hover:text-sf-danger font-bold text-base"
+                            className="text-sf-danger hover:text-sf-danger font-semibold text-base"
                             title="حذف هذا الطرف"
                           >
                             ×
@@ -1274,10 +1275,10 @@ export const AccountingView: React.FC = () => {
                 </div>
 
                 {/* Totals Summary */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-sf-raised border border-sf-border font-mono text-xs font-bold">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-sf-raised border border-sf-border font-mono text-xs font-semibold">
                   <span className="text-sf-muted font-sans">إجمالي الأطراف:</span>
                   <div className="flex items-center gap-4">
-                    <span className="text-sky-400">مدين: {modalDebitSdg.toLocaleString()} ج.س</span>
+                    <span className="text-sf-text">مدين: {modalDebitSdg.toLocaleString()} ج.س</span>
                     <span className="text-sf-warning">دائن: {modalCreditSdg.toLocaleString()} ج.س</span>
                   </div>
                 </div>
@@ -1287,21 +1288,21 @@ export const AccountingView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsNewEntryOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text font-bold"
+                  className="px-4 py-2 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text font-semibold"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
                   disabled={isSavingEntry || !modalIsBalanced}
-                  className="px-5 py-2 rounded-xl bg-sf-action hover:bg-sf-action-hover disabled:opacity-50 text-sf-on-action font-black shadow-lg shadow-sf-action/20"
+                  className="px-6 py-2 rounded-xl bg-sf-action hover:bg-sf-action-hover disabled:opacity-50 text-sf-on-action font-semibold shadow-lg shadow-sf-action/20"
                 >
                   {isSavingEntry ? 'جاري الترحيل...' : 'ترحيل القيد'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );

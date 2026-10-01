@@ -1,4 +1,30 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
+
+async function seedBrandInvoices(page: Page, longInvoice = false) {
+  await page.addInitScript(({ longInvoice }) => {
+    const settings = JSON.parse(localStorage.getItem('hisabuk_guest_v1_settings') || '{}');
+    settings.sdg_decimals = 2;
+    localStorage.setItem('hisabuk_guest_v1_settings', JSON.stringify(settings));
+    const states = longInvoice ? ['sent'] : ['paid', 'partially_paid', 'overdue', 'cancelled', 'void'];
+    const invoices = states.map((status, index) => {
+      const total = longInvoice ? 60000 : [20000, 30000, 10000, 999000, 999000][index];
+      const paid = longInvoice ? 0 : [20000, 5000, 0, 0, 0][index];
+      return {
+        id:`brand-${index}`, invoice_number:`INV-${String(41 + index).padStart(4, '0')}`,
+        customer_id:'customer', customer_name:`عميل تجريبي ${index + 1}`, customer_phone:'0912345678',
+        issue_date:'2026-10-01', due_date:'2026-10-01', status, currency_mode:'dual', exchange_rate_used:2000,
+        items:Array.from({ length:longInvoice ? 60 : 1 }, (_, row) => ({ id:`line-${row}`, product_id:'product', description:`بند تجريبي ${row + 1}`, unit:'قطعة', quantity:1, unit_price:longInvoice ? 1000 : total, currency:'SDG', tax_rate:0, discount_percent:0, line_total:longInvoice ? 1000 : total })),
+        subtotal_sdg:total, subtotal_usd:total/2000, discount_type:'fixed', discount_value:0,
+        discount_total_sdg:0, discount_total_usd:0, tax_total_sdg:0, tax_total_usd:0,
+        grand_total_sdg:total, grand_total_usd:total/2000, paid_amount_sdg:paid, paid_amount_usd:paid/2000,
+        remaining_sdg:total-paid, remaining_usd:(total-paid)/2000,
+        created_at:'2026-10-01T12:00:00Z', updated_at:'2026-10-01T12:00:00Z',
+      };
+    });
+    localStorage.setItem('hisabuk_guest_v1_invoices', JSON.stringify(invoices));
+  }, { longInvoice });
+}
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -13,6 +39,9 @@ test('RTL brand, local assets, both themes and mobile navigation render without 
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.goto('/'); await expect(page.getByText('متجر الاختبار', { exact: true }).first()).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl'); await expect(page.locator('html')).toHaveAttribute('data-sf-theme', 'light');
+  await expect(page.locator('.sf-app-shell')).toHaveCSS('background-color', 'rgb(247, 249, 248)');
+  await expect(page.locator('header')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(page.locator('#btn-quick-new-invoice')).toHaveCSS('background-color', 'rgb(8, 127, 117)');
   expect(await page.locator('body').evaluate(body => getComputedStyle(body).fontFamily)).toContain('IBM Plex Sans Arabic');
   await expect(page.getByRole('img', { name: 'سودافلو | SudaFlow' }).first()).toBeVisible();
   expect(await page.locator('img[src*="/brand/"]').evaluateAll(images => images.every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0))).toBe(true);
@@ -20,6 +49,10 @@ test('RTL brand, local assets, both themes and mobile navigation render without 
   await page.screenshot({ path: 'test-results/sudaflow-light.png', fullPage: true });
   await page.getByRole('button', { name: /تبديل وضع السمة/ }).first().click();
   await expect(page.locator('html')).toHaveAttribute('data-sf-theme', 'dark');
+  await expect(page.locator('.sf-app-shell')).toHaveCSS('background-color', 'rgb(16, 31, 37)');
+  await expect(page.locator('header')).toHaveCSS('background-color', 'rgb(21, 45, 53)');
+  await expect(page.locator('#btn-quick-new-invoice')).toHaveCSS('background-color', 'rgb(110, 223, 198)');
+  await expect(page.locator('#btn-quick-new-invoice')).toHaveCSS('color', 'rgb(10, 38, 45)');
   await page.screenshot({ path: 'test-results/sudaflow-dark.png', fullPage: true });
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -64,4 +97,112 @@ test('invoice and receipt UI preserve historical receivable and do not duplicate
   expect(invoices).toHaveLength(1); expect(payments).toHaveLength(1);
   expect(invoices[0].remaining_sdg).toBe(100000); expect(invoices[0].remaining_usd).toBe(50);
   expect(customers[0].balance_sdg).toBe(100000); expect(payments[0].cash_amount_sdg).toBe(150000);
+});
+
+test('invoice summary excludes voided records and status filters preserve distinct meanings across viewports', async ({ page }) => {
+  await seedBrandInvoices(page);
+  await page.goto('/'); await page.locator('#tab-invoices').click();
+  const summary = page.getByRole('region', { name:'ملخص الفواتير الصادرة' });
+  await expect(summary).toContainText('60,000.00 SDG');
+  await expect(summary).toContainText('25,000.00 SDG');
+  await expect(summary).toContainText('35,000.00 SDG');
+  await expect(page.locator('#tab-invoices')).toHaveAttribute('aria-current', 'page');
+  const table = page.getByRole('region', { name:'جدول الفواتير، قابل للتمرير أفقياً' });
+  await expect(table.locator('tbody tr')).toHaveCount(5);
+  await page.getByRole('button', { name:'مبطلة', exact:true }).click();
+  await expect(table.locator('tbody tr')).toHaveCount(1);
+  await expect(table).toContainText('INV-0045'); await expect(table).not.toContainText('INV-0044');
+  await page.getByRole('button', { name:'ملغاة', exact:true }).click();
+  await expect(table).toContainText('INV-0044'); await expect(table).not.toContainText('INV-0045');
+  await page.getByRole('button', { name:'الكل', exact:true }).click();
+  await page.screenshot({ path:'test-results/sudaflow-invoices-light.png', fullPage:true });
+  await page.getByRole('button', { name:'تبديل وضع السمة' }).click();
+  await expect(page.locator('.sf-app-shell')).toHaveCSS('background-color', 'rgb(16, 31, 37)');
+  await page.screenshot({ path:'test-results/sudaflow-invoices-dark.png', fullPage:true });
+  for (const width of [320, 390, 768, 1024]) {
+    await page.setViewportSize({ width, height:900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await table.evaluate(node => node.scrollWidth > node.clientWidth)).toBe(true);
+    const values = await table.locator('.sf-number').evaluateAll(nodes => nodes.map(node => ({ size:parseFloat(getComputedStyle(node).fontSize), line:parseFloat(getComputedStyle(node).lineHeight), direction:getComputedStyle(node).direction })));
+    expect(values.every(value => value.size >= 14 && value.line >= 22 && value.direction === 'ltr')).toBe(true);
+  }
+  await page.setViewportSize({ width:390, height:844 });
+  await page.screenshot({ path:'test-results/sudaflow-invoices-mobile.png', fullPage:true });
+});
+
+test('dialog keyboard navigation and focus return work with nested customer entry', async ({ page }) => {
+  await page.goto('/');
+  const trigger = page.locator('#btn-quick-new-invoice');
+  await trigger.focus(); await trigger.click();
+  const dialog = page.getByRole('dialog', { name:'إنشاء فاتورة جديدة' });
+  await expect(dialog).toBeVisible(); await expect(page.locator('#root')).toHaveAttribute('inert', '');
+  for (let index = 0; index < 30; index++) {
+    await page.keyboard.press(index % 3 === 0 ? 'Shift+Tab' : 'Tab');
+    expect(await dialog.evaluate(node => node.contains(document.activeElement))).toBe(true);
+  }
+  await dialog.getByRole('button', { name:/عميل جديد|إضافة عميل/ }).click();
+  const nested = page.getByRole('dialog', { name:'إضافة عميل سريع' });
+  await expect(nested).toBeVisible();
+  expect(await nested.evaluate(node => node.contains(document.activeElement))).toBe(true);
+  await page.keyboard.press('Escape'); await expect(nested).toHaveCount(0);
+  expect(await dialog.evaluate(node => node.contains(document.activeElement))).toBe(true);
+  await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused(); await expect(page.locator('#root')).not.toHaveAttribute('inert');
+});
+
+test('approved landing artwork renders in both themes and the guest action remains usable on mobile', async ({ page }) => {
+  await page.addInitScript(() => localStorage.removeItem('mohasbasd_guest_session'));
+  await page.emulateMedia({ reducedMotion:'reduce' });
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name:'فواتيرك ومخزونك في مكان واحد.' })).toBeVisible();
+  await expect(page.getByText('بيانات تجريبية لعرض الواجهة؛ ليست سجلات متجرك أو أسعار صرف حالية.')).toBeVisible();
+  expect(await page.locator('img[src*="/brand/"]').evaluateAll(images => images.every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0))).toBe(true);
+  await page.screenshot({ path:'test-results/sudaflow-landing-light.png', fullPage:true });
+  await page.getByRole('button', { name:'تبديل وضع السمة' }).click();
+  await page.screenshot({ path:'test-results/sudaflow-landing-dark.png', fullPage:true });
+  await page.setViewportSize({ width:320, height:844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name:'ابدأ التجربة', exact:true }).click();
+  await expect(page.locator('#tab-invoices')).toBeVisible();
+});
+
+test('long invoice PDF keeps the merchant identity and exports multiple complete pages', async ({ page }, testInfo) => {
+  test.setTimeout(90000);
+  await seedBrandInvoices(page, true);
+  await page.goto('/'); await page.locator('#tab-invoices').click();
+  await page.getByRole('button', { name:'فتح الفاتورة INV-0041' }).click();
+  const dialog = page.getByRole('dialog', { name:'معاينة الفاتورة' });
+  await expect(dialog.locator('#printable-invoice')).toContainText('متجر الاختبار');
+  await expect(dialog).toContainText('فاتورة مبيعات'); await expect(dialog).not.toContainText('فاتورة ضريبية');
+  await page.screenshot({ path:'test-results/sudaflow-invoice-paper.png', fullPage:true });
+  const downloadPromise = page.waitForEvent('download');
+  await dialog.getByRole('button', { name:'تحميل PDF', exact:true }).click();
+  const download = await downloadPromise;
+  const file = testInfo.outputPath('merchant-invoice.pdf'); await download.saveAs(file);
+  const bytes = await readFile(file);
+  expect(bytes.subarray(0, 5).toString()).toBe('%PDF-');
+  expect((bytes.toString('latin1').match(/\/Type \/Page\b/g) || []).length).toBeGreaterThan(1);
+  await page.emulateMedia({ media:'print' });
+  expect(await dialog.locator('#printable-invoice').evaluate(node => getComputedStyle(node).backgroundColor)).toBe('rgb(255, 255, 255)');
+  await page.screenshot({ path:'test-results/sudaflow-invoice-print.png', fullPage:true });
+});
+
+test('exchange-rate save failure preserves the field and exposes a retry inside the active dialog', async ({ page }) => {
+  await page.goto('/'); await page.getByTitle('تعديل سعر الصرف اليومي').click();
+  const dialog = page.getByRole('dialog', { name:'تحديث سعر الصرف الحالي' });
+  await dialog.getByLabel('سعر الصرف (1 دولار أمريكي = كم جنيه سوداني؟)').fill('2500');
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    let failOnce = true;
+    Storage.prototype.setItem = function(key, value) {
+      if (key === 'sudaflow_guest_transactions_v3' && failOnce) { failOnce = false; throw new Error('فشل حفظ تجريبي'); }
+      return original.call(this, key, value);
+    };
+  });
+  await dialog.getByRole('button', { name:'حفظ السعر الجديد' }).click();
+  await expect(dialog.getByRole('alert')).toContainText('بياناتك ما زالت في النموذج');
+  await expect(dialog.getByLabel('سعر الصرف (1 دولار أمريكي = كم جنيه سوداني؟)')).toHaveValue('2500');
+  await dialog.getByRole('button', { name:'أعد المحاولة' }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.locator('header')).toContainText('2,500 SDG');
 });

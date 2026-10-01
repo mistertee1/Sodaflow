@@ -100,7 +100,7 @@
   --sf-status-danger-background: #442522;
 }
 
-/* Opt-in classes: importing this file does not recolor the existing app. */
+/* Source tokens are unchanged; component rules live in sudaflow.components.css. */
 .sf-surface { font-family:var(--sf-font); color:var(--sf-text); background:var(--sf-surface); }
 .sf-action { min-height:44px; padding:10px 16px; border:1px solid transparent; border-radius:var(--sf-radius-control); font:500 16px/24px var(--sf-font); color:var(--sf-on-action); background:var(--sf-action); cursor:pointer; transition:background var(--sf-motion-state) var(--sf-motion-ease); }
 .sf-action:hover { background:var(--sf-action-hover); }

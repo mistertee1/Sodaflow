@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Sparkles,
 } from 'lucide-react';
+import { Dialog } from './Dialog';
 
 
 export type LegalTab = 'privacy' | 'terms' | 'about' | 'contact';
@@ -89,27 +90,27 @@ export const LegalModal: React.FC<LegalModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-sf-canvas/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl bg-sf-surface border border-sf-border shadow-2xl overflow-hidden text-right text-sf-text">
+    <Dialog label="الدعم وسياسات سودافلو" onClose={onClose} className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-sf-canvas/85 backdrop-blur-md animate-in fade-in duration-(--sf-motion-state)">
+      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-xl bg-sf-surface border border-sf-border shadow-2xl overflow-hidden text-right text-sf-text">
         
         {/* Header with Navigation Tabs */}
-        <div className="flex flex-col sm:flex-row items-center justify-between border-b border-sf-border bg-sf-raised px-5 py-4 gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between border-b border-sf-border bg-sf-raised px-6 py-4 gap-3">
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
             <div className="flex items-center gap-2">
               <div className="w-9 h-9 rounded-xl bg-sf-action/10 border border-sf-action/30 text-sf-action flex items-center justify-center">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-black text-sf-text">
+                <h3 className="text-sm sm:text-base font-semibold text-sf-text">
                   مركز الشفافية والمعلومات القانونية
                 </h3>
-                <p className="text-[11px] text-sf-muted">سودافلو | SudaFlow</p>
+                <p className="text-xs text-sf-muted">سودافلو | SudaFlow</p>
               </div>
             </div>
 
-            <button
+            <button aria-label="إغلاق النافذة"
               onClick={onClose}
-              className="sm:hidden p-1.5 rounded-lg text-sf-muted hover:text-sf-text hover:bg-sf-raised transition-colors"
+              className="sm:hidden p-2 rounded-lg text-sf-muted hover:text-sf-text hover:bg-sf-raised transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -120,7 +121,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('privacy')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
+              className={`px-3 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'privacy'
                   ? 'bg-sf-action text-sf-on-action shadow-sm'
                   : 'text-sf-muted hover:text-sf-text'
@@ -131,7 +132,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('terms')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
+              className={`px-3 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'terms'
                   ? 'bg-sf-action text-sf-on-action shadow-sm'
                   : 'text-sf-muted hover:text-sf-text'
@@ -142,7 +143,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('about')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
+              className={`px-3 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'about'
                   ? 'bg-sf-action text-sf-on-action shadow-sm'
                   : 'text-sf-muted hover:text-sf-text'
@@ -153,7 +154,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('contact')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
+              className={`px-3 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'contact'
                   ? 'bg-sf-action text-sf-on-action shadow-sm'
                   : 'text-sf-muted hover:text-sf-text'
@@ -163,23 +164,23 @@ export const LegalModal: React.FC<LegalModalProps> = ({
             </button>
           </div>
 
-          <button
+          <button aria-label="إغلاق النافذة"
             onClick={onClose}
-            className="hidden sm:inline-flex p-1.5 rounded-lg text-sf-muted hover:text-sf-text hover:bg-sf-raised transition-colors"
+            className="hidden sm:inline-flex p-2 rounded-lg text-sf-muted hover:text-sf-text hover:bg-sf-raised transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6 text-sm text-sf-text leading-relaxed">
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 space-y-6 text-sm text-sf-text leading-relaxed">
           
           {/* TAB 1: PRIVACY POLICY */}
           {activeTab === 'privacy' && (
             <div className="space-y-6">
               <div className="border-b border-sf-border pb-4">
-                <span className="text-[11px] font-mono text-sf-action font-bold">آخر تحديث: سبتمبر 2026</span>
-                <h2 className="text-xl sm:text-2xl font-black text-sf-text mt-1">
+                <span className="text-xs font-mono text-sf-text font-semibold">آخر تحديث: سبتمبر 2026</span>
+                <h2 className="text-xl sm:text-2xl font-semibold text-sf-text mt-1">
                   سياسة الخصوصية وحماية البيانات (Privacy Policy)
                 </h2>
                 <p className="text-xs text-sf-muted mt-1">
@@ -188,7 +189,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               </div>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-sf-text text-base flex items-center gap-2">
+                <h3 className="font-semibold text-sf-text text-base flex items-center gap-2">
                   <Lock className="w-4 h-4 text-sf-action" />
                   <span>1. المعلومات التي نجمعها</span>
                 </h3>
@@ -202,15 +203,15 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                 </ul>
               </section>
 
-              <section className="space-y-2 bg-sf-raised p-4 rounded-2xl border border-sf-border">
-                <h3 className="font-bold text-sf-text text-base">2. التخزين المحلي والجلسة</h3>
+              <section className="space-y-2 bg-sf-raised p-4 rounded-xl border border-sf-border">
+                <h3 className="font-semibold text-sf-text text-base">2. التخزين المحلي والجلسة</h3>
                 <p className="text-xs text-sf-text">
                   نستخدم تخزين المتصفح لحفظ تفضيل السمة وجلسة تسجيل الدخول. بيانات وضع الضيف محفوظة على هذا الجهاز. لا توجد خدمة إعلانات أو تحليلات مفعّلة في هذا الإصدار.
                 </p>
               </section>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-sf-text text-base flex items-center gap-2">
+                <h3 className="font-semibold text-sf-text text-base flex items-center gap-2">
                   <ShieldCheck className="w-4 h-4 text-sf-action" />
                   <span>3. حماية البيانات والتشفير السحابي</span>
                 </h3>
@@ -220,13 +221,13 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               </section>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-sf-text text-base flex items-center gap-2">
+                <h3 className="font-semibold text-sf-text text-base flex items-center gap-2">
                   <Mail className="w-4 h-4 text-sf-action" />
                   <span>4. حقوقك والتواصل بشأن الخصوصية</span>
                 </h3>
                 <p className="text-xs text-sf-text">
                   لك كامل الحق في طلب نسخة احتياطية من كافة بياناتك (JSON Export)، أو تعديل بياناتك، أو طلب حذف حسابك نهائياً من قاعدة البيانات السحابية عبر مراسلتنا على{' '}
-                  <span className="font-mono text-sf-action font-semibold">elmuktafibellah@gmail.com</span>.
+                  <span className="font-mono text-sf-text font-semibold">elmuktafibellah@gmail.com</span>.
                 </p>
               </section>
             </div>
@@ -236,8 +237,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           {activeTab === 'terms' && (
             <div className="space-y-6">
               <div className="border-b border-sf-border pb-4">
-                <span className="text-[11px] font-mono text-sf-action font-bold">شروط وأحكام الاستخدام</span>
-                <h2 className="text-xl sm:text-2xl font-black text-sf-text mt-1">
+                <span className="text-xs font-mono text-sf-text font-semibold">شروط وأحكام الاستخدام</span>
+                <h2 className="text-xl sm:text-2xl font-semibold text-sf-text mt-1">
                   اتفاقية شروط الخدمة (Terms of Service)
                 </h2>
                 <p className="text-xs text-sf-muted mt-1">
@@ -246,14 +247,14 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               </div>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-sf-text text-base">1. طبيعة الخدمة ونطاقها</h3>
+                <h3 className="font-semibold text-sf-text text-base">1. طبيعة الخدمة ونطاقها</h3>
                 <p className="text-xs sm:text-sm text-sf-text">
                   سودافلو هو نظام لإصدار الفواتير المزدوجة (جنيه سوداني / دولار أمريكي)، ومتابعة المخزون، وسندات التحصيل المالي. صُمم التطبيق ليلائم متطلبات أصحاب الأعمال والمحلات والشركات الناشئة في السوق السوداني.
                 </p>
               </section>
 
-              <section className="space-y-2 bg-sf-raised p-4 rounded-2xl border border-sf-border">
-                <h3 className="font-bold text-sf-text text-base">2. تجميد سعر الصرف ومسؤولية الأسعار</h3>
+              <section className="space-y-2 bg-sf-raised p-4 rounded-xl border border-sf-border">
+                <h3 className="font-semibold text-sf-text text-base">2. تجميد سعر الصرف ومسؤولية الأسعار</h3>
                 <p className="text-xs sm:text-sm text-sf-text">
                   يوفر التطبيق ميزة حصرية تتيح للتاجر تجميد سعر صرف الدولار اليومي في السوق الموازي عند لحظة تحرير الفاتورة لمنع أي تضارب مالي عند التحصيل اللاحق:
                 </p>
@@ -264,14 +265,14 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               </section>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-sf-text text-base">3. أمن الحساب والاحتفاظ بنسخ احتياطية</h3>
+                <h3 className="font-semibold text-sf-text text-base">3. أمن الحساب والاحتفاظ بنسخ احتياطية</h3>
                 <p className="text-xs sm:text-sm text-sf-text">
                   يلتزم المستخدم بالحفاظ على سرية كلمة المرور الخاصة بحسابه. على الرغم من أن النظام يعتمد البنية التحتية السحابية الموثوقة لـ Google Cloud، إلا أننا ننصح التجار بتصدير ملف النسخة الاحتياطية (JSON) دورياً من نافذة الإعدادات لضمان التوافر الدائم لبياناتهم دون اتصال.
                 </p>
               </section>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-sf-text text-base">4. التعديلات على شروط الخدمة</h3>
+                <h3 className="font-semibold text-sf-text text-base">4. التعديلات على شروط الخدمة</h3>
                 <p className="text-xs sm:text-sm text-sf-text">
                   يحق لنا تحديث شروط الخدمة لتعزيز الأمان أو لمطابقة المتطلبات القانونية أو التقنية، وسيتم إخطار المستخدمين بأي تغييرات جوهرية داخل التطبيق.
                 </p>
@@ -283,8 +284,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           {activeTab === 'about' && (
             <div className="space-y-6">
               <div className="border-b border-sf-border pb-4">
-                <span className="text-[11px] font-mono text-sf-action font-bold">هويتنا ورؤيتنا</span>
-                <h2 className="text-xl sm:text-2xl font-black text-sf-text mt-1">
+                <span className="text-xs font-mono text-sf-text font-semibold">هويتنا ورؤيتنا</span>
+                <h2 className="text-xl sm:text-2xl font-semibold text-sf-text mt-1">
                   عن سودافلو | SudaFlow
                 </h2>
                 <p className="text-xs text-sf-muted mt-1">
@@ -293,21 +294,21 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-sf-raised p-4 rounded-2xl border border-sf-border space-y-2">
+                <div className="bg-sf-raised p-4 rounded-xl border border-sf-border space-y-2">
                   <div className="w-8 h-8 rounded-lg bg-sf-action/10 text-sf-action flex items-center justify-center">
                     <Sparkles className="w-4 h-4" />
                   </div>
-                  <h3 className="font-bold text-sf-text text-sm">رسالتنا الأساسية</h3>
+                  <h3 className="font-semibold text-sf-text text-sm">رسالتنا الأساسية</h3>
                   <p className="text-xs text-sf-muted leading-relaxed">
                     تمكين التاجر السوداني من إصدار فواتير بيع احترافية وشفافة، وحماية أرباحه من تقلبات سعر الصرف المتكررة، مع أتمتة حسابات السداد الجزئي وسندات التحصيل عبر تطبيق بنكك وفوري.
                   </p>
                 </div>
 
-                <div className="bg-sf-raised p-4 rounded-2xl border border-sf-border space-y-2">
+                <div className="bg-sf-raised p-4 rounded-xl border border-sf-border space-y-2">
                   <div className="w-8 h-8 rounded-lg bg-sf-action/10 text-sf-action flex items-center justify-center">
                     <Building2 className="w-4 h-4" />
                   </div>
-                  <h3 className="font-bold text-sf-text text-sm">التوافق مع السوق المحلي</h3>
+                  <h3 className="font-semibold text-sf-text text-sm">التوافق مع السوق المحلي</h3>
                   <p className="text-xs text-sf-muted leading-relaxed">
                     صُمم النظام ليعمل بكفاءة فائقة على الهواتف الذكية والأجهزة اللوحية وأجهزة الحاسوب، مع دعم العمل دون اتصال بالإنترنت وحفظ محلي فوري قبل المزامنة السحابية.
                   </p>
@@ -315,18 +316,18 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               </div>
 
               <div className="space-y-3 pt-2">
-                <h3 className="font-bold text-sf-text text-base">أبرز ما يميز المنظومة:</h3>
+                <h3 className="font-semibold text-sf-text text-base">أبرز ما يميز المنظومة:</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-sf-text">
                   <div className="p-3 bg-sf-surface rounded-xl border border-sf-border">
-                    <span className="font-bold text-sf-action block mb-1">تسعير مجمّد</span>
+                    <span className="font-semibold text-sf-action block mb-1">تسعير مجمّد</span>
                     تثبيت سعر صرف الدولار للفاتورة لضمان عدم حدوث خلاف بين البائع والمشتري.
                   </div>
                   <div className="p-3 bg-sf-surface rounded-xl border border-sf-border">
-                    <span className="font-bold text-sf-action block mb-1">لوقو وهوية مخصصة</span>
+                    <span className="font-semibold text-sf-action block mb-1">لوقو وهوية مخصصة</span>
                     إمكانية رفع لوقو متجرك ليظهر مباشرة في فواتير البيع وسندات القبض المطبوعة.
                   </div>
                   <div className="p-3 bg-sf-surface rounded-xl border border-sf-border">
-                    <span className="font-bold text-sf-action block mb-1">مشاركة واتساب</span>
+                    <span className="font-semibold text-sf-action block mb-1">مشاركة واتساب</span>
                     إرسال الفواتير وسندات القبض وتذكيرات المطالبة بضغطة زر مباشرة عبر واتساب.
                   </div>
                 </div>
@@ -338,8 +339,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           {activeTab === 'contact' && (
             <div className="space-y-6">
               <div className="border-b border-sf-border pb-4">
-                <span className="text-[11px] font-mono text-sf-action font-bold">فريق الدعم الفني</span>
-                <h2 className="text-xl sm:text-2xl font-black text-sf-text mt-1">
+                <span className="text-xs font-mono text-sf-text font-semibold">فريق الدعم الفني</span>
+                <h2 className="text-xl sm:text-2xl font-semibold text-sf-text mt-1">
                   اتصل بنا والدعم المباشر (Contact Us)
                 </h2>
                 <p className="text-xs text-sf-muted mt-1">
@@ -351,16 +352,16 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                 
                 {/* Contact Info Cards (Left / 5 Cols) */}
                 <div className="md:col-span-5 space-y-3">
-                  <div className="bg-sf-raised p-4 rounded-2xl border border-sf-border space-y-3">
-                    <h3 className="font-bold text-sf-text text-xs text-sf-action uppercase tracking-wider">
+                  <div className="bg-sf-raised p-4 rounded-xl border border-sf-border space-y-3">
+                    <h3 className="font-semibold text-sf-text text-xs text-sf-action uppercase tracking-wider">
                       معلومات التواصل المباشرة
                     </h3>
 
                     <div className="space-y-3 text-xs">
                       <div className="flex items-start gap-3 text-sf-text">
-                        <Mail className="w-4 h-4 text-sf-action shrink-0 mt-0.5" />
+                        <Mail className="w-4 h-4 text-sf-action shrink-0 mt-1" />
                         <div>
-                          <span className="block text-sf-muted text-[11px]">البريد الإلكتروني المعتمد:</span>
+                          <span className="block text-sf-muted text-xs">البريد الإلكتروني المعتمد:</span>
                           <span className="font-mono text-sf-text font-semibold select-all">
                             elmuktafibellah@gmail.com
                           </span>
@@ -368,33 +369,33 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                       </div>
 
                       <div className="flex items-start gap-3 text-sf-text">
-                        <MessageSquare className="w-4 h-4 text-sf-action shrink-0 mt-0.5" />
+                        <MessageSquare className="w-4 h-4 text-sf-action shrink-0 mt-1" />
                         <div>
-                          <span className="block text-sf-muted text-[11px]">الدعم الفني واستفسارات التجار:</span>
+                          <span className="block text-sf-muted text-xs">الدعم الفني واستفسارات التجار:</span>
                           <span className="text-sf-text font-semibold">متاح طوال أيام الأسبوع</span>
                         </div>
                       </div>
 
                       <div className="flex items-start gap-3 text-sf-text">
-                        <ShieldCheck className="w-4 h-4 text-sf-action shrink-0 mt-0.5" />
+                        <ShieldCheck className="w-4 h-4 text-sf-action shrink-0 mt-1" />
                         <div>
-                          <span className="block text-sf-muted text-[11px]">الإعلانات والشراكات (AdSense):</span>
+                          <span className="block text-sf-muted text-xs">الإعلانات والشراكات (AdSense):</span>
                           <span className="text-sf-text font-semibold">استفسارات الشراكات والمساحات المتاحة</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-sf-selected/40 p-4 rounded-2xl border border-sf-action/40 text-xs text-sf-action">
-                    <span className="font-bold block mb-1">ملاحظة للتجار:</span>
+                  <div className="bg-sf-selected/40 p-4 rounded-xl border border-sf-action/40 text-xs text-sf-action">
+                    <span className="font-semibold block mb-1">ملاحظة للتجار:</span>
                     يمكنكم إرسال مقترحاتكم بشأن إضافة ميزات خاصة بمتاجركم، أو المساعدة في ضبط إعدادات الحساب السحابي.
                   </div>
                 </div>
 
                 {/* Contact Form (Right / 7 Cols) */}
                 <div className="md:col-span-7">
-                  <div className="bg-sf-raised p-5 rounded-2xl border border-sf-border">
-                    <h3 className="font-bold text-sf-text text-sm mb-4">إرسال رسالة مباشرة إلى الإدارة</h3>
+                  <div className="bg-sf-raised p-6 rounded-xl border border-sf-border">
+                    <h3 className="font-semibold text-sf-text text-sm mb-4">إرسال رسالة مباشرة إلى الإدارة</h3>
 
                     {submitSuccess && (
                       <div className="mb-4 p-3 bg-sf-selected/80 border border-sf-action/50 rounded-xl text-xs text-sf-action flex items-center gap-2">
@@ -410,7 +411,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                       </div>
                     )}
 
-                    <form onSubmit={handleContactSubmit} className="space-y-3.5">
+                    <form onSubmit={handleContactSubmit} className="space-y-4">
                       <div>
                         <label className="block text-xs font-semibold text-sf-text mb-1">الاسم الكامل *</label>
                         <input
@@ -419,7 +420,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                           value={contactName}
                           onChange={(e) => setContactName(e.target.value)}
                           placeholder="مثال: أحمد عبد الله"
-                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                         />
                       </div>
 
@@ -431,7 +432,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                           value={contactEmail}
                           onChange={(e) => setContactEmail(e.target.value)}
                           placeholder="your-email@example.com"
-                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action font-mono text-left"
+                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action font-mono text-left"
                         />
                       </div>
 
@@ -457,14 +458,14 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                           value={contactMessage}
                           onChange={(e) => setContactMessage(e.target.value)}
                           placeholder="اكتب استفسارك أو اقتراحك هنا وسيسعدنا الرد عليك..."
-                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action leading-relaxed"
+                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action leading-relaxed"
                         />
                       </div>
 
                       <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-sf-action/20 transition-all disabled:opacity-50 active:scale-98"
+                        className="w-full bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-sf-action/20 transition-all disabled:opacity-50 active:scale-98"
                       >
                         <Send className="w-3.5 h-3.5" />
                         <span>{isSubmitting ? 'جاري الإرسال...' : 'إرسال الرسالة الآن'}</span>
@@ -480,7 +481,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-between border-t border-sf-border bg-sf-surface px-5 py-3 text-xs text-sf-muted">
+        <div className="flex items-center justify-between border-t border-sf-border bg-sf-surface px-6 py-3 text-xs text-sf-muted">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-sf-action"></span>
             <span>سودافلو | SudaFlow — شغلك أوضح.</span>
@@ -488,13 +489,13 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border text-xs font-semibold transition-colors"
+            className="px-4 py-2 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border text-xs font-semibold transition-colors"
           >
             إغلاق
           </button>
         </div>
 
       </div>
-    </div>
+    </Dialog>
   );
 };

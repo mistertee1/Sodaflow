@@ -20,6 +20,7 @@ import {
   validateImageFile,
   MAX_IMAGE_FILE_SIZE_BYTES,
 } from '../services/storageService';
+import { Dialog } from './Dialog';
 
 export const ExpensesView: React.FC = () => {
   const { expenses, addExpense, deleteExpense, settings, currentUser, currentOrg, isActionAllowed } = useApp();
@@ -166,18 +167,18 @@ export const ExpensesView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-5 pb-16">
+    <div className="space-y-6 pb-16">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-sf-surface p-4 rounded-2xl border border-sf-border shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-sf-surface p-4 rounded-xl border border-sf-border shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-sf-text">سجل المصروفات اليومية</h2>
+          <h2 className="text-lg font-semibold text-sf-text">سجل المصروفات اليومية</h2>
           <p className="text-xs text-sf-muted">
             تسجيل النفقات بالجنيه والدولار مع إرفاق صور الإيصالات عبر الكاميرا
           </p>
         </div>
         <button
           disabled={!isActionAllowed('expenses:create')} onClick={() => setIsAddModalOpen(true)}
-          className="bg-sf-action hover:bg-sf-action-hover text-sf-on-action text-xs sm:text-sm font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-lg shadow-sf-action/20 transition-all active:scale-95"
+          className="bg-sf-action hover:bg-sf-action-hover text-sf-on-action text-xs sm:text-sm font-semibold px-4 py-3 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-sf-action/20 transition-all "
         >
           <Plus className="w-4 h-4 text-sf-on-action" />
           <span>تسجيل مصروف جديد</span>
@@ -186,26 +187,26 @@ export const ExpensesView: React.FC = () => {
 
       {/* Totals Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="bg-sf-surface p-4 sm:p-5 rounded-2xl border border-sf-border shadow-sm flex items-center justify-between">
+        <div className="bg-sf-surface p-4 sm:p-6 rounded-xl border border-sf-border shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs text-sf-muted font-semibold block mb-0.5">إجمالي المصروفات بالجنيه:</span>
-            <span className="text-xl font-black font-mono text-sf-text">
+            <span className="text-xs text-sf-muted font-semibold block mb-1">إجمالي المصروفات بالجنيه:</span>
+            <span className="text-xl font-semibold font-mono text-sf-text">
               {formatMoney(totalSdg, 'SDG', settings)}
             </span>
           </div>
-          <div className="p-2.5 bg-sf-warning-bg/10 text-sf-warning rounded-xl border border-sf-warning/20">
+          <div className="p-3 bg-sf-warning-bg/10 text-sf-warning rounded-xl border border-sf-warning/20">
             <Receipt className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="bg-sf-surface p-4 sm:p-5 rounded-2xl border border-sf-border shadow-sm flex items-center justify-between">
+        <div className="bg-sf-surface p-4 sm:p-6 rounded-xl border border-sf-border shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs text-sf-muted font-semibold block mb-0.5">ما يعادل بالدولار:</span>
-            <span className="text-xl font-black font-mono text-sf-action">
+            <span className="text-xs text-sf-muted font-semibold block mb-1">ما يعادل بالدولار:</span>
+            <span className="text-xl font-semibold font-mono text-sf-text">
               {formatMoney(totalUsd, 'USD', settings)}
             </span>
           </div>
-          <div className="p-2.5 bg-sf-action/10 text-sf-action rounded-xl border border-sf-action/20">
+          <div className="p-3 bg-sf-action/10 text-sf-action rounded-xl border border-sf-action/20">
             <DollarSign className="w-5 h-5" />
           </div>
         </div>
@@ -213,12 +214,12 @@ export const ExpensesView: React.FC = () => {
 
       {/* Expenses List */}
       {safeExpenses.length === 0 ? (
-        <div className="bg-sf-surface border border-sf-border rounded-2xl p-10 text-center text-sf-muted shadow-sm">
+        <div className="bg-sf-surface border border-sf-border rounded-xl p-12 text-center text-sf-muted shadow-sm">
           <Receipt className="w-10 h-10 mx-auto mb-2 text-sf-muted" />
           <p className="text-sm font-medium text-sf-text">لم يتم تسجيل أي مصروفات بعد</p>
         </div>
       ) : (
-        <div className="divide-y divide-sf-border bg-sf-surface border border-sf-border rounded-2xl overflow-hidden shadow-sm">
+        <div className="divide-y divide-sf-border bg-sf-surface border border-sf-border rounded-xl overflow-hidden shadow-sm">
           {(safeExpenses || []).map((exp) => (
             <div
               key={exp.id}
@@ -226,8 +227,8 @@ export const ExpensesView: React.FC = () => {
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-sf-text">{exp.title}</span>
-                  <span className="text-[11px] bg-sf-raised text-sf-text px-2 py-0.5 rounded-md border border-sf-border font-medium">
+                  <span className="font-semibold text-sm text-sf-text">{exp.title}</span>
+                  <span className="text-xs bg-sf-raised text-sf-text px-2 py-1 rounded-md border border-sf-border font-medium">
                     {exp.category}
                   </span>
                 </div>
@@ -242,22 +243,22 @@ export const ExpensesView: React.FC = () => {
 
               <div className="flex items-center justify-between sm:justify-end gap-4">
                 <div className="text-left font-mono">
-                  <span className="font-bold text-base text-sf-text block">
+                  <span className="font-semibold text-base text-sf-text block">
                     {formatMoney(exp.amount, exp.currency, settings)}
                   </span>
-                  <span className="text-[11px] text-sf-action font-semibold">
+                  <span className="text-xs text-sf-action font-semibold">
                     {exp.currency === 'SDG'
                       ? formatMoney(convertCurrency(exp.amount, 'SDG', 'USD', rate, settings), 'USD', settings)
                       : formatMoney(convertCurrency(exp.amount, 'USD', 'SDG', rate, settings), 'SDG', settings)}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   {exp.receipt_image && (
                     <button
                       onClick={() => setPreviewImage(exp.receipt_image!)}
                       title="عرض صورة الإيصال المرفقة"
-                      className="p-1.5 bg-sf-selected/60 hover:bg-sf-selected/60 text-sf-action rounded-lg border border-sf-action/60 transition-colors shadow-xs"
+                      className="p-2 bg-sf-selected/60 hover:bg-sf-selected/60 text-sf-action rounded-lg border border-sf-action/60 transition-colors shadow-xs"
                     >
                       <ImageIcon className="w-4 h-4" />
                     </button>
@@ -265,7 +266,7 @@ export const ExpensesView: React.FC = () => {
                   <button
                     disabled={!isActionAllowed('expenses:delete')} onClick={() => handleDelete(exp.id, exp.title)}
                     title="عكس المصروف"
-                    className="p-1.5 text-sf-muted hover:text-sf-danger hover:bg-sf-danger-bg/30 rounded-lg transition-colors"
+                    className="p-2 text-sf-muted hover:text-sf-danger hover:bg-sf-danger-bg/30 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -278,11 +279,11 @@ export const ExpensesView: React.FC = () => {
 
       {/* Add Expense Modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-sf-surface rounded-2xl shadow-2xl border border-sf-border max-w-md w-full p-5 sm:p-6 animate-in fade-in zoom-in-95 text-xs sm:text-sm text-sf-text">
+        <Dialog label="تسجيل مصروف" onClose={() => { if (!isSaving) setIsAddModalOpen(false); }} className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-sf-surface rounded-xl shadow-2xl border border-sf-border max-w-md w-full p-6 sm:p-6 animate-in fade-in zoom-in-95 text-xs sm:text-sm text-sf-text">
             <div className="flex items-center justify-between border-b border-sf-border pb-3 mb-4">
-              <h3 className="font-bold text-base text-sf-text">تسجيل مصروف جديد</h3>
-              <button
+              <h3 className="font-semibold text-base text-sf-text">تسجيل مصروف جديد</h3>
+              <button disabled={isSaving} aria-label="إغلاق النافذة"
                 onClick={() => setIsAddModalOpen(false)}
                 className="p-1 text-sf-muted hover:text-sf-text"
               >
@@ -290,9 +291,9 @@ export const ExpensesView: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3.5">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {errorMessage && (
-                <div className="p-2.5 rounded-xl bg-sf-danger-bg/10 border border-sf-danger/20 text-sf-danger text-xs flex items-center gap-2">
+                <div role="alert" className="p-3 rounded-xl bg-sf-danger-bg/10 border border-sf-danger/20 text-sf-danger text-xs flex items-center gap-2">
                   <span>{errorMessage}</span>
                 </div>
               )}
@@ -306,7 +307,7 @@ export const ExpensesView: React.FC = () => {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="مثال: إيجار المحل لشهر سبتمبر"
-                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
 
@@ -320,7 +321,7 @@ export const ExpensesView: React.FC = () => {
                     required
                     value={amount}
                     onChange={(e) => setAmount(Number(e.target.value))}
-                    className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs font-mono font-bold text-sf-action focus:outline-none focus:border-sf-action"
+                    className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs font-mono font-semibold text-sf-text focus:outline-none focus:border-sf-action"
                   />
                 </div>
 
@@ -352,7 +353,7 @@ export const ExpensesView: React.FC = () => {
                     placeholder="مثال: 2750"
                     className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs font-mono text-sf-warning focus:outline-none focus:border-sf-warning"
                   />
-                  <p className="text-[10px] text-sf-muted mt-1">
+                  <p className="text-xs text-sf-muted mt-1">
                     سعر صرف موثق لمعادلة المصروف بالدفاتر المحاسبية.
                   </p>
                 </div>
@@ -404,7 +405,7 @@ export const ExpensesView: React.FC = () => {
                     type="button"
                     disabled={isUploadingReceipt}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`px-3 py-2 bg-sf-raised hover:bg-sf-raised text-sf-text rounded-xl border border-sf-border text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs ${
+                    className={`px-3 py-2 bg-sf-raised hover:bg-sf-raised text-sf-text rounded-xl border border-sf-border text-xs font-semibold flex items-center gap-2 transition-colors shadow-xs ${
                       isUploadingReceipt ? 'opacity-60 cursor-not-allowed' : ''
                     }`}
                   >
@@ -427,7 +428,7 @@ export const ExpensesView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setReceiptImage(null)}
-                        className="text-sf-danger hover:underline mr-1 text-[11px]"
+                        className="text-sf-danger hover:underline mr-1 text-xs"
                       >
                         إزالة
                       </button>
@@ -438,14 +439,14 @@ export const ExpensesView: React.FC = () => {
                 {isUploadingReceipt && (
                   <div className="w-full bg-sf-raised rounded-full h-1.5 overflow-hidden mt-2">
                     <div
-                      className="bg-sf-action h-full transition-all duration-200"
+                      className="bg-sf-action h-full transition-all duration-(--sf-motion-state)"
                       style={{ width: `${uploadProgress}%` }}
                     />
                   </div>
                 )}
 
                 {uploadError && (
-                  <div className="p-2.5 mt-2 rounded-xl bg-sf-danger-bg/60 border border-sf-danger/60 text-sf-danger text-xs flex items-center gap-2">
+                  <div className="p-3 mt-2 rounded-xl bg-sf-danger-bg/60 border border-sf-danger/60 text-sf-danger text-xs flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-sf-danger shrink-0" />
                     <span>{uploadError}</span>
                   </div>
@@ -459,12 +460,12 @@ export const ExpensesView: React.FC = () => {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="ملاحظات توضيحية..."
-                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-sf-border">
-                <button
+                <button disabled={isSaving}
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   className="px-4 py-2 border border-sf-border bg-sf-raised rounded-xl text-xs font-semibold text-sf-text hover:bg-sf-raised transition-colors"
@@ -474,7 +475,7 @@ export const ExpensesView: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSaving || isUploadingReceipt}
-                  className="px-5 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-xl text-xs font-bold shadow-lg shadow-sf-action/20 flex items-center gap-1.5 transition-colors"
+                  className="px-6 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-xl text-xs font-semibold shadow-lg shadow-sf-action/20 flex items-center gap-2 transition-colors"
                 >
                   <CheckCircle2 className="w-4 h-4 text-sf-on-action" />
                   <span>تسجيل المصروف</span>
@@ -482,16 +483,16 @@ export const ExpensesView: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </Dialog>
       )}
 
       {/* Image Preview Modal */}
       {previewImage && (
-        <div className="fixed inset-0 z-60 bg-sf-canvas/90 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-sf-surface border border-sf-border rounded-2xl p-4 max-w-lg w-full max-h-[90vh] flex flex-col items-center shadow-2xl text-sf-text">
+        <Dialog label="صورة الإيصال المرفقة" onClose={() => setPreviewImage(null)} className="fixed inset-0 z-60 bg-sf-canvas/90 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-sf-surface border border-sf-border rounded-xl p-4 max-w-lg w-full max-h-[90vh] flex flex-col items-center shadow-2xl text-sf-text">
             <div className="w-full flex justify-between items-center mb-2 pb-2 border-b border-sf-border">
-              <span className="font-bold text-xs text-sf-text">صورة الإيصال المرفقة</span>
-              <button
+              <span className="font-semibold text-xs text-sf-text">صورة الإيصال المرفقة</span>
+              <button aria-label="إغلاق النافذة"
                 onClick={() => setPreviewImage(null)}
                 className="text-sf-muted hover:text-sf-text p-1 rounded-lg hover:bg-sf-raised"
               >
@@ -504,7 +505,7 @@ export const ExpensesView: React.FC = () => {
               className="max-h-[70vh] object-contain rounded-xl"
             />
           </div>
-        </div>
+        </Dialog>
       )}
     </div>
   );

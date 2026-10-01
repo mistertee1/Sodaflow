@@ -37,11 +37,11 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="bg-sf-raised border border-sf-danger/40 rounded-2xl p-6 text-center space-y-3 my-4 shadow-lg">
-          <div className="w-12 h-12 rounded-2xl bg-sf-danger-bg/10 border border-sf-danger/30 text-sf-danger flex items-center justify-center mx-auto">
+        <div className="bg-sf-raised border border-sf-danger/40 rounded-xl p-6 text-center space-y-3 my-4 shadow-lg">
+          <div className="w-12 h-12 rounded-xl bg-sf-danger-bg/10 border border-sf-danger/30 text-sf-danger flex items-center justify-center mx-auto">
             <AlertTriangle className="w-6 h-6 text-sf-danger" />
           </div>
-          <h3 className="font-bold text-sm text-sf-text">
+          <h3 className="font-semibold text-sm text-sf-text">
             {this.props.fallbackTitle || 'حدث تنبيه أثناء عرض هذا المكون'}
           </h3>
           <p className="text-xs text-sf-muted max-w-md mx-auto">
@@ -51,7 +51,7 @@ export class ErrorBoundary extends Component<Props, State> {
           <button
             type="button"
             onClick={this.handleReload}
-            className="px-4 py-2 bg-sf-danger-bg/50 hover:bg-rose-800 text-sf-danger rounded-xl text-xs font-bold border border-sf-danger transition-colors inline-flex items-center gap-1.5"
+            className="px-4 py-2 bg-sf-danger-bg/50 hover:bg-sf-danger-bg text-sf-danger rounded-xl text-xs font-semibold border border-sf-danger transition-colors inline-flex items-center gap-2"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>إعادة المحاولة</span>

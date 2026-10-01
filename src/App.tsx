@@ -22,7 +22,7 @@ import { RefreshCw, Store } from 'lucide-react';
 import { trackPageView } from './lib/analytics';
 
 function MainLayout() {
-  const { currentUser, authLoading, theme, memberStatus, syncError, dismissSyncError, syncAllToCloud, isActionAllowed, currentOrg, invoices } = useApp();
+  const { currentUser, authLoading, memberStatus, syncError, dismissSyncError, syncAllToCloud, isActionAllowed, currentOrg, invoices } = useApp();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
   const [prefilledCustomer, setPrefilledCustomer] = useState<Customer | null>(null);
@@ -72,7 +72,7 @@ function MainLayout() {
         <div className="w-14 h-14 rounded-2xl bg-sf-action/10 border border-sf-action/30 text-sf-action flex items-center justify-center mb-4 shadow-lg shadow-sf-action/10">
           <Store className="w-7 h-7 text-sf-action" />
         </div>
-        <div className="flex items-center gap-2 text-sf-action font-bold text-sm">
+        <div className="flex items-center gap-2 text-sf-action font-semibold text-sm">
           <RefreshCw className="w-4 h-4 animate-spin" />
           <span>جاري تهيئة سودافلو...</span>
         </div>
@@ -109,9 +109,7 @@ function MainLayout() {
 
   return (
     <div
-      className={`min-h-screen ${
-        theme === 'light' ? 'bg-sf-canvas text-sf-text' : 'bg-sf-canvas text-sf-text'
-      } flex flex-col font-sans antialiased selection:bg-sf-action selection:text-sf-on-action transition-colors duration-200`}
+      className="sf-app-shell min-h-screen bg-sf-canvas text-sf-text flex flex-col font-sans antialiased selection:bg-sf-action selection:text-sf-on-action transition-colors"
     >
       {/* Top Header */}
       <Header
@@ -138,7 +136,7 @@ function MainLayout() {
           <button
             type="button"
             onClick={() => setIsSettingsOpen(true)}
-            className="px-2.5 py-1 bg-sf-danger-bg/80 hover:bg-rose-800 text-sf-danger rounded-lg text-xs font-bold border border-sf-danger shrink-0 transition-colors"
+            className="px-2.5 py-1 bg-sf-danger-bg/80 hover:bg-sf-danger-bg text-sf-danger rounded-lg text-xs font-semibold border border-sf-danger shrink-0 transition-colors"
           >
             إدارة المؤسسة
           </button>
@@ -146,7 +144,7 @@ function MainLayout() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 mb-16 sm:mb-6">
+      <main className="sf-content sf-main flex-1">
 <Suspense fallback={<div role="status" className="p-6 text-sf-muted">جاري التحميل…</div>}>
         {activeTab === 'dashboard' && (
           <DashboardView

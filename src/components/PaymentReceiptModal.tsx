@@ -4,6 +4,7 @@ import { Payment } from '../types';
 import { X, Printer, Share2, Building2, CheckCircle2, Receipt, Download, Loader2 } from 'lucide-react';
 import { formatMoney, getPaymentMethodLabel } from '../lib/currency';
 import { downloadReceiptPdf } from '../services/pdfService';
+import { Dialog } from './Dialog';
 
 interface PaymentReceiptModalProps {
   payment: Payment | null;
@@ -77,19 +78,19 @@ ${payment.reference_number ? `رقم العملية: ${payment.reference_number}
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-sf-surface rounded-2xl shadow-2xl border border-sf-border max-w-lg w-full my-auto animate-in fade-in zoom-in-95 text-sf-text">
+    <Dialog label="سند قبض مالي" onClose={onClose} className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-sf-surface rounded-xl shadow-2xl border border-sf-border max-w-lg w-full my-auto animate-in fade-in zoom-in-95 text-sf-text">
         {/* Actions Bar */}
         <div className="no-print p-4 border-b border-sf-border bg-sf-raised rounded-t-2xl flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Receipt className="w-5 h-5 text-sf-action" />
-            <h3 className="font-bold text-sm text-sf-text">سند قبض مالي (إيصال استلام)</h3>
+            <h3 className="font-semibold text-sm text-sf-text">سند قبض مالي (إيصال استلام)</h3>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleDownloadPdf}
               disabled={isExportingPdf}
-              className="px-3 py-1.5 text-xs font-semibold bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border rounded-lg flex items-center gap-1.5 shadow-2xs transition-colors disabled:opacity-50"
+              className="px-3 py-2 text-xs font-semibold bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border rounded-lg flex items-center gap-2 shadow-2xs transition-colors disabled:opacity-50"
             >
               {isExportingPdf ? (
                 <Loader2 className="w-3.5 h-3.5 text-sf-action animate-spin" />
@@ -100,19 +101,19 @@ ${payment.reference_number ? `رقم العملية: ${payment.reference_number}
             </button>
             <button
               onClick={handlePrint}
-              className="px-3 py-1.5 text-xs font-semibold bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border rounded-lg flex items-center gap-1.5 shadow-2xs transition-colors"
+              className="px-3 py-2 text-xs font-semibold bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border rounded-lg flex items-center gap-2 shadow-2xs transition-colors"
             >
               <Printer className="w-3.5 h-3.5 text-sf-action" />
               <span>طباعة</span>
             </button>
             <button
               onClick={handleShareWhatsApp}
-              className="px-3 py-1.5 text-xs font-semibold bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-bold rounded-lg flex items-center gap-1.5 shadow-2xs transition-colors"
+              className="px-3 py-2 text-xs font-semibold bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold rounded-lg flex items-center gap-2 shadow-2xs transition-colors"
             >
               <Share2 className="w-3.5 h-3.5" />
               <span>واتساب</span>
             </button>
-            <button
+            <button aria-label="إغلاق النافذة"
               onClick={onClose}
               className="p-1 rounded-md text-sf-muted hover:text-sf-text hover:bg-sf-raised transition-colors"
             >
@@ -122,7 +123,7 @@ ${payment.reference_number ? `رقم العملية: ${payment.reference_number}
         </div>
 
         {/* Printable Receipt Paper */}
-        <div id="printable-receipt" className="p-6 sm:p-8 space-y-5 text-xs sm:text-sm text-sf-text bg-sf-surface">
+        <div id="printable-receipt" className="p-6 sm:p-8 space-y-6 text-xs sm:text-sm text-sf-text bg-sf-surface">
           {/* Header */}
           <div className="flex items-center justify-between border-b-2 border-sf-border pb-4">
             <div className="flex items-center gap-3">
@@ -138,16 +139,16 @@ ${payment.reference_number ? `رقم العملية: ${payment.reference_number}
                 null
               )}
               <div>
-                <h2 className="text-base font-black text-sf-text">{settings.business_name}</h2>
+                <h2 className="text-base font-semibold text-sf-text">{settings.business_name}</h2>
                 <p className="text-xs text-sf-muted">{settings.phone}</p>
                 {settings.address && <p className="text-xs text-sf-muted">{settings.address}</p>}
               </div>
             </div>
             <div className="text-left">
-              <span className="inline-block bg-sf-action/10 text-sf-action font-bold text-xs px-2.5 py-1 rounded border border-sf-action/20">
+              <span className="inline-block bg-sf-action/10 text-sf-action font-semibold text-xs px-3 py-1 rounded border border-sf-action/20">
                 سند قبض نقدية
               </span>
-              <p className="text-[11px] font-mono text-sf-muted mt-1">
+              <p className="text-xs font-mono text-sf-muted mt-1">
                 التاريخ: {payment.payment_date.split('T')[0]}
               </p>
             </div>
@@ -157,13 +158,13 @@ ${payment.reference_number ? `رقم العملية: ${payment.reference_number}
           <div className="space-y-3 bg-sf-raised p-4 rounded-xl border border-sf-border">
             <div className="flex items-center justify-between">
               <span className="text-sf-muted">وصلنا من السيد / السادة:</span>
-              <span className="font-bold text-sf-text text-sm">{payment.customer_name}</span>
+              <span className="font-semibold text-sf-text text-sm">{payment.customer_name}</span>
             </div>
 
             <div className="flex items-center justify-between border-t border-sf-border pt-2">
               <span className="text-sf-muted">المبلغ المستلم:</span>
               <div className="text-left font-mono">
-                <span className="font-black text-base text-sf-action">
+                <span className="font-semibold text-base text-sf-action">
                   {formatMoney(payment.amount, payment.currency, settings)}
                 </span>
                 <span className="text-xs text-sf-muted block font-normal">
@@ -178,7 +179,7 @@ ${payment.reference_number ? `رقم العملية: ${payment.reference_number}
 
             <div className="flex items-center justify-between border-t border-sf-border pt-2">
               <span className="text-sf-muted">وذلك سداداً عن:</span>
-              <span className="font-bold font-mono text-sf-text">فاتورة #{payment.invoice_number}</span>
+              <span className="font-semibold font-mono text-sf-text">فاتورة #{payment.invoice_number}</span>
             </div>
 
             <div className="flex items-center justify-between border-t border-sf-border pt-2">
@@ -191,13 +192,13 @@ ${payment.reference_number ? `رقم العملية: ${payment.reference_number}
             {payment.reference_number && (
               <div className="flex items-center justify-between border-t border-sf-border pt-2">
                 <span className="text-sf-muted">رقم الإشعار / العملية:</span>
-                <span className="font-mono font-bold text-sf-action">{payment.reference_number}</span>
+                <span className="font-mono font-semibold text-sf-text">{payment.reference_number}</span>
               </div>
             )}
 
             {payment.notes && (
               <div className="border-t border-sf-border pt-2 text-sf-text">
-                <span className="block text-[11px] text-sf-muted mb-0.5">ملاحظات:</span>
+                <span className="block text-xs text-sf-muted mb-1">ملاحظات:</span>
                 <p>{payment.notes}</p>
               </div>
             )}
@@ -216,15 +217,15 @@ ${payment.reference_number ? `رقم العملية: ${payment.reference_number}
           </div>
 
           {/* Watermark note */}
-          <div className="pt-3 border-t border-sf-border/60 flex items-center justify-between text-[10px] text-sf-muted">
-            <span className="flex items-center gap-1.5">
+          <div className="pt-3 border-t border-sf-border/60 flex items-center justify-between text-xs text-sf-muted">
+            <span className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-sf-action"></span>
-              <span>سند رسمي مسجل عبر منظومة «سودافلو» للفوترة</span>
+              <span>تم إنشاء هذه الوثيقة عبر سودافلو</span>
             </span>
-            <span className="font-mono text-sf-muted">SudaFlow Cloud</span>
+            <span className="font-mono text-sf-muted">SudaFlow</span>
           </div>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 };

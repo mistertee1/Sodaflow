@@ -8,9 +8,9 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Sales Revenue */}
-            <div className="bg-sf-surface border border-sf-border rounded-2xl p-4 shadow-sm">
-              <span className="text-xs text-sf-muted font-bold block mb-1">إجمالي إيراد المبيعات</span>
-              <div className="text-lg font-black font-mono text-sf-action">
+            <div className="bg-sf-surface border border-sf-border rounded-xl p-4 shadow-sm">
+              <span className="text-xs text-sf-muted font-semibold block mb-1">إجمالي إيراد المبيعات</span>
+              <div className="text-lg font-semibold font-mono text-sf-text">
                 {formatMoney(incomeStatement.sales_revenue_sdg, 'SDG')}
               </div>
               <div className="text-xs font-mono text-sf-muted mt-1">
@@ -19,9 +19,9 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
             </div>
 
             {/* Gross Profit */}
-            <div className="bg-sf-surface border border-sf-border rounded-2xl p-4 shadow-sm">
-              <span className="text-xs text-sf-muted font-bold block mb-1">مجمل الربح (Gross Profit)</span>
-              <div className="text-lg font-black font-mono text-sky-400">
+            <div className="bg-sf-surface border border-sf-border rounded-xl p-4 shadow-sm">
+              <span className="text-xs text-sf-muted font-semibold block mb-1">مجمل الربح (Gross Profit)</span>
+              <div className="text-lg font-semibold font-mono text-sf-text">
                 {formatMoney(incomeStatement.gross_profit_sdg, 'SDG')}
               </div>
               <div className="text-xs font-mono text-sf-muted mt-1">
@@ -30,9 +30,9 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
             </div>
 
             {/* Operating Expenses */}
-            <div className="bg-sf-surface border border-sf-border rounded-2xl p-4 shadow-sm">
-              <span className="text-xs text-sf-muted font-bold block mb-1">المصروفات التشغيلية</span>
-              <div className="text-lg font-black font-mono text-sf-danger">
+            <div className="bg-sf-surface border border-sf-border rounded-xl p-4 shadow-sm">
+              <span className="text-xs text-sf-muted font-semibold block mb-1">المصروفات التشغيلية</span>
+              <div className="text-lg font-semibold font-mono text-sf-danger">
                 {formatMoney(incomeStatement.total_operating_expenses_sdg, 'SDG')}
               </div>
               <div className="text-xs font-mono text-sf-muted mt-1">
@@ -41,66 +41,66 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
             </div>
 
             {/* Net Profit */}
-            <div className="bg-sf-surface border border-sf-action/30 rounded-2xl p-4 shadow-sm bg-gradient-to-br from-sf-ink to-emerald-950/20">
-              <span className="text-xs text-sf-action font-black block mb-1">صافي الربح النهائي</span>
-              <div className="text-xl font-black font-mono text-sf-action">
+            <div className="bg-sf-surface border border-sf-action/30 rounded-xl p-4 shadow-sm ">
+              <span className="text-xs text-sf-text font-semibold block mb-1">صافي الربح النهائي</span>
+              <div className="text-xl font-semibold font-mono text-sf-text">
                 {formatMoney(incomeStatement.net_profit_sdg, 'SDG')}
               </div>
-              <div className="text-xs font-mono text-sf-action/70 mt-1">
+              <div className="text-xs font-mono text-sf-muted mt-1">
                 {formatMoney(incomeStatement.net_profit_usd, 'USD')}
               </div>
             </div>
           </div>
 
           {/* Detailed Statement Breakdown */}
-          <div className="bg-sf-surface border border-sf-border rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
-            <h3 className="font-bold text-sm text-sf-text border-b border-sf-border pb-3">
+          <div className="bg-sf-surface border border-sf-border rounded-xl p-5 sm:p-6 shadow-sm space-y-4">
+            <h3 className="font-semibold text-sm text-sf-text border-b border-sf-border pb-3">
               تفاصيل قائمة الدخل المحاسبية
             </h3>
 
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between py-2 border-b border-sf-border">
-                <span className="font-bold text-sf-text">إيرادات النشاط التجاري (المبيعات)</span>
-                <span className="font-mono font-bold text-sf-action">
+                <span className="font-semibold text-sf-text">إيرادات النشاط التجاري (المبيعات)</span>
+                <span className="font-mono font-semibold text-sf-text">
                   {formatMoney(incomeStatement.sales_revenue_sdg, 'SDG')}
                 </span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-sf-border">
-                <span className="font-bold text-sf-text">تكلفة البضاعة المباعة (COGS)</span>
-                <span className="font-mono font-bold text-sf-danger">
+                <span className="font-semibold text-sf-text">تكلفة البضاعة المباعة (COGS)</span>
+                <span className="font-mono font-semibold text-sf-danger">
                   ({formatMoney(incomeStatement.cogs_sdg, 'SDG')})
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-2 border-b border-sf-border font-bold bg-sf-raised px-3 rounded-lg">
+              <div className="flex items-center justify-between py-2 border-b border-sf-border font-semibold bg-sf-raised px-3 rounded-lg">
                 <span className="text-sf-text">= مجمل الربح</span>
-                <span className="font-mono text-sky-400 text-sm">
+                <span className="font-mono text-sf-text text-sm">
                   {formatMoney(incomeStatement.gross_profit_sdg, 'SDG')}
                 </span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-sf-border">
-                <span className="font-bold text-sf-text">المصروفات التشغيلية والعمومية</span>
-                <span className="font-mono font-bold text-sf-danger">
+                <span className="font-semibold text-sf-text">المصروفات التشغيلية والعمومية</span>
+                <span className="font-mono font-semibold text-sf-danger">
                   ({formatMoney(incomeStatement.total_operating_expenses_sdg, 'SDG')})
                 </span>
               </div>
 
               <div className="flex items-center justify-between py-2 border-b border-sf-border">
-                <span className="font-bold text-sf-text">فروقات أسعار الصرف (أرباح / خسائر العملة)</span>
+                <span className="font-semibold text-sf-text">فروقات أسعار الصرف (أرباح / خسائر العملة)</span>
                 <span
-                  className={`font-mono font-bold ${
-                    incomeStatement.fx_gain_loss_sdg >= 0 ? 'text-sf-action' : 'text-sf-danger'
+                  className={`font-mono font-semibold ${
+                    incomeStatement.fx_gain_loss_sdg >= 0 ? 'text-sf-text' : 'text-sf-danger'
                   }`}
                 >
                   {formatMoney(incomeStatement.fx_gain_loss_sdg, 'SDG')}
                 </span>
               </div>
 
-              <div className="flex items-center justify-between py-3 font-black bg-sf-selected/40 border border-sf-action/40 px-3.5 rounded-xl mt-4">
-                <span className="text-sf-action text-sm">صافي الأرباح القابلة للتوزيع</span>
-                <span className="font-mono text-sf-action text-base">
+              <div className="flex items-center justify-between py-3 font-semibold bg-sf-selected/40 border border-sf-action/40 px-3.5 rounded-xl mt-4">
+                <span className="text-sf-text text-sm">صافي الأرباح القابلة للتوزيع</span>
+                <span className="font-mono text-sf-text text-base">
                   {formatMoney(incomeStatement.net_profit_sdg, 'SDG')}
                 </span>
               </div>

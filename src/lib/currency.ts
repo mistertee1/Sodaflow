@@ -203,7 +203,8 @@ export function getCurrencySymbol(currency: Currency | string): string {
 }
 
 /**
- * Format money with thousands separators and proper currency symbols
+ * Format money as one LTR unit with an explicit currency code (manual p. 8).
+ * The institution's precision and rounding settings remain authoritative.
  */
 export function formatMoney(
   amount: number | undefined | null,
@@ -226,11 +227,7 @@ export function formatMoney(
     maximumFractionDigits: decimals,
   }).format(rounded);
 
-  const symbol = getCurrencySymbol(currency);
-  if (currency === 'USD' || currency === 'EUR' || currency === 'GBP') {
-    return `${symbol}${formatted}`;
-  }
-  return `${formatted} ${symbol}`.trim();
+  return `${formatted} ${currency}`.trim();
 }
 
 /**
@@ -311,19 +308,19 @@ export function getPaymentMethodLabel(method: string): string {
 export function getInvoiceStatusInfo(status: string): { label: string; color: string; bg: string } {
   switch (status) {
     case 'paid':
-      return { label: 'مدفوعة بالكامل', color: 'text-sf-success', bg: 'bg-sf-success-bg border-sf-success' };
+      return { label: 'مسددة', color: 'text-sf-success', bg: 'bg-sf-success-bg border-sf-success' };
     case 'partially_paid':
-      return { label: 'مدفوعة جزئيًا', color: 'text-sf-warning', bg: 'bg-sf-warning-bg border-sf-warning' };
+      return { label: 'مسددة جزئياً', color: 'text-sf-warning', bg: 'bg-sf-warning-bg border-sf-warning' };
     case 'sent':
-      return { label: 'مُرسلة بانتظار السداد', color: 'text-sf-info', bg: 'bg-sf-info-bg border-sf-info' };
+      return { label: 'مرسلة', color: 'text-sf-info', bg: 'bg-sf-info-bg border-sf-info' };
     case 'draft':
       return { label: 'مسودة', color: 'text-sf-neutral', bg: 'bg-sf-neutral-bg border-sf-neutral' };
     case 'overdue':
-      return { label: 'متأخرة السداد', color: 'text-sf-danger', bg: 'bg-sf-danger-bg border-sf-danger' };
+      return { label: 'متأخرة', color: 'text-sf-danger', bg: 'bg-sf-danger-bg border-sf-danger' };
     case 'cancelled':
       return { label: 'ملغاة', color: 'text-sf-neutral', bg: 'bg-sf-neutral-bg border-sf-neutral' };
     case 'void':
-      return { label: 'باطلة (ملغاة)', color: 'text-sf-neutral', bg: 'bg-sf-neutral-bg border-sf-neutral' };
+      return { label: 'مبطلة', color: 'text-sf-neutral', bg: 'bg-sf-neutral-bg border-sf-neutral' };
     default:
       return { label: status, color: 'text-sf-neutral', bg: 'bg-sf-neutral-bg border-sf-neutral' };
   }

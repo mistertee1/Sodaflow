@@ -92,7 +92,7 @@ export const TeamManagementSection: React.FC = () => {
       <div className="bg-sf-raised p-4 rounded-xl border border-sf-border text-center space-y-2">
         <Users className="w-8 h-8 text-sf-muted mx-auto" />
         <p className="text-xs text-sf-text font-medium">ميزة الفرق والمؤسسات المتعددة متاحة للمستخدمين المسجلين سحابياً</p>
-        <p className="text-[11px] text-sf-muted">سجّل دخولك لحساب Google للبدء في دعوة موظفيك ومحاسبيك وإدارة الصلاحيات.</p>
+        <p className="text-xs text-sf-muted">سجّل دخولك لحساب Google للبدء في دعوة موظفيك ومحاسبيك وإدارة الصلاحيات.</p>
       </div>
     );
   }
@@ -193,11 +193,11 @@ export const TeamManagementSection: React.FC = () => {
       case 'Accountant':
         return 'bg-sf-info-bg/20 text-sf-info border-sf-info/40';
       case 'Sales':
-        return 'bg-purple-500/20 text-purple-300 border-purple-500/40';
+        return 'bg-sf-neutral-bg text-sf-neutral border-sf-neutral';
       case 'Cashier':
-        return 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40';
+        return 'bg-sf-neutral-bg text-sf-neutral border-sf-neutral';
       default:
-        return 'bg-slate-500/20 text-sf-text border-sf-border/40';
+        return 'bg-sf-neutral-bg text-sf-text border-sf-border/40';
     }
   };
 
@@ -206,11 +206,11 @@ export const TeamManagementSection: React.FC = () => {
       {/* Header & Current Org Info */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-sf-border">
         <div>
-          <h3 className="font-bold text-xs text-sf-text flex items-center gap-1.5">
+          <h3 className="font-semibold text-xs text-sf-text flex items-center gap-2">
             <Building className="w-4 h-4 text-sf-action" />
             <span>إدارة المؤسسة وفريق العمل (SaaS Multi-Tenant)</span>
           </h3>
-          <p className="text-[11px] text-sf-muted mt-0.5">
+          <p className="text-xs text-sf-muted mt-1">
             مؤسستك الحالية:{' '}
             <strong className="text-sf-text">{currentOrg?.name || currentOrg?.id || 'المؤسسة الافتراضية'}</strong>
           </p>
@@ -218,13 +218,13 @@ export const TeamManagementSection: React.FC = () => {
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Role badge */}
-          <span className={`text-[11px] px-2.5 py-1 rounded-md border font-bold ${getRoleBadgeColor(userRole)}`}>
+          <span className={`text-xs px-3 py-1 rounded-md border font-semibold ${getRoleBadgeColor(userRole)}`}>
             دورك: {userRole}
           </span>
 
           {/* Member Status badge */}
           <span
-            className={`text-[11px] px-2.5 py-1 rounded-md border font-bold flex items-center gap-1 ${
+            className={`text-xs px-3 py-1 rounded-md border font-semibold flex items-center gap-1 ${
               memberStatus === 'active'
                 ? 'bg-sf-action/20 text-sf-action border-sf-action/40'
                 : 'bg-sf-danger-bg/20 text-sf-danger border-sf-danger/40 animate-pulse'
@@ -248,7 +248,7 @@ export const TeamManagementSection: React.FC = () => {
             <select
               value={currentOrg?.id}
               onChange={(e) => switchOrganization(e.target.value)}
-              className="bg-sf-raised border border-sf-border text-xs text-sf-text px-2.5 py-1 rounded-lg focus:outline-none focus:border-sf-action"
+              className="bg-sf-raised border border-sf-border text-xs text-sf-text px-3 py-1 rounded-lg focus:outline-none focus:border-sf-action"
             >
               {(userOrgs || []).map((org) => (
                 <option key={org.id} value={org.id}>
@@ -261,7 +261,7 @@ export const TeamManagementSection: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowCreateOrg(!showCreateOrg)}
-            className="px-2.5 py-1 bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border rounded-lg text-xs flex items-center gap-1 transition-colors"
+            className="px-3 py-1 bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border rounded-lg text-xs flex items-center gap-1 transition-colors"
           >
             <PlusCircle className="w-3.5 h-3.5 text-sf-action" />
             <span>مؤسسة جديدة</span>
@@ -272,10 +272,10 @@ export const TeamManagementSection: React.FC = () => {
       {/* Suspended Alert if current user is suspended */}
       {memberStatus === 'suspended' && (
         <div className="p-3 bg-sf-danger-bg/60 border border-sf-danger/80 rounded-xl text-xs text-sf-danger flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-sf-danger shrink-0 mt-0.5" />
+          <AlertTriangle className="w-4 h-4 text-sf-danger shrink-0 mt-1" />
           <div>
             <strong className="block text-sf-danger">تنبيه أمني: عضويتك في هذه المؤسسة معلقة</strong>
-            <p className="text-[11px] text-sf-danger/80 mt-0.5">
+            <p className="text-xs text-sf-danger/80 mt-1">
               تم تجميد حسابك من قِبل مالك أو مدير المؤسسة. تقتصر صلاحياتك على المشاهدة فقط حتى يتم إلغاء التجميد.
             </p>
           </div>
@@ -285,11 +285,11 @@ export const TeamManagementSection: React.FC = () => {
       {/* Create Org Form Modal / Collapse */}
       {showCreateOrg && (
         <form onSubmit={handleCreateOrg} className="p-3 bg-sf-raised rounded-xl border border-sf-border space-y-2">
-          <div className="text-xs font-bold text-sf-text flex items-center gap-1.5">
+          <div className="text-xs font-semibold text-sf-text flex items-center gap-2">
             <Building className="w-3.5 h-3.5 text-sf-action" />
             <span>إنشاء مؤسسة أو فرع تجاري مستقل جديد</span>
           </div>
-          <p className="text-[11px] text-sf-muted">
+          <p className="text-xs text-sf-muted">
             سيتم إنشاء قاعدة بيانات معزولة ومستقلة تماماً للمؤسسة الجديدة وتعيينك كمالك (Owner) لها.
           </p>
           <div className="flex gap-2">
@@ -299,40 +299,40 @@ export const TeamManagementSection: React.FC = () => {
               value={newOrgName}
               onChange={(e) => setNewOrgName(e.target.value)}
               required
-              className="flex-1 bg-sf-surface border border-sf-border text-xs text-sf-text px-3 py-1.5 rounded-lg focus:outline-none focus:border-sf-action"
+              className="flex-1 bg-sf-surface border border-sf-border text-xs text-sf-text px-3 py-2 rounded-lg focus:outline-none focus:border-sf-action"
             />
             <button
               type="submit"
               disabled={createOrgLoading}
-              className="px-3 py-1.5 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-bold text-xs rounded-lg transition-colors disabled:opacity-50"
+              className="px-3 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold text-xs rounded-lg transition-colors disabled:opacity-50"
             >
               {createOrgLoading ? 'جاري الإنشاء...' : 'إنشاء'}
             </button>
             <button
               type="button"
               onClick={() => setShowCreateOrg(false)}
-              className="px-2.5 py-1.5 text-xs text-sf-muted hover:text-sf-text"
+              className="px-3 py-2 text-xs text-sf-muted hover:text-sf-text"
             >
               إلغاء
             </button>
           </div>
-          {createOrgError && <p className="text-[11px] text-sf-danger">{createOrgError}</p>}
+          {createOrgError && <p className="text-xs text-sf-danger">{createOrgError}</p>}
         </form>
       )}
 
       {/* Section 1: Members Table */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h4 className="font-bold text-xs text-sf-text flex items-center gap-1.5">
+          <h4 className="font-semibold text-xs text-sf-text flex items-center gap-2">
             <Users className="w-3.5 h-3.5 text-sf-action" />
             <span>أعضاء فريق المؤسسة ({orgMembers.length})</span>
           </h4>
-          <span className="text-[10px] text-sf-muted">حسابات نشطة ومعلقة مع صلاحيات خادم صارمة</span>
+          <span className="text-xs text-sf-muted">حسابات نشطة ومعلقة مع صلاحيات خادم صارمة</span>
         </div>
 
         <div className="overflow-x-auto rounded-lg border border-sf-border">
           <table className="w-full text-xs text-right">
-            <thead className="bg-sf-raised text-sf-muted text-[11px] border-b border-sf-border">
+            <thead className="bg-sf-raised text-sf-muted text-xs border-b border-sf-border">
               <tr>
                 <th className="py-2 px-3 font-semibold">العضو</th>
                 <th className="py-2 px-3 font-semibold">البريد الإلكتروني</th>
@@ -349,18 +349,18 @@ export const TeamManagementSection: React.FC = () => {
 
                 return (
                   <tr key={member.uid} className="hover:bg-sf-raised transition-colors">
-                    <td className="py-2.5 px-3 text-sf-text font-medium">
-                      <div className="flex items-center gap-1.5">
+                    <td className="py-3 px-3 text-sf-text font-medium">
+                      <div className="flex items-center gap-2">
                         <span>{member.display_name || 'موظف'}</span>
                         {isSelf && (
-                          <span className="text-[9px] px-1.5 py-0.5 rounded bg-sf-action/20 text-sf-action">
+                          <span className="text-xs px-2 py-1 rounded bg-sf-action/20 text-sf-action">
                             (أنت)
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 text-sf-muted font-mono text-[11px]">{member.email}</td>
-                    <td className="py-2.5 px-3">
+                    <td className="py-3 px-3 text-sf-muted font-mono text-xs">{member.email}</td>
+                    <td className="py-3 px-3">
                       {canManageMembers && !isOwner && !isSelf ? (
                         <select
                           value={member.role}
@@ -374,14 +374,14 @@ export const TeamManagementSection: React.FC = () => {
                           <option value="Viewer">مشاهد فقط (Viewer)</option>
                         </select>
                       ) : (
-                        <span className={`text-[10px] px-2 py-0.5 rounded border font-semibold ${getRoleBadgeColor(member.role)}`}>
+                        <span className={`text-xs px-2 py-1 rounded border font-semibold ${getRoleBadgeColor(member.role)}`}>
                           {member.role}
                         </span>
                       )}
                     </td>
-                    <td className="py-2.5 px-3">
+                    <td className="py-3 px-3">
                       <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full font-bold border flex items-center gap-1 w-fit ${
+                        className={`text-xs px-2 py-1 rounded-full font-semibold border flex items-center gap-1 w-fit ${
                           isMemberSuspended
                             ? 'bg-sf-danger-bg/20 text-sf-danger border-sf-danger/40'
                             : 'bg-sf-action/20 text-sf-action border-sf-action/40'
@@ -390,15 +390,15 @@ export const TeamManagementSection: React.FC = () => {
                         {isMemberSuspended ? 'معلق (Suspended)' : 'نشط (Active)'}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-center">
+                    <td className="py-3 px-3 text-center">
                       {canManageMembers && !isOwner && !isSelf ? (
-                        <div className="flex items-center justify-center gap-1.5">
+                        <div className="flex items-center justify-center gap-2">
                           {isMemberSuspended ? (
                             <button
                               type="button"
                               onClick={() => reactivateMember(member.uid)}
                               title="إلغاء التجميد وإعادة التفعيل"
-                              className="px-2 py-1 bg-sf-selected/60 hover:bg-sf-selected/80 text-sf-action border border-sf-action/60 rounded text-[11px] flex items-center gap-1 transition-colors"
+                              className="px-2 py-1 bg-sf-selected/60 hover:bg-sf-selected/80 text-sf-action border border-sf-action/60 rounded text-xs flex items-center gap-1 transition-colors"
                             >
                               <UserCheck className="w-3 h-3 text-sf-action" />
                               <span>تفعيل</span>
@@ -408,7 +408,7 @@ export const TeamManagementSection: React.FC = () => {
                               type="button"
                               onClick={() => suspendMember(member.uid)}
                               title="تجميد حساب العضو ومنع وصوله للمؤسسة"
-                              className="px-2 py-1 bg-sf-warning-bg/60 hover:bg-sf-warning-bg/80 text-sf-warning border border-sf-warning/60 rounded text-[11px] flex items-center gap-1 transition-colors"
+                              className="px-2 py-1 bg-sf-warning-bg/60 hover:bg-sf-warning-bg/80 text-sf-warning border border-sf-warning/60 rounded text-xs flex items-center gap-1 transition-colors"
                             >
                               <UserX className="w-3 h-3 text-sf-warning" />
                               <span>تجميد</span>
@@ -429,7 +429,7 @@ export const TeamManagementSection: React.FC = () => {
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[10px] text-sf-muted">—</span>
+                        <span className="text-xs text-sf-muted">—</span>
                       )}
                     </td>
                   </tr>
@@ -444,11 +444,11 @@ export const TeamManagementSection: React.FC = () => {
       {canInvite && (
         <form onSubmit={handleSendInvite} className="p-3 bg-sf-raised rounded-xl border border-sf-border space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="font-bold text-xs text-sf-text flex items-center gap-1.5">
+            <h4 className="font-semibold text-xs text-sf-text flex items-center gap-2">
               <UserPlus className="w-3.5 h-3.5 text-sf-action" />
               <span>دعوة موظف أو محاسب للانضمام للمؤسسة</span>
             </h4>
-            <span className="text-[10px] text-sf-muted">صلاحية الدعوة 7 أيام مع تحقق خادمي</span>
+            <span className="text-xs text-sf-muted">صلاحية الدعوة 7 أيام مع تحقق خادمي</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -466,7 +466,7 @@ export const TeamManagementSection: React.FC = () => {
               <select
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value as OrgRole)}
-                className="flex-1 bg-sf-surface border border-sf-border text-xs text-sf-text px-2.5 py-2 rounded-lg focus:outline-none focus:border-sf-action"
+                className="flex-1 bg-sf-surface border border-sf-border text-xs text-sf-text px-3 py-2 rounded-lg focus:outline-none focus:border-sf-action"
               >
                 <option value="Admin">مدير (Admin)</option>
                 <option value="Accountant">محاسب (Accountant)</option>
@@ -477,7 +477,7 @@ export const TeamManagementSection: React.FC = () => {
               <button
                 type="submit"
                 disabled={inviteLoading}
-                className="px-4 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-bold text-xs rounded-lg transition-colors disabled:opacity-50 shrink-0"
+                className="px-4 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold text-xs rounded-lg transition-colors disabled:opacity-50 shrink-0"
               >
                 {inviteLoading ? 'جاري الإرسال...' : 'إرسال الدعوة'}
               </button>
@@ -485,14 +485,14 @@ export const TeamManagementSection: React.FC = () => {
           </div>
 
           {inviteSuccess && (
-            <div className="p-2.5 bg-sf-selected/40 border border-sf-action/50 rounded-lg text-[11px] text-sf-action flex items-center gap-1.5">
+            <div className="p-3 bg-sf-selected/40 border border-sf-action/50 rounded-lg text-xs text-sf-action flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-sf-action shrink-0" />
               <span>{inviteSuccess}</span>
             </div>
           )}
 
           {inviteError && (
-            <div className="p-2.5 bg-sf-danger-bg/40 border border-sf-danger/50 rounded-lg text-[11px] text-sf-danger">
+            <div className="p-3 bg-sf-danger-bg/40 border border-sf-danger/50 rounded-lg text-xs text-sf-danger">
               {inviteError}
             </div>
           )}
@@ -503,7 +503,7 @@ export const TeamManagementSection: React.FC = () => {
       {canInvite && invitations.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h4 className="font-bold text-xs text-sf-text flex items-center gap-1.5">
+            <h4 className="font-semibold text-xs text-sf-text flex items-center gap-2">
               <Clock className="w-3.5 h-3.5 text-sf-warning" />
               <span>سجل دعوات المؤسسة</span>
             </h4>
@@ -511,14 +511,14 @@ export const TeamManagementSection: React.FC = () => {
               type="button"
               onClick={loadInvitations}
               disabled={loadingInvitations}
-              className="text-[10px] text-sf-muted hover:text-sf-text flex items-center gap-1"
+              className="text-xs text-sf-muted hover:text-sf-text flex items-center gap-1"
             >
               <RefreshCw className={`w-3 h-3 ${loadingInvitations ? 'animate-spin' : ''}`} />
               <span>تحديث</span>
             </button>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             {(invitations || []).map((inv) => {
               const isPending = inv.status === 'pending';
               const isExpired = new Date(inv.expires_at) < new Date();
@@ -526,20 +526,20 @@ export const TeamManagementSection: React.FC = () => {
               return (
                 <div
                   key={inv.id}
-                  className="p-2.5 rounded-lg bg-sf-raised border border-sf-border flex flex-wrap items-center justify-between gap-2 text-xs"
+                  className="p-3 rounded-lg bg-sf-raised border border-sf-border flex flex-wrap items-center justify-between gap-2 text-xs"
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-sf-text text-[11px]">{inv.email}</span>
-                      <span className={`text-[9px] px-1.5 py-0.5 rounded border font-semibold ${getRoleBadgeColor(inv.role)}`}>
+                      <span className="font-mono text-sf-text text-xs">{inv.email}</span>
+                      <span className={`text-xs px-2 py-1 rounded border font-semibold ${getRoleBadgeColor(inv.role)}`}>
                         {inv.role}
                       </span>
                       <span
-                        className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                        className={`text-xs px-2 py-1 rounded-full font-semibold ${
                           inv.status === 'accepted'
                             ? 'bg-sf-action/20 text-sf-action'
                             : inv.status === 'revoked'
-                            ? 'bg-slate-500/20 text-sf-muted'
+                            ? 'bg-sf-neutral-bg text-sf-muted'
                             : isExpired
                             ? 'bg-sf-danger-bg/20 text-sf-danger'
                             : 'bg-sf-warning-bg/20 text-sf-warning'
@@ -554,7 +554,7 @@ export const TeamManagementSection: React.FC = () => {
                           : 'في الانتظار'}
                       </span>
                     </div>
-                    <div className="text-[10px] text-sf-muted mt-0.5 flex items-center gap-2">
+                    <div className="text-xs text-sf-muted mt-1 flex items-center gap-2">
                       <span>الرمز: <span className="font-mono text-sf-muted">{inv.id}</span></span>
                       <span>•</span>
                       <span>
@@ -563,11 +563,11 @@ export const TeamManagementSection: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => copyToClipboard(inv.id, inv.id)}
-                      className="px-2 py-1 bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border rounded text-[10px] flex items-center gap-1 transition-colors"
+                      className="px-2 py-1 bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border rounded text-xs flex items-center gap-1 transition-colors"
                       title="نسخ معرّف الدعوة لإرساله للموظف"
                     >
                       {copiedId === inv.id ? (
@@ -587,7 +587,7 @@ export const TeamManagementSection: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleRevokeInvitation(inv.id)}
-                        className="px-2 py-1 bg-sf-danger-bg/40 hover:bg-sf-danger-bg/60 text-sf-danger border border-sf-danger/60 rounded text-[10px] transition-colors"
+                        className="px-2 py-1 bg-sf-danger-bg/40 hover:bg-sf-danger-bg/60 text-sf-danger border border-sf-danger/60 rounded text-xs transition-colors"
                       >
                         إلغاء الدعوة
                       </button>
@@ -602,11 +602,11 @@ export const TeamManagementSection: React.FC = () => {
 
       {/* Section 4: Join Another Organization (قبول دعوة انضمام لمؤسسة أخرى) */}
       <div className="p-3 bg-sf-raised rounded-xl border border-sf-border space-y-2">
-        <h4 className="font-bold text-xs text-sf-text flex items-center gap-1.5">
+        <h4 className="font-semibold text-xs text-sf-text flex items-center gap-2">
           <Shield className="w-3.5 h-3.5 text-sf-info" />
           <span>هل استلمت دعوة انضمام لمؤسسة أخرى؟</span>
         </h4>
-        <p className="text-[11px] text-sf-muted">
+        <p className="text-xs text-sf-muted">
           أدخل معرّف المؤسسة ومعرّف الدعوة الذي زوّدك به مدير أو مالك المؤسسة للانضمام إليها مباشرة:
         </p>
 
@@ -637,20 +637,20 @@ export const TeamManagementSection: React.FC = () => {
           <button
             type="submit"
             disabled={joinLoading}
-            className="px-3 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-bold text-xs rounded-lg transition-colors disabled:opacity-50"
+            className="px-3 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold text-xs rounded-lg transition-colors disabled:opacity-50"
           >
             {joinLoading ? 'جاري التحقق والانضمام...' : 'قبول الدعوة والانضمام'}
           </button>
         </form>
 
         {joinSuccess && (
-          <div className="p-2.5 bg-sf-selected/40 border border-sf-action/50 rounded-lg text-[11px] text-sf-action">
+          <div className="p-3 bg-sf-selected/40 border border-sf-action/50 rounded-lg text-xs text-sf-action">
             {joinSuccess}
           </div>
         )}
 
         {joinError && (
-          <div className="p-2.5 bg-sf-danger-bg/40 border border-sf-danger/50 rounded-lg text-[11px] text-sf-danger">
+          <div className="p-3 bg-sf-danger-bg/40 border border-sf-danger/50 rounded-lg text-xs text-sf-danger">
             {joinError}
           </div>
         )}

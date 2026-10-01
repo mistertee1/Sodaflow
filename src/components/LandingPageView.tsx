@@ -68,7 +68,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
   // Interactive Live Calculator for Visitor Preview
   const [calcAmount, setCalcAmount] = useState<number>(100); // 100 USD
-  const [calcRate, setCalcRate] = useState<number>(settings?.default_exchange_rate || 0);
+  const [calcRate, setCalcRate] = useState<number>(settings?.default_exchange_rate || 2000);
   const [legalTab, setLegalTab] = useState<LegalTab | null>(null);
 
   const handleGoogleLogin = async () => {
@@ -145,31 +145,13 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
     <div
       className={`min-h-screen ${
         theme === 'light' ? 'bg-sf-canvas text-sf-text' : 'bg-sf-canvas text-sf-text'
-      } flex flex-col justify-between selection:bg-sf-action selection:text-sf-on-action relative overflow-x-hidden font-sans antialiased transition-colors duration-200`}
+      } flex flex-col justify-between selection:bg-sf-action selection:text-sf-on-action relative overflow-x-hidden font-sans antialiased transition-colors duration-(--sf-motion-state)`}
     >
-      {/* Background Ambience / Glows */}
-      <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-sf-action/10 rounded-full blur-[120px] pointer-events-none -mt-32"></div>
-      <div className="absolute bottom-1/3 left-1/4 w-[500px] h-[500px] bg-sf-action/5 rounded-full blur-[100px] pointer-events-none"></div>
-
       {/* Top Navbar */}
       <header className="sticky top-0 z-40 bg-sf-canvas/90 backdrop-blur-md border-b border-sf-border">
-        <div className="max-w-6xl w-full mx-auto px-4 py-3.5 flex items-center justify-between">
+        <div className="sf-content py-4 flex flex-wrap items-center justify-between">
           <div className="flex items-center gap-3">
-            <BrandLogo size="md" />
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-black text-base sm:text-lg text-sf-text tracking-tight leading-tight">
-                  سودافلو
-                </h1>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-sf-action/15 text-sf-action border border-sf-action/40 font-bold">
-                  SudaFlow
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-sf-selected/90 text-sf-action border border-sf-action/60 font-mono font-bold">
-                  (ج.س / $)
-                </span>
-              </div>
-              <p className="text-[11px] text-sf-muted font-normal">منظومة الفواتير المزدوجة والمخزون السحابي</p>
-            </div>
+            <BrandLogo size="md" showText />
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -210,7 +192,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
             <button
               onClick={onContinueAsGuest}
-              className="text-xs text-sf-text hover:text-sf-text bg-sf-raised hover:bg-sf-raised border border-sf-border px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 font-medium"
+              className="hidden sm:flex text-xs text-sf-text hover:text-sf-text bg-sf-raised hover:bg-sf-raised border border-sf-border px-4 py-2 rounded-xl transition-all flex items-center gap-2 font-medium"
             >
               <span>تجربة كضيف (محلي)</span>
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -218,9 +200,9 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             <button
               onClick={() => {
                 setAuthMode('register');
-                window.scrollTo({ top: 400, behavior: 'smooth' });
+                document.getElementById('sudaflow-auth')?.scrollIntoView({ behavior: 'auto', block: 'start' });
               }}
-              className="hidden sm:inline-flex text-xs font-bold bg-sf-action hover:bg-sf-action-hover text-sf-on-action px-3.5 py-2 rounded-xl shadow-lg shadow-sf-action/20 transition-all"
+              className="hidden sm:inline-flex text-xs font-semibold bg-sf-action hover:bg-sf-action-hover text-sf-on-action px-4 py-2 rounded-xl shadow-lg shadow-sf-action/20 transition-all"
             >
               إنشاء حساب جديد
             </button>
@@ -229,55 +211,47 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       </header>
 
       {/* Main Container */}
-      <main className="max-w-6xl w-full mx-auto px-4 py-8 sm:py-12 space-y-16 relative z-10 flex-1">
+      <main className="sf-content py-8 sm:py-12 space-y-12 relative z-10 flex-1">
         
         {/* Hero Section with Auth Box */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
           {/* Hero Pitch (Right on RTL) */}
           <div className="lg:col-span-7 space-y-6 text-right pt-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sf-selected/80 text-sf-action text-xs font-bold border border-sf-action/60 shadow-xs">
-                <Sparkles className="w-3.5 h-3.5 text-sf-action" />
-                <span>مُصمم لواقع التجارة وسوق العملات المتقلب</span>
-              </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-sf-action/15 text-sf-action text-xs font-bold border border-sf-action/40 shadow-xs">
-                <span>هوية «سودافلو» المالية</span>
-              </div>
+            <p className="text-sm text-sf-muted">شغلك أوضح.</p>
+            <h1 className="sf-display">فواتيرك ومخزونك في مكان واحد.</h1>
+            <p className="text-base text-sf-muted max-w-xl">إصدار الفواتير، متابعة التحصيل، وعرض قيم الجنيه السوداني والدولار.</p>
+            <figure className="sf-card overflow-hidden">
+              <img src="/brand/previews/app-light.svg" alt="مثال شاشة الفواتير في سودافلو ببيانات تجريبية" className="sf-logo-light w-full" width="980" height="580" />
+              <img src="/brand/previews/app-dark.svg" alt="مثال شاشة الفواتير في سودافلو ببيانات تجريبية" className="sf-logo-dark w-full" width="980" height="580" />
+              <figcaption className="px-4 py-3 text-xs text-sf-muted border-t border-sf-border">بيانات تجريبية لعرض الواجهة؛ ليست سجلات متجرك أو أسعار صرف حالية.</figcaption>
+            </figure>
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" onClick={onContinueAsGuest} className="sf-action inline-flex items-center gap-2">ابدأ التجربة<ArrowLeft aria-hidden="true" /></button>
+              <a href="#sudaflow-auth" className="sf-secondary inline-flex items-center">تسجيل الدخول أو إنشاء حساب</a>
             </div>
-
-            <h2 className="text-3xl sm:text-5xl font-black text-sf-text leading-[1.25] tracking-tight">
-              منظومة <span className="text-sf-action">«سودافلو»</span> الذكية <br className="hidden sm:inline" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-l from-emerald-400 to-teal-200">
-                بعملتين وتجميد لسعر الصرف
-              </span>
-            </h2>
-
-            <p className="text-sm sm:text-base text-sf-text leading-relaxed max-w-xl">
-              تخلّص من خسائر تقلب سعر الدولار. أصدر فواتيرك بالجنيه والدولار معاً بسعر صرف مجمّد، تحكم في مخزونك، احصل على سندات قبض بنكك وفوري، ومزامنة آمنة تحفظ بياناتك من أي جهاز.
-            </p>
 
             {/* Quick Benefits Bullet List */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              <div className="flex items-center gap-2.5 text-xs text-sf-text">
+              <div className="flex items-center gap-3 text-xs text-sf-text">
                 <div className="w-5 h-5 rounded-full bg-sf-action/20 text-sf-action flex items-center justify-center shrink-0">
                   <Check className="w-3 h-3" />
                 </div>
                 <span>تجميد سعر صرف السوق الموازي لكل فاتورة</span>
               </div>
-              <div className="flex items-center gap-2.5 text-xs text-sf-text">
+              <div className="flex items-center gap-3 text-xs text-sf-text">
                 <div className="w-5 h-5 rounded-full bg-sf-action/20 text-sf-action flex items-center justify-center shrink-0">
                   <Check className="w-3 h-3" />
                 </div>
                 <span>الفواتير باسم متجرك وشعاره</span>
               </div>
-              <div className="flex items-center gap-2.5 text-xs text-sf-text">
+              <div className="flex items-center gap-3 text-xs text-sf-text">
                 <div className="w-5 h-5 rounded-full bg-sf-action/20 text-sf-action flex items-center justify-center shrink-0">
                   <Check className="w-3 h-3" />
                 </div>
                 <span>إرسال مطالبات فواتير PDF عبر واتساب بضغطة زر</span>
               </div>
-              <div className="flex items-center gap-2.5 text-xs text-sf-text">
+              <div className="flex items-center gap-3 text-xs text-sf-text">
                 <div className="w-5 h-5 rounded-full bg-sf-action/20 text-sf-action flex items-center justify-center shrink-0">
                   <Check className="w-3 h-3" />
                 </div>
@@ -286,50 +260,50 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </div>
 
             {/* Live Interactive Currency Preview Tool */}
-            <div className="bg-sf-surface border border-sf-border rounded-2xl p-4 sm:p-5 mt-6 shadow-xl">
-              <div className="flex items-center justify-between mb-3 border-b border-sf-border pb-2.5">
+            <div className="bg-sf-surface border border-sf-border rounded-xl p-4 sm:p-6 mt-6 shadow-xl">
+              <div className="flex items-center justify-between mb-3 border-b border-sf-border pb-3">
                 <div className="flex items-center gap-2">
                   <Calculator className="w-4 h-4 text-sf-action" />
-                  <span className="font-bold text-xs text-sf-text">تجربة فورية: محاكي تسعير الفاتورة المزدوجة</span>
+                  <span className="font-semibold text-xs text-sf-text">حاسبة العملات · تجربة محلية</span>
                 </div>
-                <span className="text-[11px] text-sf-action font-mono font-bold">سوق موازي مجمّد</span>
+                <span className="text-xs text-sf-text font-mono font-semibold">مثال تجريبي</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div>
-                  <label className="block text-[11px] text-sf-muted mb-1">المبلغ بالدولار ($):</label>
+                  <label className="block text-xs text-sf-muted mb-1">المبلغ بالدولار (USD):</label>
                   <input
                     type="number"
                     min="1"
                     value={calcAmount}
                     onChange={(e) => setCalcAmount(Math.max(1, Number(e.target.value)))}
-                    className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-sf-text font-mono font-bold text-sm focus:outline-none focus:border-sf-action"
+                    className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-sf-text font-mono font-semibold text-sm focus:outline-none focus:border-sf-action"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] text-sf-muted mb-1">سعر الصرف (ج.س لكل $):</label>
+                  <label className="block text-xs text-sf-muted mb-1">سعر الصرف التجريبي (SDG / USD):</label>
                   <input
                     type="number"
                     min="1"
                     value={calcRate}
                     onChange={(e) => setCalcRate(Math.max(1, Number(e.target.value)))}
-                    className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-sf-action font-mono font-bold text-sm focus:outline-none focus:border-sf-action"
+                    className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-sf-text font-mono font-semibold text-sm focus:outline-none focus:border-sf-action"
                   />
                 </div>
               </div>
 
-              <div className="mt-3.5 pt-3 border-t border-sf-border flex items-center justify-between bg-sf-raised p-2.5 rounded-xl text-xs">
+              <div className="mt-4 pt-3 border-t border-sf-border flex items-center justify-between bg-sf-raised p-3 rounded-xl text-xs">
                 <span className="text-sf-muted">إجمالي الفاتورة المجمّد بالجنيه:</span>
-                <span className="font-mono font-black text-sm text-sf-action">
-                  {safeMul(calcAmount, calcRate, 0).toLocaleString()} ج.س
+                <span className="font-mono font-semibold text-sm text-sf-text">
+                  {formatMoney(safeMul(calcAmount, calcRate, settings.sdg_decimals), 'SDG', settings)}
                 </span>
               </div>
             </div>
           </div>
 
           {/* Auth Card (Left on RTL) */}
-          <div className="lg:col-span-5">
-            <div className="bg-sf-surface border border-sf-border rounded-3xl p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+          <div id="sudaflow-auth" className="lg:col-span-5 scroll-mt-24">
+            <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
               
               {/* Card Header & Tabs */}
               <div className="flex rounded-xl bg-sf-raised p-1 border border-sf-border mb-6">
@@ -340,7 +314,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     setError(null);
                     setSuccessMessage(null);
                   }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
                     authMode === 'login'
                       ? 'bg-sf-action text-sf-on-action shadow-md'
                       : 'text-sf-muted hover:text-sf-text'
@@ -355,7 +329,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                     setError(null);
                     setSuccessMessage(null);
                   }}
-                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
                     authMode === 'register'
                       ? 'bg-sf-action text-sf-on-action shadow-md'
                       : 'text-sf-muted hover:text-sf-text'
@@ -366,8 +340,8 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               </div>
 
               {/* Title & subtitle */}
-              <div className="text-right mb-5">
-                <h3 className="text-lg font-black text-sf-text">
+              <div className="text-right mb-6">
+                <h3 className="text-lg font-semibold text-sf-text">
                   {authMode === 'login' && 'مرحباً بعودتك'}
                   {authMode === 'register' && 'إنشاء حساب تاجر سحابي'}
                   {authMode === 'forgot_password' && 'استرجاع كلمة المرور'}
@@ -382,14 +356,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               {/* Notifications */}
               {error && (
                 <div className="mb-4 p-3 rounded-xl bg-sf-danger-bg/60 border border-sf-danger/60 text-xs text-sf-danger text-right flex items-start gap-2 animate-in fade-in">
-                  <AlertCircle className="w-4 h-4 text-sf-danger shrink-0 mt-0.5" />
+                  <AlertCircle className="w-4 h-4 text-sf-danger shrink-0 mt-1" />
                   <span>{error}</span>
                 </div>
               )}
 
               {successMessage && (
                 <div className="mb-4 p-3 rounded-xl bg-sf-selected/60 border border-sf-action/60 text-xs text-sf-action text-right flex items-start gap-2 animate-in fade-in">
-                  <CheckCircle2 className="w-4 h-4 text-sf-action shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-4 h-4 text-sf-action shrink-0 mt-1" />
                   <span>{successMessage}</span>
                 </div>
               )}
@@ -407,7 +381,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                           value={merchantName}
                           onChange={(e) => setMerchantName(e.target.value)}
                           placeholder="مثال: محمد أحمد"
-                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action pl-9"
+                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action pl-12"
                         />
                         <User className="w-4 h-4 text-sf-muted absolute left-3 top-2.5" />
                       </div>
@@ -422,7 +396,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                           value={businessName}
                           onChange={(e) => setBusinessName(e.target.value)}
                           placeholder="مثال: مؤسسة النيل للتجارة"
-                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action pl-9"
+                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action pl-12"
                         />
                         <Building2 className="w-4 h-4 text-sf-muted absolute left-3 top-2.5" />
                       </div>
@@ -441,7 +415,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
                       placeholder={authMode === 'forgot_password' ? 'your-email@example.com' : 'بريد إلكتروني أو رقم هاتف (09xxxxxxx)'}
-                      className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action pl-9 text-left font-sans"
+                      className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action pl-12 text-left font-sans"
                     />
                     <Mail className="w-4 h-4 text-sf-muted absolute left-3 top-2.5" />
                   </div>
@@ -459,7 +433,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                             setError(null);
                             setSuccessMessage(null);
                           }}
-                          className="text-[11px] text-sf-action hover:underline"
+                          className="text-xs text-sf-action hover:underline"
                         >
                           نسيت كلمة المرور؟
                         </button>
@@ -473,7 +447,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action pl-9 font-mono"
+                        className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action pl-12 font-mono"
                       />
                       <button
                         type="button"
@@ -497,7 +471,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="••••••••"
-                        className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action pl-9 font-mono"
+                        className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action pl-12 font-mono"
                       />
                       <KeyRound className="w-4 h-4 text-sf-muted absolute left-3 top-2.5" />
                     </div>
@@ -507,7 +481,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-black py-2.5 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-sf-action/20 transition-all active:scale-[0.98] disabled:opacity-50 mt-2"
+                  className="w-full bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold py-3 px-4 rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-sf-action/20 transition-all active:scale-[0.98] disabled:opacity-50 mt-2"
                 >
                   {loading ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
@@ -541,7 +515,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-sf-border"></div>
                 </div>
-                <div className="relative flex justify-center text-[11px]">
+                <div className="relative flex justify-center text-xs">
                   <span className="px-2 bg-sf-surface text-sf-muted">أو دخول سريع</span>
                 </div>
               </div>
@@ -551,7 +525,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 type="button"
                 onClick={handleGoogleLogin}
                 disabled={loading}
-                className="w-full bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2.5 transition-all text-xs"
+                className="w-full bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-3 transition-all text-xs"
               >
                 <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                   <path
@@ -579,14 +553,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <button
                   type="button"
                   onClick={onContinueAsGuest}
-                  className="w-full bg-sf-raised hover:bg-sf-raised text-sf-text hover:text-sf-text border border-sf-border font-medium py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all"
+                  className="w-full bg-sf-raised hover:bg-sf-raised text-sf-text hover:text-sf-text border border-sf-border font-medium py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all"
                 >
                   <span>استكشاف النظام كضيف (تخزين محلي مؤقت)</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-sf-muted">
+              <div className="mt-4 flex items-center justify-center gap-2 text-xs text-sf-muted">
                 <ShieldCheck className="w-3.5 h-3.5 text-sf-action" />
                 <span>صلاحيات وصول حسب دور المستخدم والمؤسسة</span>
               </div>
@@ -602,7 +576,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         {/* Feature Highlights Grid */}
         <section className="space-y-6 pt-2">
           <div className="text-center space-y-2 max-w-2xl mx-auto">
-            <h3 className="text-xl sm:text-2xl font-black text-sf-text">
+            <h3 className="text-xl sm:text-2xl font-semibold text-sf-text">
               كل ما يحتاجه التاجر لإدارة فواتيره ومخزونه بدقة
             </h3>
             <p className="text-xs sm:text-sm text-sf-muted">
@@ -613,66 +587,66 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             
             {/* 1. Rate Freeze */}
-            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-5 rounded-2xl transition-all space-y-2.5">
+            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-6 rounded-xl transition-all space-y-3">
               <div className="w-9 h-9 rounded-xl bg-sf-action/10 text-sf-action flex items-center justify-center">
                 <RefreshCw className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-sm text-sf-text">تجميد سعر الصرف لكل فاتورة</h4>
+              <h4 className="font-semibold text-sm text-sf-text">تجميد سعر الصرف لكل فاتورة</h4>
               <p className="text-xs text-sf-muted leading-relaxed">
-                كل فاتورة تصدر تسجّل سعر صرف السوق الموازي الذي كان فعالاً وقتها، ولا تتأثر الفواتير القديمة بأي ارتفاع لاحق للدولار.
+                كل فاتورة تحتفظ بسعر الصرف الذي أدخلته عند الإصدار. يظهر هذا السعر في المستند وفي سجل الفاتورة.
               </p>
             </div>
 
             {/* 2. Dual Currency */}
-            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-5 rounded-2xl transition-all space-y-2.5">
+            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-6 rounded-xl transition-all space-y-3">
               <div className="w-9 h-9 rounded-xl bg-sf-action/10 text-sf-action flex items-center justify-center">
                 <DollarSign className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-sm text-sf-text">فواتير مزدوجة العملة (ج.س / $)</h4>
+              <h4 className="font-semibold text-sm text-sf-text">فواتير مزدوجة العملة (ج.س / $)</h4>
               <p className="text-xs text-sf-muted leading-relaxed">
                 عرض المبالغ بالجنيه والدولار معاً في الفاتورة والبنود، مع دعم التحويل الآلي وفق ضوابط التقريب المحددة.
               </p>
             </div>
 
             {/* 3. Logo & Branding */}
-            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-5 rounded-2xl transition-all space-y-2.5">
+            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-6 rounded-xl transition-all space-y-3">
               <div className="w-9 h-9 rounded-xl bg-sf-action/10 text-sf-action flex items-center justify-center">
                 <Printer className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-sm text-sf-text">لوقو المتجر والطباعة الرسمية</h4>
+              <h4 className="font-semibold text-sm text-sf-text">شعار المتجر على المستندات</h4>
               <p className="text-xs text-sf-muted leading-relaxed">
                 ارفع شعار متجرك المخصص ليظهر تلقائياً في ترويسة فواتير البيع المطبوعة وسندات القبض وبصيغة PDF.
               </p>
             </div>
 
             {/* 4. Inventory & Alerts */}
-            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-5 rounded-2xl transition-all space-y-2.5">
+            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-6 rounded-xl transition-all space-y-3">
               <div className="w-9 h-9 rounded-xl bg-sf-action/10 text-sf-action flex items-center justify-center">
                 <Package className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-sm text-sf-text">إدارة وجرد المخزون الذكي</h4>
+              <h4 className="font-semibold text-sm text-sf-text">إدارة وجرد المخزون</h4>
               <p className="text-xs text-sf-muted leading-relaxed">
                 خصم تلقائي لكميات المنتجات عند كل بيع مع تنبيهات فورية للأصناف التي أوشكت على النفاد في المتجر.
               </p>
             </div>
 
             {/* 5. Bankak & Receipts */}
-            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-5 rounded-2xl transition-all space-y-2.5">
+            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-6 rounded-xl transition-all space-y-3">
               <div className="w-9 h-9 rounded-xl bg-sf-action/10 text-sf-action flex items-center justify-center">
                 <Share2 className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-sm text-sf-text">ربط بنكك وسندات القبض الفورية</h4>
+              <h4 className="font-semibold text-sm text-sf-text">تسجيل الدفعات وإصدار سندات القبض</h4>
               <p className="text-xs text-sf-muted leading-relaxed">
-                إدراج رقم حساب بنكك تلقائياً للعملاء، وتسجيل دفعات السداد الجزئي والكامل وتوليد سند قبض مالي موثق.
+                إدراج رقم حساب بنكك تلقائياً للعملاء، وتسجيل دفعات السداد الجزئي والكامل وإصدار سند قبض باسم المتجر.
               </p>
             </div>
 
             {/* 6. Multi-Device Cloud */}
-            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-5 rounded-2xl transition-all space-y-2.5">
+            <div className="bg-sf-surface border border-sf-border hover:border-sf-action/40 p-6 rounded-xl transition-all space-y-3">
               <div className="w-9 h-9 rounded-xl bg-sf-action/10 text-sf-action flex items-center justify-center">
                 <Laptop className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-sm text-sf-text">مزامنة سحابية متعددة الأجهزة</h4>
+              <h4 className="font-semibold text-sm text-sf-text">مزامنة سحابية متعددة الأجهزة</h4>
               <p className="text-xs text-sf-muted leading-relaxed">
                 ادخل لنفس حسابك من متجرك، هاتفك، أو لابتوبك والوصول إلى بيانات مؤسستك المحفوظة بعد تسجيل الدخول.
               </p>

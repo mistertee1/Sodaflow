@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { signInWithGoogle, logout } from '../lib/firebase';
 import { BrandLogo } from './BrandLogo';
@@ -19,6 +19,7 @@ import {
   Moon,
 } from 'lucide-react';
 import { formatMoney } from '../lib/currency';
+import { Dialog } from './Dialog';
 
 interface HeaderProps {
   onOpenNewInvoice: () => void;
@@ -39,13 +40,26 @@ export const Header: React.FC<HeaderProps> = ({
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [tempRate, setTempRate] = useState(settings.default_exchange_rate.toString());
   const [authError, setAuthError] = useState<string | null>(null);
+  const [rateError, setRateError] = useState<string | null>(null);
+  const [isSavingRate, setIsSavingRate] = useState(false);
+  const rateSubmitLock = useRef(false);
 
   const handleSaveRate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (rateSubmitLock.current) return;
     const rateNum = parseFloat(tempRate);
-    if (!isNaN(rateNum) && rateNum > 0) {
+    if (!Number.isFinite(rateNum) || rateNum <= 0) { setRateError('أدخل سعر صرف صالحاً أكبر من صفر.'); return; }
+    rateSubmitLock.current = true;
+    setIsSavingRate(true);
+    setRateError(null);
+    try {
       await updateSettings({ default_exchange_rate: rateNum });
       setIsEditingRate(false);
+    } catch (error) {
+      setRateError(error instanceof Error ? error.message : 'تعذر حفظ سعر الصرف. أعد المحاولة.');
+    } finally {
+      rateSubmitLock.current = false;
+      setIsSavingRate(false);
     }
   };
 
@@ -68,8 +82,8 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="bg-sf-surface border-b border-sf-border sticky top-0 z-30 shadow-md">
-      <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 flex flex-wrap items-center justify-between gap-3">
+    <header className="bg-sf-surface border-b border-sf-border sticky top-0 z-30">
+      <div className="sf-content py-3 flex flex-wrap items-center justify-between gap-3">
         {/* Logo & Store Info */}
         <div className="flex items-center gap-3">
           {settings.logo_url && settings.logo_url !== '/hisabuk_logo.jpg' ? (
@@ -81,35 +95,35 @@ export const Header: React.FC<HeaderProps> = ({
               />
             </div>
           ) : (
-            <BrandLogo size="md" />
+            <span className="lg:hidden"><BrandLogo size="md" /></span>
           )}
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-base sm:text-lg text-sf-text leading-tight">
+              <h1 className="font-semibold text-base sm:text-lg text-sf-text leading-tight">
                 {settings.business_name || 'سودافلو — اضبط اسم متجرك'}
               </h1>
-              <span className="hidden sm:inline-flex text-[10px] px-2 py-0.5 rounded-full bg-sf-action/15 text-sf-action border border-sf-action/40 font-bold">
+              <span className="hidden sm:inline-flex text-xs px-2 py-1 rounded-full bg-sf-action/15 text-sf-action border border-sf-action/40 font-semibold">
                 سودافلو
               </span>
-              <span className="hidden sm:inline-flex text-[11px] px-2 py-0.5 rounded-full bg-sf-selected/80 text-sf-action border border-sf-action/50 font-bold">
-                (ج.س / $)
+              <span className="hidden sm:inline-flex text-xs px-2 py-1 rounded-full bg-sf-selected/80 text-sf-action border border-sf-action/50 font-semibold">
+                SDG / USD
               </span>
             </div>
-            <p className="text-xs text-sf-muted font-normal mt-0.5 flex items-center gap-2 flex-wrap">
+            <p className="text-xs text-sf-muted font-normal mt-1 flex items-center gap-2 flex-wrap">
               {settings.phone ? (
                 <span>{settings.phone}</span>
               ) : (
                 <button
                   type="button"
                   onClick={onOpenSettings}
-                  className="text-sf-warning hover:text-sf-warning text-[11px] font-medium underline"
+                  className="text-sf-warning hover:text-sf-warning text-xs font-medium underline"
                 >
                   إعداد بيانات المتجر والحساب
                 </button>
               )}
               {currentUser ? (
-                <span className={`inline-flex items-center gap-1 text-[11px] font-semibold ${
-                  syncStatus === 'synced' ? 'text-sf-action' : 'text-sf-warning'
+                <span className={`inline-flex items-center gap-1 text-xs font-semibold ${
+                  syncStatus === 'error' ? 'text-sf-danger' : 'text-sf-info'
                 }`}>
                   <Cloud className="w-3 h-3" />
                   <span>
@@ -117,14 +131,14 @@ export const Header: React.FC<HeaderProps> = ({
                       ? 'مزامَن سحابياً'
                       : syncStatus === 'syncing'
                       ? 'جاري المزامنة...'
-                      : 'سحابي متصل'}
+                      : syncStatus === 'error' ? 'تعذرت المزامنة' : 'بانتظار المزامنة'}
                   </span>
                 </span>
               ) : (
                 <button
                   type="button"
                   onClick={onOpenAuth || onOpenSettings}
-                  className="inline-flex items-center gap-1 text-sf-warning hover:text-sf-warning text-[11px] font-medium underline"
+                  className="inline-flex items-center gap-1 text-sf-warning hover:text-sf-warning text-xs font-medium underline"
                 >
                   <CloudOff className="w-3 h-3" />
                   <span>وضع الضيف (اضغط لإنشاء حساب سحابي)</span>
@@ -137,16 +151,17 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Currency Badge & Actions */}
         <div className="flex items-center flex-wrap gap-2 mr-auto sm:mr-0">
           {/* Exchange Rate Badge */}
-          <div className="bg-sf-raised border border-sf-border text-sf-text rounded-xl px-3 py-1.5 flex items-center gap-2 text-xs shadow-xs">
+          <div className="bg-sf-raised border border-sf-border text-sf-text rounded-xl px-3 py-2 flex items-center gap-2 text-xs shadow-xs">
             <div className="flex flex-col">
-              <span className="text-[10px] text-sf-muted font-medium">سعر الصرف:</span>
-              <span className="font-bold font-mono text-sm text-sf-action">
-                1 $ = {formatMoney(settings.default_exchange_rate, 'SDG', settings)}
+              <span className="text-xs text-sf-muted font-medium">سعر الصرف:</span>
+              <span className="font-semibold font-mono text-sm text-sf-text">
+                1 USD = {formatMoney(settings.default_exchange_rate, 'SDG', settings)}
               </span>
             </div>
             <button
               onClick={() => {
                 setTempRate(settings.default_exchange_rate.toString());
+                setRateError(null);
                 setIsEditingRate(true);
               }}
               title="تعديل سعر الصرف اليومي"
@@ -161,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               onClick={onOpenOnboarding}
               title="التعريف بالخدمات والمزايا"
-              className="bg-sf-raised hover:bg-sf-raised text-sf-text hover:text-sf-text border border-sf-border text-xs px-2.5 py-2 rounded-xl flex items-center gap-1.5 transition-colors"
+              className="bg-sf-raised hover:bg-sf-raised text-sf-text hover:text-sf-text border border-sf-border text-xs px-3 py-2 rounded-xl flex items-center gap-2 transition-colors"
             >
               <Sparkles className="w-3.5 h-3.5 text-sf-action" />
               <span className="hidden md:inline">خدمات النظام</span>
@@ -172,7 +187,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             id="btn-quick-new-invoice"
             onClick={onOpenNewInvoice}
-            className="bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-black text-xs sm:text-sm px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-lg shadow-sf-action/20 transition-all active:scale-95"
+            className="bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-sf-action/20 transition-all "
           >
             <Plus className="w-4 h-4 text-sf-on-action" />
             <span>فاتورة جديدة</span>
@@ -182,7 +197,7 @@ export const Header: React.FC<HeaderProps> = ({
           {!authLoading && (
             <div>
               {currentUser ? (
-                <div className="flex items-center gap-2 bg-sf-raised border border-sf-border rounded-xl py-1 px-2.5 text-xs text-sf-text">
+                <div className="flex items-center gap-2 bg-sf-raised border border-sf-border rounded-xl py-1 px-3 text-xs text-sf-text">
                   {currentUser.photoURL ? (
                     <img
                       src={currentUser.photoURL}
@@ -191,17 +206,17 @@ export const Header: React.FC<HeaderProps> = ({
                       className="w-6 h-6 rounded-full border border-sf-action/40"
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-sf-action text-sf-on-action flex items-center justify-center font-bold text-[10px]">
+                    <div className="w-6 h-6 rounded-full bg-sf-action text-sf-on-action flex items-center justify-center font-semibold text-xs">
                       {currentUser.displayName ? currentUser.displayName[0] : 'U'}
                     </div>
                   )}
-                  <span className="max-w-[80px] sm:max-w-[120px] truncate hidden sm:inline font-bold text-sf-text">
+                  <span className="max-w-[80px] sm:max-w-[120px] truncate hidden sm:inline font-semibold text-sf-text">
                     {currentUser.displayName || currentUser.email}
                   </span>
                   <button
                     onClick={handleLogout}
                     title="تسجيل الخروج"
-                    className="text-sf-muted hover:text-sf-danger transition-colors p-0.5"
+                    className="text-sf-muted hover:text-sf-danger transition-colors p-1"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                   </button>
@@ -210,7 +225,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={onOpenAuth || handleGoogleLogin}
                   title="تسجيل الدخول أو إنشاء حساب سحابي"
-                  className="bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border text-xs px-3 py-2 rounded-xl flex items-center gap-1.5 transition-colors font-bold shadow-xs"
+                  className="bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border text-xs px-3 py-2 rounded-xl flex items-center gap-2 transition-colors font-semibold shadow-xs"
                 >
                   <LogIn className="w-3.5 h-3.5 text-sf-action" />
                   <span>دخول / تسجيل</span>
@@ -256,8 +271,8 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {authError && (
-        <div className="bg-sf-danger-bg/40 border-t border-sf-danger/50 px-4 py-2 text-xs text-sf-danger flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
+        <div role="alert" className="bg-sf-danger-bg/40 border-t border-sf-danger/50 px-4 py-2 text-xs text-sf-danger flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-sf-danger" />
             <span>{authError}</span>
           </div>
@@ -269,20 +284,24 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Quick Edit Exchange Rate Modal */}
       {isEditingRate && (
-        <div className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-sf-surface rounded-2xl shadow-2xl border border-sf-border max-w-sm w-full p-5 animate-in fade-in zoom-in-95 text-sf-text">
-            <h3 className="font-bold text-base text-sf-text mb-2">تحديث سعر الصرف الحالي</h3>
+        <Dialog label="تحديث سعر الصرف الحالي" onClose={() => { if (!isSavingRate) setIsEditingRate(false); }} className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-sf-surface rounded-xl shadow-2xl border border-sf-border max-w-sm w-full p-6 animate-in fade-in zoom-in-95 text-sf-text">
+            <h3 className="font-semibold text-base text-sf-text mb-2">تحديث سعر الصرف الحالي</h3>
             <p className="text-xs text-sf-muted mb-4 leading-relaxed">
               أدخل سعر صرف الدولار مقابل الجنيه السوداني في السوق اليوم. الفواتير السابقة لن تتأثر لأن سعرها
               مجمّد وقت الإصدار.
             </p>
             <form onSubmit={handleSaveRate} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-sf-text mb-1">
+                <label htmlFor="current-exchange-rate" className="block text-xs font-semibold text-sf-text mb-1">
                   سعر الصرف (1 دولار أمريكي = كم جنيه سوداني؟)
                 </label>
                 <div className="relative">
                   <input
+                    id="current-exchange-rate"
+                    aria-invalid={rateError ? true : undefined}
+                    aria-describedby={rateError ? 'current-rate-error' : undefined}
+                    disabled={isSavingRate}
                     type="number"
                     step="1"
                     min="1"
@@ -290,32 +309,35 @@ export const Header: React.FC<HeaderProps> = ({
                     onChange={(e) => setTempRate(e.target.value)}
                     autoFocus
                     required
-                    className="w-full text-left font-mono font-bold text-lg px-3 py-2 bg-sf-raised border border-sf-border rounded-xl text-sf-action focus:outline-none focus:border-sf-action"
+                    className="w-full text-left font-mono font-semibold text-lg px-3 py-2 bg-sf-raised border border-sf-border rounded-xl text-sf-text focus:outline-none focus:border-sf-action"
                   />
                   <span className="absolute left-3 top-2.5 text-xs text-sf-muted font-sans">
                     ج.س / $
                   </span>
                 </div>
               </div>
+              {rateError && <p id="current-rate-error" role="alert" className="text-sm text-sf-danger">تعذر حفظ سعر الصرف. بياناتك ما زالت في النموذج. {rateError}</p>}
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
+                  disabled={isSavingRate}
                   onClick={() => setIsEditingRate(false)}
-                  className="px-3.5 py-1.5 text-xs font-medium text-sf-text bg-sf-raised hover:bg-sf-raised rounded-xl border border-sf-border transition-colors"
+                  className="px-4 py-2 text-xs font-medium text-sf-text bg-sf-raised hover:bg-sf-raised rounded-xl border border-sf-border transition-colors"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 text-xs font-bold text-sf-on-action bg-sf-action hover:bg-sf-action-hover rounded-xl shadow-lg shadow-sf-action/20 flex items-center gap-1.5 transition-colors"
+                  disabled={isSavingRate}
+                  className="px-4 py-2 text-xs font-semibold text-sf-on-action bg-sf-action hover:bg-sf-action-hover rounded-xl shadow-lg shadow-sf-action/20 flex items-center gap-2 transition-colors"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  حفظ السعر الجديد
+                  {isSavingRate ? 'جارٍ حفظ سعر الصرف…' : rateError ? 'أعد المحاولة' : 'حفظ السعر الجديد'}
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </Dialog>
       )}
     </header>
   );

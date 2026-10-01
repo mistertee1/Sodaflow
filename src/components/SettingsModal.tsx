@@ -38,6 +38,7 @@ import {
   validateImageFile,
   MAX_IMAGE_FILE_SIZE_BYTES,
 } from '../services/storageService';
+import { Dialog } from './Dialog';
 
 const AVAILABLE_CURRENCIES: { code: Currency; label: string }[] = [
   { code: 'SDG', label: 'جنيه سوداني (SDG)' },
@@ -212,22 +213,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-sf-surface rounded-2xl shadow-2xl border border-sf-border max-w-2xl w-full my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 text-xs sm:text-sm text-sf-text">
+    <Dialog label="إعدادات المؤسسة" onClose={onClose} className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-sf-surface rounded-xl shadow-2xl border border-sf-border max-w-2xl w-full my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 text-xs sm:text-sm text-sf-text">
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-sf-border bg-sf-raised rounded-t-2xl flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-sf-action/10 text-sf-action border border-sf-action/20">
+        <div className="p-4 sm:p-6 border-b border-sf-border bg-sf-raised rounded-t-2xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-sf-action/10 text-sf-action border border-sf-action/20">
               <Sliders className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-sf-text">إعدادات المتجر وسعر الصرف</h2>
+              <h2 className="text-base font-semibold text-sf-text">إعدادات المتجر وسعر الصرف</h2>
               <p className="text-xs text-sf-muted">تخصيص بيانات الفواتير وسعر الصرف والعملتين والمزامنة السحابية</p>
             </div>
           </div>
-          <button
+          <button aria-label="إغلاق النافذة"
             onClick={onClose}
-            className="p-1.5 text-sf-muted hover:text-sf-text rounded-lg hover:bg-sf-raised transition-colors"
+            className="p-2 text-sf-muted hover:text-sf-text rounded-lg hover:bg-sf-raised transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -247,13 +248,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-sf-action" />
-                <h3 className="font-bold text-xs text-sf-text">حساب التاجر والمزامنة السحابية</h3>
+                <h3 className="font-semibold text-xs text-sf-text">حساب التاجر والمزامنة السحابية</h3>
               </div>
               <div className="flex items-center gap-2">
                 {currentUser && (
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-medium ${
+                  <span className={`text-xs px-2 py-1 rounded-full font-mono font-medium ${
                     syncStatus === 'synced'
-                      ? 'bg-sf-selected/80 text-sf-action border border-sf-action/50'
+                      ? 'bg-sf-selected/80 text-sf-text border border-sf-action/50'
                       : syncStatus === 'syncing'
                       ? 'bg-sf-warning-bg/80 text-sf-warning border border-sf-warning/50'
                       : 'bg-sf-raised text-sf-muted border border-sf-border'
@@ -276,14 +277,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                         className="w-9 h-9 rounded-full ring-2 ring-sf-action/40"
                       />
                     ) : (
-                      <div className="w-9 h-9 rounded-full bg-sf-action text-sf-on-action flex items-center justify-center font-bold text-xs">
+                      <div className="w-9 h-9 rounded-full bg-sf-action text-sf-on-action flex items-center justify-center font-semibold text-xs">
                         {currentUser.displayName?.[0] || 'U'}
                       </div>
                     )}
                     <div>
-                      <div className="font-bold text-xs text-sf-text">{currentUser.displayName || 'تاجر'}</div>
-                      <div className="text-[11px] text-sf-muted font-mono">{currentUser.email}</div>
-                      <div className="text-[10px] text-sf-action mt-0.5">
+                      <div className="font-semibold text-xs text-sf-text">{currentUser.displayName || 'تاجر'}</div>
+                      <div className="text-xs text-sf-muted font-mono">{currentUser.email}</div>
+                      <div className="text-xs text-sf-action mt-1">
                         ✓ حساب سحابي آمن ومشفر عبر Firebase
                       </div>
                     </div>
@@ -292,7 +293,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   <button
                     type="button"
                     onClick={() => logoutUser()}
-                    className="px-3 py-1.5 text-xs text-sf-danger hover:bg-sf-danger-bg/40 rounded-lg border border-sf-danger/60 flex items-center gap-1 font-medium transition-colors"
+                    className="px-3 py-2 text-xs text-sf-danger hover:bg-sf-danger-bg/40 rounded-lg border border-sf-danger/60 flex items-center gap-1 font-medium transition-colors"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>تسجيل خروج</span>
@@ -301,7 +302,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
                 {/* Cloud Sync Manual Trigger */}
                 <div className="flex items-center justify-between pt-1 text-xs">
-                  <div className="text-[11px] text-sf-muted">
+                  <div className="text-xs text-sf-muted">
                     {lastSyncedAt ? (
                       <span>آخر مزامنة سحابية: {lastSyncedAt.toLocaleTimeString('ar-EG')}</span>
                     ) : (
@@ -312,7 +313,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     type="button"
                     disabled={isSyncing}
                     onClick={handleManualSync}
-                    className="bg-sf-raised hover:bg-sf-raised text-sf-action border border-sf-border px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                    className="bg-sf-raised hover:bg-sf-raised text-sf-action border border-sf-border px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-colors disabled:opacity-50"
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
                     <span>{isSyncing ? 'جاري المزامنة...' : 'مزامنة السحابة الآن'}</span>
@@ -326,7 +327,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     <p className="text-xs text-sf-text font-medium">
                       أنت تستخدم التطبيق في الوضع المحلي حالياً (كضيف).
                     </p>
-                    <p className="text-[11px] text-sf-muted">
+                    <p className="text-xs text-sf-muted">
                       سجّل دخولك لحفظ فواتيرك ومخزونك سحابياً والوصول إليها من أكثر من جهاز.
                     </p>
                   </div>
@@ -345,14 +346,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                         setAuthLoading(false);
                       }
                     }}
-                    className="px-4 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 shadow-lg shadow-sf-action/20 transition-colors disabled:opacity-50"
+                    className="px-4 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action text-xs font-semibold rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-sf-action/20 transition-colors disabled:opacity-50"
                   >
                     <LogIn className="w-3.5 h-3.5" />
                     <span>{authLoading ? 'جاري الاتصال...' : 'دخول سحابي سريع'}</span>
                   </button>
                 </div>
                 {authError && (
-                  <div className="p-2.5 rounded-lg bg-sf-danger-bg/40 border border-sf-danger/50 text-[11px] text-sf-danger text-right">
+                  <div role="alert" className="p-3 rounded-lg bg-sf-danger-bg/40 border border-sf-danger/50 text-xs text-sf-danger text-right">
                     {authError}
                   </div>
                 )}
@@ -364,33 +365,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           <div className="bg-sf-raised p-4 rounded-xl border border-sf-border space-y-4">
             <div className="flex items-center justify-between border-b border-sf-border pb-3">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-sf-info-bg/10 text-sf-info border border-sf-info/20">
+                <div className="p-2 rounded-lg bg-sf-info-bg/10 text-sf-info border border-sf-info/20">
                   <CreditCard className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-xs text-sf-text">خطة الاشتراك وحدود الاستخدام</h3>
-                  <p className="text-[11px] text-sf-muted">إدارة الباقة الحالية ومتابعة استهلاك الفواتير والعملاء والمنتجات</p>
+                  <h3 className="font-semibold text-xs text-sf-text">خطة الاشتراك وحدود الاستخدام</h3>
+                  <p className="text-xs text-sf-muted">إدارة الباقة الحالية ومتابعة استهلاك الفواتير والعملاء والمنتجات</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] px-2.5 py-0.5 rounded-full font-bold bg-sf-info-bg/80 text-sf-info border border-sf-info/50">
+                <span className="text-xs px-3 py-1 rounded-full font-semibold bg-sf-info-bg/80 text-sf-info border border-sf-info/50">
                   باقة {getPlanConfig(subscription?.plan || 'Free').arabic_name}
                 </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-sf-selected/70 text-sf-action border border-sf-action/40">
+                <span className="text-xs px-2 py-1 rounded-full font-medium bg-sf-selected/70 text-sf-action border border-sf-action/40">
                   نشط
                 </span>
               </div>
             </div>
 
             {planSuccess && (
-              <div className="p-2.5 rounded-xl bg-sf-selected/80 border border-sf-action/50 text-sf-action text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-sf-selected/80 border border-sf-action/50 text-sf-action text-xs flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-sf-action shrink-0" />
                 <span>{planSuccess}</span>
               </div>
             )}
 
             {planError && (
-              <div className="p-2.5 rounded-xl bg-sf-danger-bg/80 border border-sf-danger/50 text-sf-danger text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-sf-danger-bg/80 border border-sf-danger/50 text-sf-danger text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 text-sf-danger shrink-0" />
                 <span>{planError}</span>
               </div>
@@ -428,16 +429,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
               return (
                 <div className="space-y-4">
-                  <div className="bg-sf-raised p-3.5 rounded-xl border border-sf-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="bg-sf-raised p-4 rounded-xl border border-sf-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-sf-text">{currentPlan.arabic_name}</span>
+                        <span className="font-semibold text-sm text-sf-text">{currentPlan.arabic_name}</span>
                         <span className="text-xs text-sf-muted font-mono">({currentPlan.name})</span>
                       </div>
-                      <p className="text-[11px] text-sf-muted mt-0.5">{currentPlan.description}</p>
+                      <p className="text-xs text-sf-muted mt-1">{currentPlan.description}</p>
                     </div>
                     <div className="text-left sm:text-right shrink-0">
-                      <span className="text-base font-bold text-sf-action font-mono">{currentPlan.price_usd_monthly}</span>
+                      <span className="text-base font-semibold text-sf-text font-mono">{currentPlan.price_usd_monthly}</span>
                     </div>
                   </div>
 
@@ -447,19 +448,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     <div className="bg-sf-raised p-3 rounded-xl border border-sf-border space-y-2">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-medium text-sf-text">الفواتير الشهرية</span>
-                        <span className={`text-[11px] px-2 py-0.5 rounded-md font-mono border ${getBadgeColor(invPct)}`}>
+                        <span className={`text-xs px-2 py-1 rounded-md font-mono border ${getBadgeColor(invPct)}`}>
                           {invoiceCount} / {isUnlimited(maxInvoices) ? '∞ غير محدود' : maxInvoices}
                         </span>
                       </div>
                       <div className="w-full bg-sf-surface rounded-full h-2 overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-300 ${getBarColor(invPct)}`}
+                          className={`h-full rounded-full transition-all duration-(--sf-motion-state) ${getBarColor(invPct)}`}
                           style={{ width: isUnlimited(maxInvoices) ? '10%' : `${invPct}%` }}
                         />
                       </div>
-                      <div className="flex justify-between items-center text-[10px] text-sf-muted">
+                      <div className="flex justify-between items-center text-xs text-sf-muted">
                         <span>{isUnlimited(maxInvoices) ? 'باقة غير محدودة' : `${invPct}% مستهلك`}</span>
-                        {invPct >= 100 && <span className="text-sf-danger font-bold">وصلت للحد الأقصى</span>}
+                        {invPct >= 100 && <span className="text-sf-danger font-semibold">وصلت للحد الأقصى</span>}
                       </div>
                     </div>
 
@@ -467,19 +468,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     <div className="bg-sf-raised p-3 rounded-xl border border-sf-border space-y-2">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-medium text-sf-text">قاعدة العملاء</span>
-                        <span className={`text-[11px] px-2 py-0.5 rounded-md font-mono border ${getBadgeColor(custPct)}`}>
+                        <span className={`text-xs px-2 py-1 rounded-md font-mono border ${getBadgeColor(custPct)}`}>
                           {customerCount} / {isUnlimited(maxCustomers) ? '∞ غير محدود' : maxCustomers}
                         </span>
                       </div>
                       <div className="w-full bg-sf-surface rounded-full h-2 overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-300 ${getBarColor(custPct)}`}
+                          className={`h-full rounded-full transition-all duration-(--sf-motion-state) ${getBarColor(custPct)}`}
                           style={{ width: isUnlimited(maxCustomers) ? '10%' : `${custPct}%` }}
                         />
                       </div>
-                      <div className="flex justify-between items-center text-[10px] text-sf-muted">
+                      <div className="flex justify-between items-center text-xs text-sf-muted">
                         <span>{isUnlimited(maxCustomers) ? 'باقة غير محدودة' : `${custPct}% مستهلك`}</span>
-                        {custPct >= 100 && <span className="text-sf-danger font-bold">وصلت للحد الأقصى</span>}
+                        {custPct >= 100 && <span className="text-sf-danger font-semibold">وصلت للحد الأقصى</span>}
                       </div>
                     </div>
 
@@ -487,19 +488,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     <div className="bg-sf-raised p-3 rounded-xl border border-sf-border space-y-2">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-medium text-sf-text">المنتجات والمخزون</span>
-                        <span className={`text-[11px] px-2 py-0.5 rounded-md font-mono border ${getBadgeColor(prodPct)}`}>
+                        <span className={`text-xs px-2 py-1 rounded-md font-mono border ${getBadgeColor(prodPct)}`}>
                           {productCount} / {isUnlimited(maxProducts) ? '∞ غير محدود' : maxProducts}
                         </span>
                       </div>
                       <div className="w-full bg-sf-surface rounded-full h-2 overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-300 ${getBarColor(prodPct)}`}
+                          className={`h-full rounded-full transition-all duration-(--sf-motion-state) ${getBarColor(prodPct)}`}
                           style={{ width: isUnlimited(maxProducts) ? '10%' : `${prodPct}%` }}
                         />
                       </div>
-                      <div className="flex justify-between items-center text-[10px] text-sf-muted">
+                      <div className="flex justify-between items-center text-xs text-sf-muted">
                         <span>{isUnlimited(maxProducts) ? 'باقة غير محدودة' : `${prodPct}% مستهلك`}</span>
-                        {prodPct >= 100 && <span className="text-sf-danger font-bold">وصلت للحد الأقصى</span>}
+                        {prodPct >= 100 && <span className="text-sf-danger font-semibold">وصلت للحد الأقصى</span>}
                       </div>
                     </div>
 
@@ -507,32 +508,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     <div className="bg-sf-raised p-3 rounded-xl border border-sf-border space-y-2">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-medium text-sf-text">أعضاء الفريق</span>
-                        <span className={`text-[11px] px-2 py-0.5 rounded-md font-mono border ${getBadgeColor(memPct)}`}>
+                        <span className={`text-xs px-2 py-1 rounded-md font-mono border ${getBadgeColor(memPct)}`}>
                           {memberCount} / {isUnlimited(maxMembers) ? '∞ غير محدود' : maxMembers}
                         </span>
                       </div>
                       <div className="w-full bg-sf-surface rounded-full h-2 overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-300 ${getBarColor(memPct)}`}
+                          className={`h-full rounded-full transition-all duration-(--sf-motion-state) ${getBarColor(memPct)}`}
                           style={{ width: isUnlimited(maxMembers) ? '10%' : `${memPct}%` }}
                         />
                       </div>
-                      <div className="flex justify-between items-center text-[10px] text-sf-muted">
+                      <div className="flex justify-between items-center text-xs text-sf-muted">
                         <span>{isUnlimited(maxMembers) ? 'باقة غير محدودة' : `${memPct}% مستهلك`}</span>
-                        {memPct >= 100 && <span className="text-sf-danger font-bold">وصلت للحد الأقصى</span>}
+                        {memPct >= 100 && <span className="text-sf-danger font-semibold">وصلت للحد الأقصى</span>}
                       </div>
                     </div>
                   </div>
 
                   {/* Plan Switcher / Upgrade Tier Selection */}
-                  <div className="pt-3 border-t border-sf-border space-y-2.5">
+                  <div className="pt-3 border-t border-sf-border space-y-3">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-bold text-xs text-sf-text flex items-center gap-1.5">
+                      <h4 className="font-semibold text-xs text-sf-text flex items-center gap-2">
                         <Sparkles className="w-3.5 h-3.5 text-sf-warning" />
                         <span>ترقية أو تغيير باقة الاشتراك</span>
                       </h4>
                       {updatingPlan && (
-                        <div className="flex items-center gap-1.5 text-xs text-sf-info">
+                        <div className="flex items-center gap-2 text-xs text-sf-info">
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           <span>جاري التحديث...</span>
                         </div>
@@ -565,7 +566,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                                 setUpdatingPlan(false);
                               }
                             }}
-                            className={`p-2.5 rounded-xl border text-right transition-all flex flex-col justify-between ${
+                            className={`p-3 rounded-xl border text-right transition-all flex flex-col justify-between ${
                               isCurrent
                                 ? 'bg-sf-info-bg/60 border-sf-info text-sf-text shadow-lg shadow-indigo-950/30'
                                 : canChange
@@ -575,14 +576,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                           >
                             <div>
                               <div className="flex items-center justify-between">
-                                <span className="font-bold text-xs">{tier.arabic_name}</span>
+                                <span className="font-semibold text-xs">{tier.arabic_name}</span>
                                 {isCurrent && (
                                   <span className="w-2 h-2 rounded-full bg-sf-action" title="الباقة الحالية" />
                                 )}
                               </div>
-                              <span className="text-[10px] text-sf-muted block mt-0.5">{tier.price_usd_monthly}</span>
+                              <span className="text-xs text-sf-muted block mt-1">{tier.price_usd_monthly}</span>
                             </div>
-                            <div className="mt-2 pt-1.5 border-t border-white/5 text-[9px] text-sf-muted">
+                            <div className="mt-2 pt-2 border-t border-white/5 text-xs text-sf-muted">
                               {isUnlimited(tier.max_invoices_per_month) ? 'فواتير غير محدودة' : `${tier.max_invoices_per_month} فاتورة`}
                             </div>
                           </button>
@@ -591,20 +592,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     </div>
 
                     {!(userRole === 'Owner' || userRole === 'Admin') && (
-                      <p className="text-[10px] text-sf-warning/80">
+                      <p className="text-xs text-sf-warning/80">
                         * ترقية وتغيير باقات الاشتراك متاح لمالكي ومديري المؤسسة فقط.
                       </p>
                     )}
                   </div>
 
                   {/* Enforcement Scope Disclosure */}
-                  <div className="p-3 bg-sf-raised/60 rounded-xl border border-sf-border text-[11px] text-sf-muted space-y-1">
-                    <div className="flex items-center gap-1.5 font-semibold text-sf-text text-xs">
+                  <div className="p-3 bg-sf-raised/60 rounded-xl border border-sf-border text-xs text-sf-muted space-y-1">
+                    <div className="flex items-center gap-2 font-semibold text-sf-text text-xs">
                       <ShieldCheck className="w-3.5 h-3.5 text-sf-action shrink-0" />
                       <span>نطاق التحقق والفرض (Enforcement Scope)</span>
                     </div>
                     <p className="leading-relaxed">
-                      يتم فحص حدود الباقات الحالية عبر واجهة التطبيق (Client-side UX guardrails) لحماية المتجر من استنفاد الحصص وتوفير تنبيهات فورية للمستخدم. يتم تتبع الاستهلاك تلقائياً وبشكل ذري عبر عدادات المؤسسة السحابية (<code className="font-mono text-[10px] text-sf-info">meta/counters</code>). الفرض الصارم عبر قواعد أمان فايربيس (Server-side Rules) يجري تعميمه لضمان موثوقية كاملة.
+                      يتم فحص حدود الباقات الحالية عبر واجهة التطبيق (Client-side UX guardrails) لحماية المتجر من استنفاد الحصص وتوفير تنبيهات فورية للمستخدم. يتم تتبع الاستهلاك تلقائياً وبشكل ذري عبر عدادات المؤسسة السحابية (<code className="font-mono text-xs text-sf-info">meta/counters</code>). الفرض الصارم عبر قواعد أمان فايربيس (Server-side Rules) يجري تعميمه لضمان موثوقية كاملة.
                     </p>
                   </div>
                 </div>
@@ -618,11 +619,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           {/* Section: Theme Mode (المظهر: الوضع الداكن / الوضع الفاتح) */}
           <div className="bg-sf-raised p-4 rounded-xl border border-sf-border space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs text-sf-text flex items-center gap-1.5">
+              <h3 className="font-semibold text-xs text-sf-text flex items-center gap-2">
                 <Sun className="w-4 h-4 text-sf-warning" />
                 <span>مظهر وتصميم الواجهة (Theme Mode)</span>
               </h3>
-              <span className="text-[11px] text-sf-muted">
+              <span className="text-xs text-sf-muted">
                 {theme === 'light' ? 'الوضع الفاتح مفعّل' : 'الوضع الداكن مفعّل'}
               </span>
             </div>
@@ -641,8 +642,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   <Moon className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold">الوضع الداكن (Dark)</div>
-                  <div className="text-[10px] text-sf-muted">مريح للعين وموفر للطاقة</div>
+                  <div className="text-xs font-semibold">الوضع الداكن (Dark)</div>
+                  <div className="text-xs text-sf-muted">مريح للعين وموفر للطاقة</div>
                 </div>
               </button>
 
@@ -659,8 +660,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   <Sun className="w-4 h-4" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold">الوضع الفاتح (Light)</div>
-                  <div className="text-[10px] text-sf-muted">واضح ومناسب للطباعة والنهار</div>
+                  <div className="text-xs font-semibold">الوضع الفاتح (Light)</div>
+                  <div className="text-xs text-sf-muted">واضح ومناسب للطباعة والنهار</div>
                 </div>
               </button>
             </div>
@@ -669,14 +670,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           {/* Section: Store Logo & Brand (رفع وتغيير لوقو المتجر) */}
           <div className="bg-sf-raised p-4 rounded-xl border border-sf-border space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs text-sf-text flex items-center gap-1.5">
+              <h3 className="font-semibold text-xs text-sf-text flex items-center gap-2">
                 <ImageIcon className="w-4 h-4 text-sf-action" />
                 <span>شعار وهوية المتجر (لوقو الفواتير المطبوعة)</span>
               </h3>
-              <span className="text-[11px] text-sf-muted">يظهر على الفاتورة وسند القبض</span>
+              <span className="text-xs text-sf-muted">يظهر على الفاتورة وسند القبض</span>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4 bg-sf-raised p-3.5 rounded-lg border border-sf-border">
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-sf-raised p-4 rounded-lg border border-sf-border">
               {/* Logo Preview */}
               <div className="w-20 h-20 rounded-xl border-2 border-dashed border-sf-border bg-sf-surface flex items-center justify-center overflow-hidden shrink-0 relative group">
                 {logoUrl && logoUrl !== '/hisabuk_logo.jpg' ? (
@@ -699,17 +700,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     ارفع شعار منشأتك ليظهر على مستنداتها
                   </p>
                   {(!logoUrl || logoUrl === '/hisabuk_logo.jpg') && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-sf-action/15 text-sf-action border border-sf-action/40 font-bold">
+                    <span className="text-xs px-2 py-1 rounded-full bg-sf-action/15 text-sf-action border border-sf-action/40 font-semibold">
                       لم يُضف شعار للمنشأة
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-sf-muted leading-snug">
+                <p className="text-xs text-sf-muted leading-snug">
                   سيتم تضمين هذا الشعار تلقائياً في أعلى الفواتير المطبوعة وسندات القبض المالي وملفات PDF.
                 </p>
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <label
-                    className={`cursor-pointer px-3 py-1.5 bg-sf-raised hover:bg-sf-raised text-sf-text hover:text-sf-text border border-sf-border rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                    className={`cursor-pointer px-3 py-2 bg-sf-raised hover:bg-sf-raised text-sf-text hover:text-sf-text border border-sf-border rounded-lg text-xs font-semibold flex items-center gap-2 transition-colors ${
                       isUploadingLogo ? 'opacity-60 pointer-events-none' : ''
                     }`}
                   >
@@ -737,7 +738,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     <button
                       type="button"
                       onClick={() => setLogoUrl('')}
-                      className="px-2.5 py-1.5 text-xs text-sf-danger hover:bg-sf-danger-bg/40 border border-sf-danger/50 rounded-lg flex items-center gap-1 transition-colors"
+                      className="px-3 py-2 text-xs text-sf-danger hover:bg-sf-danger-bg/40 border border-sf-danger/50 rounded-lg flex items-center gap-1 transition-colors"
                       title="حذف الشعار"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -747,16 +748,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 </div>
 
                 {isUploadingLogo && (
-                  <div className="w-full bg-sf-raised rounded-full h-1.5 overflow-hidden mt-1.5">
+                  <div className="w-full bg-sf-raised rounded-full h-1.5 overflow-hidden mt-2">
                     <div
-                      className="bg-sf-action h-full transition-all duration-200"
+                      className="bg-sf-action h-full transition-all duration-(--sf-motion-state)"
                       style={{ width: `${logoUploadProgress}%` }}
                     />
                   </div>
                 )}
 
                 {logoUploadError && (
-                  <div className="p-2.5 bg-sf-danger-bg/50 border border-sf-danger/60 rounded-lg text-sf-danger text-xs flex items-center gap-2 mt-2">
+                  <div className="p-3 bg-sf-danger-bg/50 border border-sf-danger/60 rounded-lg text-sf-danger text-xs flex items-center gap-2 mt-2">
                     <AlertCircle className="w-4 h-4 text-sf-danger shrink-0" />
                     <span>{logoUploadError}</span>
                   </div>
@@ -767,7 +768,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
           {/* Section 2: Business Info */}
           <div className="space-y-3">
-            <h3 className="font-bold text-xs text-sf-text flex items-center gap-1.5">
+            <h3 className="font-semibold text-xs text-sf-text flex items-center gap-2">
               <Building2 className="w-4 h-4 text-sf-action" />
               <span>بيانات المتجر والتاجر (تظهر في الفواتير المطبوعة)</span>
             </h3>
@@ -782,7 +783,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   required
                   value={businessName}
                   onChange={(e) => setBusinessName(e.target.value)}
-                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
 
@@ -804,7 +805,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="مثال: الخرطوم - السوق العربي / بورتسودان"
-                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
 
@@ -817,7 +818,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   value={bankDetails}
                   onChange={(e) => setBankDetails(e.target.value)}
                   placeholder="مثال: بنك الخرطوم (بنكك): 1234567 باسم محمد علي"
-                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action font-mono"
+                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action font-mono"
                 />
               </div>
             </div>
@@ -826,11 +827,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           {/* Section 3: Dual Currency & Rate (Requirement: إمكانية تعديل سعر الصرف يدوياً وتحديد العملات صراحة) */}
           <div className="space-y-3 bg-sf-raised p-4 rounded-xl border border-sf-border">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs text-sf-text flex items-center gap-1.5">
+              <h3 className="font-semibold text-xs text-sf-text flex items-center gap-2">
                 <Lock className="w-4 h-4 text-sf-action" />
                 <span>تهيئة العملات وسعر الصرف والتقريب</span>
               </h3>
-              <span className="text-[11px] text-sf-action font-mono font-bold">
+              <span className="text-xs text-sf-text font-mono font-semibold">
                 1 {getCurrencySymbol(secondaryCurrency)} = {defaultRate > 0 ? defaultRate.toLocaleString() : 'غير محدد'} {getCurrencySymbol(primaryCurrency)}
               </span>
             </div>
@@ -852,7 +853,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-sf-muted mt-1">
+                <p className="text-xs text-sf-muted mt-1">
                   العملة التي تُقيد بها الدفاتر المحاسبية وميزان المراجعة
                 </p>
               </div>
@@ -872,7 +873,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     </option>
                   ))}
                 </select>
-                <p className="text-[10px] text-sf-muted mt-1">
+                <p className="text-xs text-sf-muted mt-1">
                   العملة الموازية المستخدمة في التسعير أو التحويل الثنائي
                 </p>
               </div>
@@ -891,7 +892,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     required
                     value={defaultRate}
                     onChange={(e) => setDefaultRate(Number(e.target.value))}
-                    className="w-full bg-sf-raised border border-sf-action/40 rounded-lg px-3 py-2 text-xs font-mono font-bold text-sf-action focus:outline-none focus:border-sf-action"
+                    className="w-full bg-sf-raised border border-sf-action/40 rounded-lg px-3 py-2 text-xs font-mono font-semibold text-sf-text focus:outline-none focus:border-sf-action"
                   />
                   <span className="absolute left-3 top-2 text-xs text-sf-muted font-sans">
                     {getCurrencySymbol(primaryCurrency)} / {getCurrencySymbol(secondaryCurrency)}
@@ -899,12 +900,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 </div>
 
                 {/* UI convenience presets: Quick-fill shortcuts for user convenience only. Never automatically applied. */}
-                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
                   <button
                     type="button"
                     title="إنقاص 50"
                     onClick={() => setDefaultRate((prev) => Math.max(1, prev - 50))}
-                    className="px-2 py-0.5 text-[11px] font-mono font-bold rounded bg-sf-raised text-sf-text hover:text-sf-text border border-sf-border"
+                    className="px-2 py-1 text-xs font-mono font-semibold rounded bg-sf-raised text-sf-text hover:text-sf-text border border-sf-border"
                   >
                     -50
                   </button>
@@ -912,7 +913,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                     type="button"
                     title="زيادة 50"
                     onClick={() => setDefaultRate((prev) => prev + 50)}
-                    className="px-2 py-0.5 text-[11px] font-mono font-bold rounded bg-sf-raised text-sf-text hover:text-sf-text border border-sf-border"
+                    className="px-2 py-1 text-xs font-mono font-semibold rounded bg-sf-raised text-sf-text hover:text-sf-text border border-sf-border"
                   >
                     +50
                   </button>
@@ -922,9 +923,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                       type="button"
                       title={`تعبئة سريعة للقيمة ${preset}`}
                       onClick={() => setDefaultRate(preset)}
-                      className={`px-2 py-0.5 text-[10px] font-mono rounded border transition-colors ${
+                      className={`px-2 py-1 text-xs font-mono rounded border transition-colors ${
                         defaultRate === preset
-                          ? 'bg-sf-action text-sf-on-action border-sf-action font-black'
+                          ? 'bg-sf-action text-sf-on-action border-sf-action font-semibold'
                           : 'bg-sf-raised text-sf-muted border-sf-border hover:text-sf-text'
                       }`}
                     >
@@ -933,7 +934,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   ))}
                 </div>
 
-                <p className="text-[10px] text-sf-muted mt-1.5">
+                <p className="text-xs text-sf-muted mt-2">
                   سعر الصرف في كل فاتورة يُجمّد تلقائيًا وقت إصدارها لحماية حساباتك
                 </p>
               </div>
@@ -949,7 +950,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   <option value="ceil" className="bg-sf-raised">للأعلى (سقف)</option>
                   <option value="floor" className="bg-sf-raised">للأدنى (أرضية)</option>
                 </select>
-                <p className="text-[10px] text-sf-muted mt-1.5">
+                <p className="text-xs text-sf-muted mt-2">
                   العملة الأساسية تُقرّب حسب منازلها المقررة، والعملة الثانوية لخانتين عشريتين
                 </p>
               </div>
@@ -958,7 +959,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
           {/* Section 4: Invoices Customization */}
           <div className="space-y-3">
-            <h3 className="font-bold text-xs text-sf-text">تخصيص الفواتير</h3>
+            <h3 className="font-semibold text-xs text-sf-text">تخصيص الفواتير</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-sf-text mb-1 text-xs">
@@ -969,7 +970,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   value={invoicePrefix}
                   onChange={(e) => setInvoicePrefix(e.target.value)}
                   placeholder="مثال: INV-2026-"
-                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action font-mono"
+                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action font-mono"
                 />
               </div>
 
@@ -981,7 +982,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   type="text"
                   value={defaultNotes}
                   onChange={(e) => setDefaultNotes(e.target.value)}
-                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
             </div>
@@ -989,18 +990,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
           {/* Section 5: Data Backup & Demo Data */}
           <div className="pt-3 border-t border-sf-border space-y-3">
-            <h3 className="font-bold text-xs text-sf-text">النسخ الاحتياطي وإدارة البيانات</h3>
+            <h3 className="font-semibold text-xs text-sf-text">النسخ الاحتياطي وإدارة البيانات</h3>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={handleExportBackup}
-                className="px-3 py-2 bg-sf-raised hover:bg-sf-raised text-sf-text rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-sf-border shadow-2xs transition-colors"
+                className="px-3 py-2 bg-sf-raised hover:bg-sf-raised text-sf-text rounded-lg text-xs font-semibold flex items-center gap-2 border border-sf-border shadow-2xs transition-colors"
               >
                 <Download className="w-3.5 h-3.5 text-sf-action" />
                 <span>تصدير نسخة احتياطية (JSON)</span>
               </button>
 
-              <label className="px-3 py-2 bg-sf-raised hover:bg-sf-raised text-sf-text rounded-lg text-xs font-semibold flex items-center gap-1.5 border border-sf-border shadow-2xs cursor-pointer transition-colors">
+              <label className="px-3 py-2 bg-sf-raised hover:bg-sf-raised text-sf-text rounded-lg text-xs font-semibold flex items-center gap-2 border border-sf-border shadow-2xs cursor-pointer transition-colors">
                 <Upload className="w-3.5 h-3.5 text-sf-action" />
                 <span>استيراد نسخة احتياطية</span>
                 <input
@@ -1038,7 +1039,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             <button
               type="button"
               onClick={() => handleSave()}
-              className="px-6 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-lg text-xs font-bold shadow-lg shadow-sf-action/20 flex items-center gap-1.5 transition-colors active:scale-95"
+              className="px-6 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-lg text-xs font-semibold shadow-lg shadow-sf-action/20 flex items-center gap-2 transition-colors "
             >
               <CheckCircle2 className="w-4 h-4 text-sf-on-action" />
               <span>حفظ كافة الإعدادات</span>
@@ -1046,6 +1047,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           </div>
         </div>
       </div>
-    </div>
+    </Dialog>
   );
 };

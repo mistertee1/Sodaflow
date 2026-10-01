@@ -25,6 +25,7 @@ import {
   validateExchangeRate,
 } from '../lib/currency';
 import { getPlanConfig, isUnlimited } from '../lib/plans';
+import { Dialog } from './Dialog';
 
 interface InvoiceFormModalProps {
   isOpen: boolean;
@@ -338,14 +339,14 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
-      <div className="bg-sf-surface rounded-2xl shadow-2xl border border-sf-border max-w-4xl w-full my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 text-sf-text">
+    <Dialog label="إنشاء فاتورة جديدة" onClose={() => { if (!isSubmitting) onClose(); }} className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+      <div className="bg-sf-surface rounded-xl shadow-2xl border border-sf-border max-w-4xl w-full my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 text-sf-text">
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-sf-border flex items-center justify-between bg-sf-raised rounded-t-2xl">
+        <div className="p-4 sm:p-6 border-b border-sf-border flex items-center justify-between bg-sf-raised rounded-t-2xl">
           <div>
-            <h2 className="text-base sm:text-lg font-bold text-sf-text flex items-center gap-2">
+            <h2 className="text-base sm:text-lg font-semibold text-sf-text flex items-center gap-2">
               <span>إنشاء فاتورة جديدة</span>
-              <span className="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-sf-action/10 text-sf-action border border-sf-action/20">
+              <span className="font-mono text-xs font-semibold px-2 py-1 rounded bg-sf-action/10 text-sf-text border border-sf-action/20">
                 {invoiceNumber}
               </span>
             </h2>
@@ -353,9 +354,9 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
               دعم العرض المزدوج (جنيه سوداني + دولار) وتجميد سعر الصرف
             </p>
           </div>
-          <button
+          <button disabled={isSubmitting} aria-label="إغلاق النافذة"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-sf-muted hover:text-sf-text hover:bg-sf-raised transition-colors"
+            className="p-2 rounded-lg text-sf-muted hover:text-sf-text hover:bg-sf-raised transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -373,7 +374,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
           )}
 
           {errorMessage && (
-            <div className="p-3 bg-sf-danger-bg/40 border border-sf-danger/60 rounded-xl text-sf-danger text-xs flex items-center gap-2">
+            <div role="alert" className="p-3 bg-sf-danger-bg/40 border border-sf-danger/60 rounded-xl text-sf-danger text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-sf-danger shrink-0" />
               <span>{errorMessage}</span>
             </div>
@@ -388,7 +389,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowAddCustomerModal(true)}
-                  className="text-[11px] text-sf-action hover:text-sf-action font-semibold flex items-center gap-0.5 transition-colors"
+                  className="text-xs text-sf-action hover:text-sf-action font-semibold flex items-center gap-1 transition-colors"
                 >
                   <UserPlus className="w-3 h-3" />
                   + عميل جديد
@@ -409,7 +410,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 ))}
               </select>
               {selectedCustomer && (
-                <div className="text-[11px] text-sf-muted mt-1">
+                <div className="text-xs text-sf-muted mt-1">
                   الرصيد السابق: {formatMoney(selectedCustomer.balance_sdg, 'SDG', settings)} (
                   {formatMoney(selectedCustomer.balance_usd, 'USD', settings)})
                 </div>
@@ -447,11 +448,11 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 <div className="p-1 rounded bg-sf-action/10 text-sf-action border border-sf-action/20">
                   <Lock className="w-3.5 h-3.5" />
                 </div>
-                <span className="font-bold text-xs sm:text-sm text-sf-text">
+                <span className="font-semibold text-xs sm:text-sm text-sf-text">
                   إعدادات العملتين وتجميد سعر الصرف للفاتورة
                 </span>
               </div>
-              <span className="text-[11px] text-sf-muted">
+              <span className="text-xs text-sf-muted">
                 سعر الصرف يُحفظ ثابتًا مع هذه الفاتورة
               </span>
             </div>
@@ -466,9 +467,9 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setCurrencyMode('dual')}
-                    className={`py-1.5 px-2 text-xs font-semibold rounded-md transition-all ${
+                    className={`py-2 px-2 text-xs font-semibold rounded-md transition-all ${
                       currencyMode === 'dual'
-                        ? 'bg-sf-action text-sf-on-action font-bold shadow-xs'
+                        ? 'bg-sf-action text-sf-on-action font-semibold shadow-xs'
                         : 'text-sf-muted hover:text-sf-text'
                     }`}
                   >
@@ -477,9 +478,9 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setCurrencyMode('single_sdg')}
-                    className={`py-1.5 px-2 text-xs font-semibold rounded-md transition-all ${
+                    className={`py-2 px-2 text-xs font-semibold rounded-md transition-all ${
                       currencyMode === 'single_sdg'
-                        ? 'bg-sf-action text-sf-on-action font-bold shadow-xs'
+                        ? 'bg-sf-action text-sf-on-action font-semibold shadow-xs'
                         : 'text-sf-muted hover:text-sf-text'
                     }`}
                   >
@@ -488,9 +489,9 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setCurrencyMode('single_usd')}
-                    className={`py-1.5 px-2 text-xs font-semibold rounded-md transition-all ${
+                    className={`py-2 px-2 text-xs font-semibold rounded-md transition-all ${
                       currencyMode === 'single_usd'
-                        ? 'bg-sf-action text-sf-on-action font-bold shadow-xs'
+                        ? 'bg-sf-action text-sf-on-action font-semibold shadow-xs'
                         : 'text-sf-muted hover:text-sf-text'
                     }`}
                   >
@@ -512,7 +513,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                     value={exchangeRate}
                     onChange={(e) => setExchangeRate(Number(e.target.value))}
                     required
-                    className="w-full bg-sf-raised border border-sf-action/40 rounded-lg px-3 py-2 text-xs font-bold font-mono text-sf-action focus:outline-none focus:border-sf-action"
+                    className="w-full bg-sf-raised border border-sf-action/40 rounded-lg px-3 py-2 text-xs font-semibold font-mono text-sf-text focus:outline-none focus:border-sf-action"
                   />
                   <span className="absolute left-3 top-2 text-xs text-sf-muted font-sans">
                     ج.س / $
@@ -525,11 +526,11 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
           {/* Section 3: Invoice Items */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs sm:text-sm text-sf-text">بنود الفاتورة</h3>
+              <h3 className="font-semibold text-xs sm:text-sm text-sf-text">بنود الفاتورة</h3>
               <button
                 type="button"
                 onClick={handleAddNewItem}
-                className="text-xs font-semibold text-sf-text hover:bg-sf-raised bg-sf-raised px-2.5 py-1 rounded-lg border border-sf-border shadow-2xs flex items-center gap-1 transition-colors"
+                className="text-xs font-semibold text-sf-text hover:bg-sf-raised bg-sf-raised px-3 py-1 rounded-lg border border-sf-border shadow-2xs flex items-center gap-1 transition-colors"
               >
                 <Plus className="w-3.5 h-3.5 text-sf-action" />
                 + إضافة بند جديد
@@ -546,7 +547,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                     {/* Item Description or Product Picker */}
                     <div className="sm:col-span-4">
                       <div className="flex items-center justify-between mb-1">
-                        <label className="font-semibold text-sf-text text-[11px]">
+                        <label className="font-semibold text-sf-text text-xs">
                           البند #{index + 1}
                         </label>
                         {products.length > 0 && (
@@ -554,7 +555,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                             aria-label={`منتج البند ${index + 1}`}
                             onChange={(e) => handleSelectProduct(index, e.target.value)}
                             value=""
-                            className="text-[10px] text-sf-action bg-sf-selected/40 border border-sf-action/50 rounded px-1.5 py-0.5"
+                            className="text-xs text-sf-action bg-sf-selected/40 border border-sf-action/50 rounded px-2 py-1"
                           >
                             <option value="" className="bg-sf-raised">اختر من المنتجات...</option>
                             {products.map((p) => (
@@ -571,7 +572,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                         value={item.description}
                         onChange={(e) => updateItem(index, 'description', e.target.value)}
                         required
-                        className="w-full bg-sf-raised border border-sf-border rounded-lg px-2.5 py-1.5 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                        className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                       />
                       {item.product_id && (() => {
                         const prod = products.find((p) => p.id === item.product_id);
@@ -579,12 +580,12 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                         const currentStock = prod.stock_quantity ?? 0;
                         const isOver = (Number(item.quantity) || 0) > currentStock;
                         return (
-                          <div className="flex items-center justify-between text-[10px] mt-1">
-                            <span className={isOver ? 'text-sf-danger font-bold' : 'text-sf-action font-medium'}>
+                          <div className="flex items-center justify-between text-xs mt-1">
+                            <span className={isOver ? 'text-sf-danger font-semibold' : 'text-sf-action font-medium'}>
                               المتبقي بالمخزن: {currentStock} {prod.unit}
                             </span>
                             {isOver && (
-                              <span className="text-sf-danger font-bold bg-sf-danger-bg/40 px-1 py-0.2 rounded border border-sf-danger/60">
+                              <span className="text-sf-danger font-semibold bg-sf-danger-bg/40 px-1 py-1 rounded border border-sf-danger/60">
                                 تنبيه: تتجاوز المخزون
                               </span>
                             )}
@@ -595,7 +596,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
 
                     {/* Quantity */}
                     <div className="sm:col-span-2">
-                      <label className="block font-semibold text-sf-text text-[11px] mb-1">
+                      <label className="block font-semibold text-sf-text text-xs mb-1">
                         الكمية والوحدة
                       </label>
                       <div className="flex items-center gap-1">
@@ -608,21 +609,21 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                           aria-label={`كمية البند ${index + 1}`}
                           onChange={(e) => updateItem(index, 'quantity', e.target.value)}
                           required
-                          className="w-16 bg-sf-raised border border-sf-border rounded-lg px-2 py-1.5 text-xs text-sf-text text-center font-mono focus:outline-none focus:border-sf-action"
+                          className="w-16 bg-sf-raised border border-sf-border rounded-lg px-2 py-2 text-xs text-sf-text text-center font-mono focus:outline-none focus:border-sf-action"
                         />
                         <input
                           type="text"
                           placeholder="قطعة/جوال"
                           value={item.unit}
                           onChange={(e) => updateItem(index, 'unit', e.target.value)}
-                          className="w-20 bg-sf-raised border border-sf-border rounded-lg px-2 py-1.5 text-[11px] text-sf-text text-center focus:outline-none focus:border-sf-action"
+                          className="w-20 bg-sf-raised border border-sf-border rounded-lg px-2 py-2 text-xs text-sf-text text-center focus:outline-none focus:border-sf-action"
                         />
                       </div>
                     </div>
 
                     {/* Unit Price & Currency */}
                     <div className="sm:col-span-3">
-                      <label className="block font-semibold text-sf-text text-[11px] mb-1">
+                      <label className="block font-semibold text-sf-text text-xs mb-1">
                         سعر الوحدة والعملة
                       </label>
                       <div className="flex items-center gap-1">
@@ -635,13 +636,13 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                           aria-label={`سعر البند ${index + 1}`}
                           onChange={(e) => updateItem(index, 'unit_price', e.target.value)}
                           required
-                          className="flex-1 bg-sf-raised border border-sf-border rounded-lg px-2.5 py-1.5 text-xs text-sf-text font-mono focus:outline-none focus:border-sf-action"
+                          className="flex-1 bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text font-mono focus:outline-none focus:border-sf-action"
                         />
                         <select
                           aria-label={`عملة البند ${index + 1}`}
                           value={item.currency}
                           onChange={(e) => updateItem(index, 'currency', e.target.value as Currency)}
-                          className="w-16 bg-sf-raised border border-sf-border rounded-lg px-1 py-1.5 text-[11px] font-bold text-sf-action focus:outline-none focus:border-sf-action"
+                          className="w-16 bg-sf-raised border border-sf-border rounded-lg px-1 py-2 text-xs font-semibold text-sf-action focus:outline-none focus:border-sf-action"
                         >
                           <option value="SDG" className="bg-sf-raised">ج.س</option>
                           <option value="USD" className="bg-sf-raised">$</option>
@@ -652,15 +653,15 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                     {/* Line Total & Remove */}
                     <div className="sm:col-span-3 flex items-center justify-between sm:justify-end gap-3 pt-1 sm:pt-0">
                       <div className="text-left">
-                        <span className="text-[10px] text-sf-muted block">الإجمالي للبند:</span>
-                        <span className="font-mono font-bold text-xs text-sf-text">
+                        <span className="text-xs text-sf-muted block">الإجمالي للبند:</span>
+                        <span className="font-mono font-semibold text-xs text-sf-text">
                           {formatMoney(item.line_total, item.currency, settings)}
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleRemoveItem(index)}
-                        className="p-1.5 text-sf-muted hover:text-sf-danger rounded-md transition-colors"
+                        className="p-2 text-sf-muted hover:text-sf-danger rounded-md transition-colors"
                         title="حذف البند"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -685,7 +686,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="ملاحظات تظهر في أسفل الفاتورة..."
-                  className="w-full bg-sf-raised border border-sf-border rounded-lg p-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-lg p-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
               <div>
@@ -697,16 +698,16 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   value={paymentInstructions}
                   onChange={(e) => setPaymentInstructions(e.target.value)}
                   placeholder="مثال: حساب بنك الخرطوم (بنكك): 1234567 باسم محمد علي"
-                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-2.5 py-1.5 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action font-mono"
+                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action font-mono"
                 />
               </div>
             </div>
 
             {/* Calculations Box (Dual Display) */}
-            <div className="sm:col-span-5 bg-sf-raised border border-sf-border rounded-xl p-3.5 space-y-2.5 shadow-2xs">
+            <div className="sm:col-span-5 bg-sf-raised border border-sf-border rounded-xl p-4 space-y-3 shadow-2xs">
               <div className="flex items-center justify-between text-xs text-sf-text">
                 <span>المجموع الفرعي:</span>
-                <span className="font-mono font-bold text-sf-text">
+                <span className="font-mono font-semibold text-sf-text">
                   {formatMoney(subtotalSdg, 'SDG', settings)}
                 </span>
               </div>
@@ -720,12 +721,12 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                     min="0"
                     value={discountValue}
                     onChange={(e) => setDiscountValue(Number(e.target.value))}
-                    className="w-20 bg-sf-raised border border-sf-border rounded px-1.5 py-0.5 text-xs font-mono text-center text-sf-text focus:outline-none focus:border-sf-action"
+                    className="w-20 bg-sf-raised border border-sf-border rounded px-2 py-1 text-xs font-mono text-center text-sf-text focus:outline-none focus:border-sf-action"
                   />
                   <select
                     value={discountType}
                     onChange={(e) => setDiscountType(e.target.value as any)}
-                    className="bg-sf-raised border border-sf-border rounded px-1 py-0.5 text-[11px] text-sf-text focus:outline-none focus:border-sf-action"
+                    className="bg-sf-raised border border-sf-border rounded px-1 py-1 text-xs text-sf-text focus:outline-none focus:border-sf-action"
                   >
                     <option value="fixed" className="bg-sf-raised">ج.س</option>
                     <option value="percent" className="bg-sf-raised">%</option>
@@ -752,14 +753,14 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
               )}
 
               <div className="pt-2 border-t border-sf-border">
-                <div className="text-[11px] font-semibold text-sf-text mb-1">
+                <div className="text-xs font-semibold text-sf-text mb-1">
                   الإجمالي النهائي (عرض مزدوج):
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="font-mono font-black text-base text-sf-text">
+                  <span className="font-mono font-semibold text-base text-sf-text">
                     {formatMoney(grandTotalSdg, 'SDG', settings)}
                   </span>
-                  <span className="font-mono font-bold text-sm text-sf-action bg-sf-action/10 px-2 py-0.5 rounded border border-sf-action/20">
+                  <span className="font-mono font-semibold text-sm text-sf-text bg-sf-action/10 px-2 py-1 rounded border border-sf-action/20">
                     {formatMoney(grandTotalUsd, 'USD', settings)}
                   </span>
                 </div>
@@ -769,7 +770,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
 
           {/* Buttons Footer */}
           <div className="flex items-center justify-end gap-3 pt-2 border-t border-sf-border">
-            <button
+            <button disabled={isSubmitting}
               type="button"
               onClick={onClose}
               className="px-4 py-2 text-xs font-semibold text-sf-text hover:bg-sf-raised rounded-lg border border-sf-border bg-sf-raised transition-colors"
@@ -779,12 +780,12 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting || isInvoiceLimitReached}
-              className={`px-6 py-2 text-xs font-bold rounded-lg shadow-lg transition-all flex items-center gap-1.5 ${
+              className={`px-6 py-2 text-xs font-semibold rounded-lg shadow-lg transition-all flex items-center gap-2 ${
                 isInvoiceLimitReached
                   ? 'bg-sf-raised text-sf-muted cursor-not-allowed border border-sf-border'
                   : isSubmitting
                   ? 'bg-sf-action/50 text-sf-text cursor-not-allowed opacity-75'
-                  : 'text-sf-on-action bg-sf-action hover:bg-sf-action-hover active:scale-95 shadow-sf-action/20'
+                  : 'text-sf-on-action bg-sf-action hover:bg-sf-action-hover  shadow-sf-action/20'
               }`}
             >
               {isSubmitting ? (
@@ -810,11 +811,11 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
 
       {/* Quick Add Customer Sub-Modal */}
       {showAddCustomerModal && (
-        <div className="fixed inset-0 z-60 bg-sf-canvas/80 flex items-center justify-center p-4">
+        <Dialog label="إضافة عميل سريع" onClose={() => setShowAddCustomerModal(false)} className="fixed inset-0 z-60 bg-sf-canvas/80 flex items-center justify-center p-4">
           <div className="bg-sf-surface rounded-xl shadow-xl border border-sf-border max-w-sm w-full p-4 space-y-3 text-sf-text">
             <div className="flex items-center justify-between border-b border-sf-border pb-2">
-              <h4 className="font-bold text-sm text-sf-text">إضافة عميل سريع</h4>
-              <button
+              <h4 className="font-semibold text-sm text-sf-text">إضافة عميل سريع</h4>
+              <button aria-label="إغلاق النافذة"
                 type="button"
                 onClick={() => setShowAddCustomerModal(false)}
                 className="text-sf-muted hover:text-sf-text"
@@ -831,7 +832,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   value={newCustName}
                   onChange={(e) => setNewCustName(e.target.value)}
                   placeholder="مثال: محلات النصر (علي أحمد)"
-                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-2.5 py-1.5 text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
               <div>
@@ -841,7 +842,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   value={newCustPhone}
                   onChange={(e) => setNewCustPhone(e.target.value)}
                   placeholder="0912345678"
-                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-2.5 py-1.5 text-sf-text placeholder-slate-500 font-mono focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-sf-text placeholder-sf-muted font-mono focus:outline-none focus:border-sf-action"
                 />
               </div>
               <div>
@@ -851,28 +852,28 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   value={newCustAddress}
                   onChange={(e) => setNewCustAddress(e.target.value)}
                   placeholder="الخرطوم / بحري / أم درمان..."
-                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-2.5 py-1.5 text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
+                  className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2 border-t border-sf-border">
                 <button
                   type="button"
                   onClick={() => setShowAddCustomerModal(false)}
-                  className="px-3 py-1.5 border border-sf-border text-sf-text hover:bg-sf-raised rounded-lg bg-sf-raised"
+                  className="px-3 py-2 border border-sf-border text-sf-text hover:bg-sf-raised rounded-lg bg-sf-raised"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-bold rounded-lg shadow-lg shadow-sf-action/20"
+                  className="px-4 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold rounded-lg shadow-lg shadow-sf-action/20"
                 >
                   حفظ العميل
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </Dialog>
       )}
-    </div>
+    </Dialog>
   );
 };

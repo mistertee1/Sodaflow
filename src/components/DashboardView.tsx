@@ -1,3 +1,4 @@
+import { InvoiceStatus } from './InvoiceStatus';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import {
@@ -92,13 +93,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
 
-  const thisMonthInvoices = invoices.filter((inv) => {
+  const issuedInvoices = invoices.filter(inv => !['cancelled', 'void', 'draft'].includes(inv.status));
+  const thisMonthInvoices = issuedInvoices.filter((inv) => {
     if (!inv.issue_date) return false;
     const invDate = new Date(inv.issue_date);
     return (
       invDate.getFullYear() === currentYear &&
-      invDate.getMonth() === currentMonth &&
-      inv.status !== 'cancelled'
+      invDate.getMonth() === currentMonth
     );
   });
 
@@ -110,13 +111,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const totalReceivablesUsd = customers.reduce((acc, c) => safeAdd(acc, c.balance_usd || 0, 2), 0);
 
   // Unpaid invoices count
-  const unpaidInvoices = invoices.filter(
-    (inv) => inv.status !== 'paid' && inv.status !== 'cancelled'
-  );
+  const unpaidInvoices = issuedInvoices.filter(inv => inv.status !== 'paid' && inv.remaining_sdg > 0);
 
   // OVERDUE INVOICES (Due date passed and status is not paid)
   const todayStr = new Date().toISOString().split('T')[0];
-  const overdueInvoices = invoices.filter((inv) => {
+  const overdueInvoices = issuedInvoices.filter((inv) => {
     if (!inv.due_date || inv.status === 'paid' || inv.status === 'cancelled') return false;
     return inv.due_date < todayStr;
   });
@@ -194,14 +193,14 @@ ${settings.business_name}`;
   return (
     <div className="space-y-6 pb-12">
       {/* Welcome Banner / Overview */}
-      <div className="bg-sf-surface text-sf-text rounded-2xl p-5 sm:p-7 border border-sf-border relative overflow-hidden">
+      <div className="bg-sf-surface text-sf-text rounded-xl p-6 sm:p-8 border border-sf-border relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-sf-action/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sf-selected/70 text-sf-action text-xs font-semibold mb-3 border border-sf-action/50">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sf-selected/70 text-sf-action text-xs font-semibold mb-3 border border-sf-action/50">
             <Sparkles className="w-3.5 h-3.5" />
             <span>نظام الفوترة المزدوجة + إدارة المخزون والجرد</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold mb-2 text-sf-text">
+          <h2 className="text-xl sm:text-2xl font-semibold mb-2 text-sf-text">
             {settings.business_name ? `مرحبًا بك في لوحة تحكم ${settings.business_name}` : 'مرحبًا بك في لوحة تحكم حسابك'}
           </h2>
           <p className="text-xs sm:text-sm text-sf-muted leading-relaxed">
@@ -211,31 +210,31 @@ ${settings.business_name}`;
       </div>
 
       {/* Manual Exchange Rate Control Widget (Requirement: تعديل سعر الصرف يدوياً) */}
-      <div className="bg-sf-surface border border-sf-border rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+      <div className="bg-sf-surface border border-sf-border rounded-xl p-4 sm:p-6 shadow-sm space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-sf-border pb-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sf-action/10 border border-sf-action/30 flex items-center justify-center text-sf-action shrink-0 font-mono font-black text-base">
+            <div className="w-10 h-10 rounded-xl bg-sf-action/10 border border-sf-action/30 flex items-center justify-center text-sf-text shrink-0 font-mono font-semibold text-base">
               $
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-sm text-sf-text">تعديل سعر الصرف المعتمد يدويًا</h3>
-                <span className="font-mono font-black text-xs px-2.5 py-0.5 rounded-full bg-sf-selected/90 text-sf-action border border-sf-action/60">
+                <h3 className="font-semibold text-sm text-sf-text">تعديل سعر الصرف المعتمد يدويًا</h3>
+                <span className="font-mono font-semibold text-xs px-3 py-1 rounded-full bg-sf-selected/90 text-sf-text border border-sf-action/60">
                   1 $ = {settings.default_exchange_rate.toLocaleString()} ج.س
                 </span>
               </div>
-              <p className="text-xs text-sf-muted mt-0.5">
+              <p className="text-xs text-sf-muted mt-1">
                 يمكنك كتابة السعر يدوياً في أي وقت، وسيتم اعتماده للفواتير الجديدة والحسابات فوراً دون المساس بالفواتير السابقة.
               </p>
             </div>
           </div>
 
           {/* Quick Step Buttons */}
-          <div className="flex items-center gap-1.5 self-start sm:self-auto">
+          <div className="flex items-center gap-2 self-start sm:self-auto">
             <button
               onClick={() => handleApplyNewRate(settings.default_exchange_rate - 50)}
               disabled={isRateUpdating}
-              className="px-2.5 py-1 text-xs font-mono font-bold rounded-lg bg-sf-raised text-sf-text hover:text-sf-text hover:bg-sf-raised border border-sf-border transition-colors"
+              className="px-3 py-1 text-xs font-mono font-semibold rounded-lg bg-sf-raised text-sf-text hover:text-sf-text hover:bg-sf-raised border border-sf-border transition-colors"
               title="إنقاص 50 جنيه"
             >
               -50
@@ -243,7 +242,7 @@ ${settings.business_name}`;
             <button
               onClick={() => handleApplyNewRate(settings.default_exchange_rate + 50)}
               disabled={isRateUpdating}
-              className="px-2.5 py-1 text-xs font-mono font-bold rounded-lg bg-sf-raised text-sf-text hover:text-sf-text hover:bg-sf-raised border border-sf-border transition-colors"
+              className="px-3 py-1 text-xs font-mono font-semibold rounded-lg bg-sf-raised text-sf-text hover:text-sf-text hover:bg-sf-raised border border-sf-border transition-colors"
               title="زيادة 50 جنيه"
             >
               +50
@@ -269,7 +268,7 @@ ${settings.business_name}`;
                 value={rateInput}
                 onChange={(e) => setRateInput(e.target.value)}
                 placeholder="أدخل السعر يدويًا..."
-                className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-sm font-bold font-mono text-sf-action focus:outline-none focus:border-sf-action shadow-inner"
+                className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-sm font-semibold font-mono text-sf-text focus:outline-none focus:border-sf-action shadow-inner"
               />
               <span className="absolute left-3 top-2.5 text-xs text-sf-muted font-sans">
                 ج.س / $
@@ -279,21 +278,21 @@ ${settings.business_name}`;
             <button
               type="submit"
               disabled={isRateUpdating || Number(rateInput) === settings.default_exchange_rate}
-              className="px-4 py-2 bg-sf-action hover:bg-sf-action-hover disabled:opacity-50 text-sf-on-action font-black text-xs rounded-xl shadow-lg shadow-sf-action/20 transition-all active:scale-95 shrink-0"
+              className="px-4 py-2 bg-sf-action hover:bg-sf-action-hover disabled:opacity-50 text-sf-on-action font-semibold text-xs rounded-xl shadow-lg shadow-sf-action/20 transition-all  shrink-0"
             >
               {isRateUpdating ? 'جارٍ الحفظ...' : 'تثبيت السعر'}
             </button>
           </form>
 
           {/* Quick Preset Buttons */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] text-sf-muted font-medium">خيارات سريعة:</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-sf-muted font-medium">خيارات سريعة:</span>
             {[2600, 2700, 2750, 2800, 2850, 2900, 3000].map((rate) => (
               <button
                 key={rate}
                 onClick={() => handleApplyNewRate(rate)}
                 disabled={isRateUpdating}
-                className={`px-2.5 py-1 text-xs font-mono font-bold rounded-lg border transition-all ${
+                className={`px-3 py-1 text-xs font-mono font-semibold rounded-lg border transition-all ${
                   settings.default_exchange_rate === rate
                     ? 'bg-sf-action text-sf-on-action border-sf-action shadow-sm shadow-sf-action/20'
                     : 'bg-sf-raised text-sf-text border-sf-border hover:border-sf-border'
@@ -315,18 +314,18 @@ ${settings.business_name}`;
       </div>
 
       {/* OVERDUE INVOICES ALERT CARD (Requirement: إظهار الفواتير المتأخرة وزر واتساب) */}
-      <div className="bg-sf-surface border border-sf-danger/40 rounded-2xl overflow-hidden shadow-lg">
-        <div className="p-4 sm:p-5 bg-sf-danger-bg border-b border-sf-danger/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-sf-surface border border-sf-danger/40 rounded-xl overflow-hidden shadow-lg">
+        <div className="p-4 sm:p-6 bg-sf-danger-bg border-b border-sf-danger/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-sf-danger-bg/10 border border-sf-danger/30 flex items-center justify-center text-sf-danger shrink-0">
               <AlertOctagon className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm sm:text-base font-bold text-sf-text">
+                <h3 className="text-sm sm:text-base font-semibold text-sf-text">
                   الفواتير المتأخرة عن موعد السداد
                 </h3>
-                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-sf-danger-bg text-sf-danger border border-sf-danger/60 font-mono">
+                <span className="text-xs font-semibold px-2 py-1 rounded-full bg-sf-danger-bg text-sf-danger border border-sf-danger/60 font-mono">
                   {overdueInvoices.length} فواتير
                 </span>
               </div>
@@ -338,11 +337,11 @@ ${settings.business_name}`;
 
           <div className="flex items-center gap-2 text-xs font-mono">
             <span className="text-sf-muted">إجمالي المتأخرات:</span>
-            <span className="text-sf-danger font-bold">
+            <span className="text-sf-danger font-semibold">
               {formatMoney(totalOverdueSdg, 'SDG', settings)}
             </span>
             <span className="text-sf-muted">|</span>
-            <span className="text-sf-text font-bold">
+            <span className="text-sf-text font-semibold">
               {formatMoney(totalOverdueUsd, 'USD', settings)}
             </span>
           </div>
@@ -371,20 +370,20 @@ ${settings.business_name}`;
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono font-bold text-xs text-sf-text bg-sf-raised border border-sf-border px-2 py-0.5 rounded">
+                      <span className="font-mono font-semibold text-xs text-sf-text bg-sf-raised border border-sf-border px-2 py-1 rounded">
                         {inv.invoice_number}
                       </span>
-                      <span className="text-[11px] font-bold text-sf-danger bg-sf-danger-bg/70 border border-sf-danger/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="text-xs font-semibold text-sf-danger bg-sf-danger-bg/70 border border-sf-danger/40 px-2 py-1 rounded-full flex items-center gap-1">
                         <Clock className="w-3 h-3" />
                         متأخرة منذ {daysOverdue} يوم
                       </span>
-                      <span className="text-[11px] text-sf-muted flex items-center gap-1">
+                      <span className="text-xs text-sf-muted flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
                         الاستحقاق: {inv.due_date}
                       </span>
                     </div>
 
-                    <div className="font-bold text-sm text-sf-text flex items-center gap-2">
+                    <div className="font-semibold text-sm text-sf-text flex items-center gap-2">
                       <span>{inv.customer_name}</span>
                       {inv.customer_phone && (
                         <span className="text-xs text-sf-muted font-mono" dir="ltr">
@@ -396,8 +395,8 @@ ${settings.business_name}`;
 
                   <div className="flex items-center justify-between md:justify-end gap-4">
                     <div className="text-left">
-                      <div className="text-[11px] text-sf-muted">المبلغ المتبقي:</div>
-                      <div className="font-mono font-bold text-sm text-sf-danger">
+                      <div className="text-xs text-sf-muted">المبلغ المتبقي:</div>
+                      <div className="font-mono font-semibold text-sm text-sf-danger">
                         {formatMoney(inv.remaining_sdg, 'SDG', settings)}
                       </div>
                       <div className="font-mono text-xs text-sf-text">
@@ -409,7 +408,7 @@ ${settings.business_name}`;
                       {/* Quick WhatsApp Reminder Button */}
                       <button
                         onClick={() => sendWhatsAppReminder(inv)}
-                        className="px-3.5 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-black text-xs rounded-xl shadow-lg shadow-sf-action/20 flex items-center gap-1.5 transition-all active:scale-95"
+                        className="px-4 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold text-xs rounded-xl shadow-lg shadow-sf-action/20 flex items-center gap-2 transition-all "
                         title="إرسال تذكير عبر واتساب مع رابط الفاتورة وحساب بنكك"
                       >
                         <MessageCircle className="w-4 h-4 fill-slate-950" />
@@ -419,7 +418,7 @@ ${settings.business_name}`;
                       {onOpenRecordPayment && (
                         <button
                           onClick={() => onOpenRecordPayment(inv)}
-                          className="px-3 py-2 bg-sf-raised hover:bg-sf-raised text-sf-text font-bold text-xs rounded-xl border border-sf-border transition-colors"
+                          className="px-3 py-2 bg-sf-raised hover:bg-sf-raised text-sf-text font-semibold text-xs rounded-xl border border-sf-border transition-colors"
                         >
                           سداد
                         </button>
@@ -444,7 +443,7 @@ ${settings.business_name}`;
       {/* Primary KPI Cards (Dual Currency) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Sales This Month Card */}
-        <div className="bg-sf-surface rounded-2xl border border-sf-border p-5 shadow-sm flex flex-col justify-between hover:border-sf-action/40 transition-colors">
+        <div className="bg-sf-surface rounded-xl border border-sf-border p-6 shadow-sm flex flex-col justify-between hover:border-sf-action/40 transition-colors">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-sf-muted">إجمالي مبيعات الشهر الحالي</span>
             <div className="p-2 rounded-xl bg-sf-action/10 text-sf-action border border-sf-action/20">
@@ -452,10 +451,10 @@ ${settings.business_name}`;
             </div>
           </div>
           <div>
-            <div className="text-2xl font-black text-sf-text font-mono tracking-tight">
+            <div className="text-2xl font-semibold text-sf-text font-mono tracking-tight">
               {formatMoney(totalSalesSdg, 'SDG', settings)}
             </div>
-            <div className="text-sm font-semibold text-sf-action mt-1 font-mono flex items-center gap-1">
+            <div className="text-sm font-semibold text-sf-text mt-1 font-mono flex items-center gap-1">
               <span>ما يعادل:</span>
               <span>{formatMoney(totalSalesUsd, 'USD', settings)}</span>
             </div>
@@ -472,7 +471,7 @@ ${settings.business_name}`;
         </div>
 
         {/* Outstanding Balances Card */}
-        <div className="bg-sf-surface rounded-2xl border border-sf-border p-5 shadow-sm flex flex-col justify-between hover:border-sf-warning/40 transition-colors">
+        <div className="bg-sf-surface rounded-xl border border-sf-border p-6 shadow-sm flex flex-col justify-between hover:border-sf-warning/40 transition-colors">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-sf-muted">إجمالي الديون المستحقة على العملاء</span>
             <div className="p-2 rounded-xl bg-sf-warning-bg/10 text-sf-warning border border-sf-warning/20">
@@ -480,12 +479,12 @@ ${settings.business_name}`;
             </div>
           </div>
           <div>
-            <div className="text-2xl font-black text-sf-warning font-mono tracking-tight">
+            <div className="text-2xl font-semibold text-sf-warning font-mono tracking-tight">
               {formatMoney(totalReceivablesSdg, 'SDG', settings)}
             </div>
             <div className="text-sm font-semibold text-sf-text mt-1 font-mono flex items-center gap-1">
               <span>+ مبالغ بالدولار:</span>
-              <span className="text-sf-warning font-bold">{formatMoney(totalReceivablesUsd, 'USD', settings)}</span>
+              <span className="text-sf-warning font-semibold">{formatMoney(totalReceivablesUsd, 'USD', settings)}</span>
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-sf-border flex items-center justify-between text-xs text-sf-muted">
@@ -500,7 +499,7 @@ ${settings.business_name}`;
         </div>
 
         {/* Inventory & Low Stock Card */}
-        <div className="bg-sf-surface rounded-2xl border border-sf-border p-5 shadow-sm flex flex-col justify-between sm:col-span-2 lg:col-span-1 hover:border-sf-action/40 transition-colors">
+        <div className="bg-sf-surface rounded-xl border border-sf-border p-6 shadow-sm flex flex-col justify-between sm:col-span-2 lg:col-span-1 hover:border-sf-action/40 transition-colors">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-semibold text-sf-muted">مراقبة المخزون والجرد</span>
             <div className="p-2 rounded-xl bg-sf-action/10 text-sf-action border border-sf-action/20">
@@ -508,12 +507,12 @@ ${settings.business_name}`;
             </div>
           </div>
           <div>
-            <div className="text-2xl font-black text-sf-text font-mono tracking-tight">
+            <div className="text-2xl font-semibold text-sf-text font-mono tracking-tight">
               {counters.product_count > 0 ? counters.product_count : products.length} <span className="text-sm font-normal text-sf-muted">صنف مسجل</span>
             </div>
             <div className="flex items-center gap-2 mt-1">
               {lowStockProducts.length > 0 ? (
-                <span className="text-xs font-bold text-sf-warning bg-sf-warning-bg/60 border border-sf-warning/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="text-xs font-semibold text-sf-warning bg-sf-warning-bg/60 border border-sf-warning/40 px-2 py-1 rounded-full flex items-center gap-1">
                   <AlertTriangle className="w-3 h-3" />
                   {lowStockProducts.length} أصناف منخفضة المخزون
                 </span>
@@ -526,7 +525,7 @@ ${settings.business_name}`;
             <span>حساب تلقائي للمتبقي</span>
             <button
               onClick={() => setIsInventoryAuditOpen(true)}
-              className="text-sf-action hover:underline font-bold inline-flex items-center gap-1"
+              className="text-sf-action hover:underline font-semibold inline-flex items-center gap-1"
             >
               جرد المخزون الآن <ChevronLeft className="w-3 h-3" />
             </button>
@@ -545,13 +544,13 @@ ${settings.business_name}`;
 
       {/* Quick Actions Grid */}
       <div>
-        <h3 className="text-sm font-bold text-sf-text mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-semibold text-sf-text mb-3 flex items-center gap-2">
           <span>إجراءات التاجر السريعة</span>
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <button
             onClick={onOpenNewInvoice}
-            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-bold text-xs sm:text-sm shadow-lg shadow-sf-action/20 transition-transform active:scale-95 text-center gap-2"
+            className="flex flex-col items-center justify-center p-4 rounded-xl bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold text-xs sm:text-sm shadow-lg shadow-sf-action/20 transition-transform  text-center gap-2"
           >
             <FileText className="w-5 h-5 text-sf-on-action" />
             <span>+ إنشاء فاتورة جديدة</span>
@@ -559,7 +558,7 @@ ${settings.business_name}`;
 
           <button
             onClick={() => setIsInventoryAuditOpen(true)}
-            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border hover:border-sf-action/30 font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-95 text-center gap-2"
+            className="flex flex-col items-center justify-center p-4 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border hover:border-sf-action/30 font-semibold text-xs sm:text-sm shadow-sm transition-all  text-center gap-2"
           >
             <Package className="w-5 h-5 text-sf-action" />
             <span>جرد المخزون الفعلي</span>
@@ -567,7 +566,7 @@ ${settings.business_name}`;
 
           <button
             onClick={onOpenNewCustomer || (() => handleNavigate('customers'))}
-            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border hover:border-sf-border font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-95 text-center gap-2"
+            className="flex flex-col items-center justify-center p-4 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border hover:border-sf-border font-semibold text-xs sm:text-sm shadow-sm transition-all  text-center gap-2"
           >
             <Users className="w-5 h-5 text-sf-text" />
             <span>+ إضافة عميل جديد</span>
@@ -575,7 +574,7 @@ ${settings.business_name}`;
 
           <button
             onClick={onOpenNewProduct || (() => handleNavigate('products'))}
-            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border hover:border-sf-border font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-95 text-center gap-2"
+            className="flex flex-col items-center justify-center p-4 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border hover:border-sf-border font-semibold text-xs sm:text-sm shadow-sm transition-all  text-center gap-2"
           >
             <Plus className="w-5 h-5 text-sf-text" />
             <span>+ إضافة منتج / صنف</span>
@@ -583,7 +582,7 @@ ${settings.business_name}`;
 
           <button
             onClick={onOpenNewExpense || (() => handleNavigate('expenses'))}
-            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border hover:border-sf-border font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-95 text-center gap-2"
+            className="flex flex-col items-center justify-center p-4 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border hover:border-sf-border font-semibold text-xs sm:text-sm shadow-sm transition-all  text-center gap-2"
           >
             <Receipt className="w-5 h-5 text-sf-warning" />
             <span>+ تسجيل مصروف</span>
@@ -591,7 +590,7 @@ ${settings.business_name}`;
 
           <button
             onClick={() => handleNavigate('accounting')}
-            className="flex flex-col items-center justify-center p-4 rounded-2xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border hover:border-sf-action/40 font-semibold text-xs sm:text-sm shadow-sm transition-all active:scale-95 text-center gap-2"
+            className="flex flex-col items-center justify-center p-4 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border hover:border-sf-action/40 font-semibold text-xs sm:text-sm shadow-sm transition-all  text-center gap-2"
           >
             <BookOpen className="w-5 h-5 text-sf-action" />
             <span>دفتر الحسابات والقيود</span>
@@ -600,14 +599,14 @@ ${settings.business_name}`;
       </div>
 
       {/* Live Market Exchange Calculator for Sudanese Merchants */}
-      <div className="bg-sf-surface border border-sf-border rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-sf-surface border border-sf-border rounded-xl p-4 sm:p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-xl bg-sf-warning-bg/10 text-sf-warning border border-sf-warning/20">
+            <div className="p-2 rounded-xl bg-sf-warning-bg/10 text-sf-warning border border-sf-warning/20">
               <ArrowLeftRight className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="font-bold text-sm text-sf-text">حاسبة تحويل العملات السريعة</h4>
+              <h4 className="font-semibold text-sm text-sf-text">حاسبة تحويل العملات السريعة</h4>
               <p className="text-xs text-sf-muted">
                 حساب فوري للمبالغ بسعر السوق المعتمد ({currentRate > 0 ? `1$ = ${formatMoney(currentRate, 'SDG', settings)}` : 'سعر الصرف غير محدد بالإعدادات'})
               </p>
@@ -615,7 +614,7 @@ ${settings.business_name}`;
           </div>
           <button
             onClick={() => setCalcFrom(calcFrom === 'USD' ? 'SDG' : 'USD')}
-            className="text-xs font-semibold px-2.5 py-1 bg-sf-raised hover:bg-sf-raised text-sf-text rounded-lg border border-sf-border transition-colors flex items-center gap-1"
+            className="text-xs font-semibold px-3 py-1 bg-sf-raised hover:bg-sf-raised text-sf-text rounded-lg border border-sf-border transition-colors flex items-center gap-1"
           >
             <span>عكس التحويل</span>
             <ArrowLeftRight className="w-3 h-3" />
@@ -624,7 +623,7 @@ ${settings.business_name}`;
 
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
           <div className="sm:col-span-5">
-            <label className="block text-[11px] font-medium text-sf-muted mb-1">
+            <label className="block text-xs font-medium text-sf-muted mb-1">
               المبلغ المراد تحويله ({calcFrom === 'USD' ? 'دولار أمريكي $' : 'جنيه سوداني ج.س'})
             </label>
             <div className="relative">
@@ -632,7 +631,7 @@ ${settings.business_name}`;
                 type="number"
                 value={calcAmount}
                 onChange={(e) => setCalcAmount(e.target.value)}
-                className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-base font-bold font-mono text-sf-text focus:outline-none focus:border-sf-action"
+                className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-base font-semibold font-mono text-sf-text focus:outline-none focus:border-sf-action"
                 placeholder="أدخل المبلغ..."
               />
               <span className="absolute left-3 top-2.5 text-xs text-sf-muted font-sans">
@@ -642,12 +641,12 @@ ${settings.business_name}`;
           </div>
 
           <div className="sm:col-span-2 flex justify-center py-1 sm:py-0">
-            <div className="text-sf-muted font-bold text-lg hidden sm:block">=</div>
+            <div className="text-sf-muted font-semibold text-lg hidden sm:block">=</div>
           </div>
 
           <div className="sm:col-span-5 bg-sf-raised border border-sf-border rounded-xl p-3">
-            <div className="text-[11px] font-medium text-sf-muted mb-0.5">القيمة المقابلة فورًا:</div>
-            <div className="text-lg sm:text-xl font-black text-sf-action font-mono">
+            <div className="text-xs font-medium text-sf-muted mb-1">القيمة المقابلة فورًا:</div>
+            <div className="text-lg sm:text-xl font-semibold text-sf-text font-mono">
               {calcFrom === 'USD'
                 ? formatMoney(convertedCalcResult, 'SDG', settings)
                 : formatMoney(convertedCalcResult, 'USD', settings)}
@@ -660,10 +659,10 @@ ${settings.business_name}`;
       <AdBanner format="horizontal" label="إعلان ممول / AdSense Dashboard" />
 
       {/* Recent Invoices Table */}
-      <div className="bg-sf-surface rounded-2xl border border-sf-border overflow-hidden shadow-sm">
+      <div className="bg-sf-surface rounded-xl border border-sf-border overflow-hidden shadow-sm">
         <div className="p-4 border-b border-sf-border flex items-center justify-between">
           <div>
-            <h3 className="font-bold text-sm text-sf-text">أحدث الفواتير الصادرة</h3>
+            <h3 className="font-semibold text-sm text-sf-text">أحدث الفواتير الصادرة</h3>
             <p className="text-xs text-sf-muted">الفواتير الأخيرة مع العرض المزدوج للمبالغ وسعر الصرف المجمّد</p>
           </div>
           <button
@@ -684,7 +683,7 @@ ${settings.business_name}`;
             </p>
             <button
               onClick={onOpenNewInvoice}
-              className="mt-4 px-4 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-black text-xs rounded-xl shadow-md shadow-sf-action/20 inline-flex items-center gap-1.5 transition-all active:scale-95"
+              className="mt-4 px-4 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold text-xs rounded-xl shadow-md shadow-sf-action/20 inline-flex items-center gap-2 transition-all "
             >
               <Plus className="w-4 h-4 text-sf-on-action" />
               <span>+ فاتورة جديدة</span>
@@ -701,47 +700,43 @@ ${settings.business_name}`;
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-xs text-sf-text bg-sf-raised px-2 py-0.5 rounded-md border border-sf-border">
+                      <span className="font-mono font-semibold text-xs text-sf-text bg-sf-raised px-2 py-1 rounded-md border border-sf-border">
                         {inv.invoice_number}
                       </span>
-                      <span
-                        className={`text-[11px] px-2 py-0.5 rounded-full border font-medium ${statusInfo.bg} ${statusInfo.color}`}
-                      >
-                        {statusInfo.label}
-                      </span>
-                      <span className="text-[10px] text-sf-muted">
+                      <InvoiceStatus status={inv.status} />
+                      <span className="text-xs text-sf-muted">
                         {inv.issue_date}
                       </span>
                     </div>
                     <div className="font-semibold text-sm text-sf-text">
                       {inv.customer_name}
                     </div>
-                    <div className="text-[11px] text-sf-muted">
+                    <div className="text-xs text-sf-muted">
                       سعر الصرف المجمّد: 1$ = {formatMoney(inv.exchange_rate_used, 'SDG', settings)}
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between sm:justify-end gap-4">
                     <div className="text-left">
-                      <div className="font-mono font-bold text-sm text-sf-text">
+                      <div className="font-mono font-semibold text-sm text-sf-text">
                         {formatMoney(inv.grand_total_sdg, 'SDG', settings)}
                       </div>
-                      <div className="font-mono text-xs text-sf-action font-semibold">
+                      <div className="font-mono text-xs text-sf-text font-semibold">
                         {formatMoney(inv.grand_total_usd, 'USD', settings)}
                       </div>
                       {inv.remaining_sdg > 0 && inv.status !== 'paid' && (
-                        <div className="text-[10px] text-sf-danger font-mono font-bold">
+                        <div className="text-xs text-sf-danger font-mono font-semibold">
                           متبقي: {formatMoney(inv.remaining_sdg, 'SDG', settings)}
                         </div>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
                       {inv.status !== 'paid' && inv.status !== 'cancelled' && onOpenRecordPayment && (
                         <button
                           onClick={() => onOpenRecordPayment(inv)}
                           title="تسجيل دفعة"
-                          className="px-2.5 py-1 text-xs font-bold bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-lg transition-colors shadow-xs"
+                          className="px-3 py-1 text-xs font-semibold bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-lg transition-colors shadow-xs"
                         >
                           تحصيل
                         </button>
@@ -749,7 +744,7 @@ ${settings.business_name}`;
                       <button
                         onClick={() => onViewInvoice(inv)}
                         title="معاينة وطباعة الفاتورة"
-                        className="p-1.5 text-sf-muted hover:text-sf-text bg-sf-raised hover:bg-sf-raised rounded-lg border border-sf-border transition-colors"
+                        className="p-2 text-sf-muted hover:text-sf-text bg-sf-raised hover:bg-sf-raised rounded-lg border border-sf-border transition-colors"
                       >
                         <Eye className="w-4 h-4" />
                       </button>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Loader2, Share2, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatMoney } from '../lib/currency';
@@ -13,16 +13,22 @@ export function InvoiceShareDialog({ invoice, onClose }: { invoice: Invoice; onC
   const [sharing, setSharing] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const shareLock = useRef(false);
+  const relevantPayments = payments.filter(payment => payment.invoice_id === invoice.id);
+  const snapshotKey = JSON.stringify([invoice, settings, relevantPayments]);
+  const snapshot = useMemo(() => ({ invoice, settings, payments:relevantPayments }), [snapshotKey]);
+  const generation = useRef<{ key:string; job:Promise<File> } | null>(null);
 
   useEffect(() => {
     let active = true;
     setFile(null); setError(''); setNotice('');
-    import('../services/pdfService')
-      .then(({ createInvoicePdfFile }) => createInvoicePdfFile(invoice, settings, payments.filter(payment => payment.invoice_id === invoice.id)))
+    const key = `${snapshotKey}:${attempt}`;
+    if (!generation.current || generation.current.key !== key) generation.current = { key, job:import('../services/pdfService')
+      .then(({ createInvoicePdfFile }) => createInvoicePdfFile(snapshot.invoice, snapshot.settings, snapshot.payments)) };
+    generation.current.job
       .then(pdf => { if (active) setFile(pdf); })
       .catch(() => { if (active) setError('تعذر تجهيز ملف الفاتورة. أعد المحاولة.'); });
     return () => { active = false; };
-  }, [invoice, settings, payments, attempt]);
+  }, [snapshot, snapshotKey, attempt]);
 
   const text = `السلام عليكم ورحمة الله،
 الفاتورة رقم: *${invoice.invoice_number}*
@@ -43,23 +49,28 @@ ${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك 
 شكراً لتعاملكم مع:
 *${settings.business_name}*
 هاتف: ${settings.phone}`;
-  const shareData: ShareData = { files:file ? [file] : [], title:`فاتورة ${invoice.invoice_number}`, text };
+  // File is mandatory. A WhatsApp text URL cannot carry a PDF attachment.
+  const shareData: ShareData = { files:file ? [file] : [], text };
   let supportsFiles = false;
   try { supportsFiles = !!file && typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files:[file] }); } catch { /* Offer manual attachment. */ }
   const phone = (invoice.customer_phone || '').replace(/[^0-9]/g, '');
   const normalizedPhone = phone.startsWith('249') ? phone : '249' + (phone.startsWith('0') ? phone.slice(1) : phone);
   const whatsappUrl = `https://api.whatsapp.com/send?${phone ? `phone=${normalizedPhone}&` : ''}text=${encodeURIComponent(text)}`;
+  const embedded = window.self !== window.top;
+  const standaloneUrl = new URL(window.location.href);
+  standaloneUrl.searchParams.set('share-invoice', invoice.id);
 
-  const share = async () => {
+  const share = async (fileOnly = false) => {
     if (!file || !supportsFiles || shareLock.current) return;
     shareLock.current = true; setSharing(true); setError(''); setNotice('');
     try {
       // The PDF is already ready: invoke sharing within this fresh button gesture.
-      await navigator.share(shareData);
-      setNotice('تم تسليم الملف والتفاصيل لتطبيق المشاركة. تأكد من المرفق ثم أرسل الرسالة داخل واتساب.');
+      await navigator.share(fileOnly ? { files:[file] } : shareData);
+      setNotice(fileOnly ? 'تم فتح مشاركة ملف PDF. اختر واتساب وألصق التفاصيل المنسوخة في وصف المرفق.' : 'تم فتح مشاركة ملف PDF مع التفاصيل. اختر واتساب وتأكد من ظهور مرفق الفاتورة قبل الإرسال.');
     } catch (failure) {
       if (failure instanceof DOMException && failure.name === 'AbortError') setNotice('تم إلغاء المشاركة. يمكنك المحاولة مرة أخرى.');
-      else setError('تعذرت مشاركة الملف. أعد المحاولة أو نزّل PDF وأرفقه في واتساب يدوياً.');
+      else if (failure instanceof DOMException && failure.name === 'NotAllowedError') setError(embedded ? 'المعاينة تمنع مشاركة الملفات. افتح الفاتورة في صفحة مستقلة من الزر أدناه ثم شارك PDF.' : 'المتصفح منع مشاركة الملف. افتح الموقع عبر HTTPS في Chrome، ثم اضغط زر إرسال PDF مرة أخرى.');
+      else setError('تعذرت مشاركة الملف مع التفاصيل. استخدم «مشاركة ملف PDF فقط» ثم ألصق التفاصيل في وصف المرفق.');
     } finally { shareLock.current = false; setSharing(false); }
   };
   const download = () => {
@@ -74,6 +85,11 @@ ${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك 
     try { await navigator.clipboard.writeText(text); setNotice('تم نسخ التفاصيل. ألصقها مع ملف الفاتورة في واتساب.'); }
     catch { setError('تعذر النسخ. افتح تفاصيل الرسالة أدناه وانسخها يدوياً.'); }
   };
+  const shareFileOnly = () => {
+    // Do not await clipboard work: native sharing needs this same button gesture.
+    if (navigator.clipboard?.writeText) void navigator.clipboard.writeText(text).catch(() => {});
+    void share(true);
+  };
 
   return <Dialog label="مشاركة الفاتورة مع PDF" onClose={() => { if (!shareLock.current) onClose(); }} className="fixed inset-0 z-50 bg-sf-canvas/80 flex items-center justify-center p-4">
     <div className="sf-card w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
@@ -84,8 +100,12 @@ ${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك 
       {!file && error && <button type="button" className="sf-secondary" onClick={() => setAttempt(value => value + 1)}>إعادة تجهيز PDF</button>}
       {file && <>
         <p className="text-sf-muted"><bdi dir="ltr">{file.name}</bdi></p>
-        {supportsFiles ? <><p>اختر واتساب ثم العميل لإرسال ملف الفاتورة مع التفاصيل.</p><button type="button" className="sf-action flex items-center gap-2" disabled={sharing} onClick={share}><Share2 />{sharing ? 'المشاركة مفتوحة…' : 'مشاركة PDF والتفاصيل'}</button></> : <p>المتصفح لا يدعم مشاركة الملفات مباشرة. نزّل PDF، وافتح واتساب، ثم أرفق الملف من زر المرفقات قبل إرسال التفاصيل.</p>}
-        <div className="flex flex-wrap gap-2"><button type="button" className="sf-secondary flex items-center gap-2" disabled={sharing} onClick={download}><Download />تنزيل PDF</button><button type="button" className="sf-secondary" disabled={sharing} onClick={copyDetails}>نسخ التفاصيل</button><a className="sf-secondary inline-flex items-center" href={whatsappUrl} target="_blank" rel="noopener noreferrer">فتح واتساب بالتفاصيل</a></div>
+        {supportsFiles ? <><p>اضغط إرسال PDF، ثم اختر واتساب والعميل. ملف الفاتورة والتفاصيل يُشاركان معاً.</p><button type="button" className="sf-action flex items-center gap-2" disabled={sharing} onClick={() => void share()}><Share2 />{sharing ? 'المشاركة مفتوحة…' : 'إرسال PDF عبر واتساب'}</button>
+          <div className="flex flex-wrap gap-2"><button type="button" className="sf-secondary" disabled={sharing} onClick={shareFileOnly}>مشاركة ملف PDF فقط</button><button type="button" className="sf-secondary" disabled={sharing} onClick={copyDetails}>نسخ التفاصيل</button></div>
+          <p className="text-sm text-sf-muted">إذا تجاهل واتساب النص المصاحب، شارك ملف PDF فقط ثم ألصق التفاصيل في وصف المرفق.</p>
+        </> : <p>{embedded ? 'معاينة التطبيق تمنع مشاركة ملف PDF. افتح التطبيق في صفحة مستقلة ثم أعد المشاركة.' : !window.isSecureContext ? 'مشاركة PDF تحتاج فتح الموقع عبر HTTPS في Chrome.' : 'مشاركة PDF غير متاحة في هذا المتصفح. افتح الموقع في Chrome على الموبايل.'}</p>}
+        {embedded && <a className="sf-secondary inline-flex items-center" href={standaloneUrl.href} target="_blank" rel="noopener noreferrer">فتح الفاتورة خارج المعاينة</a>}
+        <details><summary className="cursor-pointer text-sf-muted">تنزيل الملف أو الإرفاق اليدوي</summary><p className="text-sm my-3">نزّل PDF أولاً، ثم افتح واتساب وأرفق الملف من زر المرفقات. هذا الخيار لا يرفق الملف تلقائياً.</p><div className="flex flex-wrap gap-2"><button type="button" className="sf-secondary flex items-center gap-2" disabled={sharing} onClick={download}><Download />تنزيل PDF</button><a className="sf-secondary inline-flex items-center" href={whatsappUrl} target="_blank" rel="noopener noreferrer">فتح واتساب للإرفاق اليدوي</a></div></details>
       </>}
       <details><summary className="cursor-pointer text-sf-action">تفاصيل الرسالة</summary><pre className="whitespace-pre-wrap break-words font-sans text-sm mt-3">{text}</pre></details>
     </div>

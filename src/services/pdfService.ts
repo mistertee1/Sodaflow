@@ -284,7 +284,7 @@ export const createInvoicePdfFile = async (
   try {
     const blob = await createDocumentPdfBlob(container);
     const number = invoice.invoice_number.replace(/[^a-zA-Z0-9-_]/g, '_');
-    return new File([blob], `فاتورة_${number}.pdf`, { type:'application/pdf' });
+    return new File([blob], `SudaFlow-Invoice-${number || invoice.id.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`, { type:'application/pdf' });
   } finally { container.remove(); }
 };
 

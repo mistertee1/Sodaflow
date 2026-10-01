@@ -10,6 +10,7 @@ const ExpensesView = lazy(() => import('./components/ExpensesView').then(module 
 const AccountingView = lazy(() => import('./components/AccountingView').then(module => ({ default: module.AccountingView })));
 const InvoiceFormModal = lazy(() => import('./components/InvoiceFormModal').then(module => ({ default: module.InvoiceFormModal })));
 const InvoiceDetailModal = lazy(() => import('./components/InvoiceDetailModal').then(module => ({ default: module.InvoiceDetailModal })));
+const InvoiceShareDialog = lazy(() => import('./components/InvoiceShareDialog').then(module => ({ default: module.InvoiceShareDialog })));
 import { PaymentModal } from './components/PaymentModal';
 const PaymentReceiptModal = lazy(() => import('./components/PaymentReceiptModal').then(module => ({ default: module.PaymentReceiptModal })));
 const SettingsModal = lazy(() => import('./components/SettingsModal').then(module => ({ default: module.SettingsModal })));
@@ -33,9 +34,11 @@ function MainLayout() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [showAuthLanding, setShowAuthLanding] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<LegalTab | null>(null);
+  const [standaloneShareInvoice, setStandaloneShareInvoice] = useState<Invoice | null>(null);
+  const [pendingShareId, setPendingShareId] = useState(() => new URL(window.location.href).searchParams.get('share-invoice'));
 
   useEffect(() => {
-    setViewingInvoice(null); setPayingInvoice(null); setViewingReceipt(null); setIsNewInvoiceOpen(false); setPrefilledCustomer(null);
+    setViewingInvoice(null); setPayingInvoice(null); setViewingReceipt(null); setIsNewInvoiceOpen(false); setPrefilledCustomer(null); setStandaloneShareInvoice(null);
   }, [currentOrg?.id, currentUser?.uid]);
 
   // Track virtual page views for SPA navigation in Google Analytics
@@ -46,6 +49,17 @@ function MainLayout() {
   const [guestMode, setGuestMode] = useState<boolean>(() => {
     return localStorage.getItem('mohasbasd_guest_session') === 'true';
   });
+
+  // Opening outside an embedded preview restores the browser's own sharing policy.
+  // Resolve only against invoices already authorized and loaded by AppContext.
+  useEffect(() => {
+    if (authLoading || !pendingShareId || (!currentUser && !guestMode)) return;
+    const invoice = invoices.find(item => item.id === pendingShareId);
+    if (!invoice) return;
+    setStandaloneShareInvoice(invoice); setActiveTab('invoices'); setPendingShareId(null);
+    const url = new URL(window.location.href); url.searchParams.delete('share-invoice');
+    window.history.replaceState(window.history.state, '', url);
+  }, [authLoading, currentUser, guestMode, invoices, pendingShareId]);
 
   // Synchronize guest state whenever auth user state changes
   useEffect(() => {
@@ -188,6 +202,7 @@ function MainLayout() {
 
       {/* Modals */}
       <Suspense fallback={<div role="status" className="fixed inset-0 z-50 bg-sf-ink/60 flex items-center justify-center text-white">جاري فتح النافذة…</div>}>
+      {standaloneShareInvoice && <InvoiceShareDialog invoice={standaloneShareInvoice} onClose={() => setStandaloneShareInvoice(null)} />}
       {isNewInvoiceOpen && (<InvoiceFormModal
         isOpen={isNewInvoiceOpen}
         onClose={() => {

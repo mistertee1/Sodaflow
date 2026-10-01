@@ -8,7 +8,7 @@ import config from './firebase-applet-config.json';
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
-  app.use((_req, res, next) => { res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); next(); });
+  app.use((_req, res, next) => { res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); res.setHeader('Permissions-Policy', 'web-share=(self)'); next(); });
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: false, limit: '128kb' }));
   app.all('/__/auth/*', async (req, res) => {

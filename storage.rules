@@ -1,51 +1,8 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Default deny all access
-    match /{allPaths=**} {
-      allow read, write: if false;
-    }
-
-    // Security helper functions
-    function isAuthenticated() {
-      return request.auth != null && request.auth.uid != null;
-    }
-
-    // Check if the user is the direct owner of the organization document in Firestore
-    function isDirectOrgOwner(orgId) {
-      return isAuthenticated() && (
-        (firestore.exists(/databases/ai-studio-2b425503-b268-42d5-86f5-de36acfa8e9a/documents/organizations/$(orgId)) &&
-         firestore.get(/databases/ai-studio-2b425503-b268-42d5-86f5-de36acfa8e9a/documents/organizations/$(orgId)).data.owner_uid == request.auth.uid) ||
-        (firestore.exists(/databases/(default)/documents/organizations/$(orgId)) &&
-         firestore.get(/databases/(default)/documents/organizations/$(orgId)).data.owner_uid == request.auth.uid)
-      );
-    }
-
-    // Check if the user has an active membership document in the organization
-    function isMemberActive(orgId) {
-      return isAuthenticated() && (
-        (firestore.exists(/databases/ai-studio-2b425503-b268-42d5-86f5-de36acfa8e9a/documents/organizations/$(orgId)/members/$(request.auth.uid)) &&
-         firestore.get(/databases/ai-studio-2b425503-b268-42d5-86f5-de36acfa8e9a/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.status == 'active') ||
-        (firestore.exists(/databases/(default)/documents/organizations/$(orgId)/members/$(request.auth.uid)) &&
-         firestore.get(/databases/(default)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.status == 'active')
-      );
-    }
-
-    // Authoritative check if user is an active member or owner of the organization
-    function isAuthoritativeMember(orgId) {
-      return isDirectOrgOwner(orgId) || isMemberActive(orgId);
-    }
-
-    // Multi-tenant organization file scope
-    match /organizations/{orgId}/{allPaths=**} {
-      // Allow read only to authenticated members of the relevant organization
-      allow read: if isAuthoritativeMember(orgId);
-
-      // Allow write only to authenticated members of the relevant organization
-      // Enforce image content type and max server-side size (5MB safety limit)
-      allow write: if isAuthoritativeMember(orgId)
-                   && request.resource.size <= 5 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
-    }
+    // Uploads are checked against the configured Firestore database by the operations server.
+    // Existing tokenized merchant images still render; SDK access cannot bypass the API.
+    match /{path=**} { allow read, write: if false; }
   }
 }

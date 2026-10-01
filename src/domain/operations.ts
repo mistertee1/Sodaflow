@@ -1,0 +1,362 @@
+import type { Account, Invoice, JournalEntry, MerchantSettings, Organization, OrgRole, OrgSubscription, Payment } from '../types';
+import BigNumber from 'bignumber.js';
+import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
+import { INITIAL_SETTINGS } from '../data/initialData';
+import { createDefaultSubscription, getPlanConfig } from '../lib/plans';
+import { safeAdd, safeSub } from '../lib/currency';
+import { getDefaultChartOfAccounts, generateExpenseJournalEntry } from '../services/accountingService';
+import { hasPermission, type ActionType } from '../services/rbacService';
+import { assertOpenPeriod, dateOnly, ensure, identifier, money, text, validateJournal, validateSettings } from './validation';
+import { invoiceFinancials, journal, journalLine, paymentQuote, receiptJournal, receivableCurrency, reverseJournal } from './financial';
+import { clean, type Change, type Document, type Store, type Transaction } from './store';
+import { financialCollections, reconcileFinancialData, type FinancialData } from './reconciliation';
+
+export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; }
+export interface Command { action: string; operationId: string; data: Document; }
+export interface OperationResult { result: Document; changes: Change[]; }
+const actions: Record<string, ActionType> = {
+  'customer.create': 'customers:create', 'customer.update': 'customers:update', 'customer.delete': 'customers:delete',
+  'product.create': 'products:create', 'product.update': 'products:update', 'product.delete': 'products:delete', 'product.stock': 'products:stock_adjustment',
+  'invoice.create': 'invoices:create', 'invoice.update': 'invoices:update', 'invoice.void': 'invoices:void',
+  'payment.create': 'payments:create', 'expense.create': 'expenses:create', 'expense.void': 'expenses:delete',
+  'journal.create': 'journal:create', 'account.create': 'accounts:create', 'account.update': 'accounts:update', 'account.reset': 'accounts:update',
+  'settings.update': 'org:update_settings', 'subscription.request': 'org:update_settings',
+  'member.update': 'members:update_role', 'member.remove': 'members:remove',
+  'invitation.create': 'members:invite', 'invitation.revoke': 'members:invite', 'backup.restore': 'backup:restore',
+};
+export const readPermissions: Record<string, ActionType> = { customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
+export function canonical(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
+  return JSON.stringify(value) ?? 'null';
+}
+export async function membership(tx: Transaction, orgId: string, actor: Actor) {
+  const org = await tx.get(`organizations/${identifier(orgId)}`) as Organization | undefined;
+  ensure(org && org.status === 'active', 'المؤسسة غير متاحة أو معلقة.', 403);
+  const member = await tx.get(`organizations/${orgId}/members/${identifier(actor.uid)}`);
+  const role: OrgRole = org.owner_uid === actor.uid ? 'Owner' : member?.role;
+  ensure(org.owner_uid === actor.uid || member?.status === 'active', 'لا توجد عضوية نشطة في هذه المؤسسة.', 403);
+  ensure(org.owner_uid === actor.uid || member?.role !== 'Owner', 'صفة المالك تتحدد من مالك المؤسسة الفعلي.', 403);
+  ensure(hasPermission(role, 'org:read'), 'صلاحية المؤسسة غير متاحة.', 403);
+  return { org, role, member };
+}
+const pick = (value: Document, keys: string[]): Document => Object.fromEntries(keys.filter(k => value[k] !== undefined).map(k => [k, value[k]]));
+function monthKey(now: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat('en', { timeZone, year: 'numeric', month: '2-digit' }).formatToParts(now);
+  return `${parts.find(p => p.type === 'year')!.value}-${parts.find(p => p.type === 'month')!.value}`;
+}
+export class Operations {
+  constructor(public store: Store, private now: () => Date = () => new Date(), private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = (_saved, orgId) => createDefaultSubscription(orgId)) {}
+  async snapshot(orgId: string, actor: Actor, backup = false) {
+    return this.store.transaction(async tx => {
+      const { org, role, member } = await membership(tx, orgId, actor);
+      ensure(!backup || hasPermission(role, 'backup:export'), 'تصدير النسخة الاحتياطية غير مسموح.', 403);
+      const root = `organizations/${orgId}`;
+      const collections: Record<string, Document[]> = {};
+      for (const [name, permission] of Object.entries(readPermissions)) {
+        collections[name] = hasPermission(role, permission) ? await tx.list(`${root}/${name}`) : [];
+      }
+      const counters = { ...DEFAULT_ORGANIZATION_COUNTERS, ...await tx.get(`${root}/meta/counters`) };
+      const currentMonth = monthKey(this.now(), org.settings.timezone || 'Africa/Khartoum');
+      counters.invoice_month = currentMonth;
+      counters.monthly_invoice_count = (collections.invoices || []).filter(i => Number.isFinite(new Date(i.created_at).getTime()) && monthKey(new Date(i.created_at), org.settings.timezone || 'Africa/Khartoum') === currentMonth).length;
+      const subscription = this.subscriptionPolicy(await tx.get(`${root}/meta/subscription`), orgId);
+      return { schema_version: 3, org, role, member, settings: { ...INITIAL_SETTINGS, ...org.settings }, collections, counters, subscription, exported_at: this.now().toISOString() };
+    });
+  }
+  async execute(orgId: string, actor: Actor, command: Command): Promise<OperationResult> {
+    identifier(orgId); identifier(actor.uid); identifier(command.operationId); ensure(command.operationId.length <= 64, 'معرّف العملية طويل جداً.');
+    ensure(command.data && typeof command.data === 'object' && !Array.isArray(command.data), 'بيانات العملية غير صالحة.');
+    const now = this.now(), iso = now.toISOString(), root = `organizations/${orgId}`;
+    const serialized = canonical({ action: command.action, data: command.data });
+    ensure(serialized.length <= 750000, 'حجم العملية كبير جداً.');
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(serialized));
+    const fingerprint = Array.from(new Uint8Array(digest), n => n.toString(16).padStart(2, '0')).join('');
+    return this.store.transaction(async tx => {
+      const { org, role } = await membership(tx, orgId, actor);
+      ensure(actions[command.action] && hasPermission(role, actions[command.action]), 'ليس لديك صلاحية هذه العملية.', 403);
+      const operationPath = `${root}/idempotency/${command.operationId}`;
+      const previous = await tx.get(operationPath);
+      if (previous) {
+        ensure(previous.actor_uid === actor.uid && previous.fingerprint === fingerprint, 'معرّف العملية مستخدم لطلب مختلف.', 409);
+        return previous.response as OperationResult;
+      }
+      const changes: Change[] = [];
+      const ratePath = `${root}/rate_limits/${actor.uid}`, rate = await tx.get(ratePath), minute = iso.slice(0, 16);
+      ensure(rate?.minute !== minute || rate.count < 120, 'طلبات كثيرة. حاول بعد دقيقة.', 429);
+      tx.set(ratePath, { minute, count: rate?.minute === minute ? rate.count + 1 : 1 });
+      const set = (path: string, value: Document) => { const data = clean(value); tx.set(path, data); changes.push({ path, value: data }); };
+      const remove = (path: string) => { tx.delete(path); changes.push({ path, value: null }); };
+      const data = command.data;
+      const settings = { ...INITIAL_SETTINGS, ...org.settings };
+      const storedCounters = await tx.get(`${root}/meta/counters`);
+      const counters: Document = { ...DEFAULT_ORGANIZATION_COUNTERS, ...storedCounters };
+      const subscription = this.subscriptionPolicy(await tx.get(`${root}/meta/subscription`), orgId);
+      const plan = getPlanConfig(subscription.plan);
+      const counterAdd = (key: string, delta: number) => { counters[key] = Math.max(0, (counters[key] || 0) + delta); };
+      const required = async (collection: string, id: string) => {
+        const record = await tx.get(`${root}/${collection}/${identifier(id)}`);
+        ensure(record, 'السجل المطلوب غير موجود.', 404); return record;
+      };
+      const post = async (entry: JournalEntry) => {
+        assertOpenPeriod(entry.date, settings);
+        validateJournal(entry.lines, settings);
+        for (const line of entry.lines) {
+          const account = await tx.get(`${root}/accounts/${identifier(line.account_code)}`);
+          const system = getDefaultChartOfAccounts(orgId).find(a => a.code === line.account_code);
+          ensure(account?.is_active || (!account && system), 'حساب القيد غير موجود أو غير نشط.');
+          if (!account && system) set(`${root}/accounts/${system.code}`, system);
+        }
+        ensure(!await tx.get(`${root}/journal_entries/${entry.id}`), 'القيد موجود مسبقاً.', 409);
+        set(`${root}/journal_entries/${entry.id}`, entry);
+      };
+      const stamp = { org_id: orgId, created_by: actor.uid, schema_version: 3, created_at: iso };
+      let result: Document = {};
+      switch (command.action) {
+        case 'customer.create': case 'customer.update': {
+          const updating = command.action.endsWith('update');
+          const id = updating ? identifier(data.id) : `cus-${command.operationId}`;
+          const old = updating ? await required('customers', id) : {};
+          ensure(updating || !await tx.get(`${root}/customers/${id}`), 'معرّف العميل موجود مسبقاً.', 409);
+          const input = updating ? data.updates : data;
+          ensure(input && typeof input === 'object', 'بيانات العميل غير صالحة.');
+          ensure(!['balance_sdg', 'balance_usd'].some(k => input[k] !== undefined && input[k] !== (old[k] || 0)), 'أرصدة العملاء تتغير بالسندات والقيود فقط.');
+          if (!updating) { const count = (await tx.list(`${root}/customers`)).length; ensure(count < plan.max_customers, 'تم بلوغ حد العملاء في الباقة.'); counters.customer_count = count; counterAdd('customer_count', 1); }
+          result = { ...old, ...pick(input, ['name', 'phone', 'email', 'address', 'preferred_currency', 'notes']), ...(!updating ? stamp : {}), id, balance_sdg: old.balance_sdg || 0, balance_usd: old.balance_usd || 0, updated_at: iso };
+          result.phone ??= ''; result.preferred_currency ??= 'SDG';
+          text(result.name, 200, true); text(result.phone ?? '', 100);
+          ensure(['SDG', 'USD'].includes(result.preferred_currency || 'SDG'), 'عملة العميل غير مدعومة.');
+          set(`${root}/customers/${id}`, result); break;
+        }
+        case 'customer.delete': {
+          const customer = await required('customers', data.id);
+          ensure(!(customer.balance_sdg || customer.balance_usd) && !(await tx.list(`${root}/invoices`)).some(i => i.customer_id === data.id), 'العميل مرتبط بعمليات مالية. احتفظ بسجله.');
+          remove(`${root}/customers/${data.id}`); counterAdd('customer_count', -1); break;
+        }
+        case 'product.create': case 'product.update': {
+          const updating = command.action.endsWith('update'), id = updating ? identifier(data.id) : `prd-${command.operationId}`;
+          const old = updating ? await required('products', id) : {};
+          ensure(updating || !await tx.get(`${root}/products/${id}`), 'معرّف المنتج موجود مسبقاً.', 409);
+          const input = updating ? data.updates : data;
+          ensure(input && typeof input === 'object', 'بيانات المنتج غير صالحة.');
+          if (input.stock_quantity !== undefined) money(input.stock_quantity, 6);
+          ensure(!updating || input.stock_quantity === undefined || input.stock_quantity === old.stock_quantity, 'تعديل الكمية يتطلب عملية تسوية مخزون.');
+          ensure(!updating || input.track_inventory === undefined || input.track_inventory === old.track_inventory, 'غيّر تتبع المخزون عبر إنشاء منتج مستقل للحفاظ على الجرد.');
+          if (!updating) { const count = (await tx.list(`${root}/products`)).length; ensure(count < plan.max_products, 'تم بلوغ حد المنتجات في الباقة.'); counters.product_count = count; counterAdd('product_count', 1); }
+          result = { ...old, ...pick(input, ['name', 'description', 'unit', 'price_sdg', 'price_usd', 'tax_rate', 'category', 'is_active', 'min_stock_alert', 'track_inventory']), ...(!updating ? { ...stamp, stock_quantity: input.stock_quantity || 0 } : {}), id };
+          text(result.name, 200, true); text(result.unit || '', 50, true);
+          money(result.price_sdg, 0); money(result.price_usd, 2); money(result.tax_rate ?? 0, 4); ensure((result.tax_rate || 0) <= 100, 'نسبة الضريبة غير صالحة.');
+          money(result.stock_quantity ?? 0, 6); money(result.min_stock_alert ?? 0, 6);
+          ensure(typeof result.is_active === 'boolean' && (result.track_inventory === undefined || typeof result.track_inventory === 'boolean'), 'حالة المنتج غير صالحة.');
+          set(`${root}/products/${id}`, result);
+          if (!updating && result.track_inventory) {
+            const movement = { ...stamp, id: `mov-${command.operationId}`, product_id: id, product_name: result.name, type: 'OPENING_BALANCE', quantity: result.stock_quantity, previous_stock: 0, resulting_stock: result.stock_quantity, reference_type: 'manual', reference_id: id, operation_id: command.operationId };
+            set(`${root}/inventory_movements/${movement.id}`, movement); counterAdd('inventory_movement_count', 1);
+          }
+          break;
+        }
+        case 'product.delete': {
+          const product = await required('products', data.id);
+          ensure(!(await tx.list(`${root}/invoices`)).some(i => i.items.some((l: Document) => l.product_id === data.id)) && !(await tx.list(`${root}/inventory_movements`)).some(m => m.product_id === data.id), 'المنتج مرتبط بحركات. عطّله بدلاً من حذف سجل الجرد.');
+          remove(`${root}/products/${product.id}`); counterAdd('product_count', -1); break;
+        }
+        case 'product.stock': {
+          const product = await required('products', data.id); ensure(product.track_inventory, 'تتبع مخزون المنتج غير مفعّل.');
+          money(data.newStock, 6); text(data.reason || '', 500, true);
+          assertOpenPeriod(iso, settings);
+          const movement = { ...stamp, id: `mov-${command.operationId}`, product_id: product.id, product_name: product.name, type: 'ADJUSTMENT', quantity: safeSub(data.newStock, product.stock_quantity || 0, 6), previous_stock: product.stock_quantity || 0, resulting_stock: data.newStock, reference_type: 'audit_adjustment', reference_id: product.id, reason: data.reason, operation_id: command.operationId };
+          result = { ...product, stock_quantity: data.newStock }; set(`${root}/products/${product.id}`, result); set(`${root}/inventory_movements/${movement.id}`, movement); counterAdd('inventory_movement_count', 1); break;
+        }
+        case 'invoice.create': {
+          assertOpenPeriod(data.issue_date, settings);
+          ensure(['dual', 'single_sdg', 'single_usd'].includes(data.currency_mode), 'نمط العملة غير صالح.');
+          if (data.due_date) ensure(dateOnly(data.due_date) >= dateOnly(data.issue_date), 'تاريخ الاستحقاق قبل الإصدار.');
+          ensure(!(data.paid_amount_sdg || data.paid_amount_usd), 'سجّل التحصيل بسند قبض بعد إصدار الفاتورة.');
+          const customer = await required('customers', data.customer_id);
+          const financials = invoiceFinancials(data, settings);
+          const month = monthKey(now, settings.timezone || 'Africa/Khartoum');
+          // Legacy counters are repaired from authoritative documents inside the same transaction.
+          const existing = counters.invoice_month === month ? undefined : await tx.list(`${root}/invoices`);
+          const monthCount = counters.invoice_month === month ? (counters.monthly_invoice_count || 0) : existing!.filter(i => Number.isFinite(new Date(i.created_at).getTime()) && monthKey(new Date(i.created_at), settings.timezone || 'Africa/Khartoum') === month).length;
+          ensure(['active', 'trialing'].includes(subscription.status) && monthCount < plan.max_invoices_per_month, 'تم بلوغ حد الفواتير الشهري أو الاشتراك غير نشط.');
+          const historical = counters.numbering_version === 3 ? [] : (existing || await tx.list(`${root}/invoices`));
+          const prefix = settings.invoice_prefix;
+          const previousNumber = Number.isSafeInteger(counters.last_invoice_number) && counters.last_invoice_number >= 0 ? counters.last_invoice_number : 0;
+          let number = historical.reduce((max, i) => { const value = i.invoice_number?.startsWith(prefix) ? Number(i.invoice_number.slice(prefix.length)) : 0; return Number.isSafeInteger(value) && value >= 0 ? Math.max(max, value) : max; }, previousNumber) + 1;
+          ensure(Number.isSafeInteger(number) && number <= 999999999, 'تسلسل الفواتير يحتاج مراجعة قبل إصدار رقم جديد.');
+          let numberKey = `${root}/invoice_numbers/${encodeURIComponent(`${prefix}${String(number).padStart(4, '0')}`)}`;
+          while (await tx.get(numberKey)) { number++; numberKey = `${root}/invoice_numbers/${encodeURIComponent(`${prefix}${String(number).padStart(4, '0')}`)}`; }
+          ensure(Number.isSafeInteger(number) && number <= 999999999, 'تسلسل الفواتير يحتاج مراجعة.');
+          const id = `inv-${command.operationId}`;
+          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone, customer_address: customer.address || '', ...financials, paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
+          invoice.receivable_currency = receivableCurrency(invoice);
+          const quantities = new Map<string, number>();
+          for (const item of invoice.items) if (item.product_id) quantities.set(identifier(item.product_id), safeAdd(quantities.get(item.product_id) || 0, item.quantity, 6));
+          for (const [productId, quantity] of quantities) {
+            const product = await required('products', productId); ensure(product.is_active, 'منتج الفاتورة غير نشط.');
+            if (!product.track_inventory) continue;
+            const previousStock = product.stock_quantity || 0; ensure(previousStock >= quantity, `المخزون غير كافٍ للمنتج: ${product.name}`, 409);
+            const resultingStock = safeSub(previousStock, quantity, 6), movementId = `mov-${command.operationId}-${productId}`;
+            set(`${root}/products/${productId}`, { ...product, stock_quantity: resultingStock });
+            set(`${root}/inventory_movements/${movementId}`, { ...stamp, id: movementId, product_id: productId, product_name: product.name, type: 'SALE', quantity: -quantity, previous_stock: previousStock, resulting_stock: resultingStock, reference_type: 'invoice', reference_id: id, operation_id: command.operationId }); counterAdd('inventory_movement_count', 1);
+          }
+          const lines = [journalLine('1200', 'ذمم العملاء', invoice.grand_total_sdg, 0, invoice.grand_total_usd, 0)];
+          const revenueSdg = safeSub(invoice.grand_total_sdg, invoice.tax_total_sdg, 0), revenueUsd = safeSub(invoice.grand_total_usd, invoice.tax_total_usd, 2);
+          if (revenueSdg || revenueUsd) lines.push(journalLine('4100', 'إيراد المبيعات', 0, revenueSdg, 0, revenueUsd));
+          if (invoice.tax_total_sdg || invoice.tax_total_usd) lines.push(journalLine('2130', 'ضريبة المبيعات المستحقة', 0, invoice.tax_total_sdg, 0, invoice.tax_total_usd));
+          await post(journal(`jv-inv-${id}`, orgId, actor.uid, data.issue_date, 'invoice', id, `إصدار الفاتورة ${invoice.invoice_number}`, lines, invoice.exchange_rate_used));
+          set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeAdd(customer.balance_sdg || 0, invoice.remaining_sdg, 0), balance_usd: safeAdd(customer.balance_usd || 0, invoice.remaining_usd, 2), updated_at: iso });
+          set(`${root}/invoices/${id}`, invoice); set(numberKey, { invoice_id: id }); result = invoice;
+          counters.invoice_count = (existing?.length ?? counters.invoice_count) + 1; counters.last_invoice_number = number; counters.numbering_version = 3; counters.invoice_month = month; counters.monthly_invoice_count = monthCount + 1; break;
+        }
+        case 'payment.create': {
+          const invoice = await required('invoices', data.invoice_id) as Invoice;
+          ensure(!['void', 'cancelled', 'draft', 'paid'].includes(invoice.status), 'لا يمكن تحصيل هذه الفاتورة.');
+          assertOpenPeriod(iso, settings);
+          const previousPayments = await tx.find(`${root}/payments`, 'invoice_id', invoice.id);
+          const linkedEntries = await tx.find(`${root}/journal_entries`, 'reference_id', invoice.id);
+          ensure(linkedEntries.filter(e => e.reference_type === 'invoice').length === 1, 'قيد الإصدار يحتاج مراجعة قبل تحصيل هذه الفاتورة.');
+          for (const payment of previousPayments) {
+            const entries = (await tx.find(`${root}/journal_entries`, 'reference_id', payment.id)).filter(e => e.reference_type === 'payment');
+            ensure(entries.length === 1, 'قيد تحصيل سابق يحتاج مراجعة.'); linkedEntries.push(...entries);
+          }
+          for (const currency of ['sdg', 'usd'] as const) {
+            const carrying = linkedEntries.flatMap(e => e.lines || []).filter((l: Document) => l.account_code === '1200').reduce((n, l) => n.plus(l[`debit_${currency}`] || 0).minus(l[`credit_${currency}`] || 0), new BigNumber(0));
+            ensure(carrying.eq(invoice[`remaining_${currency}`]), 'رصيد الفاتورة لا يطابق الذمم. افحص البيانات التاريخية قبل التحصيل.', 409);
+          }
+          ensure(['SDG', 'USD'].includes(data.currency) && ['cash', 'bankak', 'fawry', 'bank_transfer', 'other'].includes(data.payment_method), 'العملة أو طريقة الدفع غير مدعومة.');
+          const rate = data.exchange_rate_used ?? invoice.exchange_rate_used;
+          const quote = paymentQuote(invoice, data.amount, data.currency, rate);
+          const customer = await required('customers', invoice.customer_id);
+          ensure(customer.balance_sdg >= quote.settledSdg && customer.balance_usd >= quote.settledUsd, 'رصيد العميل يحتاج مراجعة قبل التحصيل.', 409);
+          const payment: Payment = { ...pick(data, ['reference_number', 'notes']), ...stamp, id: `pay-${command.operationId}`, invoice_id: invoice.id, invoice_number: invoice.invoice_number, customer_id: customer.id, customer_name: customer.name, amount: data.amount, currency: data.currency, exchange_rate_used: rate, amount_in_other_currency: data.currency === 'USD' ? quote.cashSdg : quote.cashUsd, payment_method: data.payment_method, payment_date: iso, operation_id: command.operationId, idempotency_key: command.operationId, settled_amount_sdg: quote.settledSdg, settled_amount_usd: quote.settledUsd, cash_amount_sdg: quote.cashSdg, cash_amount_usd: quote.cashUsd };
+          await post(receiptJournal(payment, invoice, orgId, actor.uid));
+          const remainingSdg = safeSub(invoice.remaining_sdg, quote.settledSdg, 0), remainingUsd = safeSub(invoice.remaining_usd, quote.settledUsd, 2);
+          set(`${root}/invoices/${invoice.id}`, { ...invoice, remaining_sdg: remainingSdg, remaining_usd: remainingUsd, paid_amount_sdg: safeAdd(invoice.paid_amount_sdg, quote.settledSdg, 0), paid_amount_usd: safeAdd(invoice.paid_amount_usd, quote.settledUsd, 2), status: (receivableCurrency(invoice) === 'USD' ? remainingUsd : remainingSdg) === 0 ? 'paid' : 'partially_paid', updated_at: iso });
+          set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeSub(customer.balance_sdg || 0, quote.settledSdg, 0), balance_usd: safeSub(customer.balance_usd || 0, quote.settledUsd, 2), updated_at: iso });
+          set(`${root}/payments/${payment.id}`, payment); counterAdd('payment_count', 1); result = payment; break;
+        }
+        case 'invoice.update': {
+          const invoice = await required('invoices', data.id); assertOpenPeriod(invoice.issue_date, settings);
+          ensure(data.updates && typeof data.updates === 'object' && !Array.isArray(data.updates), 'بيانات التعديل غير صالحة.');
+          ensure(Object.keys(data.updates || {}).every(k => ['notes', 'payment_instructions', 'due_date'].includes(k)), 'الفاتورة المُرحّلة ثابتة. التعديل متاح للملاحظات والاستحقاق فقط.');
+          if (data.updates.due_date) ensure(dateOnly(data.updates.due_date) >= dateOnly(invoice.issue_date), 'تاريخ الاستحقاق غير صالح.');
+          result = { ...invoice, ...data.updates, updated_at: iso }; set(`${root}/invoices/${data.id}`, result); break;
+        }
+        case 'invoice.void': {
+          const invoice = await required('invoices', data.id) as Invoice;
+          assertOpenPeriod(invoice.issue_date, settings); assertOpenPeriod(iso, settings);
+          ensure(invoice.status !== 'void', 'الفاتورة مبطلة مسبقاً.', 409);
+          ensure(!(invoice.paid_amount_sdg || invoice.paid_amount_usd) && !(await tx.list(`${root}/payments`)).some(p => p.invoice_id === invoice.id), 'الفاتورة محصّلة. تتطلب معالجة ردّ مبلغ موثّقة قبل إبطالها؛ لن يُنشأ ردّ نقدي وهمي.');
+          const original = await required('journal_entries', `jv-inv-${invoice.id}`) as JournalEntry;
+          const customer = await required('customers', invoice.customer_id);
+          await post(reverseJournal(original, `jv-void-${invoice.id}`, iso, text(data.reason || 'إبطال الفاتورة', 500, true), actor.uid));
+          const movements = (await tx.list(`${root}/inventory_movements`)).filter(m => m.reference_id === invoice.id && m.type === 'SALE');
+          const quantities = new Map<string, number>(); for (const movement of movements) quantities.set(movement.product_id, safeAdd(quantities.get(movement.product_id) || 0, -movement.quantity, 6));
+          for (const [productId, quantity] of quantities) {
+            const product = await required('products', productId), resultingStock = safeAdd(product.stock_quantity || 0, quantity, 6), id = `rev-${command.operationId}-${productId}`;
+            set(`${root}/products/${productId}`, { ...product, stock_quantity: resultingStock });
+            set(`${root}/inventory_movements/${id}`, { ...stamp, id, product_id: productId, product_name: product.name, type: 'VOID_REVERSAL', quantity, previous_stock: product.stock_quantity || 0, resulting_stock: resultingStock, reference_type: 'void', reference_id: invoice.id, operation_id: command.operationId }); counterAdd('inventory_movement_count', 1);
+          }
+          set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeSub(customer.balance_sdg || 0, invoice.remaining_sdg, 0), balance_usd: safeSub(customer.balance_usd || 0, invoice.remaining_usd, 2), updated_at: iso });
+          result = { ...invoice, status: 'void', remaining_sdg: 0, remaining_usd: 0, voided_at: iso, voided_by: actor.uid, void_reason: data.reason || 'إبطال الفاتورة', updated_at: iso }; set(`${root}/invoices/${invoice.id}`, result); break;
+        }
+        case 'expense.create': {
+          assertOpenPeriod(data.date, settings); ensure(['SDG', 'USD'].includes(data.currency), 'عملة المصروف غير مدعومة.'); money(data.amount, data.currency === 'USD' ? 2 : 0, true); text(data.title, 200, true);
+          result = { ...pick(data, ['title', 'category', 'amount', 'currency', 'exchange_rate_used', 'date', 'notes', 'receipt_image']), ...stamp, id: `exp-${command.operationId}` };
+          await post(generateExpenseJournalEntry(result as any, orgId, actor.uid)); set(`${root}/expenses/${result.id}`, result); counterAdd('expense_count', 1); break;
+        }
+        case 'expense.void': {
+          const expense = await required('expenses', data.id); ensure(!expense.voided_at, 'المصروف معكوس مسبقاً.'); assertOpenPeriod(expense.date, settings);
+          const original = await required('journal_entries', `jv-exp-${expense.id}`) as JournalEntry;
+          await post(reverseJournal(original, `jv-void-${expense.id}`, iso, `عكس المصروف: ${expense.title}`, actor.uid)); result = { ...expense, voided_at: iso }; set(`${root}/expenses/${expense.id}`, result); break;
+        }
+        case 'journal.create': {
+          ensure(['manual', 'opening_balance'].includes(data.reference_type), 'الترحيل الآلي متاح من العملية الأصلية فقط.');
+          result = journal(`jv-${command.operationId}`, orgId, actor.uid, data.date, data.reference_type, command.operationId, text(data.description, 1000, true), data.lines, data.exchange_rate_used || 0); await post(result as JournalEntry); break;
+        }
+        case 'account.create': case 'account.update': {
+          const updating = command.action.endsWith('update'), code = identifier(data.code);
+          const old = updating ? await required('accounts', code) : {};
+          ensure(updating || !await tx.get(`${root}/accounts/${code}`), 'رمز الحساب موجود.');
+          const input = updating ? data.updates : data;
+          ensure(input && typeof input === 'object' && !Array.isArray(input), 'بيانات الحساب غير صالحة.');
+          ensure(!updating || !old.is_system || !['code', 'type', 'nature', 'is_active', 'is_system', 'parent_code'].some(k => input[k] !== undefined && input[k] !== old[k]), 'هيكل حسابات النظام ثابت.');
+          ensure(!['balance_sdg', 'balance_usd'].some(k => input[k] !== undefined && input[k] !== (old[k] || 0)), 'الرصيد الافتتاحي يُسجّل بقيد افتتاحي متزن.');
+          result = { ...old, ...pick(input, ['name_ar', 'name_en', 'type', 'nature', 'parent_code', 'description', 'is_active']), ...(!updating ? { ...stamp, is_system: false, balance_sdg: 0, balance_usd: 0 } : {}), code };
+          text(result.name_ar, 200, true); ensure(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].includes(result.type) && ['DEBIT', 'CREDIT'].includes(result.nature) && typeof result.is_active === 'boolean', 'تصنيف الحساب غير صالح.');
+          if (result.parent_code) ensure(result.parent_code !== code && await tx.get(`${root}/accounts/${identifier(result.parent_code)}`), 'الحساب الأب غير صالح.');
+          set(`${root}/accounts/${code}`, result); break;
+        }
+        case 'account.reset': {
+          ensure(!(await tx.list(`${root}/journal_entries`)).length, 'لا يمكن إعادة ضبط الدليل بعد الترحيل.');
+          for (const account of await tx.list(`${root}/accounts`)) remove(`${root}/accounts/${account.code}`);
+          for (const account of getDefaultChartOfAccounts(orgId)) set(`${root}/accounts/${account.code}`, account); break;
+        }
+        case 'settings.update': {
+          ensure(data.updates && typeof data.updates === 'object' && !Array.isArray(data.updates), 'بيانات الإعدادات غير صالحة.');
+          const updated = validateSettings({ ...settings, ...pick(data.updates, Object.keys(INITIAL_SETTINGS).concat(['period_lock_date', 'timezone', 'fiscal_year', 'commercial_registration', 'tax_number', 'business_activity'])) });
+          if (settings.period_lock_date && (updated.period_lock_date || '') < settings.period_lock_date) ensure(role === 'Owner', 'إعادة فتح فترة مقفلة متاحة للمالك فقط.', 403);
+          result = { ...org, settings: updated, name: updated.business_name || org.name, display_name: updated.business_name || org.display_name, base_currency: updated.primary_currency, secondary_currency: updated.secondary_currency, timezone: updated.timezone || org.timezone, fiscal_year: updated.fiscal_year || org.fiscal_year, updated_at: iso };
+          set(root, result); break;
+        }
+        case 'subscription.request': {
+          ensure(['Free', 'Starter', 'Professional', 'Business', 'Enterprise'].includes(data.plan), 'الباقة غير صالحة.');
+          result = { requested_plan: data.plan, status: 'pending', requested_by: actor.uid, created_at: iso };
+          set(`${root}/meta/subscription_request`, result); break;
+        }
+        case 'member.update': case 'member.remove': {
+          const member = await required('members', data.uid);
+          ensure(member.uid !== org.owner_uid && member.uid !== actor.uid && member.role !== 'Owner', 'لا يمكن تعديل المالك أو عضويتك بهذه العملية.', 403);
+          const newRole = data.role || member.role;
+          ensure(['Admin', 'Accountant', 'Sales', 'Cashier', 'Viewer'].includes(newRole), 'الدور غير صالح.');
+          ensure(role === 'Owner' || !['Owner', 'Admin'].includes(member.role) && newRole !== 'Admin', 'المدير لا يعدّل الأدوار الإدارية.', 403);
+          if (command.action === 'member.remove') { remove(`${root}/members/${data.uid}`); remove(`user_organizations/${data.uid}/orgs/${orgId}`); }
+          else { ensure(data.status === undefined || ['active', 'suspended'].includes(data.status), 'حالة العضوية غير صالحة.'); result = { ...member, role: newRole, status: data.status || member.status }; set(`${root}/members/${data.uid}`, result); set(`user_organizations/${data.uid}/orgs/${orgId}`, { org_id: orgId, role: newRole, joined_at: member.joined_at }); } break;
+        }
+        case 'invitation.create': {
+          const email = text(data.email, 320, true).toLowerCase(); ensure(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email), 'البريد غير صالح.');
+          ensure(['Admin', 'Accountant', 'Sales', 'Cashier', 'Viewer'].includes(data.role) && (role === 'Owner' || data.role !== 'Admin'), 'الدور المطلوب غير مسموح.', 403);
+          const members = await tx.list(`${root}/members`), pending = (await tx.list(`${root}/invitations`)).filter(i => i.status === 'pending' && new Date(i.expires_at) > now);
+          ensure(members.length + pending.length < plan.max_members, 'تم بلوغ حد أعضاء الباقة.');
+          result = { id: `invite-${command.operationId}`, org_id: orgId, email, recipient_email: email, role: data.role, token: command.operationId, created_at: iso, expires_at: new Date(now.getTime() + 7 * 86400000).toISOString(), invited_by: actor.email, inviter_uid: actor.uid, status: 'pending' }; set(`${root}/invitations/${result.id}`, result); break;
+        }
+        case 'invitation.revoke': {
+          const invitation = await required('invitations', data.id); ensure(invitation.status === 'pending', 'الدعوة ليست معلقة.'); result = { ...invitation, status: 'revoked', updated_at: iso }; set(`${root}/invitations/${data.id}`, result); break;
+        }
+        case 'backup.restore': {
+          ensure(role === 'Owner', 'استعادة البيانات متاحة للمالك فقط.', 403);
+          const backup = data.backup;
+          ensure(backup?.schema_version === 3 && backup.collections && backup.settings, 'صيغة النسخة الاحتياطية غير مدعومة.');
+          const names = financialCollections;
+          ensure(names.every(n => Array.isArray(backup.collections[n])), 'النسخة ناقصة.');
+          ensure(names.reduce((n, key) => n + backup.collections[key].length, 0) <= 350, 'الاستعادة الذرية تدعم 350 سجلاً. استخدم إجراء ترحيل خادمي للنسخ الأكبر.');
+          for (const name of names.filter(n => n !== 'accounts')) ensure(!(await tx.list(`${root}/${name}`)).length, 'الاستعادة تتطلب مؤسسة فارغة؛ لن تُستبدل دفاتر قائمة.');
+          for (const name of names) {
+            const ids = backup.collections[name].map((record: Document) => { ensure(record && typeof record === 'object' && !Array.isArray(record), 'سجل النسخة غير صالح.'); return identifier(name === 'accounts' ? record.code : record.id); });
+            ensure(new Set(ids).size === ids.length, 'معرّفات النسخة مكررة.');
+          }
+          const importedSettings = validateSettings(backup.settings);
+          for (const customer of backup.collections.customers) { text(customer.name, 200, true); text(customer.phone, 100); money(customer.balance_sdg, 0); money(customer.balance_usd, 2); }
+          for (const product of backup.collections.products) { text(product.name, 200, true); text(product.unit, 50, true); money(product.price_sdg, 0); money(product.price_usd, 2); money(product.stock_quantity ?? 0, 6); ensure(typeof product.is_active === 'boolean', 'حالة المنتج غير صالحة.'); }
+          for (const invoice of backup.collections.invoices) { ensure(['sent', 'paid', 'partially_paid', 'overdue', 'void'].includes(invoice.status), 'حالة الفاتورة غير قابلة للاستعادة.'); dateOnly(invoice.created_at); }
+          for (const payment of backup.collections.payments) ensure(['SDG', 'USD'].includes(payment.currency) && ['cash', 'bankak', 'fawry', 'bank_transfer', 'other'].includes(payment.payment_method), 'سند النسخة غير صالح.');
+          for (const account of backup.collections.accounts) { text(account.name_ar, 200, true); ensure(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].includes(account.type) && ['DEBIT', 'CREDIT'].includes(account.nature) && typeof account.is_active === 'boolean', 'حساب النسخة غير صالح.'); money(account.balance_sdg || 0, 0); money(account.balance_usd || 0, 2); }
+          for (const expense of backup.collections.expenses) { text(expense.title, 200, true); dateOnly(expense.date); ensure(['SDG', 'USD'].includes(expense.currency), 'عملة المصروف غير صالحة.'); money(expense.amount, expense.currency === 'USD' ? 2 : 0, true); }
+          ensure(!reconcileFinancialData(backup.collections as FinancialData, importedSettings).length, 'النسخة تحتوي فروقات مالية أو مراجع ناقصة. افحصها بإجراء التدقيق قبل الاستعادة.');
+          for (const name of names) for (const record of backup.collections[name]) { const id = identifier(name === 'accounts' ? record.code : record.id); set(`${root}/${name}/${id}`, { ...record, org_id: orgId }); }
+          result = { ...org, settings: importedSettings, base_currency: importedSettings.primary_currency, secondary_currency: importedSettings.secondary_currency, timezone: importedSettings.timezone || org.timezone, updated_at: iso }; set(root, result);
+          for (const [name, field] of Object.entries({ invoices: 'invoice_count', customers: 'customer_count', products: 'product_count', payments: 'payment_count', expenses: 'expense_count', inventory_movements: 'inventory_movement_count' })) counters[field] = backup.collections[name].length;
+          counters.numbering_version = 0; counters.invoice_month = ''; break;
+        }
+      }
+      counters.updated_at = iso; counters.revision = (counters.revision || 0) + 1; set(`${root}/meta/counters`, counters);
+      const audit = { id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
+      tx.set(`${root}/audit_logs/${audit.id}`, audit);
+      const visible = changes.filter(c => c.path === root || c.path.startsWith(`${root}/meta/`) || (c.path.startsWith(`${root}/`) && hasPermission(role, readPermissions[c.path.split('/')[2]])));
+      const response = clean({ result, changes: visible });
+      tx.set(operationPath, { actor_uid: actor.uid, fingerprint, response, status: 'completed', created_at: iso });
+      return response;
+    });
+  }
+}

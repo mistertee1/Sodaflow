@@ -4,7 +4,7 @@ export const INITIAL_SETTINGS: MerchantSettings = {
   business_name: '',
   phone: '',
   address: '',
-  logo_url: '/hisabuk_logo.jpg',
+  logo_url: '',
   bank_details: '',
   default_exchange_rate: 0, // No hardcoded exchange rate; must be explicitly configured by organization
   primary_currency: 'SDG',

@@ -1,0 +1,34 @@
+import { auth } from '../lib/firebase';
+import { canonical, type Command, type OperationResult } from '../domain/operations';
+import { BusinessError } from '../domain/validation';
+
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const user = auth.currentUser;
+  if (!user) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
+  const token = await user.getIdToken();
+  let response: Response;
+  try { response = await fetch(`/api${path}`, { ...init, headers: { ...(init.body instanceof Blob ? {} : { 'Content-Type': 'application/json' }), ...init.headers, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(60000) }); }
+  catch { throw new BusinessError('تعذر تأكيد الحفظ من الخادم. أعد المحاولة بنفس البيانات؛ لن تتكرر العملية.', 503); }
+  const result = await response.json().catch(() => ({ error: 'استجابة الخادم غير صالحة.' }));
+  if (!response.ok) throw new BusinessError(result.error || 'تعذر إكمال العملية.', response.status, result.code);
+  return result;
+}
+export const operationId = () => crypto.randomUUID();
+export async function sendCommand(orgId: string, action: string, data: Record<string, unknown>, suggestedId?: string): Promise<OperationResult> {
+  const fingerprint = canonical({ action, data });
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
+  const digest = Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
+  const key = `sudaflow_pending_${auth.currentUser?.uid}_${orgId}_${digest}`;
+  const id = localStorage.getItem(key) || suggestedId || operationId();
+  // Persist the ID before sending so uncertain transport failures can be retried after reload.
+  localStorage.setItem(key, id);
+  const command: Command = { action, operationId: id, data };
+  try {
+    const response = await api<OperationResult>(`/organizations/${encodeURIComponent(orgId)}/operations`, { method: 'POST', body: JSON.stringify(command) });
+    try { localStorage.removeItem(key); } catch { /* The confirmed server result still succeeds. */ }
+    return response;
+  } catch (error) {
+    if (error instanceof BusinessError && error.status < 500 && error.status !== 429) localStorage.removeItem(key);
+    throw error;
+  }
+}

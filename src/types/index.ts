@@ -41,6 +41,9 @@ export interface OrgInvitation {
 }
 
 export interface OrganizationCounters {
+  revision?: number;
+  invoice_month?: string;
+  monthly_invoice_count?: number;
   invoice_count: number;
   customer_count: number;
   product_count: number;
@@ -203,6 +206,7 @@ export interface InvoiceItem {
 }
 
 export interface Invoice {
+  receivable_currency?: 'SDG' | 'USD';
   id: string;
   invoice_number: string;
   customer_id: string;
@@ -244,6 +248,10 @@ export interface Invoice {
 }
 
 export interface Payment {
+  settled_amount_sdg?: number;
+  settled_amount_usd?: number;
+  cash_amount_sdg?: number;
+  cash_amount_usd?: number;
   id: string;
   invoice_id: string;
   invoice_number: string;
@@ -267,6 +275,7 @@ export interface Payment {
 }
 
 export interface Expense {
+  voided_at?: string;
   id: string;
   title: string;
   category: string; // إيجار, نقل وترحيل, بضاعة, رواتب ومكافآت, كهرباء وماء, صيانة, أخرى

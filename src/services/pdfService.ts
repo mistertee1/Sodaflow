@@ -1,6 +1,6 @@
 import { escapeHtml, escapeStrings, imageUrl } from '../lib/html';
 import { documentWatermarkHtml } from '../lib/documentBrand';
-import { downloadDocumentPdf } from './documentPdf';
+import { createDocumentPdfBlob, downloadDocumentPdf } from './documentPdf';
 import identity from '../styles/sudaflow.tokens.json';
 const printTheme = identity.theme.light;
 import { Invoice, Payment, MerchantSettings } from '../types';
@@ -269,6 +269,23 @@ export const downloadInvoicePdf = async (
   } finally {
     document.body.removeChild(container);
   }
+};
+
+/** Create the same branded invoice as an actual PDF attachment, without downloading it. */
+export const createInvoicePdfFile = async (
+  invoice: Invoice,
+  settings: MerchantSettings,
+  invoicePayments: Payment[] = []
+): Promise<File> => {
+  const container = document.createElement('div');
+  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:718px;background:#FFFFFF;z-index:-9999;';
+  container.innerHTML = buildInvoiceHtml(invoice, settings, invoicePayments);
+  document.body.appendChild(container);
+  try {
+    const blob = await createDocumentPdfBlob(container);
+    const number = invoice.invoice_number.replace(/[^a-zA-Z0-9-_]/g, '_');
+    return new File([blob], `فاتورة_${number}.pdf`, { type:'application/pdf' });
+  } finally { container.remove(); }
 };
 
 /**

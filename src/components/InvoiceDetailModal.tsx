@@ -19,6 +19,7 @@ import { formatMoney, getInvoiceStatusInfo, getPaymentMethodLabel } from '../lib
 import { downloadInvoicePdf, printInvoiceThroughIsolatedIframe } from '../services/pdfService';
 import { Dialog } from './Dialog';
 import { DocumentWatermark } from './DocumentWatermark';
+import { InvoiceShareDialog } from './InvoiceShareDialog';
 
 interface InvoiceDetailModalProps {
   invoice: Invoice | null;
@@ -33,6 +34,7 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({
 }) => {
   const { settings, payments, isActionAllowed } = useApp();
   const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   if (!invoice) return null;
 
@@ -61,35 +63,6 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({
     }
   };
 
-  const handleShareWhatsApp = () => {
-    const text = `السلام عليكم ورحمة الله،
-مرفق تفاصيل الفاتورة رقم: *${invoice.invoice_number}*
-العميل: ${invoice.customer_name}
-التاريخ: ${invoice.issue_date}
-
-المبلغ الإجمالي:
-• بالجنيه السوداني: *${formatMoney(invoice.grand_total_sdg, 'SDG', settings)}*
-• بالدولار الأمريكي: *${formatMoney(invoice.grand_total_usd, 'USD', settings)}*
-(سعر الصرف المجمّد: 1 USD = ${formatMoney(invoice.exchange_rate_used, 'SDG', settings)})
-
-المبلغ المسدد: ${formatMoney(invoice.paid_amount_sdg, 'SDG', settings)}
-المبلغ المتبقي: *${formatMoney(invoice.remaining_sdg, 'SDG', settings)}* (${formatMoney(invoice.remaining_usd, 'USD', settings)})
-
-بيانات السداد:
-${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك أو كاش'}
-
-شكراً لتعاملكم مع:
-*${settings.business_name}*
-هاتف: ${settings.phone}`;
-
-    const encoded = encodeURIComponent(text);
-    const phone = invoice.customer_phone ? invoice.customer_phone.replace(/[^0-9]/g, '') : '';
-    const url = phone
-      ? `https://api.whatsapp.com/send?phone=${phone.startsWith('249') ? phone : '249' + (phone.startsWith('0') ? phone.slice(1) : phone)}&text=${encoded}`
-      : `https://api.whatsapp.com/send?text=${encoded}`;
-
-    window.open(url, '_blank');
-  };
 
   return (
     <Dialog label="معاينة الفاتورة" onClose={onClose} className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
@@ -126,7 +99,7 @@ ${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك 
             </button>
 
             <button
-              onClick={handleShareWhatsApp}
+              onClick={() => setIsShareOpen(true)}
               className="px-3 py-2 text-xs font-semibold bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-xs"
             >
               <Share2 className="w-3.5 h-3.5" />
@@ -390,6 +363,7 @@ ${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك 
           </div>
         </div>
       </div>
+      {isShareOpen && <InvoiceShareDialog invoice={invoice} onClose={() => setIsShareOpen(false)} />}
     </Dialog>
   );
 };

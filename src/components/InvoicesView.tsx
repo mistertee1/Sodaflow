@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Invoice } from '../types';
 import { InvoiceStatus } from './InvoiceStatus';
+import { InvoiceShareDialog } from './InvoiceShareDialog';
 import {
   Search,
   Plus,
@@ -38,6 +39,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   } = useApp();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [shareInvoice, setShareInvoice] = useState<Invoice | null>(null);
 
   const safeInvoices = Array.isArray(invoices) ? invoices : [];
 
@@ -55,35 +57,6 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
     return matchesSearch && matchesStatus;
   });
-
-  const handleShareWhatsApp = (invoice: Invoice) => {
-    const text = `السلام عليكم ورحمة الله،
-مرفق تفاصيل الفاتورة رقم: *${invoice.invoice_number}*
-العميل: ${invoice.customer_name}
-التاريخ: ${invoice.issue_date}
-
-المبلغ الإجمالي:
-• بالجنيه السوداني: *${formatMoney(invoice.grand_total_sdg, 'SDG', settings)}*
-• بالدولار الأمريكي: *${formatMoney(invoice.grand_total_usd, 'USD', settings)}*
-(سعر الصرف المعتمد: 1$ = ${formatMoney(invoice.exchange_rate_used, 'SDG', settings)})
-
-المبلغ المدفوع: ${formatMoney(invoice.paid_amount_sdg, 'SDG', settings)}
-المبلغ المتبقي: *${formatMoney(invoice.remaining_sdg, 'SDG', settings)}* (${formatMoney(invoice.remaining_usd, 'USD', settings)})
-
-بيانات الدفع:
-${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك أو كاش'}
-
-شكراً لتعاملكم معنا.
-*${settings.business_name}*`;
-
-    const encoded = encodeURIComponent(text);
-    const phone = invoice.customer_phone ? invoice.customer_phone.replace(/[^0-9]/g, '') : '';
-    const url = phone
-      ? `https://api.whatsapp.com/send?phone=${phone.startsWith('249') ? phone : '249' + (phone.startsWith('0') ? phone.slice(1) : phone)}&text=${encoded}`
-      : `https://api.whatsapp.com/send?text=${encoded}`;
-
-    window.open(url, '_blank');
-  };
 
   const handleCancelInvoice = async (inv: Invoice) => {
     const reason = window.prompt(
@@ -195,13 +168,14 @@ ${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك 
               <td><div className="sf-table-actions">
                 <button type="button" onClick={() => onViewInvoice(invoice)} className="sf-icon-action" aria-label={`معاينة وطباعة ${invoice.invoice_number}`} title="معاينة وطباعة"><Eye aria-hidden="true" /></button>
                 {!['paid', 'cancelled', 'void', 'draft'].includes(invoice.status) && <button type="button" onClick={() => onOpenRecordPayment(invoice)} className="sf-icon-action" disabled={!isActionAllowed('payments:create')} aria-label={`تسجيل دفعة للفاتورة ${invoice.invoice_number}`} title={isActionAllowed('payments:create') ? 'تسجيل دفعة' : permissionMessage}><CreditCard aria-hidden="true" /></button>}
-                <button type="button" onClick={() => handleShareWhatsApp(invoice)} className="sf-icon-action" aria-label={`مشاركة ${invoice.invoice_number} عبر واتساب`} title="مشاركة عبر واتساب"><Share2 aria-hidden="true" /></button>
+                <button type="button" onClick={() => setShareInvoice(invoice)} className="sf-icon-action" aria-label={`مشاركة ${invoice.invoice_number} عبر واتساب`} title="مشاركة عبر واتساب"><Share2 aria-hidden="true" /></button>
                 {!['paid', 'cancelled', 'void', 'draft'].includes(invoice.status) && <button type="button" onClick={() => void handleCancelInvoice(invoice)} className="sf-icon-action sf-danger-action" disabled={!isActionAllowed('invoices:void')} aria-label={`إبطال الفاتورة ${invoice.invoice_number}`} title={isActionAllowed('invoices:void') ? 'إبطال الفاتورة' : permissionMessage}><Undo2 aria-hidden="true" /></button>}
               </div></td>
             </tr>)}</tbody>
           </table>
         </div>
       )}
+      {shareInvoice && <InvoiceShareDialog invoice={shareInvoice} onClose={() => setShareInvoice(null)} />}
       {hasMoreInvoices && <div className="flex justify-center">
         <button type="button" onClick={loadMoreInvoices} disabled={isLoadingMoreInvoices} className="sf-secondary inline-flex items-center gap-2">
           {isLoadingMoreInvoices && <Loader2 aria-hidden="true" className="animate-spin" />}

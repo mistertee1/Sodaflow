@@ -69,7 +69,7 @@ function paginateDocument(source: HTMLElement, host: HTMLElement): HTMLElement[]
   return pages;
 }
 
-export async function downloadDocumentPdf(container: HTMLElement, filename: string): Promise<void> {
+async function renderDocumentPdf(container: HTMLElement): Promise<jsPDF> {
   const source = container.querySelector<HTMLElement>('.sf-print-document');
   if (!source) throw new Error('تعذر تجهيز قالب المستند.');
   await Promise.all([400, 500, 600].map(weight => document.fonts.load(`${weight} 14px "IBM Plex Sans Arabic"`)));
@@ -90,6 +90,14 @@ export async function downloadDocumentPdf(container: HTMLElement, filename: stri
       pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 190, heightMm);
       canvas.width = 0; canvas.height = 0;
     }
-    pdf.save(filename);
+    return pdf;
   } finally { host.remove(); }
+}
+
+export async function createDocumentPdfBlob(container: HTMLElement): Promise<Blob> {
+  return (await renderDocumentPdf(container)).output('blob');
+}
+
+export async function downloadDocumentPdf(container: HTMLElement, filename: string): Promise<void> {
+  (await renderDocumentPdf(container)).save(filename);
 }

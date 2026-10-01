@@ -33,6 +33,7 @@ import { TopProductsChart } from './TopProductsChart';
 import { InventoryAuditModal } from './InventoryAuditModal';
 import { AdBanner } from './AdBanner';
 import { ErrorBoundary } from './ErrorBoundary';
+import { InvoiceShareDialog } from './InvoiceShareDialog';
 
 interface DashboardViewProps {
   onOpenNewInvoice: () => void;
@@ -57,6 +58,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const { invoices, customers, products, settings, updateSettings, counters } = useApp();
   const [isInventoryAuditOpen, setIsInventoryAuditOpen] = useState(false);
+  const [shareInvoice, setShareInvoice] = useState<Invoice | null>(null);
 
   // Manual Exchange Rate quick edit states
   const [rateInput, setRateInput] = useState<string>(settings.default_exchange_rate.toString());
@@ -145,50 +147,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const recentInvoices = [...invoices]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5);
-
-  // Send WhatsApp reminder handler
-  const sendWhatsAppReminder = (inv: Invoice) => {
-    const rawPhone =
-      inv.customer_phone || customers.find((c) => c.id === inv.customer_id)?.phone || '';
-
-    let cleanPhone = rawPhone.replace(/\D/g, '');
-    if (cleanPhone.startsWith('0')) {
-      cleanPhone = '249' + cleanPhone.substring(1);
-    } else if (cleanPhone.length === 9) {
-      cleanPhone = '249' + cleanPhone;
-    }
-
-    const daysOverdue = inv.due_date
-      ? Math.max(1, Math.floor((new Date().getTime() - new Date(inv.due_date).getTime()) / (1000 * 3600 * 24)))
-      : 1;
-
-    const invoiceUrl = `${window.location.origin}?inv=${inv.id}`;
-
-    const text = `السلام عليكم ورحمة الله وبركاته،
-السيد/السادة: ${inv.customer_name} المحترمون،
-تحية طيبة وبعد،
-
-نود تذكيركم بلطف بأن الفاتورة رقم (${inv.invoice_number}) قد استحق سدادها في تاريخ ${inv.due_date} (متأخرة منذ ${daysOverdue} يوم).
-
-المبلغ المتبقي للتحصيل:
-• بالجنيه السوداني: ${formatMoney(inv.remaining_sdg, 'SDG', settings)}
-• المقابل بالدولار: ${formatMoney(inv.remaining_usd, 'USD', settings)}
-
-بيانات السداد والتحويل:
-${settings.bank_details || 'عبر تطبيق بنكك أو نقدًا مع إرسال إشعار السداد.'}
-
-رابط تفاصيل الفاتورة:
-${invoiceUrl}
-
-شاكرين لكم حسن تعاونكم وثقتكم الكريمة.
-${settings.business_name}`;
-
-    const whatsappUrl = cleanPhone
-      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
-      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
-
-    window.open(whatsappUrl, '_blank');
-  };
 
   return (
     <div className="space-y-6 pb-12">
@@ -407,9 +365,9 @@ ${settings.business_name}`;
                     <div className="flex items-center gap-2">
                       {/* Quick WhatsApp Reminder Button */}
                       <button
-                        onClick={() => sendWhatsAppReminder(inv)}
+                        onClick={() => setShareInvoice(inv)}
                         className="px-4 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold text-xs rounded-xl shadow-lg shadow-sf-action/20 flex items-center gap-2 transition-all "
-                        title="إرسال تذكير عبر واتساب مع رابط الفاتورة وحساب بنكك"
+                        title="إرسال تذكير عبر واتساب مع ملف PDF وتفاصيل السداد"
                       >
                         <MessageCircle className="w-4 h-4 fill-slate-950" />
                         <span>تذكير واتساب</span>
@@ -758,6 +716,7 @@ ${settings.business_name}`;
       </div>
 
       {/* Inventory Audit Modal */}
+      {shareInvoice && <InvoiceShareDialog invoice={shareInvoice} reminder onClose={() => setShareInvoice(null)} />}
       <InventoryAuditModal
         isOpen={isInventoryAuditOpen}
         onClose={() => setIsInventoryAuditOpen(false)}

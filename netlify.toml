@@ -1,0 +1,11 @@
+# The Netlify site publishes the Vite frontend; Express is deployed separately.
+[build]
+  command = "npx vite build"
+  publish = "dist"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Permissions-Policy = "web-share=(self)"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

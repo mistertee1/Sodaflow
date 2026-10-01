@@ -5,7 +5,7 @@ import { formatMoney } from '../lib/currency';
 import type { Invoice } from '../types';
 import { Dialog } from './Dialog';
 
-export function InvoiceShareDialog({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {
+export function InvoiceShareDialog({ invoice, onClose, reminder = false }: { invoice: Invoice; onClose: () => void; reminder?: boolean }) {
   const { settings, payments } = useApp();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState('');
@@ -31,9 +31,9 @@ export function InvoiceShareDialog({ invoice, onClose }: { invoice: Invoice; onC
   }, [snapshot, snapshotKey, attempt]);
 
   const text = `السلام عليكم ورحمة الله،
-الفاتورة رقم: *${invoice.invoice_number}*
+${reminder ? 'نود تذكيركم بلطف بسداد الفاتورة المستحقة التالية.\n' : ''}الفاتورة رقم: *${invoice.invoice_number}*
 العميل: ${invoice.customer_name}
-التاريخ: ${invoice.issue_date}
+التاريخ: ${invoice.issue_date}${invoice.due_date ? `\nتاريخ الاستحقاق: ${invoice.due_date}` : ''}
 
 المبلغ الإجمالي:
 • بالجنيه السوداني: *${formatMoney(invoice.grand_total_sdg, 'SDG', settings)}*

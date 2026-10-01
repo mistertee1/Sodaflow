@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "allowJs": false
+  },
+  "include": [
+    "server/**/*.ts",
+    "scripts/**/*.ts",
+    "src/domain/**/*.ts",
+    "src/services/businessApi.ts",
+    "src/services/guestStore.ts",
+    "tests/domain.test.ts",
+    "tests/api.test.ts",
+    "tests/firestore.test.ts"
+  ]
+}

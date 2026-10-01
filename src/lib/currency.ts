@@ -311,21 +311,21 @@ export function getPaymentMethodLabel(method: string): string {
 export function getInvoiceStatusInfo(status: string): { label: string; color: string; bg: string } {
   switch (status) {
     case 'paid':
-      return { label: 'مدفوعة بالكامل', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' };
+      return { label: 'مدفوعة بالكامل', color: 'text-sf-success', bg: 'bg-sf-success-bg border-sf-success' };
     case 'partially_paid':
-      return { label: 'مدفوعة جزئيًا', color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' };
+      return { label: 'مدفوعة جزئيًا', color: 'text-sf-warning', bg: 'bg-sf-warning-bg border-sf-warning' };
     case 'sent':
-      return { label: 'مُرسلة بانتظار السداد', color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/30' };
+      return { label: 'مُرسلة بانتظار السداد', color: 'text-sf-info', bg: 'bg-sf-info-bg border-sf-info' };
     case 'draft':
-      return { label: 'مسودة', color: 'text-slate-400', bg: 'bg-slate-800 border-slate-700' };
+      return { label: 'مسودة', color: 'text-sf-neutral', bg: 'bg-sf-neutral-bg border-sf-neutral' };
     case 'overdue':
-      return { label: 'متأخرة السداد', color: 'text-rose-400', bg: 'bg-rose-500/10 border-rose-500/30' };
+      return { label: 'متأخرة السداد', color: 'text-sf-danger', bg: 'bg-sf-danger-bg border-sf-danger' };
     case 'cancelled':
-      return { label: 'ملغاة', color: 'text-slate-500', bg: 'bg-slate-800/60 border-slate-800' };
+      return { label: 'ملغاة', color: 'text-sf-neutral', bg: 'bg-sf-neutral-bg border-sf-neutral' };
     case 'void':
-      return { label: 'باطلة (ملغاة)', color: 'text-slate-400', bg: 'bg-slate-800/80 border-slate-700' };
+      return { label: 'باطلة (ملغاة)', color: 'text-sf-neutral', bg: 'bg-sf-neutral-bg border-sf-neutral' };
     default:
-      return { label: status, color: 'text-slate-400', bg: 'bg-slate-800 border-slate-700' };
+      return { label: status, color: 'text-sf-neutral', bg: 'bg-sf-neutral-bg border-sf-neutral' };
   }
 }
 

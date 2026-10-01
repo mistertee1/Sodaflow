@@ -1,0 +1,224 @@
+{
+  "name": "SudaFlow",
+  "version": "0.1.0",
+  "status": {
+    "light": {
+      "neutral": {
+        "foreground": "#52656B",
+        "background": "#EDF2F0"
+      },
+      "info": {
+        "foreground": "#185A9D",
+        "background": "#EBF3FC"
+      },
+      "success": {
+        "foreground": "#166534",
+        "background": "#EAF6EF"
+      },
+      "warning": {
+        "foreground": "#92400E",
+        "background": "#FFF4DC"
+      },
+      "danger": {
+        "foreground": "#B42318",
+        "background": "#FDEDEB"
+      }
+    },
+    "dark": {
+      "neutral": {
+        "foreground": "#C8D6DA",
+        "background": "#233A43"
+      },
+      "info": {
+        "foreground": "#A6D0FA",
+        "background": "#16374F"
+      },
+      "success": {
+        "foreground": "#85DFAB",
+        "background": "#16392B"
+      },
+      "warning": {
+        "foreground": "#F2D08A",
+        "background": "#3B301B"
+      },
+      "danger": {
+        "foreground": "#FFA69E",
+        "background": "#442522"
+      }
+    }
+  },
+  "naming": {
+    "ar": "سودافلو",
+    "en": "SudaFlow",
+    "taglineAr": "شغلك أوضح.",
+    "taglineEn": "Clarity for your business."
+  },
+  "primitive": {
+    "color": {
+      "ink": "#142C35",
+      "flow": "#087F75",
+      "flowHover": "#06675F",
+      "mint": "#C5F0E3",
+      "sand": "#F3E9D2",
+      "white": "#FFFFFF",
+      "canvas": "#F7F9F8"
+    },
+    "fontFamily": "IBM Plex Sans Arabic",
+    "fontWeight": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600
+    },
+    "space": [
+      4,
+      8,
+      12,
+      16,
+      24,
+      32,
+      48
+    ],
+    "radius": {
+      "control": 8,
+      "card": 12,
+      "dialog": 16
+    },
+    "type": {
+      "display": {
+        "size": 32,
+        "lineHeight": 40,
+        "weight": 600
+      },
+      "heading1": {
+        "size": 24,
+        "lineHeight": 32,
+        "weight": 600
+      },
+      "heading2": {
+        "size": 20,
+        "lineHeight": 28,
+        "weight": 600
+      },
+      "body": {
+        "size": 16,
+        "lineHeight": 26,
+        "weight": 400
+      },
+      "table": {
+        "size": 14,
+        "lineHeight": 22,
+        "weight": 400
+      },
+      "helper": {
+        "size": 12,
+        "lineHeight": 20,
+        "weight": 400
+      }
+    },
+    "motion": {
+      "stateMs": 120,
+      "panelMs": 180,
+      "easing": "cubic-bezier(0.2,0,0,1)",
+      "reducedMotionMs": 0
+    }
+  },
+  "theme": {
+    "light": {
+      "canvas": "#F7F9F8",
+      "surface": "#FFFFFF",
+      "surfaceRaised": "#EDF3F0",
+      "text": "#142C35",
+      "textMuted": "#52656B",
+      "border": "#D9E4DF",
+      "controlBorder": "#73858B",
+      "action": "#087F75",
+      "actionHover": "#06675F",
+      "onAction": "#FFFFFF",
+      "focus": "#087F75",
+      "selectedBackground": "#E5F4EF",
+      "selectedText": "#06675F",
+      "disabledBackground": "#E5ECE8",
+      "disabledText": "#52656B"
+    },
+    "dark": {
+      "canvas": "#101F25",
+      "surface": "#152D35",
+      "surfaceRaised": "#1D3942",
+      "text": "#F1F7F5",
+      "textMuted": "#AEC2C7",
+      "border": "#35515A",
+      "controlBorder": "#8CA6AD",
+      "action": "#6EDFC6",
+      "actionHover": "#95EAD6",
+      "onAction": "#0A262D",
+      "focus": "#6EDFC6",
+      "selectedBackground": "#21483F",
+      "selectedText": "#9DE6D2",
+      "disabledBackground": "#29404A",
+      "disabledText": "#AEC2C7"
+    }
+  },
+  "invoiceStatus": {
+    "draft": {
+      "labelAr": "مسودة",
+      "semantic": "neutral"
+    },
+    "sent": {
+      "labelAr": "مرسلة",
+      "semantic": "info"
+    },
+    "partially_paid": {
+      "labelAr": "مسددة جزئياً",
+      "semantic": "warning"
+    },
+    "paid": {
+      "labelAr": "مسددة",
+      "semantic": "success"
+    },
+    "overdue": {
+      "labelAr": "متأخرة",
+      "semantic": "danger"
+    },
+    "cancelled": {
+      "labelAr": "ملغاة",
+      "semantic": "neutral"
+    },
+    "void": {
+      "labelAr": "مبطلة",
+      "semantic": "neutral"
+    }
+  },
+  "layout": {
+    "baseUnit": 4,
+    "maxContent": 1280,
+    "desktop": {
+      "minWidth": 1024,
+      "columns": 12,
+      "gutter": 24,
+      "margin": 24
+    },
+    "tablet": {
+      "minWidth": 768,
+      "maxWidth": 1023,
+      "columns": 8,
+      "gutter": 24,
+      "margin": 24
+    },
+    "mobile": {
+      "maxWidth": 767,
+      "columns": 4,
+      "gutter": 16,
+      "margin": 16
+    }
+  },
+  "component": {
+    "controlHeight": 44,
+    "touchTarget": 44,
+    "tableRowDefault": 48,
+    "tableRowCompact": 40,
+    "focusWidth": 2,
+    "focusOffset": 2,
+    "iconSize": 20,
+    "iconStroke": 2
+  }
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useApp } from '../context/AppContext';
 import {
   LayoutDashboard,
   FileText,
@@ -19,6 +20,7 @@ interface BottomNavProps {
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab, onChangeTab }) => {
+  const { isActionAllowed } = useApp();
   const handleSelect = (tabId: TabType) => {
     if (onSelectTab) onSelectTab(tabId);
     if (onChangeTab) onChangeTab(tabId);
@@ -34,9 +36,9 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab, on
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0c0c0f]/95 border-t border-[#1e1e24] py-2 px-2 sm:px-6 shadow-2xl backdrop-blur-md">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-sf-surface/95 border-t border-sf-border py-2 px-2 sm:px-6 shadow-2xl backdrop-blur-md">
       <div className="max-w-6xl mx-auto flex items-center justify-around">
-        {tabs.map((tab) => {
+        {tabs.filter(tab => tab.id !== 'expenses' && tab.id !== 'accounting' || isActionAllowed(tab.id === 'expenses' ? 'expenses:read' : 'journal:read')).map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
@@ -46,11 +48,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onSelectTab, on
               onClick={() => handleSelect(tab.id)}
               className={`flex flex-col items-center gap-1 px-2.5 sm:px-4 py-1.5 rounded-xl transition-all text-xs ${
                 isActive
-                  ? 'text-emerald-400 bg-emerald-950/70 border border-emerald-700/50 font-black shadow-sm'
-                  : 'text-slate-400 hover:text-white hover:bg-[#16161f] border border-transparent font-medium'
+                  ? 'text-sf-action bg-sf-selected/70 border border-sf-action/50 font-black shadow-sm'
+                  : 'text-sf-muted hover:text-sf-text hover:bg-sf-raised border border-transparent font-medium'
               }`}
             >
-              <Icon className={`w-5 h-5 ${isActive ? 'text-emerald-400' : 'text-slate-400'}`} />
+              <Icon className={`w-5 h-5 ${isActive ? 'text-sf-action' : 'text-sf-muted'}`} />
               <span className="text-[11px] whitespace-nowrap">{tab.label}</span>
             </button>
           );

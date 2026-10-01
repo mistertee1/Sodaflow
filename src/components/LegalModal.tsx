@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   X,
   ShieldCheck,
@@ -15,8 +15,7 @@ import {
   MessageSquare,
   Sparkles,
 } from 'lucide-react';
-import { db } from '../lib/firebase';
-import { collection, addDoc } from 'firebase/firestore';
+
 
 export type LegalTab = 'privacy' | 'terms' | 'about' | 'contact';
 
@@ -34,6 +33,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
   const [activeTab, setActiveTab] = useState<LegalTab>(initialTab);
 
   // Contact Form State
+  const contactKey = useRef(crypto.randomUUID());
+  const contactLock = useRef(false);
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactSubject, setContactSubject] = useState('دعم فني واستفسارات');
@@ -55,6 +56,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (contactLock.current) return;
+    contactLock.current = true;
     setIsSubmitting(true);
     setSubmitError(null);
 
@@ -63,61 +66,64 @@ export const LegalModal: React.FC<LegalModalProps> = ({
         throw new Error('يرجى ملء كافة الحقول الإلزامية.');
       }
 
-      await addDoc(collection(db, 'contact_messages'), {
+      const response = await fetch('/api/contact-messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        operationId: contactKey.current,
         name: contactName.trim(),
         email: contactEmail.trim(),
         subject: contactSubject,
         message: contactMessage.trim(),
-        created_at: new Date().toISOString(),
-      });
+      }) });
+      const result = await response.json();
+      if (!response.ok || !result.saved) throw new Error(result.error || 'تعذر تأكيد استلام الرسالة.');
 
       setSubmitSuccess(true);
       setContactMessage('');
+      contactKey.current = crypto.randomUUID();
     } catch (err: any) {
-      console.error('Contact submission error:', err);
-      // Even if Firestore network fails, provide graceful notification
-      setSubmitSuccess(true);
+      setSubmitSuccess(false);
+      setSubmitError(err.message || 'تعذر حفظ الرسالة. أعد المحاولة.');
     } finally {
+      contactLock.current = false;
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-[#050505]/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl bg-[#0c0c11] border border-[#20202d] shadow-2xl overflow-hidden text-right text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-sf-canvas/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl bg-sf-surface border border-sf-border shadow-2xl overflow-hidden text-right text-sf-text">
         
         {/* Header with Navigation Tabs */}
-        <div className="flex flex-col sm:flex-row items-center justify-between border-b border-[#1e1e28] bg-[#101017] px-5 py-4 gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between border-b border-sf-border bg-sf-raised px-5 py-4 gap-3">
           <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
             <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl bg-sf-action/10 border border-sf-action/30 text-sf-action flex items-center justify-center">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm sm:text-base font-black text-white">
+                <h3 className="text-sm sm:text-base font-black text-sf-text">
                   مركز الشفافية والمعلومات القانونية
                 </h3>
-                <p className="text-[11px] text-slate-400">نظام التاجر السوداني (حسابك - mohasbasd)</p>
+                <p className="text-[11px] text-sf-muted">سودافلو | SudaFlow</p>
               </div>
             </div>
 
             <button
               onClick={onClose}
-              className="sm:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a1a24] transition-colors"
+              className="sm:hidden p-1.5 rounded-lg text-sf-muted hover:text-sf-text hover:bg-sf-raised transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Navigation Pills */}
-          <div className="flex items-center gap-1 bg-[#161622] p-1 rounded-xl border border-[#232333] overflow-x-auto w-full sm:w-auto">
+          <div className="flex items-center gap-1 bg-sf-raised p-1 rounded-xl border border-sf-border overflow-x-auto w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setActiveTab('privacy')}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'privacy'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-sf-action text-sf-on-action shadow-sm'
+                  : 'text-sf-muted hover:text-sf-text'
               }`}
             >
               سياسة الخصوصية
@@ -127,8 +133,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               onClick={() => setActiveTab('terms')}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'terms'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-sf-action text-sf-on-action shadow-sm'
+                  : 'text-sf-muted hover:text-sf-text'
               }`}
             >
               شروط الاستخدام
@@ -138,8 +144,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               onClick={() => setActiveTab('about')}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'about'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-sf-action text-sf-on-action shadow-sm'
+                  : 'text-sf-muted hover:text-sf-text'
               }`}
             >
               من نحن
@@ -149,8 +155,8 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               onClick={() => setActiveTab('contact')}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all whitespace-nowrap ${
                 activeTab === 'contact'
-                  ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-sf-action text-sf-on-action shadow-sm'
+                  : 'text-sf-muted hover:text-sf-text'
               }`}
             >
               اتصل بنا
@@ -159,90 +165,68 @@ export const LegalModal: React.FC<LegalModalProps> = ({
 
           <button
             onClick={onClose}
-            className="hidden sm:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#1a1a24] transition-colors"
+            className="hidden sm:inline-flex p-1.5 rounded-lg text-sf-muted hover:text-sf-text hover:bg-sf-raised transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6 text-sm text-slate-300 leading-relaxed">
+        <div className="flex-1 overflow-y-auto p-5 sm:p-8 space-y-6 text-sm text-sf-text leading-relaxed">
           
           {/* TAB 1: PRIVACY POLICY */}
           {activeTab === 'privacy' && (
             <div className="space-y-6">
-              <div className="border-b border-[#1e1e28] pb-4">
-                <span className="text-[11px] font-mono text-emerald-400 font-bold">آخر تحديث: سبتمبر 2026</span>
-                <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
+              <div className="border-b border-sf-border pb-4">
+                <span className="text-[11px] font-mono text-sf-action font-bold">آخر تحديث: سبتمبر 2026</span>
+                <h2 className="text-xl sm:text-2xl font-black text-sf-text mt-1">
                   سياسة الخصوصية وحماية البيانات (Privacy Policy)
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  نلتزم في منصة التاجر السوداني (حسابك) بحماية خصوصية بياناتك المالية ومعلومات متجرك وعملائك.
+                <p className="text-xs text-sf-muted mt-1">
+                  نلتزم في منصة سودافلو بحماية خصوصية بياناتك المالية ومعلومات متجرك وعملائك.
                 </p>
               </div>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-white text-base flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-emerald-400" />
+                <h3 className="font-bold text-sf-text text-base flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-sf-action" />
                   <span>1. المعلومات التي نجمعها</span>
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-300">
-                  عند استخدامك لمنظومة التاجر السوداني، نقوم بجمع وتخزين البيانات الضرورية لتشغيل حسابك التجاري وإصدار الفواتير، وتشمل:
+                <p className="text-xs sm:text-sm text-sf-text">
+                  عند استخدامك لسودافلو، نقوم بجمع وتخزين البيانات الضرورية لتشغيل حسابك التجاري وإصدار الفواتير، وتشمل:
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-xs text-slate-400 pr-2">
+                <ul className="list-disc list-inside space-y-1 text-xs text-sf-muted pr-2">
                   <li>بيانات الحساب: البريد الإلكتروني، رقم الهاتف، واسم التاجر والمتجر.</li>
                   <li>بيانات الفواتير والعمليات المالية: الأصناف، الأسعار، سعر الصرف المجمّد، وتواريخ الإصدار.</li>
                   <li>بيانات العملاء والمخزون المسجلة من قبلك لتسهيل إرسال إشعارات ومطالبات واتساب.</li>
                 </ul>
               </section>
 
-              <section className="space-y-2 bg-[#121219] p-4 rounded-2xl border border-[#1e1e29]">
-                <h3 className="font-bold text-white text-base flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-emerald-400" />
-                  <span>2. ملفات تعريف الارتباط وإعلانات Google AdSense</span>
-                </h3>
-                <p className="text-xs text-slate-300">
-                  تستخدم منصتنا خدمات إعلانية يقدمها طرف ثالث وهو شركة Google (Google AdSense):
+              <section className="space-y-2 bg-sf-raised p-4 rounded-2xl border border-sf-border">
+                <h3 className="font-bold text-sf-text text-base">2. التخزين المحلي والجلسة</h3>
+                <p className="text-xs text-sf-text">
+                  نستخدم تخزين المتصفح لحفظ تفضيل السمة وجلسة تسجيل الدخول. بيانات وضع الضيف محفوظة على هذا الجهاز. لا توجد خدمة إعلانات أو تحليلات مفعّلة في هذا الإصدار.
                 </p>
-                <ul className="list-disc list-inside space-y-1.5 text-xs text-slate-400 pr-2">
-                  <li>
-                    تستخدم Google كطرف خارجي ملفات تعريف الارتباط (Cookies) مثل ملف تعريف الارتباط DoubleClick لعرض الإعلانات على موقعنا وتطبيقاتنا بناءً على زيارات المستخدمين السابقة.
-                  </li>
-                  <li>
-                    تتيح ملفات تعريف الارتباط لـ Google وشركائها عرض إعلانات للمستخدمين بحسب اهتماماتهم عبر الإنترنت.
-                  </li>
-                  <li>
-                    يمكنك كزائر أو تاجر تعطيل استخدام ملف تعريف الارتباط المخصص للإعلانات المستهدفة من خلال زيارة صفحة{' '}
-                    <a
-                      href="https://www.google.com/settings/ads"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-emerald-400 hover:underline font-bold"
-                    >
-                      إعدادات إعلانات Google (Google Ads Settings)
-                    </a>.
-                  </li>
-                </ul>
               </section>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-white text-base flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <h3 className="font-bold text-sf-text text-base flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-sf-action" />
                   <span>3. حماية البيانات والتشفير السحابي</span>
                 </h3>
-                <p className="text-xs sm:text-sm text-slate-300">
-                  تُخزن كافة بيانات الفواتير والمخزون وحساباتك عبر خوادم Google Cloud و Firebase Firestore المحمية بقواعد أمان صارمة. لا يمكن لأي مستخدم آخر أو تاجر الاطلاع على بيانات فواتيرك، حيث يتم فرض سياسة العزل الأمني المشفر وفق رمز المعرّف الفريد للتاجر (<code className="text-emerald-400 font-mono">auth.uid</code>).
+                <p className="text-xs sm:text-sm text-sf-text">
+                  في الحساب السحابي تُخزن البيانات في Firebase، ويُسمح بالوصول وفق عضوية المؤسسة ودور المستخدم. بيانات وضع الضيف تُحفظ محلياً؛ احتفظ بنسخة احتياطية قبل تغيير الجهاز أو مسح بيانات المتصفح.
                 </p>
               </section>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-white text-base flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-emerald-400" />
+                <h3 className="font-bold text-sf-text text-base flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-sf-action" />
                   <span>4. حقوقك والتواصل بشأن الخصوصية</span>
                 </h3>
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-sf-text">
                   لك كامل الحق في طلب نسخة احتياطية من كافة بياناتك (JSON Export)، أو تعديل بياناتك، أو طلب حذف حسابك نهائياً من قاعدة البيانات السحابية عبر مراسلتنا على{' '}
-                  <span className="font-mono text-emerald-400 font-semibold">elmuktafibellah@gmail.com</span>.
+                  <span className="font-mono text-sf-action font-semibold">elmuktafibellah@gmail.com</span>.
                 </p>
               </section>
             </div>
@@ -251,44 +235,44 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           {/* TAB 2: TERMS OF SERVICE */}
           {activeTab === 'terms' && (
             <div className="space-y-6">
-              <div className="border-b border-[#1e1e28] pb-4">
-                <span className="text-[11px] font-mono text-emerald-400 font-bold">شروط وأحكام الاستخدام</span>
-                <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
+              <div className="border-b border-sf-border pb-4">
+                <span className="text-[11px] font-mono text-sf-action font-bold">شروط وأحكام الاستخدام</span>
+                <h2 className="text-xl sm:text-2xl font-black text-sf-text mt-1">
                   اتفاقية شروط الخدمة (Terms of Service)
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
-                  باستخدامك لتطبيق التاجر السوداني، فإنك توافق على الالتزام بالأحكام والشروط التالية.
+                <p className="text-xs text-sf-muted mt-1">
+                  باستخدامك لسودافلو، فإنك توافق على الالتزام بالأحكام والشروط التالية.
                 </p>
               </div>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-white text-base">1. طبيعة الخدمة ونطاقها</h3>
-                <p className="text-xs sm:text-sm text-slate-300">
-                  تطبيق التاجر السوداني (حسابك) هو نظام لإصدار الفواتير المزدوجة (جنيه سوداني / دولار أمريكي)، ومتابعة المخزون، وسندات التحصيل المالي. صُمم التطبيق ليلائم متطلبات أصحاب الأعمال والمحلات والشركات الناشئة في السوق السوداني.
+                <h3 className="font-bold text-sf-text text-base">1. طبيعة الخدمة ونطاقها</h3>
+                <p className="text-xs sm:text-sm text-sf-text">
+                  سودافلو هو نظام لإصدار الفواتير المزدوجة (جنيه سوداني / دولار أمريكي)، ومتابعة المخزون، وسندات التحصيل المالي. صُمم التطبيق ليلائم متطلبات أصحاب الأعمال والمحلات والشركات الناشئة في السوق السوداني.
                 </p>
               </section>
 
-              <section className="space-y-2 bg-[#121219] p-4 rounded-2xl border border-[#1e1e29]">
-                <h3 className="font-bold text-white text-base">2. تجميد سعر الصرف ومسؤولية الأسعار</h3>
-                <p className="text-xs sm:text-sm text-slate-300">
+              <section className="space-y-2 bg-sf-raised p-4 rounded-2xl border border-sf-border">
+                <h3 className="font-bold text-sf-text text-base">2. تجميد سعر الصرف ومسؤولية الأسعار</h3>
+                <p className="text-xs sm:text-sm text-sf-text">
                   يوفر التطبيق ميزة حصرية تتيح للتاجر تجميد سعر صرف الدولار اليومي في السوق الموازي عند لحظة تحرير الفاتورة لمنع أي تضارب مالي عند التحصيل اللاحق:
                 </p>
-                <ul className="list-disc list-inside space-y-1 text-xs text-slate-400 pr-2">
+                <ul className="list-disc list-inside space-y-1 text-xs text-sf-muted pr-2">
                   <li>يتحمل التاجر وحده المسؤولية الكاملة عن دقة سعر الصرف المدخل ومبالغ البنود.</li>
                   <li>لا يقدم التطبيق أسعار صرف ملزمة قانونياً أو جهة مصرفية رسمية، وإنما يعتمد على الإدخال اليدوي المحدد من قبل التاجر نفسه.</li>
                 </ul>
               </section>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-white text-base">3. أمن الحساب والاحتفاظ بنسخ احتياطية</h3>
-                <p className="text-xs sm:text-sm text-slate-300">
+                <h3 className="font-bold text-sf-text text-base">3. أمن الحساب والاحتفاظ بنسخ احتياطية</h3>
+                <p className="text-xs sm:text-sm text-sf-text">
                   يلتزم المستخدم بالحفاظ على سرية كلمة المرور الخاصة بحسابه. على الرغم من أن النظام يعتمد البنية التحتية السحابية الموثوقة لـ Google Cloud، إلا أننا ننصح التجار بتصدير ملف النسخة الاحتياطية (JSON) دورياً من نافذة الإعدادات لضمان التوافر الدائم لبياناتهم دون اتصال.
                 </p>
               </section>
 
               <section className="space-y-2">
-                <h3 className="font-bold text-white text-base">4. التعديلات على شروط الخدمة</h3>
-                <p className="text-xs sm:text-sm text-slate-300">
+                <h3 className="font-bold text-sf-text text-base">4. التعديلات على شروط الخدمة</h3>
+                <p className="text-xs sm:text-sm text-sf-text">
                   يحق لنا تحديث شروط الخدمة لتعزيز الأمان أو لمطابقة المتطلبات القانونية أو التقنية، وسيتم إخطار المستخدمين بأي تغييرات جوهرية داخل التطبيق.
                 </p>
               </section>
@@ -298,51 +282,51 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           {/* TAB 3: ABOUT US */}
           {activeTab === 'about' && (
             <div className="space-y-6">
-              <div className="border-b border-[#1e1e28] pb-4">
-                <span className="text-[11px] font-mono text-emerald-400 font-bold">هويتنا ورؤيتنا</span>
-                <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
-                  عن نظام التاجر السوداني (حسابك - mohasbasd)
+              <div className="border-b border-sf-border pb-4">
+                <span className="text-[11px] font-mono text-sf-action font-bold">هويتنا ورؤيتنا</span>
+                <h2 className="text-xl sm:text-2xl font-black text-sf-text mt-1">
+                  عن سودافلو | SudaFlow
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-sf-muted mt-1">
                   حل تقني متكامل وُلد من قلب السوق والتحديات اليومية للتجارة في السودان.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-[#121219] p-4 rounded-2xl border border-[#1e1e29] space-y-2">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <div className="bg-sf-raised p-4 rounded-2xl border border-sf-border space-y-2">
+                  <div className="w-8 h-8 rounded-lg bg-sf-action/10 text-sf-action flex items-center justify-center">
                     <Sparkles className="w-4 h-4" />
                   </div>
-                  <h3 className="font-bold text-white text-sm">رسالتنا الأساسية</h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <h3 className="font-bold text-sf-text text-sm">رسالتنا الأساسية</h3>
+                  <p className="text-xs text-sf-muted leading-relaxed">
                     تمكين التاجر السوداني من إصدار فواتير بيع احترافية وشفافة، وحماية أرباحه من تقلبات سعر الصرف المتكررة، مع أتمتة حسابات السداد الجزئي وسندات التحصيل عبر تطبيق بنكك وفوري.
                   </p>
                 </div>
 
-                <div className="bg-[#121219] p-4 rounded-2xl border border-[#1e1e29] space-y-2">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                <div className="bg-sf-raised p-4 rounded-2xl border border-sf-border space-y-2">
+                  <div className="w-8 h-8 rounded-lg bg-sf-action/10 text-sf-action flex items-center justify-center">
                     <Building2 className="w-4 h-4" />
                   </div>
-                  <h3 className="font-bold text-white text-sm">التوافق مع السوق المحلي</h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <h3 className="font-bold text-sf-text text-sm">التوافق مع السوق المحلي</h3>
+                  <p className="text-xs text-sf-muted leading-relaxed">
                     صُمم النظام ليعمل بكفاءة فائقة على الهواتف الذكية والأجهزة اللوحية وأجهزة الحاسوب، مع دعم العمل دون اتصال بالإنترنت وحفظ محلي فوري قبل المزامنة السحابية.
                   </p>
                 </div>
               </div>
 
               <div className="space-y-3 pt-2">
-                <h3 className="font-bold text-white text-base">أبرز ما يميز المنظومة:</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-300">
-                  <div className="p-3 bg-[#0f0f15] rounded-xl border border-[#1e1e28]">
-                    <span className="font-bold text-emerald-400 block mb-1">تسعير مجمّد</span>
+                <h3 className="font-bold text-sf-text text-base">أبرز ما يميز المنظومة:</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-sf-text">
+                  <div className="p-3 bg-sf-surface rounded-xl border border-sf-border">
+                    <span className="font-bold text-sf-action block mb-1">تسعير مجمّد</span>
                     تثبيت سعر صرف الدولار للفاتورة لضمان عدم حدوث خلاف بين البائع والمشتري.
                   </div>
-                  <div className="p-3 bg-[#0f0f15] rounded-xl border border-[#1e1e28]">
-                    <span className="font-bold text-emerald-400 block mb-1">لوقو وهوية مخصصة</span>
+                  <div className="p-3 bg-sf-surface rounded-xl border border-sf-border">
+                    <span className="font-bold text-sf-action block mb-1">لوقو وهوية مخصصة</span>
                     إمكانية رفع لوقو متجرك ليظهر مباشرة في فواتير البيع وسندات القبض المطبوعة.
                   </div>
-                  <div className="p-3 bg-[#0f0f15] rounded-xl border border-[#1e1e28]">
-                    <span className="font-bold text-emerald-400 block mb-1">مشاركة واتساب</span>
+                  <div className="p-3 bg-sf-surface rounded-xl border border-sf-border">
+                    <span className="font-bold text-sf-action block mb-1">مشاركة واتساب</span>
                     إرسال الفواتير وسندات القبض وتذكيرات المطالبة بضغطة زر مباشرة عبر واتساب.
                   </div>
                 </div>
@@ -353,12 +337,12 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           {/* TAB 4: CONTACT US */}
           {activeTab === 'contact' && (
             <div className="space-y-6">
-              <div className="border-b border-[#1e1e28] pb-4">
-                <span className="text-[11px] font-mono text-emerald-400 font-bold">فريق الدعم الفني</span>
-                <h2 className="text-xl sm:text-2xl font-black text-white mt-1">
+              <div className="border-b border-sf-border pb-4">
+                <span className="text-[11px] font-mono text-sf-action font-bold">فريق الدعم الفني</span>
+                <h2 className="text-xl sm:text-2xl font-black text-sf-text mt-1">
                   اتصل بنا والدعم المباشر (Contact Us)
                 </h2>
-                <p className="text-xs text-slate-400 mt-1">
+                <p className="text-xs text-sf-muted mt-1">
                   يسعدنا تلقي اقتراحاتكم واستفساراتكم، والرد على طلبات الدعم والشراكات الإعلانية.
                 </p>
               </div>
@@ -367,41 +351,41 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                 
                 {/* Contact Info Cards (Left / 5 Cols) */}
                 <div className="md:col-span-5 space-y-3">
-                  <div className="bg-[#121219] p-4 rounded-2xl border border-[#1e1e29] space-y-3">
-                    <h3 className="font-bold text-white text-xs text-emerald-400 uppercase tracking-wider">
+                  <div className="bg-sf-raised p-4 rounded-2xl border border-sf-border space-y-3">
+                    <h3 className="font-bold text-sf-text text-xs text-sf-action uppercase tracking-wider">
                       معلومات التواصل المباشرة
                     </h3>
 
                     <div className="space-y-3 text-xs">
-                      <div className="flex items-start gap-3 text-slate-300">
-                        <Mail className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="flex items-start gap-3 text-sf-text">
+                        <Mail className="w-4 h-4 text-sf-action shrink-0 mt-0.5" />
                         <div>
-                          <span className="block text-slate-500 text-[11px]">البريد الإلكتروني المعتمد:</span>
-                          <span className="font-mono text-white font-semibold select-all">
+                          <span className="block text-sf-muted text-[11px]">البريد الإلكتروني المعتمد:</span>
+                          <span className="font-mono text-sf-text font-semibold select-all">
                             elmuktafibellah@gmail.com
                           </span>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 text-slate-300">
-                        <MessageSquare className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="flex items-start gap-3 text-sf-text">
+                        <MessageSquare className="w-4 h-4 text-sf-action shrink-0 mt-0.5" />
                         <div>
-                          <span className="block text-slate-500 text-[11px]">الدعم الفني واستفسارات التجار:</span>
-                          <span className="text-white font-semibold">متاح طوال أيام الأسبوع</span>
+                          <span className="block text-sf-muted text-[11px]">الدعم الفني واستفسارات التجار:</span>
+                          <span className="text-sf-text font-semibold">متاح طوال أيام الأسبوع</span>
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-3 text-slate-300">
-                        <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <div className="flex items-start gap-3 text-sf-text">
+                        <ShieldCheck className="w-4 h-4 text-sf-action shrink-0 mt-0.5" />
                         <div>
-                          <span className="block text-slate-500 text-[11px]">الإعلانات والشراكات (AdSense):</span>
-                          <span className="text-white font-semibold">استفسارات الشراكات والمساحات المتاحة</span>
+                          <span className="block text-sf-muted text-[11px]">الإعلانات والشراكات (AdSense):</span>
+                          <span className="text-sf-text font-semibold">استفسارات الشراكات والمساحات المتاحة</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-emerald-950/40 p-4 rounded-2xl border border-emerald-800/40 text-xs text-emerald-300">
+                  <div className="bg-sf-selected/40 p-4 rounded-2xl border border-sf-action/40 text-xs text-sf-action">
                     <span className="font-bold block mb-1">ملاحظة للتجار:</span>
                     يمكنكم إرسال مقترحاتكم بشأن إضافة ميزات خاصة بمتاجركم، أو المساعدة في ضبط إعدادات الحساب السحابي.
                   </div>
@@ -409,54 +393,54 @@ export const LegalModal: React.FC<LegalModalProps> = ({
 
                 {/* Contact Form (Right / 7 Cols) */}
                 <div className="md:col-span-7">
-                  <div className="bg-[#121219] p-5 rounded-2xl border border-[#1e1e29]">
-                    <h3 className="font-bold text-white text-sm mb-4">إرسال رسالة مباشرة إلى الإدارة</h3>
+                  <div className="bg-sf-raised p-5 rounded-2xl border border-sf-border">
+                    <h3 className="font-bold text-sf-text text-sm mb-4">إرسال رسالة مباشرة إلى الإدارة</h3>
 
                     {submitSuccess && (
-                      <div className="mb-4 p-3 bg-emerald-950/80 border border-emerald-600/50 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div className="mb-4 p-3 bg-sf-selected/80 border border-sf-action/50 rounded-xl text-xs text-sf-action flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-sf-action shrink-0" />
                         <span>تم استلام رسالتك بنجاح! سنقوم بالرد عليك في أقرب وقت عبر البريد الإلكتروني.</span>
                       </div>
                     )}
 
                     {submitError && (
-                      <div className="mb-4 p-3 bg-rose-950/80 border border-rose-600/50 rounded-xl text-xs text-rose-300 flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                      <div className="mb-4 p-3 bg-sf-danger-bg/80 border border-sf-danger/50 rounded-xl text-xs text-sf-danger flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-sf-danger shrink-0" />
                         <span>{submitError}</span>
                       </div>
                     )}
 
                     <form onSubmit={handleContactSubmit} className="space-y-3.5">
                       <div>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">الاسم الكامل *</label>
+                        <label className="block text-xs font-semibold text-sf-text mb-1">الاسم الكامل *</label>
                         <input
                           type="text"
                           required
                           value={contactName}
                           onChange={(e) => setContactName(e.target.value)}
                           placeholder="مثال: أحمد عبد الله"
-                          className="w-full bg-[#171722] border border-[#262638] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">البريد الإلكتروني *</label>
+                        <label className="block text-xs font-semibold text-sf-text mb-1">البريد الإلكتروني *</label>
                         <input
                           type="email"
                           required
                           value={contactEmail}
                           onChange={(e) => setContactEmail(e.target.value)}
                           placeholder="your-email@example.com"
-                          className="w-full bg-[#171722] border border-[#262638] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono text-left"
+                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action font-mono text-left"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">موضوع الرسالة</label>
+                        <label className="block text-xs font-semibold text-sf-text mb-1">موضوع الرسالة</label>
                         <select
                           value={contactSubject}
                           onChange={(e) => setContactSubject(e.target.value)}
-                          className="w-full bg-[#171722] border border-[#262638] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text focus:outline-none focus:border-sf-action"
                         >
                           <option value="دعم فني واستفسارات">دعم فني واستفسارات عن التطبيق</option>
                           <option value="اقتراح ميزة جديدة">اقتراح ميزة أو تحسين جديد</option>
@@ -466,21 +450,21 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-slate-300 mb-1">تفاصيل الرسالة *</label>
+                        <label className="block text-xs font-semibold text-sf-text mb-1">تفاصيل الرسالة *</label>
                         <textarea
                           required
                           rows={4}
                           value={contactMessage}
                           onChange={(e) => setContactMessage(e.target.value)}
                           placeholder="اكتب استفسارك أو اقتراحك هنا وسيسعدنا الرد عليك..."
-                          className="w-full bg-[#171722] border border-[#262638] rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 leading-relaxed"
+                          className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-slate-500 focus:outline-none focus:border-sf-action leading-relaxed"
                         />
                       </div>
 
                       <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-50 active:scale-98"
+                        className="w-full bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-sf-action/20 transition-all disabled:opacity-50 active:scale-98"
                       >
                         <Send className="w-3.5 h-3.5" />
                         <span>{isSubmitting ? 'جاري الإرسال...' : 'إرسال الرسالة الآن'}</span>
@@ -496,15 +480,15 @@ export const LegalModal: React.FC<LegalModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-between border-t border-[#1e1e28] bg-[#0c0c11] px-5 py-3 text-xs text-slate-500">
+        <div className="flex items-center justify-between border-t border-sf-border bg-sf-surface px-5 py-3 text-xs text-sf-muted">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span>نظام التاجر السوداني — متوافق مع سياسات Google AdSense وحماية البيانات</span>
+            <span className="w-2 h-2 rounded-full bg-sf-action"></span>
+            <span>سودافلو | SudaFlow — شغلك أوضح.</span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-[#171722] hover:bg-[#20202e] text-slate-300 border border-[#252535] text-xs font-semibold transition-colors"
+            className="px-4 py-1.5 rounded-xl bg-sf-raised hover:bg-sf-raised text-sf-text border border-sf-border text-xs font-semibold transition-colors"
           >
             إغلاق
           </button>

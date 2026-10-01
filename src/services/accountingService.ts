@@ -24,6 +24,7 @@ import {
   validateExchangeRate,
   applyRounding,
 } from '../lib/currency';
+import { validateJournal } from '../domain/validation';
 
 /**
  * Standard Chart of Accounts tailored for Sudanese merchants and businesses
@@ -31,6 +32,7 @@ import {
 export const getDefaultChartOfAccounts = (orgId: string): Account[] => {
   const now = new Date().toISOString();
   return [
+    { code: '2130', name_ar: 'ضريبة المبيعات المستحقة', name_en: 'Sales Tax Payable', type: 'LIABILITY', nature: 'CREDIT', is_system: true, is_active: true, balance_sdg: 0, balance_usd: 0, org_id: orgId, created_at: now },
     // 1000s: الأصول (ASSETS)
     {
       code: '1110',
@@ -405,274 +407,10 @@ export const getAccountCodeForExpenseCategory = (category: string): string => {
  * Validate that a journal entry's debits equal its credits within floating tolerance
  */
 export const validateJournalEntryBalance = (lines: JournalEntryLine[]): { isValid: boolean; diffSdg: number; diffUsd: number } => {
-  const totalDebitSdg = lines.reduce((sum, l) => sum + (l.debit_sdg || 0), 0);
-  const totalCreditSdg = lines.reduce((sum, l) => sum + (l.credit_sdg || 0), 0);
-  const totalDebitUsd = lines.reduce((sum, l) => sum + (l.debit_usd || 0), 0);
-  const totalCreditUsd = lines.reduce((sum, l) => sum + (l.credit_usd || 0), 0);
-
-  const diffSdg = Math.abs(totalDebitSdg - totalCreditSdg);
-  const diffUsd = Math.abs(totalDebitUsd - totalCreditUsd);
-
-  return {
-    isValid: diffSdg < 1.0 && diffUsd < 0.05,
-    diffSdg,
-    diffUsd,
-  };
-};
-
-/**
- * Automatically generate a double-entry Journal Voucher for an Invoice
- */
-export const generateInvoiceJournalEntry = (
-  invoice: Invoice,
-  orgId: string,
-  actorUid?: string
-): JournalEntry => {
-  const now = new Date().toISOString();
-  const entryId = `jv-inv-${invoice.id}`;
-  const grandSdg = invoice.grand_total_sdg;
-  const grandUsd = invoice.grand_total_usd;
-  const paidSdg = invoice.paid_amount_sdg || 0;
-  const paidUsd = invoice.paid_amount_usd || 0;
-  // Calculate remaining with exact subtraction to guarantee debit == credit
-  const remainingSdg = safeSub(grandSdg, paidSdg, 0);
-  const remainingUsd = safeSub(grandUsd, paidUsd, 2);
-
-  const lines: JournalEntryLine[] = [];
-
-  // 1. If there is a paid portion at issue time
-  if (paidSdg > 0 || paidUsd > 0) {
-    const cashAccountCode = getAccountCodeForPaymentMethod('cash', 'SDG');
-    lines.push({
-      id: `line-${Date.now()}-1`,
-      account_code: cashAccountCode,
-      account_name: 'النقدية بالخزينة - دفع فوري',
-      debit_sdg: paidSdg,
-      credit_sdg: 0,
-      debit_usd: paidUsd,
-      credit_usd: 0,
-      notes: `دفعة نقدية مع فاتورة #${invoice.invoice_number}`,
-    });
-  }
-
-  // 2. If there is a remaining debt on customer
-  if (remainingSdg > 0 || remainingUsd > 0) {
-    lines.push({
-      id: `line-${Date.now()}-2`,
-      account_code: '1200',
-      account_name: `المدينون - ${invoice.customer_name}`,
-      debit_sdg: remainingSdg,
-      credit_sdg: 0,
-      debit_usd: remainingUsd,
-      credit_usd: 0,
-      notes: `ذمم بيع آجل فاتورة #${invoice.invoice_number}`,
-    });
-  }
-
-  // 3. Credit Sales Revenue (4100)
-  lines.push({
-    id: `line-${Date.now()}-3`,
-    account_code: '4100',
-    account_name: 'إيرادات مبيعات البضائع',
-    debit_sdg: 0,
-    credit_sdg: grandSdg,
-    debit_usd: 0,
-    credit_usd: grandUsd,
-    notes: `إيراد مبيعات فاتورة #${invoice.invoice_number}`,
-  });
-
-  const totalDebitSdg = lines.reduce((s, l) => safeAdd(s, l.debit_sdg, 0), 0);
-  const totalCreditSdg = lines.reduce((s, l) => safeAdd(s, l.credit_sdg, 0), 0);
-  const totalDebitUsd = lines.reduce((s, l) => safeAdd(s, l.debit_usd, 2), 0);
-  const totalCreditUsd = lines.reduce((s, l) => safeAdd(s, l.credit_usd, 2), 0);
-
-  return {
-    id: entryId,
-    entry_number: `JV-INV-${invoice.invoice_number}`,
-    date: invoice.issue_date || now,
-    reference_type: 'invoice',
-    reference_id: invoice.id,
-    description: `قيد استحقاق مبيعات فاتورة #${invoice.invoice_number} - العميل: ${invoice.customer_name}`,
-    lines,
-    total_debit_sdg: totalDebitSdg,
-    total_credit_sdg: totalCreditSdg,
-    total_debit_usd: totalDebitUsd,
-    total_credit_usd: totalCreditUsd,
-    is_balanced: safeEqual(totalDebitSdg, totalCreditSdg, 0) && safeEqual(totalDebitUsd, totalCreditUsd, 2),
-    exchange_rate_used: invoice.exchange_rate_used,
-    org_id: orgId,
-    created_by: actorUid,
-    created_at: now,
-  };
-};
-
-/**
- * Automatically generate a double-entry Journal Voucher for a Payment Receipt
- */
-export const generatePaymentJournalEntry = (
-  payment: Payment,
-  orgId: string,
-  actorUid?: string,
-  invoiceExchangeRate?: number
-): JournalEntry => {
-  const now = new Date().toISOString();
-  const entryId = `jv-pay-${payment.id}`;
-
-  const assetAccountCode = getAccountCodeForPaymentMethod(payment.payment_method, payment.currency);
-  let assetAccountName = 'النقدية بالخزينة';
-  if (assetAccountCode === '1130') assetAccountName = 'حساب بنكك (بنك الخرطوم)';
-  else if (assetAccountCode === '1140') assetAccountName = 'حساب تطبيق فوري (بنك فيصل)';
-  else if (assetAccountCode === '1120') assetAccountName = 'النقدية بالخزينة - دولار';
-
-  const lines: JournalEntryLine[] = [];
-  let effectiveExchangeRate = payment.exchange_rate_used;
-
-  if (payment.currency === 'USD') {
-    const amountUsd = safeAdd(payment.amount, 0, 2);
-
-    // Validate exchange rate used for receipt
-    const payRateVal = validateExchangeRate(payment.exchange_rate_used || invoiceExchangeRate);
-    if (!payRateVal.isValid || !payRateVal.rate) {
-      throw new Error('تسجيل سند القبض بالدولار يتطلب تحديد سعر صرف صالح.');
-    }
-    const payRate = payRateVal.rate;
-    effectiveExchangeRate = payRate;
-
-    const invRateVal = validateExchangeRate(invoiceExchangeRate || payRate);
-    const invRate = invRateVal.isValid && invRateVal.rate ? invRateVal.rate : payRate;
-
-    const cashSdgReceived = convertCurrency(amountUsd, 'USD', 'SDG', payRate, { sdg_decimals: 0 });
-    const arSdgRecognized = convertCurrency(amountUsd, 'USD', 'SDG', invRate, { sdg_decimals: 0 });
-    const fxDiffSdg = safeSub(cashSdgReceived, arSdgRecognized, 0);
-
-    if (Math.abs(fxDiffSdg) >= 1.0) {
-      // 1. Dr: Cash for actual received value
-      lines.push({
-        id: `line-${Date.now()}-1`,
-        account_code: assetAccountCode,
-        account_name: assetAccountName,
-        debit_sdg: cashSdgReceived,
-        credit_sdg: 0,
-        debit_usd: amountUsd,
-        credit_usd: 0,
-        notes: `سداد سند قبض لفاتورة #${payment.invoice_number} بسعر صرف ${payRate}`,
-      });
-
-      // 2. Cr: Accounts Receivable for the original recognized value
-      lines.push({
-        id: `line-${Date.now()}-2`,
-        account_code: '1200',
-        account_name: `المدينون - ${payment.customer_name || 'العميل'}`,
-        debit_sdg: 0,
-        credit_sdg: arSdgRecognized,
-        debit_usd: 0,
-        credit_usd: amountUsd,
-        notes: `تسوية ذمم بيع آجل فاتورة #${payment.invoice_number} بسعر الإصدار ${invRate}`,
-      });
-
-      // 3. Balance to FX Gain (4200) or FX Loss (5500)
-      if (fxDiffSdg > 0) {
-        lines.push({
-          id: `line-${Date.now()}-3`,
-          account_code: '4200',
-          account_name: 'أرباح فروق أسعار الصرف (FX Gain)',
-          debit_sdg: 0,
-          credit_sdg: fxDiffSdg,
-          debit_usd: 0,
-          credit_usd: 0,
-          notes: `فروق صرف موجبة لسداد فاتورة #${payment.invoice_number}`,
-        });
-      } else {
-        lines.push({
-          id: `line-${Date.now()}-3`,
-          account_code: '5500',
-          account_name: 'خسائر فروق أسعار الصرف (FX Loss)',
-          debit_sdg: Math.abs(fxDiffSdg),
-          credit_sdg: 0,
-          debit_usd: 0,
-          credit_usd: 0,
-          notes: `فروق صرف سالبة لسداد فاتورة #${payment.invoice_number}`,
-        });
-      }
-    } else {
-      // Standard balanced entry without FX settlement divergence
-      lines.push(
-        {
-          id: `line-${Date.now()}-1`,
-          account_code: assetAccountCode,
-          account_name: assetAccountName,
-          debit_sdg: cashSdgReceived,
-          credit_sdg: 0,
-          debit_usd: amountUsd,
-          credit_usd: 0,
-          notes: `سداد سند قبض لفاتورة #${payment.invoice_number}`,
-        },
-        {
-          id: `line-${Date.now()}-2`,
-          account_code: '1200',
-          account_name: `المدينون - ${payment.customer_name || 'العميل'}`,
-          debit_sdg: 0,
-          credit_sdg: cashSdgReceived,
-          debit_usd: 0,
-          credit_usd: amountUsd,
-          notes: `تحصيل من العميل لسداد فاتورة #${payment.invoice_number}`,
-        }
-      );
-    }
-  } else {
-    // Payment in SDG
-    const amountSdg = safeAdd(payment.amount, 0, 0);
-    const amountUsd = payment.exchange_rate_used && payment.exchange_rate_used > 0
-      ? convertCurrency(amountSdg, 'SDG', 'USD', payment.exchange_rate_used, { usd_decimals: 2 })
-      : safeAdd(payment.amount_in_other_currency || 0, 0, 2);
-
-    lines.push(
-      {
-        id: `line-${Date.now()}-1`,
-        account_code: assetAccountCode,
-        account_name: assetAccountName,
-        debit_sdg: amountSdg,
-        credit_sdg: 0,
-        debit_usd: amountUsd,
-        credit_usd: 0,
-        notes: `سداد سند قبض لفاتورة #${payment.invoice_number}`,
-      },
-      {
-        id: `line-${Date.now()}-2`,
-        account_code: '1200',
-        account_name: `المدينون - ${payment.customer_name || 'العميل'}`,
-        debit_sdg: 0,
-        credit_sdg: amountSdg,
-        debit_usd: 0,
-        credit_usd: amountUsd,
-        notes: `تحصيل من العميل لسداد فاتورة #${payment.invoice_number}`,
-      }
-    );
-  }
-
-  const totDebitSdg = lines.reduce((s, l) => safeAdd(s, l.debit_sdg, 0), 0);
-  const totCreditSdg = lines.reduce((s, l) => safeAdd(s, l.credit_sdg, 0), 0);
-  const totDebitUsd = lines.reduce((s, l) => safeAdd(s, l.debit_usd, 2), 0);
-  const totCreditUsd = lines.reduce((s, l) => safeAdd(s, l.credit_usd, 2), 0);
-
-  return {
-    id: entryId,
-    entry_number: `JV-REC-${payment.id.substring(payment.id.length - 6)}`,
-    date: payment.payment_date || now,
-    reference_type: 'payment',
-    reference_id: payment.id,
-    description: `قيد تحصيل سند قبض من ${payment.customer_name} لفاتورة #${payment.invoice_number}`,
-    lines,
-    total_debit_sdg: totDebitSdg,
-    total_credit_sdg: totCreditSdg,
-    total_debit_usd: totDebitUsd,
-    total_credit_usd: totCreditUsd,
-    is_balanced: safeEqual(totDebitSdg, totCreditSdg, 0) && safeEqual(totDebitUsd, totCreditUsd, 2),
-    exchange_rate_used: effectiveExchangeRate,
-    org_id: orgId,
-    created_by: actorUid,
-    created_at: now,
-  };
+  const diffSdg = Math.abs(lines.reduce((sum, l) => safeAdd(sum, l.debit_sdg || 0, 0), 0) - lines.reduce((sum, l) => safeAdd(sum, l.credit_sdg || 0, 0), 0));
+  const diffUsd = Math.abs(safeSub(lines.reduce((sum, l) => safeAdd(sum, l.debit_usd || 0, 2), 0), lines.reduce((sum, l) => safeAdd(sum, l.credit_usd || 0, 2), 0), 2));
+  try { validateJournal(lines); return { isValid: true, diffSdg, diffUsd }; }
+  catch { return { isValid: false, diffSdg, diffUsd }; }
 };
 
 /**
@@ -748,51 +486,7 @@ export const generateExpenseJournalEntry = (
     total_debit_usd: amountUsd,
     total_credit_usd: amountUsd,
     is_balanced: true,
-    exchange_rate_used: rateUsed,
-    org_id: orgId,
-    created_by: actorUid,
-    created_at: now,
-  };
-};
-
-/**
- * Generate a reversing Journal Voucher when an invoice is voided
- */
-export const generateVoidInvoiceJournalEntry = (
-  invoice: Invoice,
-  reason: string,
-  orgId: string,
-  actorUid?: string
-): JournalEntry => {
-  const original = generateInvoiceJournalEntry(invoice, orgId, actorUid);
-  const now = new Date().toISOString();
-
-  // Reverse every debit into credit and vice versa
-  const reversedLines: JournalEntryLine[] = original.lines.map((l, idx) => ({
-    id: `rev-${idx}-${Date.now()}`,
-    account_code: l.account_code,
-    account_name: l.account_name,
-    debit_sdg: l.credit_sdg,
-    credit_sdg: l.debit_sdg,
-    debit_usd: l.credit_usd,
-    credit_usd: l.debit_usd,
-    notes: `عكس قيد - إبطال فاتورة #${invoice.invoice_number}: ${reason}`,
-  }));
-
-  return {
-    id: `jv-void-${invoice.id}`,
-    entry_number: `JV-REV-${invoice.invoice_number}`,
-    date: now,
-    reference_type: 'void',
-    reference_id: invoice.id,
-    description: `قيد عكسي لإبطال الفاتورة #${invoice.invoice_number} - السبب: ${reason}`,
-    lines: reversedLines,
-    total_debit_sdg: original.total_credit_sdg,
-    total_credit_sdg: original.total_debit_sdg,
-    total_debit_usd: original.total_credit_usd,
-    total_credit_usd: original.total_debit_usd,
-    is_balanced: true,
-    exchange_rate_used: invoice.exchange_rate_used,
+    exchange_rate_used: rateUsed || 0,
     org_id: orgId,
     created_by: actorUid,
     created_at: now,
@@ -1081,39 +775,26 @@ export const calculateCashFlowStatement = (
   accounts: Account[],
   entries: JournalEntry[]
 ): CashFlowSummary => {
-  let operatingInflowSdg = 0;
-  let operatingInflowUsd = 0;
-  let operatingOutflowSdg = 0;
-  let operatingOutflowUsd = 0;
-
-  let financingInflowSdg = 0;
-  let financingInflowUsd = 0;
-  let financingOutflowSdg = 0;
-  let financingOutflowUsd = 0;
-
+  let operatingInflowSdg = 0, operatingInflowUsd = 0, operatingOutflowSdg = 0, operatingOutflowUsd = 0;
+  let financingInflowSdg = 0, financingInflowUsd = 0, financingOutflowSdg = 0, financingOutflowUsd = 0;
+  let investingSdg = 0, investingUsd = 0;
   for (const entry of entries) {
-    if (entry.reference_type === 'payment') {
-      operatingInflowSdg += entry.total_debit_sdg;
-      operatingInflowUsd += entry.total_debit_usd;
-    } else if (entry.reference_type === 'expense') {
-      operatingOutflowSdg += entry.total_debit_sdg;
-      operatingOutflowUsd += entry.total_debit_usd;
-    } else if (entry.reference_type === 'invoice') {
-      const cashLine = entry.lines.find((l) => l.account_code.startsWith('11'));
-      if (cashLine && cashLine.debit_sdg > 0) {
-        operatingInflowSdg += cashLine.debit_sdg;
-        operatingInflowUsd += cashLine.debit_usd;
-      }
-    } else if (entry.reference_type === 'manual') {
-      for (const l of entry.lines) {
-        if (l.account_code === '3100') {
-          financingInflowSdg += l.credit_sdg - l.debit_sdg;
-          financingInflowUsd += l.credit_usd - l.debit_usd;
-        } else if (l.account_code === '3200') {
-          financingOutflowSdg += l.debit_sdg - l.credit_sdg;
-          financingOutflowUsd += l.debit_usd - l.credit_usd;
-        }
-      }
+    const cashLines = entry.lines.filter(l => l.account_code.startsWith('11'));
+    const cashSdg = cashLines.reduce((sum, l) => safeAdd(sum, safeSub(l.debit_sdg, l.credit_sdg, 0), 0), 0);
+    const cashUsd = cashLines.reduce((sum, l) => safeAdd(sum, safeSub(l.debit_usd, l.credit_usd, 2), 2), 0);
+    const otherLines = entry.lines.filter(l => !l.account_code.startsWith('11'));
+    if (otherLines.some(l => l.account_code.startsWith('3') || l.account_code.startsWith('22'))) {
+      financingInflowSdg = safeAdd(financingInflowSdg, Math.max(0, cashSdg), 0);
+      financingOutflowSdg = safeAdd(financingOutflowSdg, Math.max(0, -cashSdg), 0);
+      financingInflowUsd = safeAdd(financingInflowUsd, Math.max(0, cashUsd), 2);
+      financingOutflowUsd = safeAdd(financingOutflowUsd, Math.max(0, -cashUsd), 2);
+    } else if (otherLines.some(l => l.account_code.startsWith('14') || l.account_code.startsWith('15'))) {
+      investingSdg = safeAdd(investingSdg, cashSdg, 0); investingUsd = safeAdd(investingUsd, cashUsd, 2);
+    } else {
+      operatingInflowSdg = safeAdd(operatingInflowSdg, Math.max(0, cashSdg), 0);
+      operatingOutflowSdg = safeAdd(operatingOutflowSdg, Math.max(0, -cashSdg), 0);
+      operatingInflowUsd = safeAdd(operatingInflowUsd, Math.max(0, cashUsd), 2);
+      operatingOutflowUsd = safeAdd(operatingOutflowUsd, Math.max(0, -cashUsd), 2);
     }
   }
 
@@ -1123,8 +804,8 @@ export const calculateCashFlowStatement = (
   const netFinancingSdg = financingInflowSdg - financingOutflowSdg;
   const netFinancingUsd = financingInflowUsd - financingOutflowUsd;
 
-  const netChangeSdg = netOperatingSdg + netFinancingSdg;
-  const netChangeUsd = netOperatingUsd + netFinancingUsd;
+  const netChangeSdg = safeAdd(safeAdd(netOperatingSdg, netFinancingSdg, 0), investingSdg, 0);
+  const netChangeUsd = safeAdd(safeAdd(netOperatingUsd, netFinancingUsd, 2), investingUsd, 2);
 
   let beginningCashSdg = 0;
   let beginningCashUsd = 0;
@@ -1158,11 +839,11 @@ export const calculateCashFlowStatement = (
     operating_inflows_sdg: operatingInflowSdg,
     operating_outflows_sdg: operatingOutflowSdg,
 
-    investing_activities: [],
-    net_cash_investing_sdg: 0,
-    net_cash_investing_usd: 0,
-    net_investing_sdg: 0,
-    net_investing_usd: 0,
+    investing_activities: [{ title: 'صافي النقد المرتبط بالأصول طويلة الأجل', amount_sdg: investingSdg, amount_usd: investingUsd }],
+    net_cash_investing_sdg: investingSdg,
+    net_cash_investing_usd: investingUsd,
+    net_investing_sdg: investingSdg,
+    net_investing_usd: investingUsd,
 
     financing_activities: [
       {

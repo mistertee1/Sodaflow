@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
-import { DashboardView } from './components/DashboardView';
-import { InvoicesView } from './components/InvoicesView';
-import { CustomersView } from './components/CustomersView';
-import { ProductsView } from './components/ProductsView';
-import { ExpensesView } from './components/ExpensesView';
-import { AccountingView } from './components/AccountingView';
-import { InvoiceFormModal } from './components/InvoiceFormModal';
-import { InvoiceDetailModal } from './components/InvoiceDetailModal';
+const DashboardView = lazy(() => import('./components/DashboardView').then(module => ({ default: module.DashboardView })));
+const InvoicesView = lazy(() => import('./components/InvoicesView').then(module => ({ default: module.InvoicesView })));
+const CustomersView = lazy(() => import('./components/CustomersView').then(module => ({ default: module.CustomersView })));
+const ProductsView = lazy(() => import('./components/ProductsView').then(module => ({ default: module.ProductsView })));
+const ExpensesView = lazy(() => import('./components/ExpensesView').then(module => ({ default: module.ExpensesView })));
+const AccountingView = lazy(() => import('./components/AccountingView').then(module => ({ default: module.AccountingView })));
+const InvoiceFormModal = lazy(() => import('./components/InvoiceFormModal').then(module => ({ default: module.InvoiceFormModal })));
+const InvoiceDetailModal = lazy(() => import('./components/InvoiceDetailModal').then(module => ({ default: module.InvoiceDetailModal })));
 import { PaymentModal } from './components/PaymentModal';
-import { PaymentReceiptModal } from './components/PaymentReceiptModal';
-import { SettingsModal } from './components/SettingsModal';
+const PaymentReceiptModal = lazy(() => import('./components/PaymentReceiptModal').then(module => ({ default: module.PaymentReceiptModal })));
+const SettingsModal = lazy(() => import('./components/SettingsModal').then(module => ({ default: module.SettingsModal })));
 import { OnboardingModal } from './components/OnboardingModal';
 import { LandingPageView } from './components/LandingPageView';
 import { Footer } from './components/Footer';
@@ -22,7 +22,7 @@ import { RefreshCw, Store } from 'lucide-react';
 import { trackPageView } from './lib/analytics';
 
 function MainLayout() {
-  const { currentUser, authLoading, theme, memberStatus } = useApp();
+  const { currentUser, authLoading, theme, memberStatus, syncError, dismissSyncError, syncAllToCloud, isActionAllowed, currentOrg, invoices } = useApp();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
   const [prefilledCustomer, setPrefilledCustomer] = useState<Customer | null>(null);
@@ -33,6 +33,10 @@ function MainLayout() {
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [showAuthLanding, setShowAuthLanding] = useState(false);
   const [legalModalTab, setLegalModalTab] = useState<LegalTab | null>(null);
+
+  useEffect(() => {
+    setViewingInvoice(null); setPayingInvoice(null); setViewingReceipt(null); setIsNewInvoiceOpen(false); setPrefilledCustomer(null);
+  }, [currentOrg?.id, currentUser?.uid]);
 
   // Track virtual page views for SPA navigation in Google Analytics
   useEffect(() => {
@@ -64,13 +68,13 @@ function MainLayout() {
   // Loading screen while Firebase Auth state initializes
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center text-slate-100 p-4">
-        <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mb-4 shadow-lg shadow-emerald-500/10">
-          <Store className="w-7 h-7 text-emerald-400" />
+      <div className="min-h-screen bg-sf-canvas flex flex-col items-center justify-center text-sf-text p-4">
+        <div className="w-14 h-14 rounded-2xl bg-sf-action/10 border border-sf-action/30 text-sf-action flex items-center justify-center mb-4 shadow-lg shadow-sf-action/10">
+          <Store className="w-7 h-7 text-sf-action" />
         </div>
-        <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+        <div className="flex items-center gap-2 text-sf-action font-bold text-sm">
           <RefreshCw className="w-4 h-4 animate-spin" />
-          <span>جاري تهيئة نظام التاجر السوداني...</span>
+          <span>جاري تهيئة سودافلو...</span>
         </div>
       </div>
     );
@@ -106,8 +110,8 @@ function MainLayout() {
   return (
     <div
       className={`min-h-screen ${
-        theme === 'light' ? 'bg-[#f8fafc] text-slate-900' : 'bg-[#050505] text-slate-100'
-      } flex flex-col font-sans antialiased selection:bg-emerald-500 selection:text-slate-950 transition-colors duration-200`}
+        theme === 'light' ? 'bg-sf-canvas text-sf-text' : 'bg-sf-canvas text-sf-text'
+      } flex flex-col font-sans antialiased selection:bg-sf-action selection:text-sf-on-action transition-colors duration-200`}
     >
       {/* Top Header */}
       <Header
@@ -118,9 +122,13 @@ function MainLayout() {
         onOpenLegal={(tab) => setLegalModalTab(tab)}
       />
 
+      {syncError && <div role="alert" className="no-print border-b border-sf-danger bg-sf-danger-bg text-sf-danger px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+        <span>{syncError}</span>
+        <div className="flex gap-3"><button type="button" onClick={() => void syncAllToCloud()} className="underline">إعادة المحاولة</button><button type="button" aria-label="إغلاق التنبيه" onClick={dismissSyncError}>إغلاق</button></div>
+      </div>}
       {/* Security Banner if member account is suspended in the active organization */}
       {memberStatus === 'suspended' && (
-        <div className="bg-rose-950/90 border-b border-rose-800 text-rose-200 px-4 py-2.5 flex items-center justify-between gap-3 text-xs shadow-md">
+        <div className="bg-sf-danger-bg/90 border-b border-sf-danger text-sf-danger px-4 py-2.5 flex items-center justify-between gap-3 text-xs shadow-md">
           <div className="flex items-center gap-2">
             <span className="text-base">⚠️</span>
             <span>
@@ -130,7 +138,7 @@ function MainLayout() {
           <button
             type="button"
             onClick={() => setIsSettingsOpen(true)}
-            className="px-2.5 py-1 bg-rose-900/80 hover:bg-rose-800 text-rose-100 rounded-lg text-xs font-bold border border-rose-700 shrink-0 transition-colors"
+            className="px-2.5 py-1 bg-sf-danger-bg/80 hover:bg-rose-800 text-sf-danger rounded-lg text-xs font-bold border border-sf-danger shrink-0 transition-colors"
           >
             إدارة المؤسسة
           </button>
@@ -139,6 +147,7 @@ function MainLayout() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 mb-16 sm:mb-6">
+<Suspense fallback={<div role="status" className="p-6 text-sf-muted">جاري التحميل…</div>}>
         {activeTab === 'dashboard' && (
           <DashboardView
             onNavigate={(tab) => setActiveTab(tab)}
@@ -164,10 +173,10 @@ function MainLayout() {
 
         {activeTab === 'products' && <ProductsView />}
 
-        {activeTab === 'expenses' && <ExpensesView />}
+        {activeTab === 'expenses' && isActionAllowed('expenses:read') && <ExpensesView />}
 
-        {activeTab === 'accounting' && <AccountingView />}
-      </main>
+        {activeTab === 'accounting' && isActionAllowed('journal:read') && <AccountingView />}
+      </Suspense></main>
 
       {/* Structured Footer with Legal Pages */}
       <Footer onOpenLegal={(tab) => setLegalModalTab(tab)} />
@@ -180,47 +189,50 @@ function MainLayout() {
       />
 
       {/* Modals */}
-      <InvoiceFormModal
+      <Suspense fallback={<div role="status" className="fixed inset-0 z-50 bg-sf-ink/60 flex items-center justify-center text-white">جاري فتح النافذة…</div>}>
+      {isNewInvoiceOpen && (<InvoiceFormModal
         isOpen={isNewInvoiceOpen}
         onClose={() => {
           setIsNewInvoiceOpen(false);
           setPrefilledCustomer(null);
         }}
-        onInvoiceCreated={() => {
+        onInvoiceCreated={(invoice) => {
+          setViewingInvoice(invoice);
           setIsNewInvoiceOpen(false);
           setPrefilledCustomer(null);
         }}
         prefilledCustomer={prefilledCustomer}
-      />
+      /> )}
 
-      <InvoiceDetailModal
-        invoice={viewingInvoice}
+      {viewingInvoice && (<InvoiceDetailModal
+        invoice={invoices.find(i => i.id === viewingInvoice?.id) || viewingInvoice}
         onClose={() => setViewingInvoice(null)}
         onOpenRecordPayment={(inv) => setPayingInvoice(inv)}
-      />
+      /> )}
 
       <PaymentModal
-        invoice={payingInvoice}
+        invoice={invoices.find(i => i.id === payingInvoice?.id) || payingInvoice}
         isOpen={!!payingInvoice}
         onClose={() => setPayingInvoice(null)}
         onPaymentRecorded={handlePaymentRecorded}
       />
 
-      <PaymentReceiptModal
+      {viewingReceipt && (<PaymentReceiptModal
         payment={viewingReceipt}
         onClose={() => setViewingReceipt(null)}
-      />
+      /> )}
 
-      <SettingsModal
+      {isSettingsOpen && (<SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-      />
+      /> )}
 
       <OnboardingModal
         isOpen={isOnboardingOpen}
         onClose={() => setIsOnboardingOpen(false)}
       />
 
+      </Suspense>
       <LegalModal
         isOpen={!!legalModalTab}
         initialTab={legalModalTab || 'privacy'}
@@ -233,7 +245,7 @@ function MainLayout() {
 export function App() {
   return (
     <AppProvider>
-      <MainLayout />
+      <Suspense fallback={<div role="status" className="p-8 text-sf-muted">جاري تحميل سودافلو…</div>}><MainLayout /></Suspense>
     </AppProvider>
   );
 }

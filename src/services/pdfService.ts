@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { escapeHtml, escapeStrings, imageUrl } from '../lib/html';
 import html2canvas from 'html2canvas';
 import { Invoice, Payment, MerchantSettings } from '../types';
 import { formatMoney, getInvoiceStatusInfo, getPaymentMethodLabel } from '../lib/currency';
@@ -12,6 +13,9 @@ export const buildInvoiceHtml = (
   settings: MerchantSettings,
   invoicePayments: Payment[] = []
 ): string => {
+  settings = { ...escapeStrings(settings), logo_url: escapeHtml(imageUrl(settings.logo_url)) };
+  invoice = escapeStrings(invoice);
+  invoicePayments = escapeStrings(invoicePayments);
   const statusInfo = getInvoiceStatusInfo(invoice.status);
   const rawRate = invoice.exchange_rate_used || settings.default_exchange_rate || 0;
   const formattedRate = rawRate > 0 ? formatMoney(rawRate, 'SDG', settings) : 'غير محدد';
@@ -54,9 +58,9 @@ export const buildInvoiceHtml = (
           <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 6px;">
             ${settings.logo_url && settings.logo_url !== '/hisabuk_logo.jpg'
               ? `<img src="${settings.logo_url}" alt="Logo" style="height: 48px; max-width: 120px; object-fit: contain; border-radius: 6px;" />`
-              : `<div style="font-weight: 900; font-size: 20px; color: #047857;">حِسَابُك</div>`
+              : ''
             }
-            <h1 style="margin: 0; font-size: 22px; font-weight: 900; color: #0f172a;">${settings.business_name || 'منظومة حِسَابُك'}</h1>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 900; color: #0f172a;">${settings.business_name || 'اسم المنشأة'}</h1>
           </div>
           <p style="margin: 2px 0; font-size: 12px; color: #475569;">
             ${settings.address ? `<span>${settings.address} • </span>` : ''}
@@ -227,8 +231,8 @@ export const buildInvoiceHtml = (
 
       <!-- Watermark Certification -->
       <div style="border-top: 1px solid #e2e8f0; margin-top: 16px; padding-top: 8px; display: flex; justify-content: space-between; font-size: 10px; color: #64748b;">
-        <span>• وثيقة مالية معتمدة ومسجلة عبر منظومة «حِسَابُك» السحابية للفوترة وإدارة الأعمال</span>
-        <span style="font-family: monospace; font-weight: bold;">Hisabuk Cloud</span>
+        <span>تم إنشاء هذه الوثيقة عبر سودافلو</span>
+        <span style="font-family: monospace; font-weight: bold;">SudaFlow</span>
       </div>
     </div>
   `;
@@ -350,8 +354,11 @@ export const printInvoiceThroughIsolatedIframe = async (
     <html dir="rtl" lang="ar">
       <head>
         <meta charset="utf-8" />
-        <title>فاتورة ${invoice.invoice_number}</title>
+        <title>فاتورة ${escapeHtml(invoice.invoice_number)}</title>
         <style>
+          @font-face { font-family:'IBM Plex Sans Arabic';font-style:normal;font-weight:400;src:url('/brand/fonts/IBMPlexSansArabic-Regular.woff2') format('woff2'); }
+          @font-face { font-family:'IBM Plex Sans Arabic';font-style:normal;font-weight:600;src:url('/brand/fonts/IBMPlexSansArabic-SemiBold.woff2') format('woff2'); }
+
           @page {
             size: A4 portrait;
             margin: 10mm 12mm;
@@ -364,7 +371,7 @@ export const printInvoiceThroughIsolatedIframe = async (
             padding: 0;
             background: #ffffff !important;
             color: #0f172a !important;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
@@ -428,6 +435,8 @@ export const downloadReceiptPdf = async (
   payment: Payment,
   settings: MerchantSettings
 ): Promise<void> => {
+  payment = escapeStrings(payment);
+  settings = escapeStrings(settings);
   const container = document.createElement('div');
   container.style.position = 'fixed';
   container.style.left = '-9999px';
@@ -437,7 +446,7 @@ export const downloadReceiptPdf = async (
   container.style.zIndex = '-9999';
 
   container.innerHTML = `
-    <div style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; direction: rtl; text-align: right; background-color: #ffffff; color: #0f172a; padding: 24px; border: 2px solid #0f172a; border-radius: 8px; margin: 0 auto;">
+    <div style="font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; direction: rtl; text-align: right; background-color: #ffffff; color: #0f172a; padding: 24px; border: 2px solid #0f172a; border-radius: 8px; margin: 0 auto;">
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #047857; padding-bottom: 12px; margin-bottom: 14px;">
         <div>
           <h2 style="margin: 0; font-size: 18px; font-weight: 900; color: #0f172a;">${settings.business_name}</h2>

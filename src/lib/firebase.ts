@@ -11,20 +11,11 @@ import {
   onAuthStateChanged,
   User,
 } from 'firebase/auth';
-import {
-  getFirestore,
-  initializeFirestore,
-  doc,
-  getDocFromServer,
-  Firestore,
-} from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
-export const storage = getStorage(app);
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account',
@@ -37,86 +28,6 @@ export const isIframeEnvironment = (): boolean => {
     return true;
   }
 };
-
-const targetDatabaseId =
-  firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
-    ? firebaseConfig.firestoreDatabaseId
-    : undefined;
-
-let firestoreInstance: Firestore;
-try {
-  // Use long-polling to prevent [code=unavailable] WebChannel streaming errors in sandboxes, iframes and restrictive networks
-  // and ignoreUndefinedProperties to prevent "Unsupported field value: undefined" errors
-  firestoreInstance = initializeFirestore(
-    app,
-    {
-      experimentalForceLongPolling: true,
-      ignoreUndefinedProperties: true,
-    },
-    targetDatabaseId
-  );
-} catch {
-  firestoreInstance = targetDatabaseId ? getFirestore(app, targetDatabaseId) : getFirestore(app);
-}
-
-export const db = firestoreInstance;
-
-/**
- * Recursively removes any keys with undefined values from objects/arrays
- * to guarantee that Firestore operations never encounter "Unsupported field value: undefined".
- */
-export function cleanFirestoreData<T>(data: T): T {
-  if (data === null || data === undefined) {
-    return data;
-  }
-  if (Array.isArray(data)) {
-    return data.map((item) => cleanFirestoreData(item)) as unknown as T;
-  }
-  if (typeof data === 'object' && !(data instanceof Date)) {
-    const cleaned: Record<string, any> = {};
-    for (const [key, value] of Object.entries(data)) {
-      if (value !== undefined) {
-        cleaned[key] = cleanFirestoreData(value);
-      }
-    }
-    return cleaned as T;
-  }
-  return data;
-}
-
-// Validate connection to Firestore as required by Firebase specifications
-if (typeof window !== 'undefined') {
-  getDocFromServer(doc(db, 'test', 'connection')).catch((error) => {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firestore is currently operating in offline mode.');
-    }
-  });
-}
-
-export enum OperationType {
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  LIST = 'list',
-  GET = 'get',
-  WRITE = 'write',
-}
-
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-    },
-    operationType,
-    path,
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
 
 // Convert phone number or email to valid Firebase email string
 export function normalizeLoginIdentifier(identifier: string): string {

@@ -18,6 +18,7 @@ import {
 import { formatMoney, getInvoiceStatusInfo, getPaymentMethodLabel } from '../lib/currency';
 import { downloadInvoicePdf, printInvoiceThroughIsolatedIframe } from '../services/pdfService';
 import { Dialog } from './Dialog';
+import { DocumentWatermark } from './DocumentWatermark';
 
 interface InvoiceDetailModalProps {
   invoice: Invoice | null;
@@ -155,7 +156,8 @@ ${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك 
         </div>
 
         {/* Printable Invoice Container */}
-        <div id="printable-invoice" className="p-6 sm:p-8 overflow-y-auto space-y-6 flex-1 text-sf-text bg-sf-surface">
+        <div id="printable-invoice" className="sf-document-paper p-6 sm:p-8 overflow-y-auto space-y-6 flex-1 text-sf-text bg-sf-surface">
+          <DocumentWatermark />
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-sf-border pb-6">
             <div>
@@ -210,10 +212,10 @@ ${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك 
             </div>
 
             <div className="sm:text-left flex flex-col justify-center">
-              <div className="inline-flex items-center sm:justify-end gap-2 text-xs text-sf-action font-semibold bg-sf-action/10 px-3 py-1 rounded-lg border border-sf-action/20">
-                <Lock className="w-3.5 h-3.5 text-sf-action" />
+              <div className="sf-frozen-rate inline-flex items-center sm:justify-end gap-2 text-xs font-semibold px-3 py-1 rounded-lg border">
+                <Lock className="w-3.5 h-3.5" />
                 <span>
-                  سعر الصرف المجمّد: 1 USD = {formatMoney(invoice.exchange_rate_used, 'SDG', settings)}
+                  سعر الصرف المجمّد: <bdi dir="ltr">1 USD = {formatMoney(invoice.exchange_rate_used, 'SDG', settings)}</bdi>
                 </span>
               </div>
               <span className="text-xs text-sf-muted mt-1 sm:text-left">

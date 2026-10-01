@@ -1,4 +1,5 @@
 import { escapeHtml, escapeStrings, imageUrl } from '../lib/html';
+import { documentWatermarkHtml } from '../lib/documentBrand';
 import { downloadDocumentPdf } from './documentPdf';
 import identity from '../styles/sudaflow.tokens.json';
 const printTheme = identity.theme.light;
@@ -53,7 +54,8 @@ export const buildInvoiceHtml = (
   `).join('');
 
   return `
-    <div class="sf-print-document" style="font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; font-size:14px; direction: rtl; text-align: right; background-color: #ffffff; color: ${printTheme.text}; padding: 24px; max-width: 800px; margin: 0 auto; box-sizing: border-box; line-height: 22px;">
+    <div class="sf-print-document" style="position:relative;isolation:isolate;font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; font-size:14px; direction: rtl; text-align: right; background-color: #ffffff; color: ${printTheme.text}; padding: 24px; max-width: 800px; margin: 0 auto; box-sizing: border-box; line-height: 22px;">
+      ${documentWatermarkHtml}
       
       <!-- Top Header -->
       <div data-pdf-repeat="header" style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid ${printTheme.text}; padding-bottom: 16px; margin-bottom: 16px;">
@@ -101,8 +103,8 @@ export const buildInvoiceHtml = (
         </div>
 
         <div style="text-align: left; display: flex; flex-direction: column; justify-content: center;">
-          <div style="font-size: 14px; font-weight: 500; color: ${printTheme.text}; background-color: ${printTheme.surfaceRaised}; padding: 4px 10px; border-radius: 12px; border: 1px solid ${printTheme.border}; display: inline-block;">
-            سعر الصرف المستخدم: <bdi dir="ltr" style="display:inline-block;direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;">1 USD = ${formattedRate}</bdi>
+          <div style="font-size: 14px; line-height:28px; font-weight: 500; color:#FFFFFF; background-color:#087F75; padding: 8px 12px; border-radius: 8px; border: 1px solid #06675F; display: inline-block;-webkit-print-color-adjust:exact;print-color-adjust:exact;">
+            سعر الصرف المجمّد: <bdi dir="ltr" style="display:inline-block;direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;">1 USD = ${formattedRate}</bdi>
           </div>
           <span style="font-size: 14px; color: ${printTheme.textMuted}; margin-top: 4px;">
             السعر المثبّت عند إصدار هذه الفاتورة.
@@ -329,6 +331,7 @@ export const printInvoiceThroughIsolatedIframe = async (
             print-color-adjust: exact !important;
           }
           @media print {
+            [data-pdf-repeat="watermark"] { position:fixed!important; }
             body {
               width: 100%;
             }
@@ -399,7 +402,8 @@ export const downloadReceiptPdf = async (
   container.style.zIndex = '-9999';
 
   container.innerHTML = `
-    <div class="sf-print-document" style="font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; direction: rtl; text-align: right; background-color: #ffffff; color: ${printTheme.text}; padding: 24px; border: 2px solid ${printTheme.text}; border-radius: 8px; margin: 0 auto;">
+    <div class="sf-print-document" style="position:relative;isolation:isolate;font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; direction: rtl; text-align: right; background-color: #ffffff; color: ${printTheme.text}; padding: 24px; border: 2px solid ${printTheme.text}; border-radius: 8px; margin: 0 auto;">
+      ${documentWatermarkHtml}
       <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid ${printTheme.text}; padding-bottom: 12px; margin-bottom: 14px;">
         <div>
           ${settings.logo_url && settings.logo_url !== '/hisabuk_logo.jpg' ? `<img src="${settings.logo_url}" alt="شعار المنشأة" style="height:48px;max-width:120px;object-fit:contain;" />` : ''}

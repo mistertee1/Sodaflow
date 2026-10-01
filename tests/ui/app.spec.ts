@@ -73,7 +73,7 @@ test('invalid expense stays open, shows an error and never enters the saved list
   expect(await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}')).filter(key => key.includes('/expenses/')).length)).toBe(0);
 });
 
-test('invoice and receipt UI preserve historical receivable and do not duplicate rapid submissions', async ({ page }) => {
+test('invoice and receipt UI preserve historical receivable and do not duplicate rapid submissions', async ({ page }, testInfo) => {
   await page.goto('/'); await page.getByRole('button', { name: 'فاتورة جديدة', exact: true }).first().click();
   const form = page.locator('form').filter({ has: page.getByLabel('عميل الفاتورة') });
   await form.getByLabel('عميل الفاتورة').selectOption('customer');
@@ -90,6 +90,14 @@ test('invoice and receipt UI preserve historical receivable and do not duplicate
   const receiptForm = page.locator('form').filter({ has: page.getByLabel('مبلغ الدفعة') });
   await receiptForm.evaluate(node => { (node as HTMLFormElement).requestSubmit(); (node as HTMLFormElement).requestSubmit(); });
   await expect(page.getByText('سند قبض مالي (إيصال استلام)', { exact: true })).toBeVisible();
+  await expect(page.locator('#printable-receipt .sf-document-watermark img')).toBeVisible();
+  await page.screenshot({ path:'test-results/sudaflow-receipt-watermark.png', fullPage:true });
+  const receiptDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name:'تحميل PDF', exact:true }).click();
+  const downloadedReceipt = await receiptDownload;
+  const receiptFile = testInfo.outputPath('merchant-receipt.pdf');
+  await downloadedReceipt.saveAs(receiptFile);
+  expect((await readFile(receiptFile)).subarray(0, 5).toString()).toBe('%PDF-');
   const records = await page.evaluate(() => Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}')));
   const invoices = records.filter(([key]) => key.includes('/invoices/')).map(([, value]) => value as any);
   const payments = records.filter(([key]) => key.includes('/payments/')).map(([, value]) => value as any);
@@ -174,6 +182,9 @@ test('long invoice PDF keeps the merchant identity and exports multiple complete
   const dialog = page.getByRole('dialog', { name:'معاينة الفاتورة' });
   await expect(dialog.locator('#printable-invoice')).toContainText('متجر الاختبار');
   await expect(dialog).toContainText('فاتورة مبيعات'); await expect(dialog).not.toContainText('فاتورة ضريبية');
+  await expect(dialog.locator('.sf-frozen-rate')).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(dialog.locator('.sf-frozen-rate')).toHaveCSS('background-color', 'rgb(8, 127, 117)');
+  await expect(dialog.locator('.sf-document-watermark img')).toBeVisible();
   await page.screenshot({ path:'test-results/sudaflow-invoice-paper.png', fullPage:true });
   const downloadPromise = page.waitForEvent('download');
   await dialog.getByRole('button', { name:'تحميل PDF', exact:true }).click();
@@ -184,6 +195,7 @@ test('long invoice PDF keeps the merchant identity and exports multiple complete
   expect((bytes.toString('latin1').match(/\/Type \/Page\b/g) || []).length).toBeGreaterThan(1);
   await page.emulateMedia({ media:'print' });
   expect(await dialog.locator('#printable-invoice').evaluate(node => getComputedStyle(node).backgroundColor)).toBe('rgb(255, 255, 255)');
+  await expect(dialog.locator('.sf-frozen-rate')).toHaveCSS('color', 'rgb(255, 255, 255)');
   await page.screenshot({ path:'test-results/sudaflow-invoice-print.png', fullPage:true });
 });
 

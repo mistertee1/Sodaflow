@@ -5,6 +5,7 @@ import { X, Printer, Share2, Building2, CheckCircle2, Receipt, Download, Loader2
 import { formatMoney, getPaymentMethodLabel } from '../lib/currency';
 import { downloadReceiptPdf } from '../services/pdfService';
 import { Dialog } from './Dialog';
+import { DocumentWatermark } from './DocumentWatermark';
 
 interface PaymentReceiptModalProps {
   payment: Payment | null;
@@ -123,7 +124,8 @@ ${payment.reference_number ? `رقم العملية: ${payment.reference_number}
         </div>
 
         {/* Printable Receipt Paper */}
-        <div id="printable-receipt" className="p-6 sm:p-8 space-y-6 text-xs sm:text-sm text-sf-text bg-sf-surface">
+        <div id="printable-receipt" className="sf-document-paper p-6 sm:p-8 space-y-6 text-xs sm:text-sm text-sf-text bg-sf-surface">
+          <DocumentWatermark />
           {/* Header */}
           <div className="flex items-center justify-between border-b-2 border-sf-border pb-4">
             <div className="flex items-center gap-3">

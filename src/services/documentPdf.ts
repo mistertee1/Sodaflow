@@ -11,12 +11,14 @@ function paginateDocument(source: HTMLElement, host: HTMLElement): HTMLElement[]
   const blocks = Array.from(source.children) as HTMLElement[];
   const header = blocks.find(block => block.dataset.pdfRepeat === 'header');
   const footer = blocks.find(block => block.dataset.pdfRepeat === 'footer');
+  const watermark = blocks.find(block => block.dataset.pdfRepeat === 'watermark');
   let page: HTMLElement, pageFooter: HTMLElement;
   const newPage = () => {
     page = source.cloneNode(false) as HTMLElement;
     page.style.width = `${pageWidthPx}px`;
     page.style.maxWidth = 'none';
     if (header) page.appendChild(header.cloneNode(true));
+    if (watermark) page.appendChild(watermark.cloneNode(true));
     pageFooter = footer ? footer.cloneNode(true) as HTMLElement : document.createElement('div');
     const number = document.createElement('span');
     number.dataset.pdfPageNumber = '';
@@ -31,7 +33,7 @@ function paginateDocument(source: HTMLElement, host: HTMLElement): HTMLElement[]
   const fits = () => page.getBoundingClientRect().height <= pageHeightPx;
   const add = (block: HTMLElement) => page.insertBefore(block, pageFooter);
   newPage();
-  for (const block of blocks.filter(block => block !== header && block !== footer)) {
+  for (const block of blocks.filter(block => block !== header && block !== footer && block !== watermark)) {
     const table = block.matches('table') ? block as HTMLTableElement : block.querySelector<HTMLTableElement>('table');
     if (!table?.tBodies.length) {
       const copy = block.cloneNode(true) as HTMLElement;

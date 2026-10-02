@@ -78,7 +78,7 @@ export const handler = async (event: NetlifyEvent) => {
     if (method === 'POST' && path === '/financial/calculate-invoice') {
       const body = parseJson(event) as Record<string, unknown>;
       const settings = validateSettings({ ...INITIAL_SETTINGS, ...body });
-      return json(200, { success: true, ...invoiceFinancials({ ...body, exchange_rate_used: body.exchange_rate }, settings) });
+      return json(200, { success: true, ...invoiceFinancials({ ...body, exchange_rate_used: Number(body.exchange_rate) }, settings) });
     }
 
     if (method === 'POST' && path === '/accounting/validate-entry') {

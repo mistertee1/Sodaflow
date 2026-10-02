@@ -1,3 +1,4 @@
+import { isInvalidSession } from './authErrors';
 import express from 'express';
 import { randomUUID, createHash } from 'node:crypto';
 import type { Actor, Operations } from '../src/domain/operations';
@@ -45,7 +46,17 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   router.use(async (req, res, next) => {
     const match = req.headers.authorization?.match(/^Bearer (\S+)$/);
     if (!match) { res.status(401).json({ error: 'تسجيل الدخول مطلوب.' }); return; }
-    try { res.locals.actor = await verify(match[1]); next(); } catch { res.status(401).json({ error: 'جلسة الدخول غير صالحة. سجّل الدخول من جديد.' }); }
+    try {
+      res.locals.actor = await verify(match[1]);
+      if (!res.locals.actor.emailVerified) { res.status(403).json({ error: 'أكّد بريدك الإلكتروني قبل استخدام البيانات السحابية.', code: 'email_not_verified' }); return; }
+      next();
+    } catch (error) {
+      if (options?.verify || isInvalidSession(error)) {
+        res.status(401).json({ error: 'جلسة الدخول غير صالحة. سجّل الدخول من جديد.', code: 'invalid_session' });
+      } else {
+        res.status(503).json({ error: 'تعذر الاتصال بخدمة المصادقة. تحقّق من إعداد Firebase في الخادم ثم أعد المحاولة.', code: 'auth_service_unavailable' });
+      }
+    }
   });
   const route = (work: (req: express.Request, actor: Actor) => Promise<unknown>): express.RequestHandler => async (req, res, next) => {
     try { res.json(await work(req, res.locals.actor)); } catch (e) { next(e); }

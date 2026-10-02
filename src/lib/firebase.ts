@@ -70,7 +70,7 @@ export const loginWithEmailOrPhone = async (identifier: string, password: string
     if (!user.emailVerified) {
       if (user.email && !user.email.endsWith('@mohasbasd.app')) {
         try {
-          await sendEmailVerification(user, { url: window.location.origin, handleCodeInApp: false });
+          await sendVerification(user);
         } catch {
           // A resend can be rate-limited; the original verification link remains valid.
         }
@@ -96,6 +96,17 @@ export const loginWithEmailOrPhone = async (identifier: string, password: string
   }
 };
 
+const sendVerification = async (user: User) => {
+  try {
+    await sendEmailVerification(user, { url: window.location.origin, handleCodeInApp: false });
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code !== 'auth/unauthorized-continue-uri' && code !== 'auth/invalid-continue-uri') throw error;
+    // Firebase's default action page still works if the deployment URL is not allowlisted.
+    await sendEmailVerification(user);
+  }
+};
+
 export const registerMerchant = async (
   identifier: string,
   password: string,
@@ -109,16 +120,17 @@ export const registerMerchant = async (
     throw error;
   }
   const email = normalizeLoginIdentifier(rawEmail);
+  let accountCreated = false;
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    if (displayName) {
-      await updateProfile(userCredential.user, { displayName });
+    accountCreated = true;
+    try {
+      if (displayName) await updateProfile(userCredential.user, { displayName });
+      await sendVerification(userCredential.user);
+    } finally {
+      // Even a delivery/profile failure must not leave an unverified account signed in.
+      await signOut(auth);
     }
-    await sendEmailVerification(userCredential.user, {
-      url: window.location.origin,
-      handleCodeInApp: false,
-    });
-    await signOut(auth);
     return userCredential.user;
   } catch (error: any) {
     const code = error?.code || 'unknown';
@@ -127,6 +139,8 @@ export const registerMerchant = async (
       error.friendlyMessage = 'هذا الحساب مسجل بالفعل. يرجى تسجيل الدخول بدلاً من التسجيل.';
     } else if (code === 'auth/weak-password') {
       error.friendlyMessage = 'كلمة المرور ضعيفة جداً. يرجى إدخال 6 أحرف أو أرقام على الأقل.';
+    } else if (accountCreated) {
+      error.friendlyMessage = 'تم إنشاء الحساب، لكن تعذر إكمال إرسال رابط التحقق. حاول تسجيل الدخول لإعادة إرسال الرابط؛ لن يُسمح بالدخول قبل تأكيد البريد.';
     } else if (code === 'auth/too-many-requests') {
       error.friendlyMessage = 'تم إرسال محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.';
     }

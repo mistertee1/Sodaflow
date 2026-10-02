@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { BrandLogo } from './BrandLogo';
 import {
@@ -95,8 +95,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   );
 
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+
+  // Rehydrate the form when opened or when the initial cloud snapshot becomes available.
+  // Background polling must not overwrite an open form's edits.
+  useEffect(() => {
+    if (!isOpen) return;
+    setBusinessName(settings.business_name);
+    setPhone(settings.phone);
+    setAddress(settings.address || '');
+    setLogoUrl(settings.logo_url);
+    setBankDetails(settings.bank_details || '');
+    setDefaultRate(settings.default_exchange_rate || 0);
+    setPrimaryCurrency(settings.primary_currency || 'SDG');
+    setSecondaryCurrency(settings.secondary_currency || 'USD');
+    setInvoicePrefix(settings.invoice_prefix || 'INV-');
+    setDefaultNotes(settings.default_invoice_notes || '');
+    setRoundingRule(settings.rounding_rule || 'round');
+    setSaveError(null);
+    setSaveSuccess(false);
+  }, [isOpen, currentOrg?.id, userRole]);
 
   if (!isOpen) return null;
 
@@ -132,6 +153,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         folder: 'logos',
         onProgress: (pct) => setLogoUploadProgress(pct),
       });
+      await updateSettings({ logo_url: downloadUrl });
       setLogoUrl(downloadUrl);
     } catch (err: any) {
       console.error('Failed to upload logo to Firebase Storage:', err);
@@ -143,6 +165,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isSaving) return;
+    setSaveError(null);
     if (isUploadingLogo) {
       alert('يرجى الانتظار حتى يكتمل رفع الشعار إلى التخزين السحابي.');
       return;
@@ -153,6 +177,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       return;
     }
 
+    setIsSaving(true);
+    try {
     await updateSettings({
       business_name: businessName.trim(),
       phone: phone.trim(),
@@ -172,6 +198,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       setSaveSuccess(false);
       onClose();
     }, 900);
+    } catch (error) {
+      setSaveSuccess(false);
+      setSaveError(error instanceof Error ? error.message : 'تعذر حفظ الإعدادات. أعد المحاولة.');
+    } finally { setIsSaving(false); }
   };
 
   const handleManualSync = async () => {
@@ -236,6 +266,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
         {/* Content Container */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
+          {saveError && <div role="alert" className="p-3 bg-sf-danger-bg text-sf-danger rounded-xl">{saveError}</div>}
           {saveSuccess && (
             <div className="p-3 bg-sf-selected/80 border border-sf-action/50 rounded-xl text-sf-action text-xs flex items-center gap-2 animate-in fade-in">
               <CheckCircle2 className="w-4 h-4 text-sf-action shrink-0" />
@@ -1038,11 +1069,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </button>
             <button
               type="button"
+              disabled={isSaving || isUploadingLogo || (Boolean(currentUser) && userRole === 'Viewer')}
               onClick={() => handleSave()}
               className="px-6 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-lg text-xs font-semibold shadow-lg shadow-sf-action/20 flex items-center gap-2 transition-colors "
             >
               <CheckCircle2 className="w-4 h-4 text-sf-on-action" />
-              <span>حفظ كافة الإعدادات</span>
+              <span>{isSaving ? 'جاري الحفظ...' : 'حفظ كافة الإعدادات'}</span>
             </button>
           </div>
         </div>

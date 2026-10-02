@@ -5,10 +5,16 @@ import { BusinessError } from '../domain/validation';
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const user = auth.currentUser;
   if (!user) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
-  const token = await user.getIdToken();
-  let response: Response;
-  try { response = await fetch(`/api${path}`, { ...init, headers: { ...(init.body instanceof Blob ? {} : { 'Content-Type': 'application/json' }), ...init.headers, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(60000) }); }
-  catch { throw new BusinessError('تعذر تأكيد الحفظ من الخادم. أعد المحاولة بنفس البيانات؛ لن تتكرر العملية.', 503); }
+  const request = async (forceRefresh = false) => {
+    const token = await user.getIdToken(forceRefresh);
+    if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401);
+    try {
+      return await fetch(`/api${path}`, { ...init, headers: { ...(init.body instanceof Blob ? {} : { 'Content-Type': 'application/json' }), ...init.headers, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(60000) });
+    } catch { throw new BusinessError('تعذر تأكيد الحفظ من الخادم. أعد المحاولة بنفس البيانات؛ لن تتكرر العملية.', 503); }
+  };
+  let response = await request();
+  // Retry only authentication rejection; retain the same command and operation ID.
+  if (response.status === 401) response = await request(true);
   const result = await response.json().catch(() => ({ error: 'استجابة الخادم غير صالحة.' }));
   if (!response.ok) throw new BusinessError(result.error || 'تعذر إكمال العملية.', response.status, result.code);
   return result;

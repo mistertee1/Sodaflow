@@ -2,36 +2,215 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null; }
+    function verified() { return signedIn() && request.auth.token.email_verified == true; }
+    function orgData(orgId) {
+      return get(/databases/$(database)/documents/organizations/$(orgId)).data;
+    }
     function owner(orgId) {
-      return signedIn() && get(/databases/$(database)/documents/organizations/$(orgId)).data.owner_uid == request.auth.uid;
+      return verified() && orgData(orgId).owner_uid == request.auth.uid;
+    }
+    function memberData(orgId) {
+      return get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data;
     }
     function active(orgId) {
-      return signedIn() && get(/databases/$(database)/documents/organizations/$(orgId)).data.status == 'active'
-        && (owner(orgId) || (get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.status == 'active'
-          && get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.role in ['Admin', 'Accountant', 'Sales', 'Cashier', 'Viewer']));
+      return verified() && orgData(orgId).status == 'active'
+        && (owner(orgId) || (memberData(orgId).status == 'active'
+          && memberData(orgId).role in ['Admin', 'Accountant', 'Sales', 'Cashier', 'Viewer']));
     }
     function role(orgId, roles) {
-      return active(orgId) && (owner(orgId) && 'Owner' in roles || get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.role in roles);
+      return active(orgId) && (
+        (owner(orgId) && 'Owner' in roles)
+        || (!owner(orgId) && memberData(orgId).role in roles)
+      );
     }
+    function manager(orgId) { return role(orgId, ['Owner', 'Admin']); }
+    function accountant(orgId) { return role(orgId, ['Owner', 'Admin', 'Accountant']); }
+    function salesWriter(orgId) { return role(orgId, ['Owner', 'Admin', 'Accountant', 'Sales', 'Cashier']); }
+    function tenantRecord(orgId) {
+      return request.resource.data.org_id == orgId
+        && request.resource.data.created_by == request.auth.uid
+        && request.resource.data.schema_version == 3;
+    }
+    function immutableTenantRecord(orgId) {
+      return request.resource.data.org_id == resource.data.org_id
+        && request.resource.data.org_id == orgId
+        && request.resource.data.id == resource.data.id;
+    }
+
     match /organizations/{orgId} {
       allow read: if active(orgId);
-      // All domain writes go through the authenticated operations API.
-      allow write: if false;
-      match /{collection}/{id} {
-        allow read: if active(orgId) && (
-          collection in ['customers', 'products', 'invoices', 'payments', 'accounts', 'settings']
-          || collection == 'members' && (id == request.auth.uid || role(orgId, ['Owner', 'Admin', 'Accountant', 'Sales', 'Viewer']))
-          || collection in ['expenses', 'inventory_movements'] && role(orgId, ['Owner', 'Admin', 'Accountant', 'Viewer'])
-          || collection == 'journal_entries' && role(orgId, ['Owner', 'Admin', 'Accountant', 'Viewer'])
-          || collection in ['audit_logs', 'invitations'] && role(orgId, ['Owner', 'Admin', 'Accountant'])
-          || collection == 'meta' && id in ['counters', 'subscription']
+      allow create, delete: if false;
+      allow update: if manager(orgId)
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.owner_uid == resource.data.owner_uid
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.schema_version == resource.data.schema_version;
+
+      match /customers/{id} {
+        allow read: if active(orgId);
+        allow create: if role(orgId, ['Owner', 'Admin', 'Accountant', 'Sales']) && tenantRecord(orgId) && request.resource.data.id == id;
+        allow update: if immutableTenantRecord(orgId) && (
+          role(orgId, ['Owner', 'Admin', 'Accountant', 'Sales'])
+          || (role(orgId, ['Cashier']) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['balance_sdg', 'balance_usd', 'updated_at']))
         );
-        allow write: if false;
+        allow delete: if role(orgId, ['Owner', 'Admin']);
+      }
+
+      match /products/{id} {
+        allow read: if active(orgId);
+        allow create: if role(orgId, ['Owner', 'Admin']) && tenantRecord(orgId) && request.resource.data.id == id;
+        allow update: if immutableTenantRecord(orgId) && (
+          role(orgId, ['Owner', 'Admin', 'Accountant'])
+          || (role(orgId, ['Sales', 'Cashier']) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock_quantity']))
+        );
+        allow delete: if role(orgId, ['Owner', 'Admin']);
+      }
+
+      match /invoices/{id} {
+        allow read: if active(orgId);
+        allow create: if salesWriter(orgId) && tenantRecord(orgId) && request.resource.data.id == id;
+        allow update: if immutableTenantRecord(orgId) && (
+          accountant(orgId)
+          || (role(orgId, ['Sales', 'Cashier']) && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'remaining_sdg', 'remaining_usd', 'paid_amount_sdg', 'paid_amount_usd', 'status', 'updated_at'
+          ]))
+        );
+        allow delete: if false;
+      }
+
+      match /payments/{id} {
+        allow read: if active(orgId);
+        allow create: if salesWriter(orgId) && tenantRecord(orgId) && request.resource.data.id == id;
+        allow update, delete: if false;
+      }
+
+      match /expenses/{id} {
+        allow read: if role(orgId, ['Owner', 'Admin', 'Accountant', 'Viewer']);
+        allow create: if accountant(orgId) && tenantRecord(orgId) && request.resource.data.id == id;
+        allow update: if accountant(orgId) && immutableTenantRecord(orgId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['voided_at']);
+        allow delete: if false;
+      }
+
+      match /inventory_movements/{id} {
+        allow read: if role(orgId, ['Owner', 'Admin', 'Accountant', 'Viewer']);
+        allow create: if salesWriter(orgId) && tenantRecord(orgId) && request.resource.data.id == id;
+        allow update, delete: if false;
+      }
+
+      match /accounts/{id} {
+        allow read: if active(orgId);
+        allow create: if accountant(orgId) && request.resource.data.org_id == orgId && request.resource.data.code == id;
+        allow update: if accountant(orgId) && request.resource.data.org_id == orgId && request.resource.data.code == resource.data.code;
+        allow delete: if manager(orgId);
+      }
+
+      match /journal_entries/{id} {
+        // Client-side financial operations need to verify invoice/payment journals directly.
+        allow read: if active(orgId);
+        allow create: if request.resource.data.org_id == orgId
+          && request.resource.data.created_by == request.auth.uid
+          && request.resource.data.id == id
+          && (
+            accountant(orgId)
+            || (role(orgId, ['Sales', 'Cashier']) && request.resource.data.reference_type in ['invoice', 'payment'])
+          );
+        allow update, delete: if false;
+      }
+
+      match /members/{uid} {
+        allow read: if active(orgId) && (uid == request.auth.uid || role(orgId, ['Owner', 'Admin', 'Accountant', 'Sales', 'Viewer']));
+        allow create: if false;
+        allow update: if manager(orgId)
+          && uid != request.auth.uid
+          && uid != orgData(orgId).owner_uid
+          && resource.data.role != 'Owner'
+          && request.resource.data.role in ['Admin', 'Accountant', 'Sales', 'Cashier', 'Viewer']
+          && request.resource.data.status in ['active', 'suspended']
+          && (owner(orgId) || (resource.data.role != 'Admin' && request.resource.data.role != 'Admin'));
+        allow delete: if manager(orgId)
+          && uid != request.auth.uid
+          && uid != orgData(orgId).owner_uid
+          && resource.data.role != 'Owner'
+          && (owner(orgId) || resource.data.role != 'Admin');
+      }
+
+      match /invitations/{id} {
+        allow read: if role(orgId, ['Owner', 'Admin', 'Accountant']);
+        allow create: if manager(orgId)
+          && request.resource.data.org_id == orgId
+          && request.resource.data.inviter_uid == request.auth.uid
+          && request.resource.data.role in ['Admin', 'Accountant', 'Sales', 'Cashier', 'Viewer']
+          && (owner(orgId) || request.resource.data.role != 'Admin');
+        allow update: if manager(orgId)
+          && request.resource.data.org_id == resource.data.org_id
+          && request.resource.data.org_id == orgId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updated_at'])
+          && request.resource.data.status == 'revoked';
+        allow delete: if false;
+      }
+
+      match /audit_logs/{id} {
+        allow read: if role(orgId, ['Owner', 'Admin', 'Accountant']);
+        allow create: if salesWriter(orgId)
+          && request.resource.data.org_id == orgId
+          && request.resource.data.actor_uid == request.auth.uid
+          && request.resource.data.id == id;
+        allow update, delete: if false;
+      }
+
+      match /idempotency/{id} {
+        allow get: if salesWriter(orgId);
+        allow list: if false;
+        allow create: if salesWriter(orgId)
+          && request.resource.data.actor_uid == request.auth.uid
+          && request.resource.data.status == 'completed';
+        allow update, delete: if false;
+      }
+
+      match /rate_limits/{uid} {
+        allow read: if active(orgId) && uid == request.auth.uid;
+        allow create, update: if salesWriter(orgId) && uid == request.auth.uid;
+        allow delete: if false;
+      }
+
+      match /invoice_numbers/{id} {
+        allow read: if salesWriter(orgId);
+        allow create: if salesWriter(orgId) && request.resource.data.invoice_id is string;
+        allow update, delete: if false;
+      }
+
+      match /meta/{metaId} {
+        allow read: if active(orgId) && metaId in ['counters', 'subscription', 'subscription_request'];
+        allow create: if metaId == 'subscription_request'
+          && manager(orgId)
+          && request.resource.data.requested_by == request.auth.uid;
+        allow update: if (
+          metaId == 'counters'
+          && salesWriter(orgId)
+          && request.resource.data.revision == resource.data.revision + 1
+        ) || (
+          metaId == 'subscription_request'
+          && manager(orgId)
+          && request.resource.data.requested_by == request.auth.uid
+        );
+        allow delete: if false;
       }
     }
-    match /user_organizations/{uid}/orgs/{id} { allow read: if signedIn() && request.auth.uid == uid; allow write: if false; }
-    // Retain read access to legacy records for controlled migration; no bypass for financial writes.
-    match /users/{uid}/{path=**} { allow read: if signedIn() && request.auth.uid == uid; allow write: if false; }
+
+    match /user_organizations/{uid}/orgs/{orgId} {
+      allow read: if verified() && request.auth.uid == uid;
+      allow create, update: if manager(orgId)
+        && request.resource.data.org_id == orgId
+        && request.resource.data.role in ['Admin', 'Accountant', 'Sales', 'Cashier', 'Viewer'];
+      allow delete: if manager(orgId);
+    }
+
+    match /users/{uid}/{path=**} {
+      allow read: if verified() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
     match /{path=**} { allow read, write: if false; }
   }
 }

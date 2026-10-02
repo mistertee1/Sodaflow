@@ -141,7 +141,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       return;
     }
 
-    const orgId = currentOrg && currentOrg.id !== 'local-guest-org' ? currentOrg.id : `org-${currentUser.uid}`;
+    if (!currentOrg || currentOrg.id === 'local-guest-org' || userRole === 'Viewer') {
+      setLogoUploadError('لم يكتمل تحميل المؤسسة أو لا تتوفر صلاحية تعديلها. أعد المزامنة أولاً ثم ارفع الشعار.');
+      return;
+    }
+    const orgId = currentOrg.id;
 
     setIsUploadingLogo(true);
     setLogoUploadProgress(0);
@@ -815,6 +819,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                   type="text"
                   required
                   value={businessName}
+                  aria-label="اسم المتجر أو المؤسسة"
                   onChange={(e) => setBusinessName(e.target.value)}
                   className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />

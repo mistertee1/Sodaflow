@@ -74,3 +74,68 @@ test('Netlify missing credentials returns a service outage instead of invalid se
     if (previousCredential === undefined) delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON; else process.env.FIREBASE_SERVICE_ACCOUNT_JSON = previousCredential;
   }
 });
+
+test('stale server project overrides fail as configuration errors before session verification', async () => {
+  const { selectedFirebaseProjectId } = await import('../server/admin');
+  const { authenticationFailure } = await import('../server/authErrors');
+  const { BusinessError } = await import('../src/domain/validation');
+  const config = (await import('../firebase-applet-config.json')).default;
+  const previous = process.env.FIREBASE_PROJECT_ID;
+  try {
+    process.env.FIREBASE_PROJECT_ID = 'obsolete-project';
+    assert.throws(selectedFirebaseProjectId, error => error instanceof BusinessError && error.status === 503 && error.code === 'firebase_project_mismatch');
+    const failure = authenticationFailure(new BusinessError('wrong project', 503, 'firebase_project_mismatch'));
+    assert.equal(failure.status, 503);
+    assert.equal(failure.code, 'firebase_project_mismatch');
+    process.env.FIREBASE_PROJECT_ID = ' ' + config.projectId + ' ';
+    assert.equal(selectedFirebaseProjectId(), config.projectId);
+  } finally {
+    if (previous === undefined) delete process.env.FIREBASE_PROJECT_ID; else process.env.FIREBASE_PROJECT_ID = previous;
+  }
+});
+
+test('readiness checks actual read access without writing data or exposing credentials', async () => {
+  const { inspectFirebaseReadiness } = await import('../server/readiness');
+  const calls: string[] = [];
+  const services = {
+    app: { options: { credential: { getAccessToken: async () => { calls.push('credential'); return { access_token: 'DO-NOT-EXPOSE' }; } } } },
+    db: { doc: (path: string) => ({ get: async () => { calls.push(path); return { data: 'DO-NOT-EXPOSE' }; } }) },
+    bucket: { getMetadata: async () => { calls.push('bucket'); return { privateMetadata: 'DO-NOT-EXPOSE' }; } },
+  };
+  const ready = await inspectFirebaseReadiness(() => services);
+  assert.equal(ready.status, 'ready');
+  assert.equal(ready.checks.firestore?.status, 'ready');
+  assert.equal(ready.checks.storage?.status, 'ready');
+  assert.deepEqual(calls.sort(), ['_health/readiness', 'bucket', 'credential']);
+  assert.equal(JSON.stringify(ready).includes('DO-NOT-EXPOSE'), false);
+
+  const unavailable = await inspectFirebaseReadiness(() => ({ ...services, db: { doc: () => ({ get: async () => { throw { code: 5 }; } }) } }));
+  assert.equal(unavailable.status, 'error');
+  assert.equal(unavailable.checks.firestore?.code, 'firestore_database_missing');
+  assert.equal(unavailable.checks.storage?.status, 'ready');
+
+  const missingBucket = await inspectFirebaseReadiness(() => ({ ...services, bucket: { getMetadata: async () => { throw { code: 404 }; } } }));
+  assert.equal(missingBucket.status, 'degraded');
+  assert.equal(missingBucket.checks.firestore?.status, 'ready');
+  assert.equal(missingBucket.checks.storage?.code, 'storage_bucket_missing');
+
+  const badCredential = await inspectFirebaseReadiness(() => ({ ...services, app: { options: { credential: { getAccessToken: async () => { throw { code: 'app/invalid-credential' }; } } } } }));
+  assert.equal(badCredential.checks.firebase.code, 'firebase_credentials_invalid');
+  assert.equal(badCredential.checks.firestore, undefined);
+});
+
+test('Netlify readiness refuses to report success for a missing service account', async () => {
+  const previousNetlify = process.env.NETLIFY;
+  const previousCredential = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  process.env.NETLIFY = 'true';
+  delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  try {
+    const { handler } = await import('../netlify/functions/api');
+    const response = await handler({ httpMethod: 'GET', path: '/api/health/ready' });
+    assert.equal(response.statusCode, 503);
+    assert.equal(JSON.parse(response.body).checks.firebase.code, 'firebase_configuration_missing');
+  } finally {
+    if (previousNetlify === undefined) delete process.env.NETLIFY; else process.env.NETLIFY = previousNetlify;
+    if (previousCredential === undefined) delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON; else process.env.FIREBASE_SERVICE_ACCOUNT_JSON = previousCredential;
+  }
+});

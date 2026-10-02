@@ -116,7 +116,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
           password,
           merchantName ? `${merchantName} (${businessName || 'متجر'})` : businessName || 'تاجر'
         );
-        onLoginSuccess();
+        setAuthMode('login');
+        setPassword('');
+        setConfirmPassword('');
+        setSuccessMessage('تم إنشاء الحساب وإرسال رابط التحقق إلى بريدك الإلكتروني. افتح الرسالة وأكّد البريد، ثم ارجع وسجّل الدخول. تفقد مجلد الرسائل غير المرغوب فيها إذا لم تجد الرسالة.');
       } else if (authMode === 'forgot_password') {
         if (!identifier.trim()) {
           throw new Error('يرجى إدخال بريدك الإلكتروني لاستلام رابط إعادة التعيين.');
@@ -126,7 +129,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       }
     } catch (err: any) {
       console.error('Auth error:', err);
-      let msg = err.message || 'حدث خطأ أثناء المصادقة.';
+      let msg = err.friendlyMessage || err.message || 'حدث خطأ أثناء المصادقة.';
       if (err?.code === 'auth/user-not-found' || err?.code === 'auth/wrong-password' || err?.code === 'auth/invalid-credential') {
         msg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
       } else if (err?.code === 'auth/email-already-in-use') {
@@ -405,15 +408,18 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
 
                 <div>
                   <label className="block text-xs font-semibold text-sf-text mb-1">
-                    {authMode === 'forgot_password' ? 'البريد الإلكتروني المسجل' : 'البريد الإلكتروني أو رقم الهاتف'}
+                    {authMode === 'forgot_password' ? 'البريد الإلكتروني المسجل' : 'البريد الإلكتروني'}
                   </label>
                   <div className="relative">
                     <input
-                      type={authMode === 'forgot_password' ? 'email' : 'text'}
+                      type="email"
+                      autoComplete="email"
+                      inputMode="email"
+                      aria-label="البريد الإلكتروني"
                       required
                       value={identifier}
                       onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder={authMode === 'forgot_password' ? 'your-email@example.com' : 'بريد إلكتروني أو رقم هاتف (09xxxxxxx)'}
+                      placeholder="your-email@example.com"
                       className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action pl-12 text-left font-sans"
                     />
                     <Mail className="w-4 h-4 text-sf-muted absolute left-3 top-2.5" />

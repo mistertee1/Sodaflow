@@ -147,11 +147,11 @@ test('unpaid void reverses the actual original journal and restores stock exactl
 });
 
 test('monthly quota resets at organization month boundary; client cannot self-upgrade', async () => {
-  const f = await fixture({ free: true }); for (let i = 0; i < 20; i++) await f.run('invoice.create', f.invoice(1, 1, 'SDG'), `oct-${i}`);
+  const f = await fixture({ free: true }); for (let i = 0; i < 100; i++) await f.run('invoice.create', f.invoice(1, 1, 'SDG'), `oct-${i}`);
   await f.run('subscription.request', { plan: 'Enterprise' }, 'request'); assert.equal((await f.ops.snapshot(f.org.id, owner)).subscription.plan, 'Free');
   await assert.rejects(f.run('invoice.create', f.invoice(1, 1, 'SDG')), /حد الفواتير/);
   f.setClock('2026-11-01T12:00:00Z'); await f.run('invoice.create', f.invoice(1, 1, 'SDG'), 'nov-1');
-  const s = await f.ops.snapshot(f.org.id, owner); assert.equal(s.counters.invoice_count, 21); assert.equal(s.counters.monthly_invoice_count, 1);
+  const s = await f.ops.snapshot(f.org.id, owner); assert.equal(s.counters.invoice_count, 101); assert.equal(s.counters.monthly_invoice_count, 1);
 });
 
 test('backup and reports include 100 of 100 records independently of display pages', async () => {

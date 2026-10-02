@@ -161,6 +161,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const epoch = ++session.current;
     userRef.current = user; setCurrentUser(user); activeOrg.current = null; apply(emptySnapshot()); setUserOrgs([]); setAuthLoading(true); setSyncError(null);
     try {
+      if (user && !user.emailVerified) {
+        setSyncStatus('idle');
+        setSyncError('أكّد بريدك الإلكتروني أولاً. لم يتم إنشاء مؤسسة أو بدء مزامنة لهذا الحساب بعد.');
+        await logout();
+        return;
+      }
       if (!user) {
         const loaded = await getGuest().snapshot(guestId, guestActor);
         if (epoch !== session.current) return;

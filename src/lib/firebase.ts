@@ -30,15 +30,8 @@ export const isIframeEnvironment = (): boolean => {
   }
 };
 
-// Convert phone number or email to valid Firebase email string
 export function normalizeLoginIdentifier(identifier: string): string {
-  const trimmed = identifier.trim().toLowerCase();
-  if (trimmed.includes('@')) {
-    return trimmed;
-  }
-  // If it's a phone number (Sudanese phone e.g. 0912345678 or +249...)
-  const cleanDigits = trimmed.replace(/\D/g, '');
-  return `${cleanDigits}@mohasbasd.app`;
+  return identifier.trim().toLowerCase();
 }
 
 export const signInWithGoogle = async () => {
@@ -62,13 +55,19 @@ export const signInWithGoogle = async () => {
   }
 };
 
-export const loginWithEmailOrPhone = async (identifier: string, password: string) => {
+export const loginWithEmail = async (identifier: string, password: string) => {
   const email = normalizeLoginIdentifier(identifier);
+  if (!email.includes('@')) {
+    const error: any = new Error('email_required');
+    error.code = 'auth/email-required';
+    error.friendlyMessage = 'أدخل بريدك الإلكتروني المسجل.';
+    throw error;
+  }
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
     if (!user.emailVerified) {
-      if (user.email && !user.email.endsWith('@mohasbasd.app')) {
+      if (user.email) {
         try {
           await sendVerification(user);
         } catch {
@@ -78,15 +77,13 @@ export const loginWithEmailOrPhone = async (identifier: string, password: string
       await signOut(auth);
       const verificationError: any = new Error('email_not_verified');
       verificationError.code = 'auth/email-not-verified';
-      verificationError.friendlyMessage = user.email?.endsWith('@mohasbasd.app')
-        ? 'هذا الحساب القديم مسجل برقم هاتف ولا يمكن التحقق منه بالبريد. أنشئ حساباً جديداً ببريد إلكتروني حقيقي.'
-        : 'البريد الإلكتروني غير مؤكد. أرسلنا رابط تحقق جديداً إن أمكن؛ افتح بريدك واضغط الرابط ثم سجّل الدخول.';
+      verificationError.friendlyMessage = 'البريد الإلكتروني غير مؤكد. أرسلنا رابط تحقق جديداً إن أمكن؛ افتح بريدك واضغط الرابط ثم سجّل الدخول.';
       throw verificationError;
     }
     return user;
   } catch (error: any) {
     const code = error?.code || 'unknown';
-    console.warn('Email/phone sign-in notice:', code);
+    console.warn('Email sign-in notice:', code);
     if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
       error.friendlyMessage = 'بيانات الدخول غير صحيحة. يرجى التحقق من المعرف أو كلمة المرور، أو الضغط على إنشاء حساب جديد.';
     } else if (code === 'auth/network-request-failed') {

@@ -1,12 +1,12 @@
 {
-  "projectId": "hesabaknew",
-  "appId": "1:613437350499:web:ac9575c2b02710ae768e56",
-  "apiKey": "AIzaSyBx0MSUMek7-gdlPtsttMQIciL8Uwq_aWU",
-  "authDomain": "hesabaknew.firebaseapp.com",
+  "projectId": "sodaflow",
+  "appId": "1:715757175054:web:29e4052083d10379d0d75f",
+  "apiKey": "AIzaSyD1VftyesTSbrF2bTsxmPD2kohKPVwBgpE",
+  "authDomain": "sodaflow.firebaseapp.com",
   "firestoreDatabaseId": "",
-  "storageBucket": "hesabaknew.firebasestorage.app",
-  "messagingSenderId": "613437350499",
-  "measurementId": "G-RVRKN024G0",
+  "storageBucket": "sodaflow.firebasestorage.app",
+  "messagingSenderId": "715757175054",
+  "measurementId": "G-9KY10TR3Z7",
   "oAuthClientId": "",
   "recaptchaSiteKey": ""
 }

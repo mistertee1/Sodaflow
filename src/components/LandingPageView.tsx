@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { BrandLogo } from './BrandLogo';
 import {
   signInWithGoogle,
-  loginWithEmailOrPhone,
+  loginWithEmail,
   registerMerchant,
   requestPasswordReset,
 } from '../lib/firebase';
@@ -57,7 +57,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Form Fields
-  const [identifier, setIdentifier] = useState(''); // email or phone
+  const [identifier, setIdentifier] = useState(''); // email
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [merchantName, setMerchantName] = useState('');
@@ -98,7 +98,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
     try {
       if (authMode === 'login') {
         if (!identifier.trim() || !password) {
-          throw new Error('يرجى إدخال البريد الإلكتروني أو رقم الهاتف وكلمة المرور.');
+          throw new Error('يرجى إدخال البريد الإلكتروني وكلمة المرور.');
         }
         await loginWithEmailOrPhone(identifier, password);
         onLoginSuccess();
@@ -129,7 +129,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       console.error('Auth error:', err);
       let msg = err.message || 'حدث خطأ أثناء المصادقة.';
       if (err?.code === 'auth/user-not-found' || err?.code === 'auth/wrong-password' || err?.code === 'auth/invalid-credential') {
-        msg = 'البريد أو رقم الهاتف أو كلمة المرور غير صحيحة.';
+        msg = 'البريد الإلكتروني أو كلمة المرور غير صحيحة.';
       } else if (err?.code === 'auth/email-already-in-use') {
         msg = 'هذا الحساب مسجل مسبقاً. يمكنك تسجيل الدخول مباشرة.';
       } else if (err?.code === 'auth/weak-password') {

@@ -6,6 +6,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
   updateProfile,
   signOut,
   onAuthStateChanged,
@@ -65,7 +66,24 @@ export const loginWithEmailOrPhone = async (identifier: string, password: string
   const email = normalizeLoginIdentifier(identifier);
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    return userCredential.user;
+    const user = userCredential.user;
+    if (!user.emailVerified) {
+      if (user.email && !user.email.endsWith('@mohasbasd.app')) {
+        try {
+          await sendEmailVerification(user, { url: window.location.origin, handleCodeInApp: false });
+        } catch {
+          // A resend can be rate-limited; the original verification link remains valid.
+        }
+      }
+      await signOut(auth);
+      const verificationError: any = new Error('email_not_verified');
+      verificationError.code = 'auth/email-not-verified';
+      verificationError.friendlyMessage = user.email?.endsWith('@mohasbasd.app')
+        ? 'هذا الحساب القديم مسجل برقم هاتف ولا يمكن التحقق منه بالبريد. أنشئ حساباً جديداً ببريد إلكتروني حقيقي.'
+        : 'البريد الإلكتروني غير مؤكد. أرسلنا رابط تحقق جديداً إن أمكن؛ افتح بريدك واضغط الرابط ثم سجّل الدخول.';
+      throw verificationError;
+    }
+    return user;
   } catch (error: any) {
     const code = error?.code || 'unknown';
     console.warn('Email/phone sign-in notice:', code);
@@ -83,12 +101,24 @@ export const registerMerchant = async (
   password: string,
   displayName: string
 ) => {
-  const email = normalizeLoginIdentifier(identifier);
+  const rawEmail = identifier.trim().toLowerCase();
+  if (!rawEmail.includes('@')) {
+    const error: any = new Error('email_required');
+    error.code = 'auth/email-required';
+    error.friendlyMessage = 'إنشاء حساب جديد يتطلب بريداً إلكترونياً حقيقياً حتى نرسل رابط التحقق. يمكنك استخدام رقم الهاتف فقط لتسجيل الدخول إلى حساب قديم.';
+    throw error;
+  }
+  const email = normalizeLoginIdentifier(rawEmail);
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     if (displayName) {
       await updateProfile(userCredential.user, { displayName });
     }
+    await sendEmailVerification(userCredential.user, {
+      url: window.location.origin,
+      handleCodeInApp: false,
+    });
+    await signOut(auth);
     return userCredential.user;
   } catch (error: any) {
     const code = error?.code || 'unknown';
@@ -97,6 +127,8 @@ export const registerMerchant = async (
       error.friendlyMessage = 'هذا الحساب مسجل بالفعل. يرجى تسجيل الدخول بدلاً من التسجيل.';
     } else if (code === 'auth/weak-password') {
       error.friendlyMessage = 'كلمة المرور ضعيفة جداً. يرجى إدخال 6 أحرف أو أرقام على الأقل.';
+    } else if (code === 'auth/too-many-requests') {
+      error.friendlyMessage = 'تم إرسال محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.';
     }
     throw error;
   }

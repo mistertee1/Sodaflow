@@ -1,7 +1,17 @@
-# The Netlify site publishes the Vite frontend; Express is deployed separately.
+# Netlify publishes the Vite frontend and serves the authenticated API through a function.
 [build]
   command = "npx vite build"
   publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
 
 [[headers]]
   for = "/*"

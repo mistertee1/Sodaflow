@@ -6,10 +6,21 @@ import config from '../firebase-applet-config.json';
 
 function serverCredential() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
-  if (!raw) return applicationDefault();
+  if (!raw) {
+    if (process.env.NETLIFY === 'true') {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is required on Netlify.');
+    }
+    return applicationDefault();
+  }
   try {
-    return cert(JSON.parse(raw));
-  } catch {
+    const serviceAccount = JSON.parse(raw);
+    const expectedProject = process.env.FIREBASE_PROJECT_ID || config.projectId;
+    if (serviceAccount.project_id && serviceAccount.project_id !== expectedProject) {
+      throw new Error(`Service account project ${serviceAccount.project_id} does not match ${expectedProject}.`);
+    }
+    return cert(serviceAccount);
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Service account project ')) throw error;
     throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON is not valid JSON.');
   }
 }

@@ -7,7 +7,7 @@ import { BusinessError, ensure, identifier, text, validateJournal, validateSetti
 import { INITIAL_SETTINGS } from '../../src/data/initialData';
 import { hasPermission } from '../../src/services/rbacService';
 import { Organizations } from '../../server/organizations';
-import { adminServices } from '../../server/admin';
+import { adminServices, selectedFirestoreDatabaseId } from '../../server/admin';
 import { FirestoreStore } from '../../server/firestoreStore';
 import { resolveSubscription } from '../../server/subscriptions';
 
@@ -80,6 +80,7 @@ export const handler = async (event: NetlifyEvent) => {
         app: 'SudaFlow',
         version: '3.0.2-netlify',
         firebase_admin_configured: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS),
+        firestore_database_id: selectedFirestoreDatabaseId(),
       });
     }
 
@@ -210,7 +211,8 @@ export const handler = async (event: NetlifyEvent) => {
       return json(error.status, { error: error.message, code: error.code });
     }
     const message = error instanceof Error ? error.message : 'UnknownError';
-    console.error('SudaFlow Netlify API failed:', message);
+    const upstreamCode = typeof error === 'object' && error && 'code' in error ? String((error as { code?: unknown }).code || '') : '';
+    console.error('SudaFlow Netlify API failed:', { code: upstreamCode || 'unknown', message, database: selectedFirestoreDatabaseId() });
     return json(503, {
       error: 'تعذر تأكيد الحفظ. أعد المحاولة بعد التحقق من إعداد الخادم والاتصال.',
       code: 'service_unavailable',

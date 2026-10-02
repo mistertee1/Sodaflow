@@ -19,9 +19,9 @@ npm run build
 NODE_ENV=production npm start
 ```
 
-يستخدم الخادم Application Default Credentials على خوادم Google أو ملف `GOOGLE_APPLICATION_CREDENTIALS`. **على Netlify يجب إضافة `FIREBASE_SERVICE_ACCOUNT_JSON` كمتغير بيئة سري يحتوي JSON الكامل لحساب خدمة Firebase**؛ لا تضفه إلى Git ولا تستخدم بادئة `VITE_`. يجب أن يكون حساب الخدمة من نفس مشروع Firebase الموجود في `firebase-applet-config.json`. يمكن تجاوز المشروع/قاعدة البيانات عبر `FIREBASE_PROJECT_ID` و`FIRESTORE_DATABASE_ID`. مفاتيح الخدمة و`BILLING_SIGNING_SECRET` لا تُرسل للمتصفح ولا تدخل Git.
+يستخدم الخادم Application Default Credentials على خوادم Google أو ملف `GOOGLE_APPLICATION_CREDENTIALS`. **على Netlify يجب إضافة `FIREBASE_SERVICE_ACCOUNT_JSON` كمتغير بيئة سري يحتوي JSON الكامل لحساب خدمة Firebase**؛ لا تضفه إلى Git ولا تستخدم بادئة `VITE_`. يجب أن يكون حساب الخدمة من نفس مشروع Firebase الموجود في `firebase-applet-config.json`. يستخدم مشروع الإنتاج الحالي قاعدة Firestore الافتراضية `(default)`. يمكن تجاوز المشروع/قاعدة البيانات عبر `FIREBASE_PROJECT_ID` و`FIRESTORE_DATABASE_ID` عند الحاجة فقط. مفاتيح الخدمة و`BILLING_SIGNING_SECRET` لا تُرسل للمتصفح ولا تدخل Git.
 
-حسابات البريد/كلمة المرور لا تنشئ مؤسسة ولا تبدأ مزامنة حتى يتم تأكيد البريد من رابط Firebase. التسجيل الجديد يقبل بريداً إلكترونياً حقيقياً فقط؛ تسجيل الدخول برقم الهاتف الاصطناعي يبقى للتوافق مع الحسابات القديمة ولا يمنح وصولاً سحابياً غير موثق.
+حسابات البريد/كلمة المرور لا تنشئ مؤسسة ولا تبدأ مزامنة حتى يتم تأكيد البريد من رابط Firebase. التسجيل وتسجيل الدخول بكلمة المرور يعتمدان على بريد إلكتروني حقيقي فقط؛ لا يوجد مسار تسجيل دخول برقم الهاتف.
 
 **الواجهة الثابتة وحدها لا تكفي للحفظ السحابي:** يجب تشغيل Express ومسارات `/api` على نفس الأصل، ونشر القواعد بالتزامن معه. توجد خطوات التفعيل في [دليل التشغيل](docs/operations.md).
 

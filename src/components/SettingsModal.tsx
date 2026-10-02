@@ -171,7 +171,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       alert('يرجى الانتظار حتى يكتمل رفع الشعار إلى التخزين السحابي.');
       return;
     }
-    const rateVal = validateExchangeRate(defaultRate);
+    const rateVal = defaultRate === 0 && !settings.currencies_configured
+      ? { isValid: true, rate: 0, error: undefined }
+      : validateExchangeRate(defaultRate);
     if (!rateVal.isValid) {
       alert(rateVal.error || 'يرجى إدخال سعر صرف افتراضي صحيح وموجب للمنشأة.');
       return;
@@ -188,7 +190,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       default_exchange_rate: rateVal.rate,
       primary_currency: primaryCurrency,
       secondary_currency: secondaryCurrency,
-      currencies_configured: true,
+      currencies_configured: rateVal.rate > 0,
       invoice_prefix: invoicePrefix.trim(),
       default_invoice_notes: defaultNotes.trim(),
       rounding_rule: roundingRule,

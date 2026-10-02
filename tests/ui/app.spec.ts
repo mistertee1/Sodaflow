@@ -218,3 +218,24 @@ test('exchange-rate save failure preserves the field and exposes a retry inside 
   await expect(dialog).toHaveCount(0);
   await expect(page.locator('header')).toContainText('2,500 SDG');
 });
+
+test('merchant profile saves before exchange setup and remains after reopening and reload', async ({ page }) => {
+  await page.addInitScript(() => {
+    const settings = JSON.parse(localStorage.getItem('hisabuk_guest_v1_settings') || '{}');
+    settings.default_exchange_rate = 0;
+    settings.currencies_configured = false;
+    localStorage.setItem('hisabuk_guest_v1_settings', JSON.stringify(settings));
+  });
+  await page.goto('/');
+  await page.getByTitle('الإعدادات', { exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'إعدادات المؤسسة' });
+  const nameInput = dialog.locator('label').filter({ hasText: 'اسم المتجر أو المؤسسة' }).locator('..').locator('input');
+  await nameInput.fill('متجر محفوظ');
+  await dialog.getByRole('button', { name: 'حفظ كافة الإعدادات' }).click();
+  await expect(dialog).not.toBeVisible();
+  await page.getByTitle('الإعدادات', { exact: true }).click();
+  await expect(nameInput).toHaveValue('متجر محفوظ');
+  await dialog.getByRole('button', { name: 'إغلاق', exact: true }).click();
+  await page.reload();
+  await expect(page.getByText('متجر محفوظ', { exact: true }).first()).toBeVisible();
+});

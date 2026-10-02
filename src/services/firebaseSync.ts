@@ -9,6 +9,8 @@ import { BusinessError } from '../domain/validation';
 import { BrowserFirestoreStore } from './browserFirestoreStore';
 import { api, sendCommand } from './businessApi';
 
+type FirebaseSnapshot = Awaited<ReturnType<Operations['snapshot']>>;
+
 type DirectSyncTestBridge = {
   snapshot?: (orgId: string, backup?: boolean) => Promise<any>;
   command?: (orgId: string, action: string, data: Record<string, unknown>, suggestedId?: string) => Promise<OperationResult>;
@@ -66,7 +68,7 @@ export async function firebaseSnapshot(orgId: string, backup = false) {
       : await operations.snapshot(orgId, currentActor(), backup);
   } catch (error) {
     if (isPermissionDenied(error)) {
-      return api(`/organizations/${encodeURIComponent(orgId)}/${backup ? 'backup' : 'snapshot'}`);
+      return api<FirebaseSnapshot>(`/organizations/${encodeURIComponent(orgId)}/${backup ? 'backup' : 'snapshot'}`);
     }
     return directFailure(error);
   }

@@ -81,7 +81,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
     setSuccessMsg(null);
 
     if (!identifier.trim() || !password) {
-      setError('يرجى إدخال البريد أو رقم الهاتف وكلمة المرور.');
+      setError(authMode === 'register' ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور.' : 'يرجى إدخال البريد أو رقم الهاتف وكلمة المرور.');
+      return;
+    }
+
+    if (authMode === 'register' && !identifier.includes('@')) {
+      setError('إنشاء الحساب يتطلب بريداً إلكترونياً حقيقياً لإرسال رابط التحقق.');
       return;
     }
 
@@ -94,7 +99,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
     try {
       if (authMode === 'register') {
         await registerMerchant(identifier, password, displayName.trim() || 'تاجر سودافلو');
-        setSuccessMsg('تم إنشاء الحساب بنجاح، جاري التحويل...');
+        setSuccessMsg('تم إنشاء الحساب وإرسال رابط التحقق إلى بريدك. افتح الرسالة وأكّد البريد، ثم ارجع وسجّل الدخول.');
       } else {
         await loginWithEmailOrPhone(identifier, password);
         setSuccessMsg('تم تسجيل الدخول بنجاح...');
@@ -397,14 +402,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
 
                   <div>
                     <label className="block text-xs font-semibold text-sf-text mb-1">
-                      البريد الإلكتروني أو رقم الهاتف السوداني
+{authMode === 'register' ? 'البريد الإلكتروني' : 'البريد الإلكتروني أو رقم الهاتف السوداني'}
                     </label>
                     <div className="relative">
                       <input
                         type="text"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
-                        placeholder="0912345678 أو merchant@gmail.com"
+                        placeholder={authMode === 'register' ? 'merchant@gmail.com' : '0912345678 أو merchant@gmail.com'}
                         dir="ltr"
                         className="w-full bg-sf-raised border border-sf-border focus:border-sf-action rounded-xl px-4 py-2 text-xs text-sf-text placeholder-sf-muted outline-none transition-colors text-right"
                       />

@@ -60,7 +60,7 @@ test('unverified recipient cannot use a forged payload email to create own membe
 
 test('browser Firestore store executes invoice synchronization directly under security rules', async () => {
   const db = env.authenticatedContext('owner', { email: 'owner@example.com', email_verified: true }).firestore();
-  const store = new BrowserFirestoreStore(db);
+  const store = new BrowserFirestoreStore(db as unknown as import('firebase/firestore').Firestore);
   const ops = new Operations(store, undefined, saved => saved as any);
   const actor = { uid: 'owner', email: 'owner@example.com', emailVerified: true };
   const run = (action: string, data: Record<string, unknown>, operationId: string) =>

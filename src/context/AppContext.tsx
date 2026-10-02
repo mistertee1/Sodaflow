@@ -8,6 +8,7 @@ import { Operations, type Actor } from '../domain/operations';
 import type { Change, Document } from '../domain/store';
 import { api, operationId, sendCommand } from '../services/businessApi';
 import { createGuestStore, guestActor, guestId } from '../services/guestStore';
+import { readSnapshotCache, writeSnapshotCache } from '../services/snapshotCache';
 import { hasPermission, type ActionType } from '../services/rbacService';
 import { getDefaultChartOfAccounts } from '../services/accountingService';
 import { BusinessError } from '../domain/validation';
@@ -130,24 +131,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('hisabuk_theme') === 'dark' ? 'dark' : 'light');
   const session = useRef(0), snapshot = useRef(state), userRef = useRef<User | null>(null), guest = useRef<Operations | null>(null);
   const activeOrg = useRef<string | null>(null), queue = useRef<Promise<unknown>>(Promise.resolve());
-  const pendingRefresh = useRef(false);
+  const pendingRefresh = useRef(false), confirmedRevision = useRef(-1);
   const fail = (error: unknown) => { setSyncStatus('error'); setSyncError(error instanceof Error ? error.message : 'تعذر إكمال العملية.'); };
   const apply = (next: Snapshot) => { snapshot.current = next; setState(next); };
   const actor = (): Actor => ({ uid: userRef.current?.uid || 'guest', email: userRef.current?.email || '', emailVerified: userRef.current?.emailVerified || false });
   const getGuest = () => { if (!guest.current) guest.current = new Operations(createGuestStore(), undefined, saved => saved as OrgSubscription); return guest.current; };
+  const cacheConfirmedSnapshot = (next: Snapshot, savedAt = new Date()) => {
+    const user = userRef.current;
+    if (!user || !next.org?.id || next.org.id === guestId) return;
+    writeSnapshotCache(localStorage, user.uid, next.org.id, next, savedAt);
+  };
   const refresh = async (id = activeOrg.current, epoch = session.current) => {
     if (!id) throw new BusinessError('اختر مؤسسة أولاً.');
     const loaded = id === guestId && !userRef.current ? await getGuest().snapshot(id, guestActor) : await api<Snapshot>(`/organizations/${encodeURIComponent(id)}/snapshot`);
     if (epoch !== session.current || id !== activeOrg.current) return;
-    const existing = snapshot.current;
-    if (existing.org?.id === id && Number(existing.counters.revision || 0) > Number(loaded.counters.revision || 0)) return;
+    const loadedRevision = Number(loaded.counters.revision || 0);
+    // Only server-confirmed revisions participate in ordering. A cached snapshot is display-only
+    // and can never block a fresher authoritative response.
+    if (loadedRevision < confirmedRevision.current) return;
     if (!(loaded.collections.accounts || []).length) loaded.collections.accounts = getDefaultChartOfAccounts(id);
-    apply(loaded); setSyncStatus(id === guestId ? 'idle' : 'synced'); setSyncError(null); setLastSyncedAt(id === guestId ? null : new Date());
+    confirmedRevision.current = loadedRevision;
+    apply(loaded);
+    if (id !== guestId) cacheConfirmedSnapshot(loaded);
+    setSyncStatus(id === guestId ? 'idle' : 'synced'); setSyncError(null); setLastSyncedAt(id === guestId ? null : new Date());
   };
   const load = async (org: Organization) => {
     const epoch = ++session.current;
     activeOrg.current = org.id;
-    apply({ ...emptySnapshot(), org }); setSyncStatus('syncing'); setSyncError(null); setLastSyncedAt(null);
+    confirmedRevision.current = -1;
+    const user = userRef.current;
+    const cached = user && org.id !== guestId ? readSnapshotCache<Snapshot>(localStorage, user.uid, org.id) : null;
+    if (cached) {
+      apply(cached.snapshot);
+      setSyncStatus('syncing');
+      setSyncError(null);
+      setLastSyncedAt(cached.savedAt);
+      // Cached data is already authenticated to this user+organization key. Let the UI render
+      // immediately while the server snapshot is being reconciled in the background.
+      setAuthLoading(false);
+    } else {
+      apply({ ...emptySnapshot(), org }); setSyncStatus('syncing'); setSyncError(null); setLastSyncedAt(null);
+    }
     try { await refresh(org.id, epoch); if (epoch === session.current && userRef.current) localStorage.setItem(`sudaflow_active_org_${userRef.current.uid}`, org.id); }
     catch (error) { if (epoch === session.current) fail(error); throw error; }
   };
@@ -171,7 +195,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [theme]);
   useEffect(() => onAuthStateChanged(auth, async user => {
     const epoch = ++session.current;
-    userRef.current = user; setCurrentUser(user); activeOrg.current = null; apply(emptySnapshot()); setUserOrgs([]); setAuthLoading(true); setSyncError(null);
+    userRef.current = user; setCurrentUser(user); activeOrg.current = null; confirmedRevision.current = -1; apply(emptySnapshot()); setUserOrgs([]); setAuthLoading(true); setSyncError(null);
     try {
       if (user && !user.emailVerified) {
         setSyncStatus('idle');
@@ -213,7 +237,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const rows = (next.collections[collection] || []).filter(row => (row.id || row.code || row.uid) !== id);
       next.collections[collection] = change.value ? [change.value, ...rows] : rows;
     }
+    confirmedRevision.current = Math.max(confirmedRevision.current, Number(next.counters.revision || 0));
     apply(next);
+    cacheConfirmedSnapshot(next);
   };
   const run = <T extends Document = Document>(action: string, data: Document, suggestedId?: string): Promise<T> => {
     const epoch = session.current, id = activeOrg.current, activeUser = userRef.current;
@@ -298,7 +324,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     syncAllToCloud, reconcileProductStock, exportDataJson, importDataJson,
     getNextInvoiceNumber: () => `${state.settings.invoice_prefix}${String((state.counters.last_invoice_number || 0) + 1).padStart(4, '0')}`,
     resetToSampleData: () => { setSyncError('بياناتك محفوظة. للاستعادة اختر نسخة احتياطية ومؤسسة فارغة.'); },
-    logoutUser: async () => { ++session.current; activeOrg.current = null; apply(emptySnapshot()); await logout(); },
+    logoutUser: async () => { ++session.current; activeOrg.current = null; confirmedRevision.current = -1; apply(emptySnapshot()); await logout(); },
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

@@ -7,6 +7,9 @@ import type { OrgSubscription } from '../types';
 import { createDefaultSubscription } from '../lib/plans';
 import { BusinessError } from '../domain/validation';
 import { BrowserFirestoreStore } from './browserFirestoreStore';
+import { api, sendCommand } from './businessApi';
+
+type FirebaseSnapshot = Awaited<ReturnType<Operations['snapshot']>>;
 
 type DirectSyncTestBridge = {
   snapshot?: (orgId: string, backup?: boolean) => Promise<any>;
@@ -38,6 +41,8 @@ const currentActor = (): Actor => {
   };
 };
 
+const isPermissionDenied = (error: unknown) => (error as any)?.code === 'permission-denied' || (error as any)?.code === 'firestore/permission-denied';
+
 const directFailure = (error: unknown): never => {
   if (error instanceof BusinessError) throw error;
   if (error instanceof FirebaseError) {
@@ -58,9 +63,13 @@ const directFailure = (error: unknown): never => {
 export async function firebaseSnapshot(orgId: string, backup = false) {
   try {
     const bridge = testBridge();
-    if (bridge?.snapshot) return await bridge.snapshot(orgId, backup);
-    return await operations.snapshot(orgId, currentActor(), backup);
+    return bridge?.snapshot
+      ? await bridge.snapshot(orgId, backup)
+      : await operations.snapshot(orgId, currentActor(), backup);
   } catch (error) {
+    if (isPermissionDenied(error)) {
+      return api<FirebaseSnapshot>(`/organizations/${encodeURIComponent(orgId)}/${backup ? 'backup' : 'snapshot'}`);
+    }
     return directFailure(error);
   }
 }
@@ -73,8 +82,6 @@ export async function firebaseCommand(
   data: Record<string, unknown>,
   suggestedId?: string,
 ): Promise<OperationResult> {
-  const bridge = testBridge();
-  if (bridge?.command) return bridge.command(orgId, action, data, suggestedId);
   const user = auth.currentUser;
   if (!user) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
   const fingerprint = canonical({ action, data });
@@ -84,10 +91,18 @@ export async function firebaseCommand(
   const id = localStorage.getItem(key) || suggestedId || operationId();
   localStorage.setItem(key, id);
   try {
-    const response = await operations.execute(orgId, currentActor(), { action, operationId: id, data: data as Document });
+    const bridge = testBridge();
+    const response = bridge?.command
+      ? await bridge.command(orgId, action, data, id)
+      : await operations.execute(orgId, currentActor(), { action, operationId: id, data: data as Document });
     try { localStorage.removeItem(key); } catch { /* confirmed write already succeeded */ }
     return response;
   } catch (error) {
+    if (isPermissionDenied(error)) {
+      // Production may still be running pre-direct-sync Firestore rules. The API uses
+      // the same Operations engine and operation ID, so fallback is safe and idempotent.
+      return sendCommand(orgId, action, data, id);
+    }
     if (error instanceof BusinessError && error.status < 500 && error.status !== 429) {
       try { localStorage.removeItem(key); } catch { /* no-op */ }
     }

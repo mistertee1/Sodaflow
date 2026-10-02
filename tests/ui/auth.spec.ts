@@ -31,12 +31,12 @@ async function fakeFirebase(page: Page, emailVerified: boolean) {
   return requests;
 }
 
-async function fakeCloud(page: Page, failFirstLoad = false) {
+async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false) {
   const orgId = `org-${uid}`;
   let org = { id: orgId, name: 'متجر الاختبار السحابي', owner_uid: uid, status: 'active', settings: { ...INITIAL_SETTINGS, business_name: 'متجر الاختبار السحابي', phone: '0912345678', default_exchange_rate: 2000, currencies_configured: true }, created_at: new Date().toISOString() };
   const requests: string[] = [];
-  let loads = 0;
-  await page.addInitScript(({ stateKey, initialOrg, ownerUid, ownerEmail, counters, subscription }) => {
+  let loads = 0, revision = 0;
+  await page.addInitScript(({ stateKey, initialOrg, ownerUid, ownerEmail, counters, subscription, denyDirect }) => {
     const read = () => {
       const raw = localStorage.getItem(stateKey);
       if (raw) return JSON.parse(raw);
@@ -61,8 +61,9 @@ async function fakeCloud(page: Page, failFirstLoad = false) {
       };
     };
     (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = {
-      snapshot: async () => makeSnapshot(),
+      snapshot: async () => { if (denyDirect) throw Object.assign(new Error('stale Firestore rules'), { code: 'permission-denied' }); return makeSnapshot(); },
       command: async (orgId: string, action: string, data: any) => {
+        if (denyDirect) throw Object.assign(new Error('stale Firestore rules'), { code: 'permission-denied' });
         if (action !== 'settings.update') throw new Error(`Unsupported UI-test direct command: ${action}`);
         const state = read();
         const updates = data?.updates || {};
@@ -89,7 +90,7 @@ async function fakeCloud(page: Page, failFirstLoad = false) {
         return () => window.removeEventListener('sudaflow-test-revision', handler);
       },
     };
-  }, { stateKey: cloudStateKey, initialOrg: org, ownerUid: uid, ownerEmail: email, counters: DEFAULT_ORGANIZATION_COUNTERS, subscription: createDefaultSubscription(orgId) });
+  }, { stateKey: cloudStateKey, initialOrg: org, ownerUid: uid, ownerEmail: email, counters: DEFAULT_ORGANIZATION_COUNTERS, subscription: createDefaultSubscription(orgId), denyDirect });
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     requests.push(path);
@@ -100,8 +101,21 @@ async function fakeCloud(page: Page, failFirstLoad = false) {
       expect(route.request().headers()['content-type']).toBe('image/png');
       expect(route.request().postDataBuffer()!.equals(png)).toBe(true);
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: 'https://firebasestorage.googleapis.com/test-store-logo.png' }) });
-    } else if (path.endsWith('/operations') || path.endsWith('/snapshot')) {
-      throw new Error(`Tenant data unexpectedly used legacy API path: ${path}`);
+    } else if (path.endsWith('/snapshot') || path.endsWith('/backup')) {
+      if (!denyDirect) throw new Error(`Tenant data unexpectedly used legacy API path: ${path}`);
+      const member = { uid, org_id: orgId, email, role: 'Owner', status: 'active' };
+      const collections = { customers: [], products: [], invoices: [], payments: [], expenses: [], inventory_movements: [], accounts: [], journal_entries: [], members: [member], audit_logs: [], invitations: [] };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schema_version: 3, org, role: 'Owner', member, settings: org.settings, collections, counters: { ...DEFAULT_ORGANIZATION_COUNTERS, revision }, subscription: createDefaultSubscription(orgId), exported_at: new Date().toISOString() }) });
+    } else if (path.endsWith('/operations')) {
+      if (!denyDirect) throw new Error(`Tenant data unexpectedly used legacy API path: ${path}`);
+      const command = route.request().postDataJSON();
+      expect(command.action).toBe('settings.update');
+      org = { ...org, name: command.data.updates.business_name || org.name, settings: { ...org.settings, ...command.data.updates } };
+      revision += 1;
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ result: org.settings, changes: [
+        { path: `organizations/${orgId}`, value: org },
+        { path: `organizations/${orgId}/meta/counters`, value: { ...DEFAULT_ORGANIZATION_COUNTERS, revision } }
+      ] }) });
     } else await route.abort();
   });
   await page.route('https://firebasestorage.googleapis.com/**', route => route.fulfill({ status: 200, contentType: 'image/png', body: png }));
@@ -169,4 +183,21 @@ test('an initial cloud outage recovers on reconnect and the owner can save shop 
   await expect(page.getByRole('dialog').getByRole('textbox', { name: 'اسم المتجر أو المؤسسة' })).toHaveValue('متجر محفوظ');
   await expect(page.getByRole('dialog').locator('img[src="https://firebasestorage.googleapis.com/test-store-logo.png"]')).toBeVisible();
   expect(errors).toEqual([]);
+});
+
+
+test('stale production Firestore rules fall back to the idempotent operations API', async ({ page }) => {
+  await fakeFirebase(page, true);
+  const cloud = await fakeCloud(page, false, true);
+  await login(page);
+  await expect(page.locator('header')).toContainText('متجر الاختبار السحابي');
+  await page.getByTitle('الإعدادات', { exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('textbox', { name: 'اسم المتجر أو المؤسسة' }).fill('متجر fallback');
+  await dialog.getByRole('button', { name: 'حفظ كافة الإعدادات' }).click();
+  await expect(page.locator('header')).toContainText('متجر fallback');
+  expect(cloud.requests.some(path => path.endsWith('/snapshot'))).toBe(true);
+  expect(cloud.requests.some(path => path.endsWith('/operations'))).toBe(true);
+  await page.reload();
+  await expect(page.locator('header')).toContainText('متجر fallback');
 });

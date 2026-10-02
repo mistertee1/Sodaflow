@@ -96,10 +96,6 @@ async function fakeCloud(page: Page, failFirstLoad = false) {
     if (path === '/api/organizations') {
       if (++loads === 1 && failFirstLoad) { await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'انقطاع اختبار مؤقت', code: 'service_unavailable' }) }); return; }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([org]) });
-    } else if (path.endsWith('/snapshot')) {
-      const member = { uid, org_id: orgId, email, role: 'Owner', status: 'active' };
-      const collections = { customers: [], products: [], invoices: [], payments: [], expenses: [], inventory_movements: [], accounts: [], journal_entries: [], members: [member], audit_logs: [], invitations: [] };
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schema_version: 3, org, role: 'Owner', member, settings: org.settings, collections, counters: DEFAULT_ORGANIZATION_COUNTERS, subscription: createDefaultSubscription(orgId), exported_at: new Date().toISOString() }) });
     } else if (path.endsWith('/images/logos')) {
       expect(route.request().headers()['content-type']).toBe('image/png');
       expect(route.request().postDataBuffer()!.equals(png)).toBe(true);

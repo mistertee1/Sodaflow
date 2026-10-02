@@ -160,7 +160,8 @@ service cloud.firestore {
       }
 
       match /idempotency/{id} {
-        allow read: if active(orgId) && resource.data.actor_uid == request.auth.uid;
+        allow get: if salesWriter(orgId);
+        allow list: if false;
         allow create: if salesWriter(orgId)
           && request.resource.data.actor_uid == request.auth.uid
           && request.resource.data.status == 'completed';

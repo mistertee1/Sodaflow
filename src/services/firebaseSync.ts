@@ -59,8 +59,9 @@ const directFailure = (error: unknown): never => {
 export async function firebaseSnapshot(orgId: string, backup = false) {
   try {
     const bridge = testBridge();
-    if (bridge?.snapshot) return await bridge.snapshot(orgId, backup);
-    return await operations.snapshot(orgId, currentActor(), backup);
+    return bridge?.snapshot
+      ? await bridge.snapshot(orgId, backup)
+      : await operations.snapshot(orgId, currentActor(), backup);
   } catch (error) {
     if (error instanceof FirebaseError && error.code === 'permission-denied') {
       return api(`/organizations/${encodeURIComponent(orgId)}/${backup ? 'backup' : 'snapshot'}`);
@@ -77,8 +78,6 @@ export async function firebaseCommand(
   data: Record<string, unknown>,
   suggestedId?: string,
 ): Promise<OperationResult> {
-  const bridge = testBridge();
-  if (bridge?.command) return bridge.command(orgId, action, data, suggestedId);
   const user = auth.currentUser;
   if (!user) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
   const fingerprint = canonical({ action, data });
@@ -88,7 +87,10 @@ export async function firebaseCommand(
   const id = localStorage.getItem(key) || suggestedId || operationId();
   localStorage.setItem(key, id);
   try {
-    const response = await operations.execute(orgId, currentActor(), { action, operationId: id, data: data as Document });
+    const bridge = testBridge();
+    const response = bridge?.command
+      ? await bridge.command(orgId, action, data, id)
+      : await operations.execute(orgId, currentActor(), { action, operationId: id, data: data as Document });
     try { localStorage.removeItem(key); } catch { /* confirmed write already succeeded */ }
     return response;
   } catch (error) {

@@ -1,3 +1,4 @@
+import { isInvalidSession } from '../../server/authErrors';
 import { createHash, randomUUID } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { membership, Operations as Engine, type Actor } from '../../src/domain/operations';
@@ -53,16 +54,18 @@ function parseJson(event: NetlifyEvent) {
 async function actorFrom(event: NetlifyEvent): Promise<Actor> {
   const match = header(event, 'authorization').match(/^Bearer (\S+)$/);
   if (!match) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
+  const auth = adminServices().auth;
   try {
-    const claims = await adminServices().auth.verifyIdToken(match[1], true);
+    const claims = await auth.verifyIdToken(match[1], true);
     return {
       uid: claims.uid,
       email: claims.email || '',
       emailVerified: claims.email_verified === true,
       name: claims.name,
     };
-  } catch {
-    throw new BusinessError('جلسة الدخول غير صالحة. سجّل الدخول من جديد.', 401);
+  } catch (error) {
+    if (isInvalidSession(error)) throw new BusinessError('جلسة الدخول غير صالحة. سجّل الدخول من جديد.', 401, 'invalid_session');
+    throw new BusinessError('تعذر الاتصال بخدمة المصادقة. تحقّق من إعداد Firebase في الخادم ثم أعد المحاولة.', 503, 'auth_service_unavailable');
   }
 }
 
@@ -123,6 +126,7 @@ export const handler = async (event: NetlifyEvent) => {
     }
 
     const actor = await actorFrom(event);
+    if (!actor.emailVerified) throw new BusinessError('أكّد بريدك الإلكتروني قبل استخدام البيانات السحابية.', 403, 'email_not_verified');
     const engine = service();
 
     if (method === 'GET' && path === '/organizations') {

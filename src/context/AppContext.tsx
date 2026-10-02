@@ -164,7 +164,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (user && !user.emailVerified) {
         setSyncStatus('idle');
         setSyncError('أكّد بريدك الإلكتروني أولاً. لم يتم إنشاء مؤسسة أو بدء مزامنة لهذا الحساب بعد.');
-        await logout();
+        // Registration sends verification before signing out. Do not race that request.
+        userRef.current = null; setCurrentUser(null);
+        setAuthLoading(false);
         return;
       }
       if (!user) {
@@ -242,8 +244,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       setSyncStatus('syncing');
       if (userRef.current && !activeOrg.current) {
-        const orgs = await api<Organization[]>('/organizations'); setUserOrgs(orgs);
-        if (!orgs.length) throw new BusinessError('المؤسسة غير متاحة. أعد تسجيل الدخول.');
+        let orgs = await api<Organization[]>('/organizations');
+        if (!orgs.length) {
+          const created = await api<Organization>('/organizations', { method: 'POST', body: JSON.stringify({ initial: true, operationId: 'initial', name: 'مؤسستي التجارية', settings: INITIAL_SETTINGS }) });
+          orgs = [created];
+        }
+        setUserOrgs(orgs);
         await load(orgs[0]);
       } else await refresh();
       return true;

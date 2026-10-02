@@ -37,3 +37,40 @@ test('contact form only acknowledges committed messages; retry is once and persi
     } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
   }
 });
+
+test('authentication outages are distinct from invalid sessions', async () => {
+  const { isInvalidSession } = await import('../server/authErrors');
+  assert.equal(isInvalidSession({ code: 'auth/id-token-expired' }), true);
+  assert.equal(isInvalidSession({ code: 'auth/id-token-revoked' }), true);
+  assert.equal(isInvalidSession({ code: 'app/invalid-credential' }), false);
+  assert.equal(isInvalidSession({ code: 'auth/internal-error' }), false);
+  assert.equal(isInvalidSession(new Error('missing service-account JSON')), false);
+});
+
+test('unverified accounts cannot provision organizations; verified owners start active', async () => {
+  const store = new MemoryStore();
+  const actor = { uid: 'new-owner', email: 'new@example.com', emailVerified: false };
+  await assert.rejects(new Organizations(store).create(actor, 'shop', INITIAL_SETTINGS, 'initial', true));
+  assert.deepEqual(store.dump(), {});
+  const org = await new Organizations(store).create({ ...actor, emailVerified: true }, 'shop', INITIAL_SETTINGS, 'initial', true);
+  assert.equal(org.status, 'active');
+  const member = store.dump()[`organizations/${org.id}/members/${actor.uid}`];
+  assert.equal(member.role, 'Owner');
+  assert.equal(member.status, 'active');
+});
+
+test('Netlify missing credentials returns a service outage instead of invalid session', async () => {
+  const previousNetlify = process.env.NETLIFY;
+  const previousCredential = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  process.env.NETLIFY = 'true';
+  delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  try {
+    const { handler } = await import('../netlify/functions/api');
+    const response = await handler({ httpMethod: 'GET', path: '/api/organizations', headers: { authorization: 'Bearer token' } });
+    assert.equal(response.statusCode, 503);
+    assert.equal(JSON.parse(response.body).code, 'firebase_configuration_missing');
+  } finally {
+    if (previousNetlify === undefined) delete process.env.NETLIFY; else process.env.NETLIFY = previousNetlify;
+    if (previousCredential === undefined) delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON; else process.env.FIREBASE_SERVICE_ACCOUNT_JSON = previousCredential;
+  }
+});

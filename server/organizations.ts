@@ -27,6 +27,7 @@ export class Organizations {
     });
   }
   async create(actor: Actor, name: string, input: Partial<MerchantSettings>, operationId: string, initial = false) {
+    ensure(actor.emailVerified, 'أكّد بريدك الإلكتروني قبل إنشاء المؤسسة.', 403);
     const id = initial ? `org-${identifier(actor.uid)}` : `org-${identifier(operationId)}`;
     return this.store.transaction(async tx => {
       const previous = await tx.get(`organizations/${id}`);

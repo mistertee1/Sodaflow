@@ -7,6 +7,7 @@ import type { OrgSubscription } from '../types';
 import { createDefaultSubscription } from '../lib/plans';
 import { BusinessError } from '../domain/validation';
 import { BrowserFirestoreStore } from './browserFirestoreStore';
+import { api, sendCommand } from './businessApi';
 
 type DirectSyncTestBridge = {
   snapshot?: (orgId: string, backup?: boolean) => Promise<any>;
@@ -61,6 +62,9 @@ export async function firebaseSnapshot(orgId: string, backup = false) {
     if (bridge?.snapshot) return await bridge.snapshot(orgId, backup);
     return await operations.snapshot(orgId, currentActor(), backup);
   } catch (error) {
+    if (error instanceof FirebaseError && error.code === 'permission-denied') {
+      return api(`/organizations/${encodeURIComponent(orgId)}/${backup ? 'backup' : 'snapshot'}`);
+    }
     return directFailure(error);
   }
 }
@@ -88,6 +92,11 @@ export async function firebaseCommand(
     try { localStorage.removeItem(key); } catch { /* confirmed write already succeeded */ }
     return response;
   } catch (error) {
+    if (error instanceof FirebaseError && error.code === 'permission-denied') {
+      // Production may still be running pre-direct-sync Firestore rules. The API uses
+      // the same Operations engine and operation ID, so fallback is safe and idempotent.
+      return sendCommand(orgId, action, data, id);
+    }
     if (error instanceof BusinessError && error.status < 500 && error.status !== 429) {
       try { localStorage.removeItem(key); } catch { /* no-op */ }
     }

@@ -3,7 +3,7 @@
   "appId": "1:715757175054:web:29e4052083d10379d0d75f",
   "apiKey": "AIzaSyD1VffyesTSbrF2bTsxmPD2kohKPVwBgpE",
   "authDomain": "sodaflow.firebaseapp.com",
-  "firestoreDatabaseId": "",
+  "firestoreDatabaseId": "(default)",
   "storageBucket": "sodaflow.firebasestorage.app",
   "messagingSenderId": "715757175054",
   "measurementId": "G-9KY10TR3Z7",

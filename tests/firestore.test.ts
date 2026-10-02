@@ -75,7 +75,7 @@ test('browser Firestore store executes invoice synchronization directly under se
   const snapshot = await ops.snapshot('rules-org', actor);
   assert.equal(snapshot.collections.invoices.some(row => row.id === invoice.id), true);
   assert.equal(snapshot.collections.products.find(row => row.id === product.id)?.stock_quantity, 8);
-  assert.equal(snapshot.counters.revision >= 3, true);
+  assert.equal(Number(snapshot.counters.revision || 0) >= 3, true);
 });
 
 test('real Firestore concurrent sales, duplicate retry, stock and customer balances commit together', async () => {

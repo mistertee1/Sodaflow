@@ -27,8 +27,6 @@ const operations = new Operations(
 );
 
 const currentActor = (): Actor => {
-  const bridge = testBridge();
-  if (bridge?.command) return bridge.command(orgId, action, data, suggestedId);
   const user = auth.currentUser;
   if (!user) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
   if (!user.emailVerified) throw new BusinessError('أكّد بريدك الإلكتروني قبل استخدام البيانات السحابية.', 403, 'email_not_verified');
@@ -75,6 +73,8 @@ export async function firebaseCommand(
   data: Record<string, unknown>,
   suggestedId?: string,
 ): Promise<OperationResult> {
+  const bridge = testBridge();
+  if (bridge?.command) return bridge.command(orgId, action, data, suggestedId);
   const user = auth.currentUser;
   if (!user) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
   const fingerprint = canonical({ action, data });

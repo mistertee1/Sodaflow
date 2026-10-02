@@ -43,10 +43,10 @@ test('direct Firestore rules allow app writes but protect subscription and role 
   await assertFails(setDoc(doc(cashier, 'organizations/rules-org/products/record'), { id: 'record', org_id: 'rules-org', price_usd: 999 }, { merge: true }));
 });
 
-test('cashier reads sales data, denied financial ledger; suspended/foreign users cannot read tenant data', async () => {
+test('cashier reads operational data required by direct sync; suspended/foreign users remain blocked', async () => {
   const cashier = env.authenticatedContext('cashier', { email: 'cashier@example.com', email_verified: true }).firestore();
   await assertSucceeds(getDocs(collection(cashier, 'organizations/rules-org/invoices')));
-  await assertFails(getDocs(collection(cashier, 'organizations/rules-org/expenses'))); await assertFails(getDoc(doc(cashier, 'organizations/rules-org/journal_entries/record')));
+  await assertFails(getDocs(collection(cashier, 'organizations/rules-org/expenses'))); await assertSucceeds(getDoc(doc(cashier, 'organizations/rules-org/journal_entries/record')));
   for (const uid of ['foreign', 'suspended', 'forged-owner']) await assertFails(getDoc(doc(env.authenticatedContext(uid, { email: `${uid}@example.com`, email_verified: true }).firestore(), 'organizations/rules-org/invoices/record')));
   await assertSucceeds(getDoc(doc(env.authenticatedContext('viewer', { email: 'viewer@example.com', email_verified: true }).firestore(), 'organizations/rules-org/journal_entries/record')));
 });

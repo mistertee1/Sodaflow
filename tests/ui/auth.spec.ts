@@ -42,7 +42,9 @@ async function fakeCloud(page: Page, failFirstLoad = false) {
       if (++loads === 1 && failFirstLoad) { await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'انقطاع اختبار مؤقت', code: 'service_unavailable' }) }); return; }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([org]) });
     } else if (path.endsWith('/snapshot')) {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schema_version: 3, org, role: 'Owner', member: { uid, org_id: orgId, role: 'Owner', status: 'active' }, settings: org.settings, collections: {}, counters: DEFAULT_ORGANIZATION_COUNTERS, subscription: createDefaultSubscription(orgId), exported_at: new Date().toISOString() }) });
+      const member = { uid, org_id: orgId, email, role: 'Owner', status: 'active' };
+      const collections = { customers: [], products: [], invoices: [], payments: [], expenses: [], inventory_movements: [], accounts: [], journal_entries: [], members: [member], audit_logs: [], invitations: [] };
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schema_version: 3, org, role: 'Owner', member, settings: org.settings, collections, counters: DEFAULT_ORGANIZATION_COUNTERS, subscription: createDefaultSubscription(orgId), exported_at: new Date().toISOString() }) });
     } else if (path.endsWith('/images/logos')) {
       expect(route.request().headers()['content-type']).toBe('image/png');
       expect(route.request().postDataBuffer()!.equals(png)).toBe(true);
@@ -94,6 +96,8 @@ test('unverified login displays the verification instructions and never accesses
 });
 
 test('an initial cloud outage recovers on reconnect and the owner can save shop name and logo across reload', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
   await fakeFirebase(page, true);
   const cloud = await fakeCloud(page, true);
   await login(page);
@@ -116,4 +120,5 @@ test('an initial cloud outage recovers on reconnect and the owner can save shop 
   await page.getByTitle('الإعدادات', { exact: true }).click();
   await expect(page.getByRole('dialog').getByRole('textbox', { name: 'اسم المتجر أو المؤسسة' })).toHaveValue('متجر محفوظ');
   await expect(page.getByRole('dialog').locator('img[src="https://firebasestorage.googleapis.com/test-store-logo.png"]')).toBeVisible();
+  expect(errors).toEqual([]);
 });

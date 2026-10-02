@@ -21,7 +21,7 @@ test('cloud snapshot cache is isolated by user and organization', () => {
   assert.equal(writeSnapshotCache(storage, 'user-a', 'org-a', snapshot(), new Date('2026-10-02T12:00:00Z')), true);
   assert.equal(readSnapshotCache(storage, 'user-b', 'org-a'), null);
   assert.equal(readSnapshotCache(storage, 'user-a', 'org-b'), null);
-  const cached = readSnapshotCache(storage, 'user-a', 'org-a');
+  const cached = readSnapshotCache<ReturnType<typeof snapshot>>(storage, 'user-a', 'org-a');
   assert.equal(cached?.snapshot.org.id, 'org-a');
   assert.equal(cached?.snapshot.counters.revision, 7);
   assert.equal(cached?.savedAt.toISOString(), '2026-10-02T12:00:00.000Z');

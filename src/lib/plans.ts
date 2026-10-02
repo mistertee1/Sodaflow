@@ -24,7 +24,7 @@ export const PLAN_TIERS: Record<SubscriptionPlan, PlanLimits> = {
     arabic_name: 'الباقة المجانية',
     description: 'للمتاجر الناشئة وصغار التجار لتجربة النظام وإدارة العمليات الأساسية',
     price_usd_monthly: 'مجاناً',
-    max_invoices_per_month: 20,
+    max_invoices_per_month: 100,
     max_members: 1,
     max_customers: 25,
     max_products: 50,

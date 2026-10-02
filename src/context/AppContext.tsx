@@ -258,7 +258,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const nothing = async () => {};
   const value: AppContextType = {
     currentUser, authLoading, syncStatus, syncError, dismissSyncError: () => setSyncError(null), lastSyncedAt,
-    currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.member?.status || (state.role === 'Owner' ? 'active' : 'suspended'), orgMembers: rows<OrgMember>('members'),
+    currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.member?.status === 'suspended' ? 'suspended' : 'active', orgMembers: rows<OrgMember>('members'),
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
     isActionAllowed, switchOrganization, createNewOrg,

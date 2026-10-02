@@ -151,6 +151,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try { await refresh(org.id, epoch); if (epoch === session.current && userRef.current) localStorage.setItem(`sudaflow_active_org_${userRef.current.uid}`, org.id); }
     catch (error) { if (epoch === session.current) fail(error); throw error; }
   };
+  const initializeCloudOrganization = async (user: User, epoch = session.current) => {
+    let orgs = await api<Organization[]>('/organizations');
+    if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
+    if (!orgs.length) {
+      const created = await api<Organization>('/organizations', { method: 'POST', body: JSON.stringify({ initial: true, operationId: 'initial', name: 'مؤسستي التجارية', settings: INITIAL_SETTINGS }) });
+      orgs = [created];
+    }
+    if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
+    setUserOrgs(orgs);
+    const saved = localStorage.getItem(`sudaflow_active_org_${user.uid}`) || localStorage.getItem('hisabuk_active_org_id');
+    await load(orgs.find(o => o.id === saved) || orgs[0]);
+  };
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light');
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -174,16 +186,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (epoch !== session.current) return;
         activeOrg.current = guestId; apply(loaded); setUserOrgs([loaded.org]); setSyncStatus('idle');
       } else {
-        let orgs = await api<Organization[]>('/organizations');
-        if (epoch !== session.current) return;
-        if (!orgs.length) {
-          const created = await api<Organization>('/organizations', { method: 'POST', body: JSON.stringify({ initial: true, operationId: 'initial', name: 'مؤسستي التجارية', settings: INITIAL_SETTINGS }) });
-          orgs = [created];
-        }
-        if (epoch !== session.current) return;
-        setUserOrgs(orgs);
-        const saved = localStorage.getItem(`sudaflow_active_org_${user.uid}`) || localStorage.getItem('hisabuk_active_org_id');
-        await load(orgs.find(o => o.id === saved) || orgs[0]);
+        await initializeCloudOrganization(user, epoch);
       }
     } catch (error) { if (userRef.current?.uid === user?.uid) fail(error); }
     finally { if (userRef.current?.uid === user?.uid) setAuthLoading(false); }
@@ -191,12 +194,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Refresh server-confirmed data on focus and periodically. Financial writes always reread transactionally.
   useEffect(() => {
     const poll = () => {
-      if (!userRef.current || !activeOrg.current || pendingRefresh.current || document.visibilityState !== 'visible') return;
+      const user = userRef.current, epoch = session.current;
+      if (!user || pendingRefresh.current || document.visibilityState !== 'visible') return;
       pendingRefresh.current = true;
-      void refresh().catch(fail).finally(() => { pendingRefresh.current = false; });
+      const work = activeOrg.current ? refresh() : initializeCloudOrganization(user, epoch);
+      void work.catch(error => { if (epoch === session.current && userRef.current?.uid === user.uid) fail(error); }).finally(() => { pendingRefresh.current = false; });
     };
-    const interval = window.setInterval(poll, 30000); window.addEventListener('focus', poll);
-    return () => { window.clearInterval(interval); window.removeEventListener('focus', poll); };
+    const interval = window.setInterval(poll, 30000); window.addEventListener('focus', poll); window.addEventListener('online', poll);
+    return () => { window.clearInterval(interval); window.removeEventListener('focus', poll); window.removeEventListener('online', poll); };
   }, []);
   const applyChanges = (changes: Change[]) => {
     const next = { ...snapshot.current, collections: { ...snapshot.current.collections } };
@@ -241,19 +246,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUserOrgs(prev => [...prev, org]); await load(org); return org;
   };
   const syncAllToCloud = async () => {
+    const user = userRef.current, epoch = session.current;
     try {
       setSyncStatus('syncing');
-      if (userRef.current && !activeOrg.current) {
-        let orgs = await api<Organization[]>('/organizations');
-        if (!orgs.length) {
-          const created = await api<Organization>('/organizations', { method: 'POST', body: JSON.stringify({ initial: true, operationId: 'initial', name: 'مؤسستي التجارية', settings: INITIAL_SETTINGS }) });
-          orgs = [created];
-        }
-        setUserOrgs(orgs);
-        await load(orgs[0]);
-      } else await refresh();
-      return true;
-    } catch (error) { fail(error); return false; }
+      if (user && !activeOrg.current) await initializeCloudOrganization(user, epoch);
+      else await refresh();
+      return userRef.current?.uid === user?.uid;
+    } catch (error) { if (epoch === session.current && userRef.current?.uid === user?.uid) fail(error); return false; }
   };
   const reconcileProductStock = (id: string) => {
     const product = products.find(p => p.id === id), movements = inventoryMovements.filter(m => m.product_id === id);

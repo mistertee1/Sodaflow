@@ -43,7 +43,7 @@ export const signInWithGoogle = async () => {
     console.warn('Google sign-in popup notice:', code, error?.message);
     // Attach user-friendly descriptive message
     if (code === 'auth/network-request-failed') {
-      error.friendlyMessage = 'تعذر الاتصال بخدمة Google عبر النافذة المنبثقة داخل إطار المعاينة (بسبب قيود المتصفح لملفات تعريف الارتباط للطرف الثالث). يمكنك فتح التطبيق في نافذة مستقلة، أو تسجيل الدخول بالبريد/رقم الهاتف، أو المتابعة كضيف.';
+      error.friendlyMessage = 'تعذر الاتصال بخدمة Google عبر النافذة المنبثقة داخل إطار المعاينة (بسبب قيود المتصفح لملفات تعريف الارتباط للطرف الثالث). يمكنك فتح التطبيق في نافذة مستقلة، أو تسجيل الدخول بالبريد الإلكتروني، أو المتابعة كضيف.';
     } else if (code === 'auth/popup-blocked') {
       error.friendlyMessage = 'تم حظر النافذة المنبثقة بواسطة المتصفح. يرجى السماح بالنوافذ المنبثقة ثم المحاولة مجدداً.';
     } else if (code === 'auth/popup-closed-by-user') {
@@ -113,7 +113,7 @@ export const registerMerchant = async (
   if (!rawEmail.includes('@')) {
     const error: any = new Error('email_required');
     error.code = 'auth/email-required';
-    error.friendlyMessage = 'إنشاء حساب جديد يتطلب بريداً إلكترونياً حقيقياً حتى نرسل رابط التحقق. يمكنك استخدام رقم الهاتف فقط لتسجيل الدخول إلى حساب قديم.';
+    error.friendlyMessage = 'إنشاء حساب جديد يتطلب بريداً إلكترونياً حقيقياً حتى نرسل رابط التحقق.';
     throw error;
   }
   const email = normalizeLoginIdentifier(rawEmail);
@@ -122,8 +122,11 @@ export const registerMerchant = async (
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     accountCreated = true;
     try {
-      if (displayName) await updateProfile(userCredential.user, { displayName });
       await sendVerification(userCredential.user);
+      if (displayName) {
+        try { await updateProfile(userCredential.user, { displayName }); }
+        catch { console.warn('Merchant display name was not saved; email verification was sent.'); }
+      }
     } finally {
       // Even a delivery/profile failure must not leave an unverified account signed in.
       await signOut(auth);

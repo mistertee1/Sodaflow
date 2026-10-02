@@ -19,9 +19,11 @@ npm run build
 NODE_ENV=production npm start
 ```
 
-يستخدم الخادم Application Default Credentials على خوادم Google أو ملف `GOOGLE_APPLICATION_CREDENTIALS`. **على Netlify يجب إضافة `FIREBASE_SERVICE_ACCOUNT_JSON` كمتغير بيئة سري يحتوي JSON الكامل لحساب خدمة Firebase**؛ لا تضفه إلى Git ولا تستخدم بادئة `VITE_`. يجب أن يكون حساب الخدمة من نفس مشروع Firebase الموجود في `firebase-applet-config.json`. يستخدم مشروع الإنتاج الحالي قاعدة Firestore الافتراضية `(default)`. يمكن تجاوز المشروع/قاعدة البيانات عبر `FIREBASE_PROJECT_ID` و`FIRESTORE_DATABASE_ID` عند الحاجة فقط. مفاتيح الخدمة و`BILLING_SIGNING_SECRET` لا تُرسل للمتصفح ولا تدخل Git.
+يستخدم الخادم Application Default Credentials على خوادم Google أو ملف `GOOGLE_APPLICATION_CREDENTIALS`. **على Netlify يجب إضافة `FIREBASE_SERVICE_ACCOUNT_JSON` كمتغير بيئة سري يحتوي JSON الكامل لحساب خدمة Firebase، بنطاق Functions وفي سياق Production، ثم إعادة النشر**؛ لا تضفه إلى Git ولا تستخدم بادئة `VITE_`. يجب أن يكون حساب الخدمة من نفس مشروع Firebase الموجود في `firebase-applet-config.json` (`sodaflow`). إذا كان `FIREBASE_PROJECT_ID` موجوداً يجب أن يطابق مشروع الواجهة؛ القيم القديمة تُرفض كخطأ إعداد، لا كجلسة دخول غير صالحة. يستخدم مشروع الإنتاج الحالي قاعدة Firestore الافتراضية `(default)`، ويمكن تحديد قاعدة أخرى عبر `FIRESTORE_DATABASE_ID` عند الحاجة. مفاتيح الخدمة و`BILLING_SIGNING_SECRET` لا تُرسل للمتصفح ولا تدخل Git.
 
 حسابات البريد/كلمة المرور لا تنشئ مؤسسة ولا تبدأ مزامنة حتى يتم تأكيد البريد من رابط Firebase. التسجيل وتسجيل الدخول بكلمة المرور يعتمدان على بريد إلكتروني حقيقي فقط؛ لا يوجد مسار تسجيل دخول برقم الهاتف.
+
+`GET /api/health` يؤكد تشغيل الدالة ويعرض معرّفات المشروع والقاعدة دون اختبار الوصول. `GET /api/health/ready` يختبر اعتماد Firebase وقراءة Firestore والوصول إلى حاوية Storage فعلياً، دون كتابة أو إرجاع بيانات المستخدمين. يعيد `ready` عند نجاحها، و`degraded` إذا كانت Firestore جاهزة وStorage غير جاهز، و`error` عند تعطل الاعتماد أو Firestore. تُخزّن نتيجة الفحص مؤقتاً لمدة 30 ثانية. عند فشل تحميل المؤسسة الأولي يعاد التحميل عند عودة الاتصال أو التركيز على الصفحة، ثم كل 30 ثانية أثناء ظهورها.
 
 **الواجهة الثابتة وحدها لا تكفي للحفظ السحابي:** يجب تشغيل Express ومسارات `/api` على نفس الأصل، ونشر القواعد بالتزامن معه. توجد خطوات التفعيل في [دليل التشغيل](docs/operations.md).
 

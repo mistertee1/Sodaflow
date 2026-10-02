@@ -1,4 +1,7 @@
-import { isInvalidSession } from '../../server/authErrors';
+import { authenticationFailure } from '../../server/authErrors';
+import { firebaseServiceFailure } from '../../server/serviceErrors';
+import { firebaseReadiness } from '../../server/readiness';
+import firebaseConfig from '../../firebase-applet-config.json';
 import { createHash, randomUUID } from 'node:crypto';
 import { Buffer } from 'node:buffer';
 import { membership, Operations as Engine, type Actor } from '../../src/domain/operations';
@@ -64,8 +67,7 @@ async function actorFrom(event: NetlifyEvent): Promise<Actor> {
       name: claims.name,
     };
   } catch (error) {
-    if (isInvalidSession(error)) throw new BusinessError('جلسة الدخول غير صالحة. سجّل الدخول من جديد.', 401, 'invalid_session');
-    throw new BusinessError('تعذر الاتصال بخدمة المصادقة. تحقّق من إعداد Firebase في الخادم ثم أعد المحاولة.', 503, 'auth_service_unavailable');
+    throw authenticationFailure(error);
   }
 }
 
@@ -78,10 +80,17 @@ export const handler = async (event: NetlifyEvent) => {
       return json(200, {
         status: 'ok',
         app: 'SudaFlow',
-        version: '3.0.2-netlify',
+        version: '3.0.3-netlify',
         firebase_admin_configured: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS),
+        firebase_project_id: firebaseConfig.projectId,
+        firebase_server_project_id: process.env.FIREBASE_PROJECT_ID?.trim() || firebaseConfig.projectId,
         firestore_database_id: selectedFirestoreDatabaseId(),
       });
+    }
+
+    if (method === 'GET' && path === '/health/ready') {
+      const result = await firebaseReadiness();
+      return json(result.status === 'ready' ? 200 : 503, result);
     }
 
     if (method === 'POST' && path === '/financial/calculate-invoice') {
@@ -193,13 +202,13 @@ export const handler = async (event: NetlifyEvent) => {
       const bucket = adminServices().bucket;
       const token = randomUUID();
       const filePath = `organizations/${identifier(orgId)}/${folder}/${randomUUID()}`;
-      await bucket.file(filePath).save(buffer, {
+      try { await bucket.file(filePath).save(buffer, {
         resumable: false,
         metadata: {
           contentType: type,
           metadata: { firebaseStorageDownloadTokens: token, uploadedBy: actor.uid },
         },
-      });
+      }); } catch (error) { throw firebaseServiceFailure(error, 'storage'); }
       return json(200, {
         url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filePath)}?alt=media&token=${token}`,
       });
@@ -213,9 +222,7 @@ export const handler = async (event: NetlifyEvent) => {
     const message = error instanceof Error ? error.message : 'UnknownError';
     const upstreamCode = typeof error === 'object' && error && 'code' in error ? String((error as { code?: unknown }).code || '') : '';
     console.error('SudaFlow Netlify API failed:', { code: upstreamCode || 'unknown', message, database: selectedFirestoreDatabaseId() });
-    return json(503, {
-      error: 'تعذر تأكيد الحفظ. أعد المحاولة بعد التحقق من إعداد الخادم والاتصال.',
-      code: 'service_unavailable',
-    });
+    const failure = firebaseServiceFailure(error, 'firestore');
+    return json(failure.status, { error: failure.message, code: failure.code });
   }
 };

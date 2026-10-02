@@ -405,7 +405,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                     </label>
                     <div className="relative">
                       <input
-                        type="text"
+                        type="email"
+                        autoComplete="email"
+                        inputMode="email"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
                         placeholder="merchant@gmail.com"

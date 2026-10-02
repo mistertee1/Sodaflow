@@ -1,4 +1,6 @@
-import { isInvalidSession } from './authErrors';
+import { authenticationFailure } from './authErrors';
+import { firebaseServiceFailure } from './serviceErrors';
+import { firebaseReadiness } from './readiness';
 import express from 'express';
 import { randomUUID, createHash } from 'node:crypto';
 import type { Actor, Operations } from '../src/domain/operations';
@@ -21,6 +23,10 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
     return { uid: claims.uid, email: claims.email || '', emailVerified: claims.email_verified === true, name: claims.name };
   });
   router.get('/health', (_req, res) => res.json({ status: 'ok', app: 'SudaFlow', version: '3.0.0' }));
+  router.get('/health/ready', async (_req, res) => {
+    const result = await firebaseReadiness();
+    res.status(result.status === 'ready' ? 200 : 503).json(result);
+  });
   router.post('/financial/calculate-invoice', (req, res, next) => {
     try { const s = validateSettings({ ...INITIAL_SETTINGS, ...req.body }); const data = { ...req.body, exchange_rate_used: req.body.exchange_rate }; res.json({ success: true, ...invoiceFinancials(data, s) }); } catch (e) { next(e); }
   });
@@ -51,11 +57,8 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
       if (!res.locals.actor.emailVerified) { res.status(403).json({ error: 'أكّد بريدك الإلكتروني قبل استخدام البيانات السحابية.', code: 'email_not_verified' }); return; }
       next();
     } catch (error) {
-      if (options?.verify || isInvalidSession(error)) {
-        res.status(401).json({ error: 'جلسة الدخول غير صالحة. سجّل الدخول من جديد.', code: 'invalid_session' });
-      } else {
-        res.status(503).json({ error: 'تعذر الاتصال بخدمة المصادقة. تحقّق من إعداد Firebase في الخادم ثم أعد المحاولة.', code: 'auth_service_unavailable' });
-      }
+      const failure = options?.verify && !(error instanceof BusinessError) ? new BusinessError('جلسة الدخول غير صالحة. سجّل الدخول من جديد.', 401, 'invalid_session') : authenticationFailure(error);
+      res.status(failure.status).json({ error: failure.message, code: failure.code });
     }
   });
   const route = (work: (req: express.Request, actor: Actor) => Promise<unknown>): express.RequestHandler => async (req, res, next) => {
@@ -79,7 +82,8 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
     const valid = type === 'image/png' ? buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) : type === 'image/jpeg' ? buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255 : type === 'image/gif' ? /^GIF8[79]a$/.test(buffer.subarray(0, 6).toString()) : type === 'image/webp' && buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP';
     ensure(valid, 'محتوى الصورة لا يطابق نوع الملف.');
     const bucket = adminServices().bucket, token = randomUUID(), filePath = `organizations/${identifier(req.params.orgId)}/${folder}/${randomUUID()}`;
-    await bucket.file(filePath).save(buffer, { resumable: false, metadata: { contentType: type, metadata: { firebaseStorageDownloadTokens: token, uploadedBy: actor.uid } } });
+    try { await bucket.file(filePath).save(buffer, { resumable: false, metadata: { contentType: type, metadata: { firebaseStorageDownloadTokens: token, uploadedBy: actor.uid } } }); }
+    catch (error) { throw firebaseServiceFailure(error, 'storage'); }
     return { url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filePath)}?alt=media&token=${token}` };
   }));
   router.use((_req, res) => res.status(404).json({ error: 'المسار غير موجود.' }));
@@ -87,7 +91,8 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
     if (error instanceof BusinessError) { res.status(error.status).json({ error: error.message, code: error.code }); return; }
     if ((error as any)?.type === 'entity.too.large') { res.status(413).json({ error: 'الملف أكبر من الحد المسموح.' }); return; }
     console.error('SudaFlow operation failed:', error instanceof Error ? error.name : 'UnknownError');
-    res.status(503).json({ error: 'تعذر تأكيد الحفظ. أعد المحاولة بنفس العملية بعد التحقق من الاتصال بالخادم.', code: 'service_unavailable' });
+    const failure = firebaseServiceFailure(error, 'firestore');
+    res.status(failure.status).json({ error: failure.message, code: failure.code });
   });
   return router;
 }

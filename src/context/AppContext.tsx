@@ -6,7 +6,8 @@ import { auth, onAuthStateChanged, logout, type User } from '../lib/firebase';
 import { createDefaultSubscription } from '../lib/plans';
 import { Operations, type Actor } from '../domain/operations';
 import type { Change, Document } from '../domain/store';
-import { api, operationId, sendCommand } from '../services/businessApi';
+import { api, operationId } from '../services/businessApi';
+import { firebaseCommand, firebaseSnapshot, watchFirebaseRevision } from '../services/firebaseSync';
 import { createGuestStore, guestActor, guestId } from '../services/guestStore';
 import { readSnapshotCache, writeSnapshotCache } from '../services/snapshotCache';
 import { hasPermission, type ActionType } from '../services/rbacService';
@@ -131,7 +132,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('hisabuk_theme') === 'dark' ? 'dark' : 'light');
   const session = useRef(0), snapshot = useRef(state), userRef = useRef<User | null>(null), guest = useRef<Operations | null>(null);
   const activeOrg = useRef<string | null>(null), queue = useRef<Promise<unknown>>(Promise.resolve());
-  const pendingRefresh = useRef(false), confirmedRevision = useRef(-1);
+  const pendingRefresh = useRef(false), confirmedRevision = useRef(-1), revisionWatch = useRef<(() => void) | null>(null);
   const fail = (error: unknown) => { setSyncStatus('error'); setSyncError(error instanceof Error ? error.message : 'تعذر إكمال العملية.'); };
   const apply = (next: Snapshot) => { snapshot.current = next; setState(next); };
   const actor = (): Actor => ({ uid: userRef.current?.uid || 'guest', email: userRef.current?.email || '', emailVerified: userRef.current?.emailVerified || false });
@@ -143,7 +144,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   const refresh = async (id = activeOrg.current, epoch = session.current) => {
     if (!id) throw new BusinessError('اختر مؤسسة أولاً.');
-    const loaded = id === guestId && !userRef.current ? await getGuest().snapshot(id, guestActor) : await api<Snapshot>(`/organizations/${encodeURIComponent(id)}/snapshot`);
+    const loaded = id === guestId && !userRef.current ? await getGuest().snapshot(id, guestActor) : await firebaseSnapshot(id);
     if (epoch !== session.current || id !== activeOrg.current) return;
     const loadedRevision = Number(loaded.counters.revision || 0);
     // Only server-confirmed revisions participate in ordering. A cached snapshot is display-only
@@ -172,8 +173,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } else {
       apply({ ...emptySnapshot(), org }); setSyncStatus('syncing'); setSyncError(null); setLastSyncedAt(null);
     }
-    try { await refresh(org.id, epoch); if (epoch === session.current && userRef.current) localStorage.setItem(`sudaflow_active_org_${userRef.current.uid}`, org.id); }
-    catch (error) { if (epoch === session.current) fail(error); throw error; }
+    try {
+      await refresh(org.id, epoch);
+      if (epoch === session.current && userRef.current) {
+        localStorage.setItem(`sudaflow_active_org_${userRef.current.uid}`, org.id);
+        revisionWatch.current?.();
+        revisionWatch.current = watchFirebaseRevision(
+          org.id,
+          revision => {
+            if (epoch !== session.current || activeOrg.current !== org.id || revision <= confirmedRevision.current || pendingRefresh.current) return;
+            pendingRefresh.current = true;
+            void refresh(org.id, epoch)
+              .catch(error => { if (epoch === session.current && activeOrg.current === org.id) fail(error); })
+              .finally(() => { pendingRefresh.current = false; });
+          },
+          error => { if (epoch === session.current && activeOrg.current === org.id) fail(error); },
+        );
+      }
+    } catch (error) { if (epoch === session.current) fail(error); throw error; }
   };
   const initializeCloudOrganization = async (user: User, epoch = session.current) => {
     let orgs = await api<Organization[]>('/organizations');
@@ -195,6 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [theme]);
   useEffect(() => onAuthStateChanged(auth, async user => {
     const epoch = ++session.current;
+    revisionWatch.current?.(); revisionWatch.current = null;
     userRef.current = user; setCurrentUser(user); activeOrg.current = null; confirmedRevision.current = -1; apply(emptySnapshot()); setUserOrgs([]); setAuthLoading(true); setSyncError(null);
     try {
       if (user && !user.emailVerified) {
@@ -215,17 +233,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (error) { if (userRef.current?.uid === user?.uid) fail(error); }
     finally { if (userRef.current?.uid === user?.uid) setAuthLoading(false); }
   }), []);
-  // Refresh server-confirmed data on focus and periodically. Financial writes always reread transactionally.
+  // Firestore listener is the primary synchronization path. Focus/online are fallback reconciliations.
   useEffect(() => {
-    const poll = () => {
+    const reconcile = () => {
       const user = userRef.current, epoch = session.current;
       if (!user || pendingRefresh.current || document.visibilityState !== 'visible') return;
       pendingRefresh.current = true;
       const work = activeOrg.current ? refresh() : initializeCloudOrganization(user, epoch);
       void work.catch(error => { if (epoch === session.current && userRef.current?.uid === user.uid) fail(error); }).finally(() => { pendingRefresh.current = false; });
     };
-    const interval = window.setInterval(poll, 30000); window.addEventListener('focus', poll); window.addEventListener('online', poll);
-    return () => { window.clearInterval(interval); window.removeEventListener('focus', poll); window.removeEventListener('online', poll); };
+    window.addEventListener('focus', reconcile); window.addEventListener('online', reconcile);
+    return () => {
+      window.removeEventListener('focus', reconcile); window.removeEventListener('online', reconcile);
+      revisionWatch.current?.(); revisionWatch.current = null;
+    };
   }, []);
   const applyChanges = (changes: Change[]) => {
     const next = { ...snapshot.current, collections: { ...snapshot.current.collections } };
@@ -247,7 +268,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!id || epoch !== session.current || snapshot.current.role === 'Viewer') throw new BusinessError('المؤسسة لم تُحمّل أو صلاحية الكتابة غير متاحة.', 403);
       setSyncStatus('syncing'); setSyncError(null);
       try {
-        const response = !activeUser && id === guestId ? await getGuest().execute(id, guestActor, { action, operationId: suggestedId || operationId(), data }) : await sendCommand(id, action, data, suggestedId);
+        const response = !activeUser && id === guestId ? await getGuest().execute(id, guestActor, { action, operationId: suggestedId || operationId(), data }) : await firebaseCommand(id, action, data, suggestedId);
         if (epoch !== session.current) throw new BusinessError('تم حفظ العملية في المؤسسة السابقة. تغيّرت الجلسة؛ أعد تحميل المؤسسة لمشاهدتها.', 409);
         applyChanges(response.changes);
         setSyncStatus(id === guestId ? 'idle' : 'synced'); setLastSyncedAt(id === guestId ? null : new Date());
@@ -288,7 +309,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   const exportDataJson = async () => {
     const id = activeOrg.current; if (!id) throw new BusinessError('اختر مؤسسة أولاً.');
-    const full = id === guestId ? await getGuest().snapshot(id, guestActor, true) : await api<Snapshot>(`/organizations/${encodeURIComponent(id)}/backup`);
+    const full = id === guestId ? await getGuest().snapshot(id, guestActor, true) : await firebaseSnapshot(id, true);
     return JSON.stringify(full, null, 2);
   };
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
@@ -324,7 +345,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     syncAllToCloud, reconcileProductStock, exportDataJson, importDataJson,
     getNextInvoiceNumber: () => `${state.settings.invoice_prefix}${String((state.counters.last_invoice_number || 0) + 1).padStart(4, '0')}`,
     resetToSampleData: () => { setSyncError('بياناتك محفوظة. للاستعادة اختر نسخة احتياطية ومؤسسة فارغة.'); },
-    logoutUser: async () => { ++session.current; activeOrg.current = null; confirmedRevision.current = -1; apply(emptySnapshot()); await logout(); },
+    logoutUser: async () => { ++session.current; revisionWatch.current?.(); revisionWatch.current = null; activeOrg.current = null; confirmedRevision.current = -1; apply(emptySnapshot()); await logout(); },
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

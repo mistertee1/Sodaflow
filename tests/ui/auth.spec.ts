@@ -4,6 +4,7 @@ import { DEFAULT_ORGANIZATION_COUNTERS } from '../../src/types';
 import { createDefaultSubscription } from '../../src/lib/plans';
 
 const uid = 'test-cloud-owner', email = 'owner@example.com';
+const cloudStateKey = 'sudaflow_ui_test_direct_cloud_v1';
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aU8sAAAAASUVORK5CYII=', 'base64');
 
 async function fakeFirebase(page: Page, emailVerified: boolean) {
@@ -35,6 +36,60 @@ async function fakeCloud(page: Page, failFirstLoad = false) {
   let org = { id: orgId, name: 'متجر الاختبار السحابي', owner_uid: uid, status: 'active', settings: { ...INITIAL_SETTINGS, business_name: 'متجر الاختبار السحابي', phone: '0912345678', default_exchange_rate: 2000, currencies_configured: true }, created_at: new Date().toISOString() };
   const requests: string[] = [];
   let loads = 0;
+  await page.addInitScript(({ stateKey, initialOrg, ownerUid, ownerEmail, counters, subscription }) => {
+    const read = () => {
+      const raw = localStorage.getItem(stateKey);
+      if (raw) return JSON.parse(raw);
+      const seeded = { org: initialOrg, revision: Number(counters.revision || 0) };
+      localStorage.setItem(stateKey, JSON.stringify(seeded));
+      return seeded;
+    };
+    const write = (value: any) => localStorage.setItem(stateKey, JSON.stringify(value));
+    const makeSnapshot = () => {
+      const state = read();
+      const member = { uid: ownerUid, org_id: state.org.id, email: ownerEmail, role: 'Owner', status: 'active' };
+      return {
+        schema_version: 3,
+        org: state.org,
+        role: 'Owner',
+        member,
+        settings: state.org.settings,
+        collections: { customers: [], products: [], invoices: [], payments: [], expenses: [], inventory_movements: [], accounts: [], journal_entries: [], members: [member], audit_logs: [], invitations: [] },
+        counters: { ...counters, revision: state.revision },
+        subscription,
+        exported_at: new Date().toISOString(),
+      };
+    };
+    (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = {
+      snapshot: async () => makeSnapshot(),
+      command: async (orgId: string, action: string, data: any) => {
+        if (action !== 'settings.update') throw new Error(`Unsupported UI-test direct command: ${action}`);
+        const state = read();
+        const updates = data?.updates || {};
+        state.org = {
+          ...state.org,
+          name: updates.business_name || state.org.name,
+          settings: { ...state.org.settings, ...updates },
+          updated_at: new Date().toISOString(),
+        };
+        state.revision = Number(state.revision || 0) + 1;
+        write(state);
+        window.dispatchEvent(new CustomEvent('sudaflow-test-revision', { detail: state.revision }));
+        return {
+          result: state.org.settings,
+          changes: [
+            { path: `organizations/${orgId}`, value: state.org },
+            { path: `organizations/${orgId}/meta/counters`, value: { ...counters, revision: state.revision } },
+          ],
+        };
+      },
+      watchRevision: (_orgId: string, onRevision: (revision: number) => void) => {
+        const handler = (event: Event) => onRevision(Number((event as CustomEvent).detail || 0));
+        window.addEventListener('sudaflow-test-revision', handler);
+        return () => window.removeEventListener('sudaflow-test-revision', handler);
+      },
+    };
+  }, { stateKey: cloudStateKey, initialOrg: org, ownerUid: uid, ownerEmail: email, counters: DEFAULT_ORGANIZATION_COUNTERS, subscription: createDefaultSubscription(orgId) });
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     requests.push(path);
@@ -49,15 +104,12 @@ async function fakeCloud(page: Page, failFirstLoad = false) {
       expect(route.request().headers()['content-type']).toBe('image/png');
       expect(route.request().postDataBuffer()!.equals(png)).toBe(true);
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: 'https://firebasestorage.googleapis.com/test-store-logo.png' }) });
-    } else if (path.endsWith('/operations')) {
-      const command = route.request().postDataJSON();
-      expect(command.action).toBe('settings.update');
-      org = { ...org, name: command.data.updates.business_name || org.name, settings: { ...org.settings, ...command.data.updates } };
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ result: org.settings, changes: [{ path: `organizations/${orgId}`, value: org }] }) });
+    } else if (path.endsWith('/operations') || path.endsWith('/snapshot')) {
+      throw new Error(`Tenant data unexpectedly used legacy API path: ${path}`);
     } else await route.abort();
   });
   await page.route('https://firebasestorage.googleapis.com/**', route => route.fulfill({ status: 200, contentType: 'image/png', body: png }));
-  return { requests, saved: () => org.settings };
+  return { requests, saved: () => page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}').org?.settings || {}, cloudStateKey) };
 }
 
 async function login(page: Page) {
@@ -110,7 +162,7 @@ test('an initial cloud outage recovers on reconnect and the owner can save shop 
   await expect(dialog.getByRole('button', { name: 'حفظ كافة الإعدادات' })).toBeEnabled();
   await dialog.getByRole('textbox', { name: 'اسم المتجر أو المؤسسة' }).fill('متجر محفوظ');
   await dialog.locator('input[type="file"][accept*="image"]').setInputFiles({ name: 'logo.png', mimeType: 'image/png', buffer: png });
-  await expect.poll(() => cloud.saved().logo_url).toBe('https://firebasestorage.googleapis.com/test-store-logo.png');
+  await expect.poll(async () => (await cloud.saved()).logo_url).toBe('https://firebasestorage.googleapis.com/test-store-logo.png');
   await expect(dialog.getByRole('textbox', { name: 'اسم المتجر أو المؤسسة' })).toHaveValue('متجر محفوظ');
   await dialog.getByRole('button', { name: 'حفظ كافة الإعدادات' }).click();
   await expect(page.locator('header')).toContainText('متجر محفوظ');

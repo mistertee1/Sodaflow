@@ -26,12 +26,16 @@ function serverCredential() {
   }
 }
 
+export function selectedFirestoreDatabaseId() {
+  return process.env.FIRESTORE_DATABASE_ID || config.firestoreDatabaseId || '(default)';
+}
+
 export function adminServices() {
   const app = getApps().find(a => a.name === 'sudaflow-server') || initializeApp({
     projectId: process.env.FIREBASE_PROJECT_ID || config.projectId,
     credential: serverCredential(),
     storageBucket: process.env.FIREBASE_STORAGE_BUCKET || config.storageBucket,
   }, 'sudaflow-server');
-  const db = getFirestore(app, process.env.FIRESTORE_DATABASE_ID || config.firestoreDatabaseId || '(default)');
+  const db = getFirestore(app, selectedFirestoreDatabaseId());
   return { auth: getAuth(app), db, bucket: getStorage(app).bucket() };
 }

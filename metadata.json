@@ -1,6 +1,0 @@
-{
-  "name": "محاسبة وفواتير بعملتين",
-  "description": "تطبيق محاسبة وفواتير بعملتين (جنيه سوداني ودولار أمريكي) لصغار التجار مع دعم العرض المزدوج وتجميد سعر الصرف",
-  "requestFramePermissions": ["camera"],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

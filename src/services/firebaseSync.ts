@@ -8,6 +8,17 @@ import { createDefaultSubscription } from '../lib/plans';
 import { BusinessError } from '../domain/validation';
 import { BrowserFirestoreStore } from './browserFirestoreStore';
 
+type DirectSyncTestBridge = {
+  snapshot?: (orgId: string, backup?: boolean) => Promise<any>;
+  command?: (orgId: string, action: string, data: Record<string, unknown>, suggestedId?: string) => Promise<OperationResult>;
+  watchRevision?: (orgId: string, onRevision: (revision: number) => void, onError?: (error: unknown) => void) => () => void;
+};
+
+const testBridge = (): DirectSyncTestBridge | null => {
+  if (typeof window === 'undefined' || !['127.0.0.1', 'localhost'].includes(window.location.hostname)) return null;
+  return (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ || null;
+};
+
 const store = new BrowserFirestoreStore(db);
 const operations = new Operations(
   store,
@@ -16,6 +27,8 @@ const operations = new Operations(
 );
 
 const currentActor = (): Actor => {
+  const bridge = testBridge();
+  if (bridge?.command) return bridge.command(orgId, action, data, suggestedId);
   const user = auth.currentUser;
   if (!user) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
   if (!user.emailVerified) throw new BusinessError('أكّد بريدك الإلكتروني قبل استخدام البيانات السحابية.', 403, 'email_not_verified');
@@ -46,6 +59,8 @@ const directFailure = (error: unknown): never => {
 
 export async function firebaseSnapshot(orgId: string, backup = false) {
   try {
+    const bridge = testBridge();
+    if (bridge?.snapshot) return await bridge.snapshot(orgId, backup);
     return await operations.snapshot(orgId, currentActor(), backup);
   } catch (error) {
     return directFailure(error);
@@ -85,6 +100,8 @@ export function watchFirebaseRevision(
   onRevision: (revision: number) => void,
   onError?: (error: unknown) => void,
 ) {
+  const bridge = testBridge();
+  if (bridge?.watchRevision) return bridge.watchRevision(orgId, onRevision, onError);
   return onSnapshot(
     doc(db, `organizations/${orgId}/meta/counters`),
     snapshot => onRevision(Number(snapshot.data()?.revision || 0)),

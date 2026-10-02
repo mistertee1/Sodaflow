@@ -21,7 +21,6 @@ import {
   Mail,
   KeyRound,
   User,
-  Phone,
   Building2,
   DollarSign,
   Printer,
@@ -100,7 +99,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
         if (!identifier.trim() || !password) {
           throw new Error('يرجى إدخال البريد الإلكتروني وكلمة المرور.');
         }
-        await loginWithEmailOrPhone(identifier, password);
+        await loginWithEmail(identifier, password);
         onLoginSuccess();
       } else if (authMode === 'register') {
         if (!identifier.trim() || !password) {

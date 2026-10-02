@@ -72,7 +72,12 @@ export const handler = async (event: NetlifyEvent) => {
     const path = normalizePath(event);
 
     if (method === 'GET' && path === '/health') {
-      return json(200, { status: 'ok', app: 'SudaFlow', version: '3.0.1-netlify' });
+      return json(200, {
+        status: 'ok',
+        app: 'SudaFlow',
+        version: '3.0.2-netlify',
+        firebase_admin_configured: Boolean(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.GOOGLE_APPLICATION_CREDENTIALS),
+      });
     }
 
     if (method === 'POST' && path === '/financial/calculate-invoice') {

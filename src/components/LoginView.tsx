@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   signInWithGoogle,
-  loginWithEmailOrPhone,
+  loginWithEmail,
   registerMerchant,
   isIframeEnvironment,
 } from '../lib/firebase';
@@ -17,7 +17,6 @@ import {
   Sparkles,
   ExternalLink,
   Mail,
-  Phone,
   Lock,
   UserPlus,
   LogIn,
@@ -61,14 +60,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
       console.warn('Google login in LoginView:', err?.code);
       if (err?.code === 'auth/network-request-failed') {
         setError(
-          'تعذر فتح نافذة Google للمصادقة من داخل إطار المعاينة المضمن (بسبب قيود المتصفح على ملفات تعريف الارتباط للطرف الثالث). يمكنك استخدام تسجيل الدخول بالبريد/رقم الهاتف، أو المتابعة كضيف، أو فتح التطبيق في نافذة مستقلة.'
+          'تعذر فتح نافذة Google للمصادقة من داخل إطار المعاينة المضمن (بسبب قيود المتصفح على ملفات تعريف الارتباط للطرف الثالث). يمكنك استخدام تسجيل الدخول بالبريد الإلكتروني، أو المتابعة كضيف، أو فتح التطبيق في نافذة مستقلة.'
         );
       } else if (err?.code === 'auth/popup-blocked') {
         setError('تم حظر النافذة المنبثقة بواسطة المتصفح. يرجى السماح بالنوافذ المنبثقة والمحاولة مجدداً.');
       } else if (err?.code === 'auth/popup-closed-by-user') {
         setError('تم إغلاق نافذة تسجيل الدخول.');
       } else {
-        setError(err?.friendlyMessage || 'تعذر إكمال تسجيل الدخول بحساب Google. يمكنك الدخول بالبريد/الهاتف أو كضيف.');
+        setError(err?.friendlyMessage || 'تعذر إكمال تسجيل الدخول بحساب Google. يمكنك الدخول بالبريد الإلكتروني أو كضيف.');
       }
     } finally {
       setLoading(false);
@@ -81,12 +80,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
     setSuccessMsg(null);
 
     if (!identifier.trim() || !password) {
-      setError(authMode === 'register' ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور.' : 'يرجى إدخال البريد أو رقم الهاتف وكلمة المرور.');
+      setError(authMode === 'register' ? 'يرجى إدخال البريد الإلكتروني وكلمة المرور.' : 'يرجى إدخال البريد الإلكتروني وكلمة المرور.');
       return;
     }
 
-    if (authMode === 'register' && !identifier.includes('@')) {
-      setError('إنشاء الحساب يتطلب بريداً إلكترونياً حقيقياً لإرسال رابط التحقق.');
+    if (!identifier.includes('@')) {
+      setError('أدخل بريداً إلكترونياً صحيحاً.');
       return;
     }
 
@@ -101,7 +100,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
         await registerMerchant(identifier, password, displayName.trim() || 'تاجر سودافلو');
         setSuccessMsg('تم إنشاء الحساب وإرسال رابط التحقق إلى بريدك. افتح الرسالة وأكّد البريد، ثم ارجع وسجّل الدخول.');
       } else {
-        await loginWithEmailOrPhone(identifier, password);
+        await loginWithEmail(identifier, password);
         setSuccessMsg('تم تسجيل الدخول بنجاح...');
       }
     } catch (err: any) {
@@ -110,7 +109,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
         err?.friendlyMessage ||
           (authMode === 'register'
             ? 'تعذر إنشاء الحساب. تأكد من صحة البيانات أو حاول تسجيل الدخول إذا كنت مسجلاً مسبقاً.'
-            : 'بيانات الدخول غير صحيحة. تأكد من البريد أو رقم الهاتف وكلمة المرور.')
+            : 'بيانات الدخول غير صحيحة. تأكد من البريد الإلكتروني وكلمة المرور.')
       );
     } finally {
       setLoading(false);
@@ -273,7 +272,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                   }`}
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  <span>البريد أو الهاتف</span>
+                  <span>البريد الإلكتروني</span>
                 </button>
               </div>
 
@@ -379,7 +378,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
                 </div>
               )}
 
-              {/* Tab 2: Email or Sudanese Phone + Password */}
+              {/* Tab 2: Email + Password */}
               {activeTab === 'credentials' && (
                 <form onSubmit={handleCredentialsSubmit} className="space-y-3 text-right">
                   {authMode === 'register' && (
@@ -402,18 +401,18 @@ export const LoginView: React.FC<LoginViewProps> = ({ onContinueAsGuest }) => {
 
                   <div>
                     <label className="block text-xs font-semibold text-sf-text mb-1">
-{authMode === 'register' ? 'البريد الإلكتروني' : 'البريد الإلكتروني أو رقم الهاتف السوداني'}
+البريد الإلكتروني
                     </label>
                     <div className="relative">
                       <input
                         type="text"
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
-                        placeholder={authMode === 'register' ? 'merchant@gmail.com' : '0912345678 أو merchant@gmail.com'}
+                        placeholder="merchant@gmail.com"
                         dir="ltr"
                         className="w-full bg-sf-raised border border-sf-border focus:border-sf-action rounded-xl px-4 py-2 text-xs text-sf-text placeholder-sf-muted outline-none transition-colors text-right"
                       />
-                      <Phone className="w-4 h-4 text-sf-muted absolute left-3 top-2.5" />
+                      <Mail className="w-4 h-4 text-sf-muted absolute left-3 top-2.5" />
                     </div>
                   </div>
 

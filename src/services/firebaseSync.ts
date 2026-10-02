@@ -39,6 +39,8 @@ const currentActor = (): Actor => {
   };
 };
 
+const isPermissionDenied = (error: unknown) => (error as any)?.code === 'permission-denied' || (error as any)?.code === 'firestore/permission-denied';
+
 const directFailure = (error: unknown): never => {
   if (error instanceof BusinessError) throw error;
   if (error instanceof FirebaseError) {
@@ -63,7 +65,7 @@ export async function firebaseSnapshot(orgId: string, backup = false) {
       ? await bridge.snapshot(orgId, backup)
       : await operations.snapshot(orgId, currentActor(), backup);
   } catch (error) {
-    if (error instanceof FirebaseError && error.code === 'permission-denied') {
+    if (isPermissionDenied(error)) {
       return api(`/organizations/${encodeURIComponent(orgId)}/${backup ? 'backup' : 'snapshot'}`);
     }
     return directFailure(error);
@@ -94,7 +96,7 @@ export async function firebaseCommand(
     try { localStorage.removeItem(key); } catch { /* confirmed write already succeeded */ }
     return response;
   } catch (error) {
-    if (error instanceof FirebaseError && error.code === 'permission-denied') {
+    if (isPermissionDenied(error)) {
       // Production may still be running pre-direct-sync Firestore rules. The API uses
       // the same Operations engine and operation ID, so fallback is safe and idempotent.
       return sendCommand(orgId, action, data, id);

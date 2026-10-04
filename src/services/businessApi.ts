@@ -15,12 +15,28 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response = await request();
   // Retry only authentication rejection; retain the same command and operation ID.
   if (response.status === 401) response = await request(true);
-  if (!response.headers.get('content-type')?.includes('application/json')) throw new BusinessError('خدمة الحفظ السحابي لا ترجع بيانات صالحة. حسابك لم يُعلّق؛ أعد المحاولة أو تواصل مع الإدارة.', 503, 'backend_unavailable');
-  const result = await response.json().catch(() => { throw new BusinessError('تعذر قراءة استجابة خدمة الحفظ.', 502, 'invalid_response'); });
+  if (!response.headers.get('content-type')?.includes('application/json')) throw new BusinessError('خدمة الحفظ السحابي غير مهيأة على هذا الموقع. تواصل مع إدارة المنصة؛ حسابك لم يُعلّق.', 503, 'backend_unavailable');
+  const result = await response.json().catch(() => { throw new BusinessError('تعذر قراءة استجابة خدمة الحفظ. أعد المحاولة؛ لم يتم تأكيد الحفظ.', 502, 'invalid_response'); });
   if (!response.ok) throw new BusinessError(result.error || 'تعذر إكمال العملية.', response.status, result.code);
   return result;
 }
 export const operationId = () => crypto.randomUUID();
+/** Persist only a request ID, never secrets or commercial payloads, across uncertain retries. */
+export async function platformMutation<T>(path: string, payload: Record<string, unknown>): Promise<T> {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical({ path, payload })));
+  const digest = Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
+  const key = `sudaflow_platform_pending_${auth.currentUser?.uid}_${digest}`;
+  const id = localStorage.getItem(key) || operationId();
+  localStorage.setItem(key, id);
+  try {
+    const result = await api<T>(path, { method: 'POST', body: JSON.stringify({ ...payload, operationId: id }) });
+    try { localStorage.removeItem(key); } catch { /* Confirmed server success remains authoritative. */ }
+    return result;
+  } catch (error) {
+    if (error instanceof BusinessError && error.status < 500 && error.status !== 429) localStorage.removeItem(key);
+    throw error;
+  }
+}
 export async function sendCommand(orgId: string, action: string, data: Record<string, unknown>, suggestedId?: string): Promise<OperationResult> {
   const fingerprint = canonical({ action, data });
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));

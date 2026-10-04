@@ -41,6 +41,7 @@ export interface OrgInvitation {
 }
 
 export interface OrganizationCounters {
+  lifetime_invoice_count?: number;
   revision?: number;
   invoice_month?: string;
   monthly_invoice_count?: number;
@@ -65,6 +66,18 @@ export const DEFAULT_ORGANIZATION_COUNTERS: OrganizationCounters = {
 };
 
 export interface Organization {
+  planId?: string;
+  subscriptionStatus?: SubscriptionStatus;
+  subscriptionStart?: string;
+  subscriptionEnd?: string | null;
+  subscriptionEndMillis?: number | null;
+  renewalAt?: string | null;
+  billingRevision?: number;
+  maxUsers?: number;
+  maxBranches?: number;
+  maxWarehouses?: number;
+  searchName?: string;
+  subscriptionMetadata?: Record<string, string | number | boolean | null>;
   id: string;
   name: string; // Legal / business name
   display_name: string;
@@ -99,16 +112,58 @@ export interface AuditLogEntry {
 }
 
 export type SubscriptionPlan = 'Free' | 'Starter' | 'Professional' | 'Business' | 'Enterprise';
+export type SubscriptionStatus = 'trial' | 'active' | 'suspended' | 'expired' | 'cancelled';
+
+export interface PlatformPlan {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: 'USD' | 'SDG' | 'KWD';
+  durationDays: number;
+  limits: { maxUsers: number; maxBranches: number; maxWarehouses: number; maxInvoices: number; invoicePeriod: 'lifetime' | 'month'; maxCustomers: number; maxProducts: number };
+  features: Record<string, boolean>;
+  active: boolean;
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriptionEvent {
+  id: string;
+  organizationId: string | null;
+  action: string;
+  previousValue: Record<string, unknown> | null;
+  newValue: Record<string, unknown>;
+  performedBy: string;
+  performedByEmail: string;
+  createdAt: string;
+  reason: string;
+  method: string;
+  operationId: string;
+}
 
 export interface OrgSubscription {
+  plan_id?: string;
+  plan_definition?: PlatformPlan;
+  max_invoices_total?: number;
+  invoice_period?: 'lifetime' | 'month';
+  subscription_start?: string;
+  subscription_end?: string | null;
+  renewal_at?: string | null;
+  billing_revision?: number;
+  effective_status?: SubscriptionStatus;
+  max_branches?: number;
+  max_warehouses?: number;
   org_id: string;
   plan: SubscriptionPlan;
-  status: 'active' | 'trialing' | 'past_due' | 'canceled';
+  status: SubscriptionStatus | 'trialing' | 'past_due' | 'canceled';
   max_invoices_per_month: number;
   max_members: number;
   max_customers?: number;
   max_products?: number;
   features: {
+    [key: string]: boolean;
     advanced_reports: boolean;
     multi_currency: boolean;
     inventory_tracking: boolean;

@@ -1,6 +1,11 @@
 name: Deploy Firebase rules
 on:
   workflow_dispatch:
+    inputs:
+      super_admin_uid:
+        description: 'Optional exact verified Firebase UID for technical Super Admin bootstrap'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -8,7 +13,7 @@ permissions:
 jobs:
   deploy-rules:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,5 +33,20 @@ jobs:
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$CREDENTIALS"
           chmod 600 "$CREDENTIALS"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$CREDENTIALS" >> "$GITHUB_ENV"
+      - name: Check Firestore access before activation
+        run: npm run billing:readiness
+      - name: Preview billing migration
+        env:
+          BILLING_SIGNING_SECRET: ${{ secrets.BILLING_SIGNING_SECRET }}
+        run: npm run billing:migrate
+      - name: Initialize plans and migrate canonical subscriptions
+        env:
+          BILLING_SIGNING_SECRET: ${{ secrets.BILLING_SIGNING_SECRET }}
+        run: npm run billing:migrate -- --apply
+      - name: Bootstrap the explicitly supplied administrator
+        if: inputs.super_admin_uid != ''
+        env:
+          SUPER_ADMIN_UID: ${{ inputs.super_admin_uid }}
+        run: npm run billing:bootstrap -- "$SUPER_ADMIN_UID" --apply
       - name: Deploy Firestore rules and indexes
         run: npm run deploy:firebase:rules

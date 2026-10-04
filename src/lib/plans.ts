@@ -1,4 +1,4 @@
-import { OrgSubscription, SubscriptionPlan } from '../types';
+import { OrgSubscription, SubscriptionPlan, PlatformPlan } from '../types';
 
 export interface PlanLimits {
   name: SubscriptionPlan;
@@ -25,12 +25,12 @@ export const PLAN_TIERS: Record<SubscriptionPlan, PlanLimits> = {
     description: 'للمتاجر الناشئة وصغار التجار لتجربة النظام وإدارة العمليات الأساسية',
     price_usd_monthly: 'مجاناً',
     max_invoices_per_month: 100,
-    max_members: 1,
+    max_members: 2,
     max_customers: 25,
     max_products: 50,
     features: {
       advanced_reports: false,
-      multi_currency: false,
+      multi_currency: true,
       inventory_tracking: true,
       audit_trail: false,
       branches: false,
@@ -112,6 +112,12 @@ export const createDefaultSubscription = (orgId: string): OrgSubscription => {
   const plan = PLAN_TIERS[DEFAULT_PLAN];
   const now = new Date().toISOString();
   return {
+    plan_id: 'Free',
+    max_invoices_total: 100,
+    invoice_period: 'lifetime',
+    effective_status: 'active',
+    subscription_start: now,
+    subscription_end: null,
     org_id: orgId,
     plan: plan.name,
     status: 'active',
@@ -124,6 +130,23 @@ export const createDefaultSubscription = (orgId: string): OrgSubscription => {
     updated_at: now,
   };
 };
+
+/** Trusted defaults seed the editable platform catalog; tenant clients never activate plans. */
+export function defaultPlatformPlans(now = new Date().toISOString()): PlatformPlan[] {
+  const prices: Record<SubscriptionPlan, number> = { Free: 0, Starter: 15, Professional: 35, Business: 75, Enterprise: 0 };
+  return (Object.values(PLAN_TIERS)).map(tier => ({
+    id: tier.name, name: tier.arabic_name, description: tier.description, price: prices[tier.name], currency: 'USD',
+    durationDays: tier.name === 'Free' ? 0 : 30,
+    limits: { maxUsers: tier.max_members, maxBranches: tier.features.branches ? 25 : 1, maxWarehouses: tier.features.branches ? 25 : 1, maxInvoices: tier.max_invoices_per_month, invoicePeriod: tier.name === 'Free' ? 'lifetime' : 'month', maxCustomers: tier.max_customers, maxProducts: tier.max_products },
+    features: { ...tier.features, accounting: true, warehouses: tier.features.branches },
+    active: true, revision: 1, createdAt: now, updatedAt: now,
+  }));
+}
+
+export function subscriptionLimits(subscription: OrgSubscription): PlanLimits {
+  const fallback = getPlanConfig(subscription.plan);
+  return { ...fallback, max_invoices_per_month: subscription.max_invoices_per_month, max_members: subscription.max_members, max_customers: subscription.max_customers ?? fallback.max_customers, max_products: subscription.max_products ?? fallback.max_products, features: { ...fallback.features, ...subscription.features } };
+}
 
 export const getPlanConfig = (planName?: SubscriptionPlan): PlanLimits => {
   if (planName && PLAN_TIERS[planName]) {

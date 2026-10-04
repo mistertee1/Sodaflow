@@ -30,6 +30,7 @@ export const TeamManagementSection: React.FC = () => {
   const {
     currentUser,
     currentOrg,
+    subscription,
     userOrgs = [],
     userRole,
     memberStatus,
@@ -97,8 +98,10 @@ export const TeamManagementSection: React.FC = () => {
     );
   }
 
-  const canManageMembers = isActionAllowed('members:update_role') || userRole === 'Owner' || userRole === 'Admin';
-  const canInvite = isActionAllowed('members:invite') || userRole === 'Owner' || userRole === 'Admin';
+  const canManageMembers = isActionAllowed('members:update_role');
+  const canInvite = isActionAllowed('members:invite');
+  const reservedUsers = new Set([...orgMembers.map(member => member.uid), currentOrg?.owner_uid]).size + invitations.filter(invitation => invitation.status === 'pending' && Date.parse(invitation.expires_at) > Date.now()).length;
+  const seatsFull = reservedUsers >= subscription.max_members;
 
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,12 +228,12 @@ export const TeamManagementSection: React.FC = () => {
           {/* Member Status badge */}
           <span
             className={`text-xs px-3 py-1 rounded-md border font-semibold flex items-center gap-1 ${
-              memberStatus === 'active'
+              memberStatus !== 'suspended'
                 ? 'bg-sf-action/20 text-sf-action border-sf-action/40'
                 : 'bg-sf-danger-bg/20 text-sf-danger border-sf-danger/40 animate-pulse'
             }`}
           >
-            {memberStatus === 'active' ? (
+            {memberStatus === 'unknown' ? <span>جاري التحقق من العضوية</span> : memberStatus === 'active' ? (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5 text-sf-action" />
                 <span>حسابك: نشط</span>
@@ -448,7 +451,7 @@ export const TeamManagementSection: React.FC = () => {
               <UserPlus className="w-3.5 h-3.5 text-sf-action" />
               <span>دعوة موظف أو محاسب للانضمام للمؤسسة</span>
             </h4>
-            <span className="text-xs text-sf-muted">صلاحية الدعوة 7 أيام مع تحقق خادمي</span>
+            <span className="text-xs text-sf-muted">{reservedUsers} / {subscription.max_members} مقعد محجوز · الدعوات القائمة تحجز مقاعد · المجانية: المالك وموظف واحد</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -476,7 +479,7 @@ export const TeamManagementSection: React.FC = () => {
               </select>
               <button
                 type="submit"
-                disabled={inviteLoading}
+                disabled={inviteLoading || seatsFull}
                 className="px-4 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action font-semibold text-xs rounded-lg transition-colors disabled:opacity-50 shrink-0"
               >
                 {inviteLoading ? 'جاري الإرسال...' : 'إرسال الدعوة'}

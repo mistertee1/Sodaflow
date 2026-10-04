@@ -65,8 +65,7 @@ test('Netlify missing credentials returns a service outage instead of invalid se
   process.env.NETLIFY = 'true';
   delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   try {
-    const { handler } = await import('../netlify/functions/api');
-    const response = await handler({ httpMethod: 'GET', path: '/api/organizations', headers: { authorization: 'Bearer token' } });
+    const response = await invokeNetlify('/api/organizations', { authorization: 'Bearer token' });
     assert.equal(response.statusCode, 503);
     assert.equal(JSON.parse(response.body).code, 'firebase_configuration_missing');
   } finally {
@@ -130,8 +129,7 @@ test('Netlify readiness refuses to report success for a missing service account'
   process.env.NETLIFY = 'true';
   delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   try {
-    const { handler } = await import('../netlify/functions/api');
-    const response = await handler({ httpMethod: 'GET', path: '/api/health/ready' });
+    const response = await invokeNetlify('/api/health/ready');
     assert.equal(response.statusCode, 503);
     assert.equal(JSON.parse(response.body).checks.firebase.code, 'firebase_configuration_missing');
   } finally {
@@ -139,3 +137,9 @@ test('Netlify readiness refuses to report success for a missing service account'
     if (previousCredential === undefined) delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON; else process.env.FIREBASE_SERVICE_ACCOUNT_JSON = previousCredential;
   }
 });
+
+async function invokeNetlify(path: string, headers?: Record<string, string>) {
+  const { default: handle } = await import('../netlify/functions/api');
+  const response = await handle(new Request('https://sodaflow.netlify.app' + path, { headers }), { ip: '127.0.0.1' } as import('@netlify/functions').Context);
+  return { statusCode: response.status, body: await response.text() };
+}

@@ -2,6 +2,8 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
+import { SubscriptionBanner } from './components/SubscriptionBanner';
+const SuperAdminPage = lazy(() => import('./components/SuperAdminPage').then(module => ({ default: module.SuperAdminPage })));
 const DashboardView = lazy(() => import('./components/DashboardView').then(module => ({ default: module.DashboardView })));
 const InvoicesView = lazy(() => import('./components/InvoicesView').then(module => ({ default: module.InvoicesView })));
 const CustomersView = lazy(() => import('./components/CustomersView').then(module => ({ default: module.CustomersView })));
@@ -139,6 +141,7 @@ function MainLayout() {
         <div className="flex gap-3"><button type="button" onClick={() => void syncAllToCloud()} className="underline">إعادة المحاولة</button><button type="button" aria-label="إغلاق التنبيه" onClick={dismissSyncError}>إغلاق</button></div>
       </div>}
       {/* Security Banner if member account is suspended in the active organization */}
+      <SubscriptionBanner onManage={() => setIsSettingsOpen(true)} />
       {memberStatus === 'suspended' && (
         <div className="bg-sf-danger-bg/90 border-b border-sf-danger text-sf-danger px-4 py-2.5 flex items-center justify-between gap-3 text-xs shadow-md">
           <div className="flex items-center gap-2">
@@ -258,7 +261,7 @@ function MainLayout() {
 export function App() {
   return (
     <AppProvider>
-      <Suspense fallback={<div role="status" className="p-8 text-sf-muted">جاري تحميل سودافلو…</div>}><MainLayout /></Suspense>
+      <Suspense fallback={<div role="status" className="p-8 text-sf-muted">جاري تحميل سودافلو…</div>}>{window.location.pathname === '/super-admin' || window.location.pathname.startsWith('/super-admin/') ? <SuperAdminPage /> : <MainLayout />}</Suspense>
     </AppProvider>
   );
 }

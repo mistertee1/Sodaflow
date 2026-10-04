@@ -62,7 +62,7 @@ async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, 
       };
     };
     (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = {
-      organizations: async () => { if (!fallbackOrganizations) throw new Error('organization reads unavailable'); return [makeSnapshot().org]; },
+      organizations: async () => { if (!fallbackOrganizations) return []; return [makeSnapshot().org]; },
       snapshot: async () => { if (failFirstSnapshot && ++snapshots === 1) throw new Error('انقطاع قراءة المؤسسة'); if (denyDirect) throw Object.assign(new Error('stale Firestore rules'), { code: 'permission-denied' }); return makeSnapshot(); },
       command: async (orgId: string, action: string, data: any) => {
         if (denyDirect) throw Object.assign(new Error('stale Firestore rules'), { code: 'permission-denied' });
@@ -102,13 +102,14 @@ async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, 
       if (++loads === 1 && failFirstLoad) { await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'انقطاع اختبار مؤقت', code: 'service_unavailable' }) }); return; }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([org]) });
     } else if (path.endsWith('/revision')) {
-      if (failRevision) { failRevision = false; await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'انقطاع مراقبة المزامنة' }) }); return; }
+      if (failRevision) { await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'انقطاع مراقبة المزامنة' }) }); return; }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ revision }) });
     } else if (path.endsWith('/images/logos')) {
       expect(route.request().headers()['content-type']).toBe('image/png');
       expect(route.request().postDataBuffer()!.equals(png)).toBe(true);
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: 'https://firebasestorage.googleapis.com/test-store-logo.png' }) });
     } else if (path.endsWith('/snapshot') || path.endsWith('/backup')) {
+      if (failRevision) { await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'انقطاع مراقبة المزامنة' }) }); return; }
       if (!denyDirect) throw new Error(`Tenant data unexpectedly used legacy API path: ${path}`);
       const member = { uid, org_id: orgId, email, role: 'Owner', status: 'active' };
       const collections = { customers: [], products: [], invoices: [], payments: [], expenses: [], inventory_movements: [], accounts: [], journal_entries: [], members: [member], audit_logs: [], invitations: [] };
@@ -126,7 +127,7 @@ async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, 
     } else await route.abort();
   });
   await page.route('https://firebasestorage.googleapis.com/**', route => route.fulfill({ status: 200, contentType: 'image/png', body: png }));
-  return { requests, failNextRevision: () => { failRevision = true; }, remoteUpdate: (name: string) => { org = { ...org, name, settings: { ...org.settings, business_name: name } }; revision += 1; }, saved: () => page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}').org?.settings || {}, cloudStateKey) };
+  return { requests, failNextRevision: () => { failRevision = true; }, recoverReads: () => { failRevision = false; }, remoteUpdate: (name: string) => { org = { ...org, name, settings: { ...org.settings, business_name: name } }; revision += 1; }, saved: () => page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}').org?.settings || {}, cloudStateKey) };
 }
 
 async function login(page: Page) {
@@ -224,6 +225,7 @@ test('failed Firestore monitoring polls confirmed API revisions, recovers, and s
   cloud.failNextRevision();
   await page.clock.fastForward(31000);
   await expect(page.getByRole('alert')).toContainText('انقطاع مراقبة المزامنة');
+  cloud.recoverReads();
   await page.clock.fastForward(31000);
   await expect(page.getByRole('alert')).toHaveCount(0);
   await page.getByTitle('تسجيل الخروج', { exact: true }).click();

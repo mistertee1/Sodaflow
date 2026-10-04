@@ -1,9 +1,10 @@
 import type { Organization, OrgMember, OrgInvitation, OrgRole, MerchantSettings } from '../types';
 import { api, operationId } from './businessApi';
-import { firebaseCommand, firebaseOrganizations, firebaseSnapshot } from './firebaseSync';
+import { firebaseCommand, firebaseSnapshot } from './firebaseSync';
+import { cloudOrganizations } from './cloudOrganizations';
 import { BusinessError } from '../domain/validation';
 
-export const getUserOrganizations = (_userId: string): Promise<Organization[]> => firebaseOrganizations();
+export const getUserOrganizations = (_userId: string): Promise<Organization[]> => cloudOrganizations();
 export const getOrganizationMembers = async (orgId: string): Promise<OrgMember[]> => orgId === 'local-guest-org' ? [] : (await firebaseSnapshot(orgId)).collections.members as OrgMember[];
 export const getOrgInvitations = async (orgId: string): Promise<OrgInvitation[]> => orgId === 'local-guest-org' ? [] : (await firebaseSnapshot(orgId)).collections.invitations as OrgInvitation[];
 export const createOrgInvitation = async (orgId: string, email: string, role: OrgRole, _actorUid: string, _actorEmail: string): Promise<OrgInvitation> => (await firebaseCommand(orgId, 'invitation.create', { email, role })).result as OrgInvitation;

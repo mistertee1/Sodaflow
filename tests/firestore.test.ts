@@ -117,5 +117,5 @@ test('Firebase organization fallback respects tenant rules and ignores stale mem
     assert.deepEqual(await readFirebaseOrganizations(db as unknown as import('firebase/firestore').Firestore, uid), []);
   }
   const foreign = env.authenticatedContext('foreign', { email_verified: true }).firestore();
-  assert.deepEqual(await readFirebaseOrganizations(foreign as unknown as import('firebase/firestore').Firestore, 'owner'), []);
+  await assertFails(readFirebaseOrganizations(foreign as unknown as import('firebase/firestore').Firestore, 'owner'));
 });

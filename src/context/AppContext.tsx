@@ -7,7 +7,8 @@ import { createDefaultSubscription } from '../lib/plans';
 import { Operations, type Actor } from '../domain/operations';
 import type { Change, Document } from '../domain/store';
 import { api, operationId } from '../services/businessApi';
-import { firebaseCommand, firebaseOrganizations, firebaseSnapshot, watchFirebaseRevision } from '../services/firebaseSync';
+import { firebaseCommand, firebaseSnapshot, watchFirebaseRevision } from '../services/firebaseSync';
+import { cloudOrganizations } from '../services/cloudOrganizations';
 import { createGuestStore, guestActor, guestId } from '../services/guestStore';
 import { readSnapshotCache, writeSnapshotCache } from '../services/snapshotCache';
 import { hasPermission, type ActionType } from '../services/rbacService';
@@ -189,7 +190,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // immediately while the server snapshot is being reconciled in the background.
       setAuthLoading(false);
     } else {
-      apply({ ...emptySnapshot(), org }); setSyncStatus('syncing'); setSyncError(null); setLastSyncedAt(null);
+      apply({ ...emptySnapshot(), org, role: org.owner_uid === userRef.current?.uid ? 'Owner' : 'Viewer' }); setSyncStatus('syncing'); setSyncError(null); setLastSyncedAt(null);
     }
     try {
       await refresh(org.id, epoch);
@@ -199,7 +200,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (error) { if (epoch === session.current) fail(error); throw error; }
   };
   const initializeCloudOrganization = async (user: User, epoch = session.current) => {
-    let orgs = await firebaseOrganizations();
+    let orgs = await cloudOrganizations();
     if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
     if (!orgs.length) {
       const created = await api<Organization>('/organizations', { method: 'POST', body: JSON.stringify({ initial: true, operationId: 'initial', name: 'مؤسستي التجارية', settings: INITIAL_SETTINGS }) });
@@ -248,11 +249,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const work = activeOrg.current ? refresh() : initializeCloudOrganization(user, epoch);
       void work.catch(error => { if (epoch === session.current && userRef.current?.uid === user.uid) fail(error); }).finally(() => { pendingRefresh.current = false; });
     };
-    const retryInitialLoad = setInterval(() => { if (confirmedRevision.current < 0) reconcile(); }, 30000);
+    const interval = window.setInterval(reconcile, 30000);
     window.addEventListener('focus', reconcile); window.addEventListener('online', reconcile);
     document.addEventListener('visibilitychange', reconcile);
     return () => {
-      clearInterval(retryInitialLoad);
+      window.clearInterval(interval);
       window.removeEventListener('focus', reconcile); window.removeEventListener('online', reconcile);
       document.removeEventListener('visibilitychange', reconcile);
       revisionWatch.current?.(); revisionWatch.current = null;
@@ -294,7 +295,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const accounts = rows<Account>('accounts'), journalEntries = rows<JournalEntry>('journal_entries');
   const isActionAllowed = (action: ActionType) => Boolean(state.org && hasPermission(state.role, action));
   const switchOrganization = async (id: string) => {
-    const orgs = await firebaseOrganizations(); setUserOrgs(orgs);
+    const orgs = await cloudOrganizations(); setUserOrgs(orgs);
     const org = orgs.find(o => o.id === id); if (!org) throw new BusinessError('عضوية المؤسسة غير متاحة.', 403);
     await load(org);
   };

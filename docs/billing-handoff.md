@@ -16,6 +16,8 @@ Storage يعيد `storage_bucket_missing`؛ هذه مشكلة رفع الصور 
 
 ## قبل الدمج
 
+أثناء التسليم نشر الإيجنت الآخر commit `bfc3b23754e76598007c83dd01f72231b01ed78a` في `main` بعنوان `fix: recover Firebase synchronization without dropping concurrent changes`، فوق إصلاح `71e6d16`. لم يُستبدل هذا التحديث ولم يُدمج الفرع عليه تلقائياً. الفرع الحالي مبني على `71e6d16`؛ احتفظ بإصلاح مراقبة revision بعد إعادة المحاولة وfallback polling الموثق في التحديث الأحدث عند الدمج. الملفات المتقاطعة التي تحتاج مراجعة: `docs/operations.md`، `netlify/functions/api.ts`، `server/api.ts`، `src/context/AppContext.tsx`، `src/services/firebaseSync.ts`، و`tests/api.test.ts`. راجع أيضاً ملفي `server/revision.ts` و`src/services/firebaseOrganizations.ts` الجديدين قبل تغيير مسار القراءة. الاختبارات التي أبلغ عنها commit الآخر ليست اختبارات شُغّلت في هذه الجولة.
+
 اقرأ [خطوات التفعيل](operations.md). أصلح وصول خادم الإنتاج أولاً؛ بعدها نسّق ترحيل الاشتراكات وتعيين UID الإدارة ونشر Rules والفهارس ثم نشر الواجهة. راجع أي commits جديدة في `main` قبل الدمج؛ استخدم merge عادياً دون force push أو استبدال تغييرات الإيجنت الآخر.
 
 TypeScript وبناء الإنتاج اكتملتا محلياً. لم تُشغّل الاختبارات الآلية بناءً على طلب المستخدم. توقعات الاختبارات القديمة التي تسمح بكتابة Firestore المباشرة تحتاج تحديثاً قبل اعتماد هذا الفرع إنتاجياً. الفروع والمخازن لها حقول حدود وإحصاءات تمهيدية فقط، ولا توجد بوابة دفع أو عمليات مواقع كاملة جديدة.

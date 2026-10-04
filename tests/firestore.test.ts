@@ -7,6 +7,7 @@ import { initializeApp, deleteApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 import { FirestoreStore } from '../server/firestoreStore';
 import { BrowserFirestoreStore } from '../src/services/browserFirestoreStore';
+import { readFirebaseOrganizations } from '../src/services/firebaseOrganizations';
 import { Organizations } from '../server/organizations';
 import { Operations } from '../src/domain/operations';
 import { INITIAL_SETTINGS } from '../src/data/initialData';
@@ -27,6 +28,10 @@ before(async () => {
     await setDoc(doc(db, 'organizations/rules-org/meta', 'subscription'), createDefaultSubscription('rules-org'));
     for (const account of getDefaultChartOfAccounts('rules-org')) await setDoc(doc(db, 'organizations/rules-org/accounts', account.code), account);
     for (const [uid, role, status] of [['cashier', 'Cashier', 'active'], ['viewer', 'Viewer', 'active'], ['suspended', 'Admin', 'suspended'], ['forged-owner', 'Owner', 'active']]) await setDoc(doc(db, 'organizations/rules-org/members', uid), { uid, org_id: 'rules-org', role, status });
+    for (const uid of ['owner', 'viewer', 'suspended', 'forged-owner']) {
+      await setDoc(doc(db, `user_organizations/${uid}/orgs/rules-org`), { org_id: 'rules-org', role: uid === 'owner' ? 'Owner' : 'Admin' });
+      await setDoc(doc(db, `user_organizations/${uid}/orgs/stale-org`), { org_id: 'stale-org', role: 'Owner' });
+    }
     for (const name of ['invoices', 'expenses', 'journal_entries', 'products', 'customers']) await setDoc(doc(db, `organizations/rules-org/${name}`, 'record'), { id: 'record' });
   });
 });
@@ -98,4 +103,19 @@ test('real Firestore concurrent sales, duplicate retry, stock and customer balan
     const before = await db.doc(`organizations/${org.id}/meta/counters`).get(); await assert.rejects(run('invoice.create', { ...data, items: [{ ...line, quantity: 5 }] }, 'oversell'), /المخزون/);
     assert.deepEqual((await db.doc(`organizations/${org.id}/meta/counters`).get()).data(), before.data());
   } finally { await deleteApp(app); }
+});
+
+
+test('Firebase organization fallback respects tenant rules and ignores stale membership indexes', async () => {
+  for (const uid of ['owner', 'viewer']) {
+    const db = env.authenticatedContext(uid, { email: `${uid}@example.com`, email_verified: true }).firestore();
+    const orgs = await readFirebaseOrganizations(db as unknown as import('firebase/firestore').Firestore, uid);
+    assert.deepEqual(orgs.map(org => org.id), ['rules-org']);
+  }
+  for (const uid of ['foreign', 'suspended', 'forged-owner']) {
+    const db = env.authenticatedContext(uid, { email: `${uid}@example.com`, email_verified: true }).firestore();
+    assert.deepEqual(await readFirebaseOrganizations(db as unknown as import('firebase/firestore').Firestore, uid), []);
+  }
+  const foreign = env.authenticatedContext('foreign', { email_verified: true }).firestore();
+  await assertFails(readFirebaseOrganizations(foreign as unknown as import('firebase/firestore').Firestore, 'owner'));
 });

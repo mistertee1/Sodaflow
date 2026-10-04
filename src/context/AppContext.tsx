@@ -8,6 +8,7 @@ import { Operations, type Actor } from '../domain/operations';
 import type { Change, Document } from '../domain/store';
 import { api, operationId } from '../services/businessApi';
 import { firebaseCommand, firebaseSnapshot, watchFirebaseRevision } from '../services/firebaseSync';
+import { cloudOrganizations } from '../services/cloudOrganizations';
 import { createGuestStore, guestActor, guestId } from '../services/guestStore';
 import { readSnapshotCache, writeSnapshotCache } from '../services/snapshotCache';
 import { hasPermission, type ActionType } from '../services/rbacService';
@@ -171,7 +172,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // immediately while the server snapshot is being reconciled in the background.
       setAuthLoading(false);
     } else {
-      apply({ ...emptySnapshot(), org }); setSyncStatus('syncing'); setSyncError(null); setLastSyncedAt(null);
+      apply({ ...emptySnapshot(), org, role: org.owner_uid === userRef.current?.uid ? 'Owner' : 'Viewer' }); setSyncStatus('syncing'); setSyncError(null); setLastSyncedAt(null);
     }
     try {
       await refresh(org.id, epoch);
@@ -193,7 +194,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (error) { if (epoch === session.current) fail(error); throw error; }
   };
   const initializeCloudOrganization = async (user: User, epoch = session.current) => {
-    let orgs = await api<Organization[]>('/organizations');
+    let orgs = await cloudOrganizations();
     if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
     if (!orgs.length) {
       const created = await api<Organization>('/organizations', { method: 'POST', body: JSON.stringify({ initial: true, operationId: 'initial', name: 'مؤسستي التجارية', settings: INITIAL_SETTINGS }) });
@@ -242,8 +243,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const work = activeOrg.current ? refresh() : initializeCloudOrganization(user, epoch);
       void work.catch(error => { if (epoch === session.current && userRef.current?.uid === user.uid) fail(error); }).finally(() => { pendingRefresh.current = false; });
     };
+    const interval = window.setInterval(reconcile, 30000);
     window.addEventListener('focus', reconcile); window.addEventListener('online', reconcile);
     return () => {
+      window.clearInterval(interval);
       window.removeEventListener('focus', reconcile); window.removeEventListener('online', reconcile);
       revisionWatch.current?.(); revisionWatch.current = null;
     };

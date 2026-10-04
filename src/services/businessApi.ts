@@ -15,7 +15,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   let response = await request();
   // Retry only authentication rejection; retain the same command and operation ID.
   if (response.status === 401) response = await request(true);
-  const result = await response.json().catch(() => ({ error: 'استجابة الخادم غير صالحة.' }));
+  if (!response.headers.get('content-type')?.includes('application/json')) throw new BusinessError('خدمة الحفظ السحابي لا ترجع بيانات صالحة. حسابك لم يُعلّق؛ أعد المحاولة أو تواصل مع الإدارة.', 503, 'backend_unavailable');
+  const result = await response.json().catch(() => { throw new BusinessError('تعذر قراءة استجابة خدمة الحفظ.', 502, 'invalid_response'); });
   if (!response.ok) throw new BusinessError(result.error || 'تعذر إكمال العملية.', response.status, result.code);
   return result;
 }

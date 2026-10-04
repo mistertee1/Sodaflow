@@ -31,12 +31,12 @@ async function fakeFirebase(page: Page, emailVerified: boolean) {
   return requests;
 }
 
-async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, failFirstSnapshot = false) {
+async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, failFirstSnapshot = false, fallbackOrganizations = false) {
   const orgId = `org-${uid}`;
   let org = { id: orgId, name: 'متجر الاختبار السحابي', owner_uid: uid, status: 'active', settings: { ...INITIAL_SETTINGS, business_name: 'متجر الاختبار السحابي', phone: '0912345678', default_exchange_rate: 2000, currencies_configured: true }, created_at: new Date().toISOString() };
   const requests: string[] = [];
   let loads = 0, revision = 0, failRevision = false;
-  await page.addInitScript(({ stateKey, initialOrg, ownerUid, ownerEmail, counters, subscription, denyDirect, failFirstSnapshot }) => {
+  await page.addInitScript(({ stateKey, initialOrg, ownerUid, ownerEmail, counters, subscription, denyDirect, failFirstSnapshot, fallbackOrganizations }) => {
     let snapshots = 0;
     const read = () => {
       const raw = localStorage.getItem(stateKey);
@@ -62,6 +62,7 @@ async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, 
       };
     };
     (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = {
+      organizations: async () => { if (!fallbackOrganizations) throw new Error('organization reads unavailable'); return [makeSnapshot().org]; },
       snapshot: async () => { if (failFirstSnapshot && ++snapshots === 1) throw new Error('انقطاع قراءة المؤسسة'); if (denyDirect) throw Object.assign(new Error('stale Firestore rules'), { code: 'permission-denied' }); return makeSnapshot(); },
       command: async (orgId: string, action: string, data: any) => {
         if (denyDirect) throw Object.assign(new Error('stale Firestore rules'), { code: 'permission-denied' });
@@ -93,7 +94,7 @@ async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, 
         return () => window.removeEventListener('sudaflow-test-revision', handler);
       },
     };
-  }, { stateKey: cloudStateKey, initialOrg: org, ownerUid: uid, ownerEmail: email, counters: DEFAULT_ORGANIZATION_COUNTERS, subscription: createDefaultSubscription(orgId), denyDirect, failFirstSnapshot });
+  }, { stateKey: cloudStateKey, initialOrg: org, ownerUid: uid, ownerEmail: email, counters: DEFAULT_ORGANIZATION_COUNTERS, subscription: createDefaultSubscription(orgId), denyDirect, failFirstSnapshot, fallbackOrganizations });
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     requests.push(path);
@@ -221,9 +222,9 @@ test('failed Firestore monitoring polls confirmed API revisions, recovers, and s
   await page.clock.fastForward(31000);
   await expect(page.locator('header')).toContainText('تحديث من جهاز آخر');
   cloud.failNextRevision();
-  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await page.clock.fastForward(31000);
   await expect(page.getByRole('alert')).toContainText('انقطاع مراقبة المزامنة');
-  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await page.clock.fastForward(31000);
   await expect(page.getByRole('alert')).toHaveCount(0);
   await page.getByTitle('تسجيل الخروج', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'دخول الحساب السحابي', exact: true })).toBeVisible();
@@ -261,4 +262,21 @@ test('an initial organization outage retries while the visible page remains open
   await expect(page.locator('header')).toContainText('متجر الاختبار السحابي');
   await expect(page.getByRole('alert')).toHaveCount(0);
   expect(cloud.requests.filter(path => path === '/api/organizations').length).toBe(2);
+});
+
+
+test('an existing owner can load and save directly in Firebase during an admin API outage', async ({ page }) => {
+  await fakeFirebase(page, true);
+  const cloud = await fakeCloud(page, true, false, false, true);
+  await login(page);
+  await expect(page.locator('header')).toContainText('متجر الاختبار السحابي');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  expect(cloud.requests.filter(path => path === '/api/organizations').length).toBe(1);
+  await page.getByTitle('الإعدادات', { exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('textbox', { name: 'اسم المتجر أو المؤسسة' }).fill('حفظ مباشر أثناء الانقطاع');
+  await dialog.getByRole('button', { name: 'حفظ كافة الإعدادات' }).click();
+  await expect(page.locator('header')).toContainText('حفظ مباشر أثناء الانقطاع');
+  expect((await cloud.saved()).business_name).toBe('حفظ مباشر أثناء الانقطاع');
+  expect(cloud.requests.some(path => path.endsWith('/operations'))).toBe(false);
 });

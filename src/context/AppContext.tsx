@@ -7,7 +7,7 @@ import { createDefaultSubscription } from '../lib/plans';
 import { Operations, type Actor } from '../domain/operations';
 import type { Change, Document } from '../domain/store';
 import { api, operationId } from '../services/businessApi';
-import { firebaseCommand, firebaseSnapshot, watchFirebaseRevision } from '../services/firebaseSync';
+import { firebaseCommand, firebaseOrganizations, firebaseSnapshot, watchFirebaseRevision } from '../services/firebaseSync';
 import { createGuestStore, guestActor, guestId } from '../services/guestStore';
 import { readSnapshotCache, writeSnapshotCache } from '../services/snapshotCache';
 import { hasPermission, type ActionType } from '../services/rbacService';
@@ -199,7 +199,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (error) { if (epoch === session.current) fail(error); throw error; }
   };
   const initializeCloudOrganization = async (user: User, epoch = session.current) => {
-    let orgs = await api<Organization[]>('/organizations');
+    let orgs = await firebaseOrganizations();
     if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
     if (!orgs.length) {
       const created = await api<Organization>('/organizations', { method: 'POST', body: JSON.stringify({ initial: true, operationId: 'initial', name: 'مؤسستي التجارية', settings: INITIAL_SETTINGS }) });
@@ -294,7 +294,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const accounts = rows<Account>('accounts'), journalEntries = rows<JournalEntry>('journal_entries');
   const isActionAllowed = (action: ActionType) => Boolean(state.org && hasPermission(state.role, action));
   const switchOrganization = async (id: string) => {
-    const orgs = await api<Organization[]>('/organizations'); setUserOrgs(orgs);
+    const orgs = await firebaseOrganizations(); setUserOrgs(orgs);
     const org = orgs.find(o => o.id === id); if (!org) throw new BusinessError('عضوية المؤسسة غير متاحة.', 403);
     await load(org);
   };

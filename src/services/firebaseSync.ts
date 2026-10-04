@@ -3,15 +3,17 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { canonical, Operations, type Actor, type OperationResult } from '../domain/operations';
 import type { Document } from '../domain/store';
-import type { OrgSubscription } from '../types';
+import type { Organization, OrgSubscription } from '../types';
 import { createDefaultSubscription } from '../lib/plans';
 import { BusinessError } from '../domain/validation';
 import { BrowserFirestoreStore } from './browserFirestoreStore';
+import { readFirebaseOrganizations } from './firebaseOrganizations';
 import { api, sendCommand } from './businessApi';
 
 type FirebaseSnapshot = Awaited<ReturnType<Operations['snapshot']>>;
 
 type DirectSyncTestBridge = {
+  organizations?: () => Promise<Organization[]>;
   snapshot?: (orgId: string, backup?: boolean) => Promise<any>;
   command?: (orgId: string, action: string, data: Record<string, unknown>, suggestedId?: string) => Promise<OperationResult>;
   watchRevision?: (orgId: string, onRevision: (revision: number) => void, onError?: (error: unknown) => void) => () => void;
@@ -71,6 +73,32 @@ export async function firebaseSnapshot(orgId: string, backup = false) {
       return api<FirebaseSnapshot>(`/organizations/${encodeURIComponent(orgId)}/${backup ? 'backup' : 'snapshot'}`);
     }
     return directFailure(error);
+  }
+}
+
+/** Existing tenants can still synchronize if the admin API is temporarily unavailable. */
+export async function firebaseOrganizations(): Promise<Organization[]> {
+  const actor = currentActor();
+  try {
+    return await api<Organization[]>('/organizations');
+  } catch (apiError) {
+    // Authentication and membership rejections are never converted into a fallback.
+    if (!(apiError instanceof BusinessError) || apiError.status < 500) throw apiError;
+    try {
+      const bridge = testBridge();
+      if (bridge?.organizations) {
+        const orgs = await bridge.organizations();
+        if (!orgs.length) throw apiError;
+        return orgs;
+      }
+      const orgs = await readFirebaseOrganizations(db, actor.uid);
+      if (!orgs.length) throw apiError;
+      return orgs;
+    } catch {
+      // Keep the actionable server error when neither authoritative path is available.
+      // An empty cache must never trigger duplicate organization provisioning.
+      throw apiError;
+    }
   }
 }
 

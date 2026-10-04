@@ -115,11 +115,58 @@ export function watchFirebaseRevision(
   onRevision: (revision: number) => void,
   onError?: (error: unknown) => void,
 ) {
+  const uid = auth.currentUser?.uid;
+  let closed = false, polling = false, fallback = false;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let unsubscribe: (() => void) | undefined;
+  const current = () => !closed && Boolean(uid) && auth.currentUser?.uid === uid;
+  const poll = async () => {
+    if (!current() || polling || document.visibilityState !== 'visible') return;
+    polling = true;
+    try {
+      const result = await api<{ revision: number }>(`/organizations/${encodeURIComponent(orgId)}/revision`);
+      if (current()) onRevision(result.revision);
+    } catch (error) {
+      if (current()) onError?.(error);
+    } finally {
+      polling = false;
+    }
+  };
+  const schedule = () => {
+    if (!current()) return;
+    timer = setTimeout(() => {
+      void poll().finally(schedule);
+    }, 30000);
+  };
+  const recover = () => {
+    if (!current() || fallback) return;
+    // A failed Firestore listener receives no more events. Keep monitoring through
+    // the authenticated API; membership is rechecked on every revision read.
+    fallback = true;
+    unsubscribe?.();
+    void poll().finally(schedule);
+  };
+  const reconcile = () => { if (fallback) void poll(); };
+  window.addEventListener('online', reconcile);
+  window.addEventListener('focus', reconcile);
+  document.addEventListener('visibilitychange', reconcile);
   const bridge = testBridge();
-  if (bridge?.watchRevision) return bridge.watchRevision(orgId, onRevision, onError);
-  return onSnapshot(
-    doc(db, `organizations/${orgId}/meta/counters`),
-    snapshot => onRevision(Number(snapshot.data()?.revision || 0)),
-    error => onError?.(error),
-  );
+  unsubscribe = bridge?.watchRevision
+    ? bridge.watchRevision(orgId, revision => { if (current()) onRevision(revision); }, recover)
+    : onSnapshot(
+      doc(db, `organizations/${orgId}/meta/counters`),
+      { includeMetadataChanges: true },
+      snapshot => { if (current() && !snapshot.metadata.fromCache) onRevision(Number(snapshot.data()?.revision || 0)); },
+      recover,
+    );
+  // Also handle test adapters or subscriptions that report an error synchronously.
+  if (fallback) unsubscribe?.();
+  return () => {
+    closed = true;
+    clearTimeout(timer);
+    unsubscribe?.();
+    window.removeEventListener('online', reconcile);
+    window.removeEventListener('focus', reconcile);
+    document.removeEventListener('visibilitychange', reconcile);
+  };
 }

@@ -1,3 +1,4 @@
+import { organizationRevision } from '../../server/revision';
 import { authenticationFailure } from '../../server/authErrors';
 import { firebaseServiceFailure } from '../../server/serviceErrors';
 import { firebaseReadiness } from '../../server/readiness';
@@ -156,7 +157,12 @@ export const handler = async (event: NetlifyEvent) => {
       return json(200, result);
     }
 
-    let match = path.match(/^\/organizations\/([^/]+)\/snapshot$/);
+    let match = path.match(/^\/organizations\/([^/]+)\/revision$/);
+    if (method === 'GET' && match) {
+      return json(200, await organizationRevision(engine.store, decodeURIComponent(match[1]), actor));
+    }
+
+    match = path.match(/^\/organizations\/([^/]+)\/snapshot$/);
     if (method === 'GET' && match) {
       return json(200, await engine.snapshot(decodeURIComponent(match[1]), actor));
     }

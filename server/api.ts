@@ -1,3 +1,4 @@
+import { organizationRevision } from './revision';
 import { authenticationFailure } from './authErrors';
 import { firebaseServiceFailure } from './serviceErrors';
 import { firebaseReadiness } from './readiness';
@@ -69,6 +70,7 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
     ensure(typeof req.body.initial === 'boolean', 'نوع إنشاء المؤسسة مطلوب.');
     return new Organizations(service().store).create(actor, req.body.name, req.body.settings || {}, identifier(req.body.operationId), req.body.initial);
   }));
+  router.get('/organizations/:orgId/revision', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, route(async (req, actor) => organizationRevision(service().store, req.params.orgId, actor)));
   router.get('/organizations/:orgId/snapshot', route(async (req, actor) => service().snapshot(req.params.orgId, actor)));
   router.get('/organizations/:orgId/backup', route(async (req, actor) => service().snapshot(req.params.orgId, actor, true)));
   router.post('/organizations/:orgId/operations', route(async (req, actor) => service().execute(req.params.orgId, actor, req.body)));

@@ -16,6 +16,7 @@
     "tests/firestore.test.ts",
     "tests/inventoryCost.test.ts",
     "tests/payables.test.ts",
+    "tests/operationalReports.test.ts",
     "tests/platformAdmin.test.ts",
     "tests/platformBilling.test.ts"
   ]

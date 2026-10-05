@@ -13,13 +13,14 @@ import { clean, type Change, type Document, type Store, type Transaction } from 
 import { acquisitionCost, allocateCost, costFields, costState, issueCost, receiveCost, validateCostState, hasIncompleteInvoiceCosts } from './inventoryCost';
 import { payableCommand, payableCollections, payableReports } from './payables';
 import { classifyAccount } from './accountClassification';
+import { merchantDay, operationalPermissions, readOperationalReport, type LedgerQuery, type ReportPeriod, type OperationalReportTypes } from './operationalReports';
 import { financialCollections, reconcileFinancialData, type FinancialData } from './reconciliation';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; }
 export interface Command { action: string; operationId: string; data: Document; }
 export interface OperationResult { result: Document; changes: Change[]; }
 const actions: Record<string, ActionType> = {
-  'payables.export': 'backup:export', 'supplier.create': 'payables:write', 'supplier.update': 'payables:write', 'purchase.create': 'payables:write', 'supplierPayment.create': 'payables:write',
+  'operational.export': 'backup:export', 'payables.export': 'backup:export', 'supplier.create': 'payables:write', 'supplier.update': 'payables:write', 'purchase.create': 'payables:write', 'supplierPayment.create': 'payables:write',
   'customer.create': 'customers:create', 'customer.update': 'customers:update', 'customer.delete': 'customers:delete',
   'product.create': 'products:create', 'product.update': 'products:update', 'product.delete': 'products:delete', 'product.stock': 'products:stock_adjustment',
   'accounting.activate': 'org:update_settings', 'product.cost.establish': 'products:stock_adjustment', 'inventory.receive': 'products:stock_adjustment',
@@ -76,6 +77,16 @@ export class Operations {
       return { organizationId: orgId, generatedAt: this.now().toISOString(), ...payableReports(suppliers, bills, payments, entries, period, this.now().toISOString()) };
     });
   }
+  async operationalReport<View extends keyof OperationalReportTypes>(orgId: string, actor: Actor, view: View, query: ReportPeriod & Partial<LedgerQuery> = {}): Promise<{ organizationId: string; generatedAt: string; view: View } & OperationalReportTypes[View]> {
+    return this.store.transaction(async tx => {
+      const { org, role } = await membership(tx, orgId, actor);
+      ensure(operationalPermissions(view).every(permission => hasPermission(role, permission)), 'ليس لديك صلاحية هذا التقرير.', 403);
+      const now = this.now(), subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+      assertSubscriptionActive(subscription); assertFeature(subscription, 'accounting');
+      const report = await readOperationalReport(tx, `organizations/${orgId}`, view, query, merchantDay(now, org.settings.timezone || 'Africa/Khartoum'));
+      return { organizationId: orgId, generatedAt: now.toISOString(), view, ...report } as { organizationId: string; generatedAt: string; view: View } & OperationalReportTypes[View];
+    });
+  }
   async snapshot(orgId: string, actor: Actor, backup = false) {
     return this.store.transaction(async tx => {
       const { org, role, member } = await membership(tx, orgId, actor, true);
@@ -109,6 +120,11 @@ export class Operations {
     return this.store.transaction(async tx => {
       const { org, role } = await membership(tx, orgId, actor, command.action === 'subscription.request');
       ensure(actions[command.action] && hasPermission(role, actions[command.action]), 'ليس لديك صلاحية هذه العملية.', 403);
+      if (command.action === 'operational.export') {
+        ensure(operationalPermissions(command.data.view).every(permission => hasPermission(role, permission)), 'ليس لديك صلاحية هذا التقرير.', 403);
+        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+        assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
+      }
       let securityChecked = false;
       const requireCostAuthority = async () => {
         if (this.store.authority === 'browser') throw new BusinessError('هذه العملية المالية تتطلب خدمة الخادم.', 403, 'accounting_server_required');
@@ -140,7 +156,7 @@ export class Operations {
       if (command.action !== 'subscription.request') assertSubscriptionActive(subscription);
       if (['product.stock', 'product.cost.establish', 'inventory.receive'].includes(command.action) || command.action === 'product.create' && data.track_inventory) assertFeature(subscription, 'inventory_tracking');
       if (command.action.startsWith('account.') || command.action === 'journal.create' || command.action === 'accounting.activate') assertFeature(subscription, 'accounting');
-      if (command.action === 'payables.export' || command.action.startsWith('supplier.') || ['purchase.create', 'supplierPayment.create'].includes(command.action)) assertFeature(subscription, 'accounting');
+      if (command.action === 'operational.export' || command.action === 'payables.export' || command.action.startsWith('supplier.') || ['purchase.create', 'supplierPayment.create'].includes(command.action)) assertFeature(subscription, 'accounting');
       if (command.action === 'supplierPayment.create') ensure(org.accounting_version === 2, 'سداد الموردين يتطلب محاسبة V2.', 409);
       if (command.action === 'purchase.create') { assertFeature(subscription, 'inventory_tracking'); ensure(org.accounting_version === 2, 'فعّل أساس تكلفة V2 قبل فواتير الموردين.', 409); }
       if (['purchase.create', 'supplierPayment.create'].includes(command.action) && command.data.currency === 'USD') assertFeature(subscription, 'multi_currency');
@@ -183,6 +199,12 @@ export class Operations {
       const stamp = { org_id: orgId, created_by: actor.uid, schema_version: 3, created_at: iso };
       let result: Document = {};
       switch (command.action) {
+        case 'operational.export': {
+          const report = await readOperationalReport(tx, root, data.view, data.query || {}, merchantDay(now, settings.timezone || 'Africa/Khartoum'));
+          result = { organizationId: orgId, generatedAt: iso, view: data.view, ...report };
+          ensure(new TextEncoder().encode(JSON.stringify(result)).length <= 650000, 'حجم التصدير كبير؛ اختر فترة أقصر أو حساباً محدداً.', 413);
+          break;
+        }
         case 'payables.export': {
           const [suppliers, bills, payments, entries] = await Promise.all(['suppliers', 'purchase_bills', 'supplier_payments', 'journal_entries'].map(name => tx.list(`${root}/${name}`)));
           result = { organizationId: orgId, generatedAt: iso, ...payableReports(suppliers, bills, payments, entries, data.period || {}, iso) }; break;
@@ -558,7 +580,7 @@ export class Operations {
       const auditKeys = ['id', 'code', 'name', 'type', 'nature', 'reporting_group', 'cash_flow_category', 'normal_balance', 'supplier_id', 'bill_id', 'supplier_reference', 'due_date', 'reference_number', 'payment_terms_days', 'credit_limit', 'default_currency', 'phone', 'email', 'address', 'tax_number', 'notes', 'sequence', 'payment_sequence', 'settled_amount_sdg', 'settled_amount_usd', 'cash_amount_sdg', 'cash_amount_usd', 'stock_quantity', ...costFields, 'status', 'accounting_version', 'grand_total_sdg', 'grand_total_usd', 'remaining_sdg', 'remaining_usd', 'paid_amount_sdg', 'paid_amount_usd', 'amount', 'currency', 'payment_account_code', 'expense_account_code', 'cogs_sdg', 'cogs_usd', 'balance_sdg', 'balance_usd'];
       const previousState = Object.fromEntries(changes.filter(change => beforeValues.has(change.path)).map(change => [change.path, pick(beforeValues.get(change.path)!, auditKeys)]));
       const newState = Object.fromEntries(changes.filter(change => !change.path.includes('/meta/')).map(change => [change.path, change.value ? pick(change.value, auditKeys) : null]));
-      const audit = { ...(command.action === 'payables.export' ? { export_metadata: { report: 'payables', period: result.period } } : {}), actor_role: role, reason: data.reason || '', cost_evidence: costEvidence, previous_state: previousState, new_state: newState, id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
+      const audit = { ...(command.action === 'operational.export' ? { export_metadata: { report: data.view, period: result.period, account_code: data.query?.accountCode || '', currency: data.query?.currency || 'SDG/USD' } } : {}), ...(command.action === 'payables.export' ? { export_metadata: { report: 'payables', period: result.period } } : {}), actor_role: role, reason: data.reason || '', cost_evidence: costEvidence, previous_state: previousState, new_state: newState, id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
       tx.set(`${root}/audit_logs/${audit.id}`, audit);
       const visible = changes.filter(c => {
         if (c.path === root || c.path.startsWith(`${root}/meta/`)) return true;

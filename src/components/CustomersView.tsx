@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { formatMoney, getInvoiceStatusInfo } from '../lib/currency';
 import { getPlanConfig, isUnlimited } from '../lib/plans';
+import { OperationalCenter } from './accounting/OperationalCenter';
 import { Dialog } from './Dialog';
 
 interface CustomersViewProps {
@@ -52,6 +53,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 
   const submitLock = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showLedgerStatements, setShowLedgerStatements] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -184,6 +186,7 @@ ${settings.phone}`;
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-sf-surface p-4 rounded-xl border border-sf-border shadow-sm">
         <div>
           <h2 className="text-lg font-semibold text-sf-text">سجل العملاء والأرصدة</h2>
+          {isActionAllowed('reports:view') && <button className="sf-secondary mt-2" aria-pressed={showLedgerStatements} onClick={() => setShowLedgerStatements(value => !value)}>كشوف العملاء وأعمار الديون</button>}
           <p className="text-xs text-sf-muted">
             متابعة ديون ومعاملات كل عميل بالجنيه السوداني والدولار مع كشف حساب فوري
           </p>
@@ -196,6 +199,8 @@ ${settings.phone}`;
           <span>إضافة عميل جديد</span>
         </button>
       </div>
+
+      {showLedgerStatements && <OperationalCenter view="receivables" />}
 
       {/* Search */}
       <div className="relative">
@@ -591,3 +596,4 @@ ${settings.phone}`;
     </div>
   );
 };
+

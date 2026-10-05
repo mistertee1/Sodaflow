@@ -5,6 +5,7 @@ import { INITIAL_SETTINGS } from '../data/initialData';
 import { auth, onAuthStateChanged, logout, type User } from '../lib/firebase';
 import { createDefaultSubscription } from '../lib/plans';
 import { Operations, type Actor } from '../domain/operations';
+import type { OperationalReportTypes, OperationalView, LedgerQuery, ReportPeriod } from '../domain/operationalReports';
 import type { CostInput } from '../domain/inventoryCost';
 import type { Change, Document } from '../domain/store';
 import { api, operationId } from '../services/businessApi';
@@ -37,6 +38,7 @@ interface AppContextType {
   createPurchase: (data: Document) => Promise<PurchaseBill>;
   paySupplier: (data: Document) => Promise<SupplierPayment>;
   loadPayablesReport: (period: { start?: string; end?: string }, exporting?: boolean) => Promise<Awaited<ReturnType<Operations['payableReports']>>>;
+  loadOperationalReport: <View extends OperationalView>(view: View, query: ReportPeriod & Partial<LedgerQuery>, exporting?: boolean) => Promise<OperationalReportTypes[View] & { organizationId: string; generatedAt: string; view: View }>;
   inventoryMovements: InventoryMovement[];
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
@@ -370,6 +372,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const id = activeOrg.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');
       if (exporting) return run('payables.export', { period }) as Promise<Awaited<ReturnType<Operations['payableReports']>>>;
       return id === guestId && !userRef.current ? getGuest().payableReports(id, guestActor, period) : api(`/organizations/${encodeURIComponent(id)}/reports/payables?start=${encodeURIComponent(period.start || '')}&end=${encodeURIComponent(period.end || '')}`);
+    },
+    loadOperationalReport: async (view, query, exporting = false) => {
+      const id = activeOrg.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');
+      if (exporting) return run('operational.export', { view, query });
+      const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== undefined).map(([key, value]) => [key, value!]));
+      return id === guestId && !userRef.current ? getGuest().operationalReport(id, guestActor, view, query) : api(`/organizations/${encodeURIComponent(id)}/reports/${view}?${params}`);
     },
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
     isActionAllowed, switchOrganization, createNewOrg,

@@ -2,7 +2,15 @@ import { BusinessError } from '../src/domain/validation';
 
 export function firebaseServiceFailure(error: unknown, service: 'firebase' | 'firestore' | 'storage'): BusinessError {
   if (error instanceof BusinessError) return error;
-  const code = String((error as { code?: unknown } | null)?.code || '').toLowerCase();
+  const upstream = error as { code?: unknown; reason?: unknown; message?: unknown; details?: unknown; statusDetails?: unknown } | null;
+  const code = String(upstream?.code || '').toLowerCase();
+  const details = [upstream?.details, upstream?.statusDetails].flatMap(value => Array.isArray(value) ? value : []);
+  const serviceDisabled = upstream?.reason === 'SERVICE_DISABLED'
+    || details.some(detail => detail && typeof detail === 'object' && detail.reason === 'SERVICE_DISABLED')
+    || /Cloud Firestore API.*(?:has not been used|is disabled)/i.test(String(upstream?.message || '') + ' ' + (typeof upstream?.details === 'string' ? upstream.details : ''));
+  if (service === 'firestore' && serviceDisabled) {
+    return new BusinessError('خدمة Cloud Firestore API معطّلة في مشروع التطبيق. يلزم تفعيلها من Google Cloud لاستعادة المزامنة؛ تغيير قواعد Firestore وحده لا يعالج ذلك.', 503, 'firestore_api_disabled');
+  }
   if (['app/invalid-credential', 'auth/invalid-credential', '16', 'unauthenticated', 'invalid_grant'].includes(code)) {
     return new BusinessError('تعذر استخدام مفتاح Firebase في الخادم. حدّث FIREBASE_SERVICE_ACCOUNT_JSON بمفتاح صالح من مشروع التطبيق ثم أعد النشر.', 503, 'firebase_credentials_invalid');
   }

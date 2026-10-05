@@ -9,9 +9,11 @@ import { FirestoreStore } from '../server/firestoreStore';
 import { BrowserFirestoreStore } from '../src/services/browserFirestoreStore';
 import { readFirebaseOrganizations } from '../src/services/firebaseOrganizations';
 import { Organizations } from '../server/organizations';
+import { verifyAccountingRulesSource } from '../server/accountingSecurity';
+import { reconcileFinancialData, type FinancialData } from '../src/domain/reconciliation';
 import { Operations } from '../src/domain/operations';
 import { INITIAL_SETTINGS } from '../src/data/initialData';
-import { getPlanConfig, createDefaultSubscription } from '../src/lib/plans';
+import { getPlanConfig, createDefaultSubscription, defaultPlatformPlans } from '../src/lib/plans';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../src/types';
 import { getDefaultChartOfAccounts } from '../src/services/accountingService';
 
@@ -23,7 +25,8 @@ before(async () => {
   await env.clearFirestore();
   await env.withSecurityRulesDisabled(async context => {
     const db = context.firestore();
-    await setDoc(doc(db, 'organizations', 'rules-org'), { id: 'rules-org', owner_uid: 'owner', status: 'active', schema_version: 3, settings: INITIAL_SETTINGS });
+    for (const plan of defaultPlatformPlans()) await setDoc(doc(db, 'plans', plan.id), plan);
+    await setDoc(doc(db, 'organizations', 'rules-org'), { id: 'rules-org', owner_uid: 'owner', status: 'active', schema_version: 3, settings: INITIAL_SETTINGS, planId: 'Free', subscriptionStatus: 'active', subscriptionEnd: null, subscriptionEndMillis: null });
     await setDoc(doc(db, 'organizations/rules-org/meta', 'counters'), { ...DEFAULT_ORGANIZATION_COUNTERS, revision: 0 });
     await setDoc(doc(db, 'organizations/rules-org/meta', 'subscription'), createDefaultSubscription('rules-org'));
     for (const account of getDefaultChartOfAccounts('rules-org')) await setDoc(doc(db, 'organizations/rules-org/accounts', account.code), account);
@@ -37,7 +40,7 @@ before(async () => {
 });
 after(async () => { await env?.cleanup(); });
 
-test('direct Firestore rules allow app writes but protect subscription and role boundaries', async () => {
+test('direct Firestore rules deny tenant writes and protect subscription and role boundaries', async () => {
   const owner = env.authenticatedContext('owner', { email: 'owner@example.com', email_verified: true }).firestore();
   const viewer = env.authenticatedContext('viewer', { email: 'viewer@example.com', email_verified: true }).firestore();
   const cashier = env.authenticatedContext('cashier', { email: 'cashier@example.com', email_verified: true }).firestore();
@@ -51,7 +54,7 @@ test('direct Firestore rules allow app writes but protect subscription and role 
 test('cashier reads operational data required by direct sync; suspended/foreign users remain blocked', async () => {
   const cashier = env.authenticatedContext('cashier', { email: 'cashier@example.com', email_verified: true }).firestore();
   await assertSucceeds(getDocs(collection(cashier, 'organizations/rules-org/invoices')));
-  await assertFails(getDocs(collection(cashier, 'organizations/rules-org/expenses'))); await assertSucceeds(getDoc(doc(cashier, 'organizations/rules-org/journal_entries/record')));
+  await assertFails(getDocs(collection(cashier, 'organizations/rules-org/expenses'))); await assertFails(getDoc(doc(cashier, 'organizations/rules-org/journal_entries/record')));
   for (const uid of ['foreign', 'suspended', 'forged-owner']) await assertFails(getDoc(doc(env.authenticatedContext(uid, { email: `${uid}@example.com`, email_verified: true }).firestore(), 'organizations/rules-org/invoices/record')));
   await assertSucceeds(getDoc(doc(env.authenticatedContext('viewer', { email: 'viewer@example.com', email_verified: true }).firestore(), 'organizations/rules-org/journal_entries/record')));
 });
@@ -63,43 +66,41 @@ test('unverified recipient cannot use a forged payload email to create own membe
   await assertFails(setDoc(doc(db, 'users/attacker/journal_entries/forged'), { lines: [{}] }));
 });
 
-test('browser Firestore store executes invoice synchronization directly under security rules', async () => {
+test('browser Firestore cannot bypass API-only writes or activate costing by forged requests', async () => {
   const db = env.authenticatedContext('owner', { email: 'owner@example.com', email_verified: true }).firestore();
   const store = new BrowserFirestoreStore(db as unknown as import('firebase/firestore').Firestore);
-  const ops = new Operations(store, undefined, saved => saved as any);
-  const actor = { uid: 'owner', email: 'owner@example.com', emailVerified: true };
-  const run = (action: string, data: Record<string, unknown>, operationId: string) =>
-    ops.execute('rules-org', actor, { action, data, operationId });
-
-  const customer = (await run('customer.create', { name: 'عميل مباشر', phone: '', preferred_currency: 'USD' }, 'web-customer')).result;
-  const product = (await run('product.create', { name: 'منتج مباشر', unit: 'قطعة', price_sdg: 2000, price_usd: 1, tax_rate: 0, is_active: true, track_inventory: true, stock_quantity: 10 }, 'web-product')).result;
-  const line = { product_id: product.id, description: 'منتج مباشر', unit: 'قطعة', quantity: 2, unit_price: 100, currency: 'USD', tax_rate: 0, discount_percent: 0 };
-  const invoice = (await run('invoice.create', { customer_id: customer.id, issue_date: '2026-10-02', currency_mode: 'single_usd', exchange_rate_used: 2000, discount_type: 'fixed', discount_value: 0, items: [line] }, 'web-invoice')).result;
-
-  assert.match(invoice.invoice_number, /^INV-/);
-  const snapshot = await ops.snapshot('rules-org', actor);
-  assert.equal(snapshot.collections.invoices.some(row => row.id === invoice.id), true);
-  assert.equal(snapshot.collections.products.find(row => row.id === product.id)?.stock_quantity, 8);
-  assert.equal(Number(snapshot.counters.revision || 0) >= 3, true);
+  const ops = new Operations(store), actor = { uid: 'owner', email: 'owner@example.com', emailVerified: true };
+  await assert.rejects(ops.execute('rules-org', actor, { action: 'customer.create', operationId: 'browser-customer', data: { name: 'تجاوز', phone: '' } }));
+  await assertFails(setDoc(doc(db, 'organizations/rules-org'), { accounting_version: 2 }, { merge: true }));
+  await assertFails(setDoc(doc(db, 'organizations/rules-org/products/record'), { cost_status: 'valued', stock_quantity: 999, inventory_value_sdg: 1, inventory_value_usd: 1 }, { merge: true }));
+  await assertFails(setDoc(doc(db, 'organizations/rules-org/journal_entries/forged'), { lines: [] }));
+  await assert.rejects(ops.execute('rules-org', actor, { action: 'accounting.activate', operationId: 'browser-v2', data: { reason: 'تجاوز' } }), /خدمة الخادم/);
 });
 
 test('real Firestore concurrent sales, duplicate retry, stock and customer balances commit together', async () => {
   const app = initializeApp({ projectId: project }, 'test-admin'), db = getFirestore(app);
   try {
     const store = new FirestoreStore(db), actor = { uid: 'integration-owner', email: 'i@example.com', emailVerified: true }, orgs = new Organizations(store);
-    const org = await orgs.create(actor, 'اختبار التكامل', INITIAL_SETTINGS, 'integration', true), ops = new Operations(store, undefined, saved => saved as any);
-    await store.transaction(async tx => { tx.set(`organizations/${org.id}/meta/subscription`, { ...createDefaultSubscription(org.id), ...getPlanConfig('Enterprise'), plan: 'Enterprise' }); });
+    const rules = await readFile('firestore.rules', 'utf8');
+    const org = await orgs.create(actor, 'اختبار التكامل', INITIAL_SETTINGS, 'integration', true), ops = new Operations(store, () => new Date('2026-10-05T12:00:00Z'), saved => saved as any, async () => { assert.ok(process.env.FIRESTORE_EMULATOR_HOST); verifyAccountingRulesSource([{ content: rules }]); });
+    await store.transaction(async tx => { tx.set(`organizations/${org.id}/meta/subscription`, { ...createDefaultSubscription(org.id), ...getPlanConfig('Enterprise'), plan: 'Enterprise' }); tx.set(`organizations/${org.id}`, { ...await tx.get(`organizations/${org.id}`), planId: 'Enterprise', subscriptionEnd: '2027-01-01T00:00:00Z', subscriptionEndMillis: Date.parse('2027-01-01') }); });
     const run = (action: string, data: Record<string, unknown>, operationId: string) => ops.execute(org.id, actor, { action, data, operationId });
     const customer = (await run('customer.create', { name: 'عميل', phone: '', preferred_currency: 'USD' }, 'customer')).result;
     const product = (await run('product.create', { name: 'منتج', unit: 'قطعة', price_sdg: 2000, price_usd: 1, tax_rate: 0, is_active: true, track_inventory: true, stock_quantity: 10 }, 'product')).result;
+    await run('product.cost.establish', { id: product.id, cost_currency: 'USD', unit_cost: 2, exchange_rate_used: 2000, reason: 'تكلفة افتتاحية موثقة' }, 'cost');
+    await run('accounting.activate', { reason: 'مطابقة الاختبار' }, 'activate');
     const line = { product_id: product.id, description: 'منتج', unit: 'قطعة', quantity: 2, unit_price: 100, currency: 'USD', tax_rate: 0, discount_percent: 0 };
-    const data = { customer_id: customer.id, issue_date: '2026-10-01', currency_mode: 'single_usd', exchange_rate_used: 2000, discount_type: 'fixed', discount_value: 0, items: [line, { ...line, quantity: 1 }] };
+    const data = { customer_id: customer.id, issue_date: '2026-10-05', currency_mode: 'single_usd', exchange_rate_used: 2000, discount_type: 'fixed', discount_value: 0, items: [line, { ...line, quantity: 1 }] };
     const results = await Promise.all([run('invoice.create', data, 'sale-a'), run('invoice.create', data, 'sale-b')]);
     await run('invoice.create', data, 'sale-a'); assert.notEqual(results[0].result.invoice_number, results[1].result.invoice_number);
     const s = await ops.snapshot(org.id, actor); assert.equal(s.collections.invoices.length, 2); assert.equal(s.collections.products[0].stock_quantity, 4); assert.equal(s.collections.customers[0].balance_usd, 600); assert.equal(s.counters.invoice_count, 2);
     const receipt = { invoice_id: results[0].result.id, amount: 50, currency: 'USD', exchange_rate_used: 3000, payment_method: 'bankak' };
     await Promise.all([run('payment.create', receipt, 'payment'), run('payment.create', receipt, 'payment')]);
     const full = await ops.snapshot(org.id, actor); assert.equal(full.collections.payments.length, 1); assert.equal(full.collections.customers[0].balance_usd, 550);
+    assert.equal(full.collections.products[0].inventory_value_usd, 8); assert.deepEqual(reconcileFinancialData(full.collections as FinancialData, full.settings, { requireCosting: true }), []);
+    const client = env.authenticatedContext(actor.uid, { email_verified: true }).firestore();
+    await assertFails(setDoc(doc(client, `organizations/${org.id}/products/${product.id}`), { stock_quantity: 999 }, { merge: true }));
+    await assertFails(setDoc(doc(client, `organizations/${org.id}`), { accounting_version: 1 }, { merge: true }));
     const before = await db.doc(`organizations/${org.id}/meta/counters`).get(); await assert.rejects(run('invoice.create', { ...data, items: [{ ...line, quantity: 5 }] }, 'oversell'), /المخزون/);
     assert.deepEqual((await db.doc(`organizations/${org.id}/meta/counters`).get()).data(), before.data());
   } finally { await deleteApp(app); }

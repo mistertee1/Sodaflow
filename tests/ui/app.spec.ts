@@ -267,3 +267,54 @@ test('A1 report dates reject reversed ranges without hiding account repair contr
   await expect(page.getByRole('alert')).toHaveCount(0);
   await expect(page.getByText('دليل الحسابات المتوافق', { exact: false })).toBeVisible();
 });
+
+test('A2 owner establishes cost, activates V2, receives stock and snapshots COGS without duplicate submission', async ({ page }) => {
+  await page.addInitScript(() => {
+    const products = JSON.parse(localStorage.getItem('hisabuk_guest_v1_products') || '[]'); products[0].stock_quantity = 0;
+    localStorage.setItem('hisabuk_guest_v1_products', JSON.stringify(products));
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/'); await page.locator('#tab-products').click();
+  await page.getByRole('button', { name: 'تسجيل تكلفة أو استلام مخزون' }).click();
+  let dialog = page.getByRole('dialog', { name: 'تكلفة المخزون', exact: true });
+  await dialog.getByLabel('منتج التكلفة', { exact: true }).selectOption('product');
+  await dialog.getByLabel('تكلفة الوحدة الموثقة', { exact: true }).fill('2');
+  await dialog.getByLabel('عملة التكلفة', { exact: true }).selectOption('USD');
+  await dialog.getByLabel('سبب العملية ومرجع وثيقة التكلفة').fill('مخزون افتتاحي فارغ تمت مراجعته');
+  await dialog.getByRole('button', { name: 'حفظ عملية التكلفة' }).click(); await expect(dialog).toHaveCount(0);
+  await page.getByRole('button', { name: 'تفعيل المحاسبة V2 بعد المطابقة' }).click();
+  await expect(page.getByText('المحاسبة V2 مفعّلة', { exact: false }).first()).toBeVisible();
+  await page.getByRole('button', { name: 'تسجيل تكلفة أو استلام مخزون' }).click();
+  dialog = page.getByRole('dialog', { name: 'تكلفة المخزون', exact: true });
+  await dialog.getByLabel('عملية المخزون', { exact: true }).selectOption('receipt');
+  await dialog.getByLabel('منتج التكلفة', { exact: true }).selectOption('product');
+  await dialog.getByLabel('كمية عملية التكلفة').fill('10');
+  await dialog.getByLabel('تكلفة الوحدة الموثقة', { exact: true }).fill('2');
+  await dialog.getByLabel('سداد استلام المخزون').selectOption('bankak');
+  await dialog.getByLabel('سبب العملية ومرجع وثيقة التكلفة').fill('فاتورة شراء نقدية 10');
+  await dialog.locator('form').evaluate(node => { (node as HTMLFormElement).requestSubmit(); (node as HTMLFormElement).requestSubmit(); });
+  await expect(dialog).toHaveCount(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: 'test-results/accounting-v2-cost-mobile.png', fullPage: true });
+  await page.locator('#btn-quick-new-invoice').click();
+  const form = page.locator('form').filter({ has: page.getByLabel('عميل الفاتورة') });
+  await form.getByLabel('عميل الفاتورة').selectOption('customer'); await form.getByRole('button', { name: 'دولار فقط', exact: true }).click();
+  await form.getByLabel('منتج البند 1').selectOption('product'); await form.getByLabel('عملة البند 1').selectOption('USD'); await form.getByLabel('سعر البند 1').fill('10');
+  await form.evaluate(node => (node as HTMLFormElement).requestSubmit());
+  await expect(page.getByRole('button', { name: 'تسجيل دفعة', exact: true })).toBeVisible();
+  const rows = await page.evaluate(() => Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}')));
+  const product = rows.find(([path]) => path.endsWith('/products/product'))![1] as any, invoice = rows.find(([path]) => path.includes('/invoices/'))![1] as any;
+  expect(product.stock_quantity).toBe(9); expect(product.inventory_value_usd).toBe(18); expect(invoice.cogs_usd).toBe(2); expect(invoice.costing_status).toBe('complete');
+  expect(rows.filter(([path, row]) => path.includes('/inventory_movements/') && (row as any).type === 'PURCHASE')).toHaveLength(1);
+});
+
+test('A2 income report marks unknown historical cost instead of presenting complete profit', async ({ page }) => {
+  await page.goto('/'); await page.locator('#btn-quick-new-invoice').click();
+  const form = page.locator('form').filter({ has: page.getByLabel('عميل الفاتورة') });
+  await form.getByLabel('عميل الفاتورة').selectOption('customer'); await form.getByLabel('منتج البند 1').selectOption('product');
+  await form.evaluate(node => (node as HTMLFormElement).requestSubmit());
+  await expect(page.getByRole('button', { name: 'تسجيل دفعة', exact: true })).toBeVisible(); await page.keyboard.press('Escape');
+  await page.locator('#tab-accounting').click(); await page.getByRole('button', { name: /قائمة الدخل/ }).first().click();
+  await expect(page.getByRole('status')).toContainText('تكلفة بعض فواتير هذه الفترة غير موثقة');
+  await expect(page.getByText('غير مكتمل', { exact: true }).first()).toBeVisible();
+});

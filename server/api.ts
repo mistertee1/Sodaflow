@@ -1,3 +1,4 @@
+import { verifyDeployedAccountingRules } from './accountingSecurity';
 import { organizationRevision } from './revision';
 import { authenticationFailure } from './authErrors';
 import { firebaseServiceFailure } from './serviceErrors';
@@ -20,7 +21,7 @@ import { loadSubscription, assertSubscriptionActive } from '../src/domain/subscr
 type Verify = (token: string) => Promise<Actor>;
 export function createApi(options?: { operations: Operations; verify: Verify }) {
   const router = express.Router();
-  const service = () => options?.operations || new Engine(new FirestoreStore(adminServices().db), undefined, resolveSubscription);
+  const service = () => options?.operations || new Engine(new FirestoreStore(adminServices().db), undefined, resolveSubscription, verifyDeployedAccountingRules);
   const platform = () => new PlatformBilling(service().store, options ? undefined : adminServices().db);
   const verify: Verify = options?.verify || (async token => {
     const claims = await adminServices().auth.verifyIdToken(token, true);
@@ -86,7 +87,7 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   router.get('/organizations/:orgId/revision', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, route(async (req, actor) => organizationRevision(service().store, req.params.orgId, actor)));
   router.get('/organizations/:orgId/snapshot', route(async (req, actor) => service().snapshot(req.params.orgId, actor)));
   router.get('/organizations/:orgId/backup', route(async (req, actor) => service().snapshot(req.params.orgId, actor, true)));
-  router.get('/organizations/:orgId/reports/advanced', route(async (req, actor) => service().advancedReports(req.params.orgId, actor)));
+  router.get('/organizations/:orgId/reports/advanced', route(async (req, actor) => service().advancedReports(req.params.orgId, actor, { start: typeof req.query.start === 'string' ? req.query.start : undefined, end: typeof req.query.end === 'string' ? req.query.end : undefined })));
   router.post('/organizations/:orgId/operations', route(async (req, actor) => service().execute(req.params.orgId, actor, req.body)));
   router.post('/organizations/:orgId/invitations/:invId/accept', route(async (req, actor) => new Organizations(service().store).accept(actor, req.params.orgId, req.params.invId)));
   router.post('/organizations/:orgId/images/:folder', express.raw({ type: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], limit: '2mb' }), route(async (req, actor) => {

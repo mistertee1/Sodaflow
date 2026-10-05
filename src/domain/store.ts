@@ -6,12 +6,13 @@ export interface Transaction {
   set(path: string, value: Document): void;
   delete(path: string): void;
 }
-export interface Store { transaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T>; }
+export interface Store { readonly authority?: 'server' | 'browser' | 'local'; transaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T>; }
 export interface Change { path: string; value: Document | null; }
 export function clean<T>(value: T): T { return JSON.parse(JSON.stringify(value)); }
 
 /** Same transactional domain service for offline guest mode and deterministic tests. */
 export class MemoryStore implements Store {
+  readonly authority = 'local' as const;
   private documents: Record<string, Document>;
   private tail: Promise<unknown> = Promise.resolve();
   constructor(seed: Record<string, Document> = {}, private persist?: (data: Record<string, Document>) => void) { this.documents = clean(seed); }
@@ -35,3 +36,4 @@ export class MemoryStore implements Store {
     return run;
   }
 }
+

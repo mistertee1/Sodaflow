@@ -11,6 +11,7 @@ export type MovementType =
   | 'PURCHASE'
   | 'ADJUSTMENT'
   | 'VOID_REVERSAL'
+  | 'COST_ESTABLISHMENT'
   | 'OPENING_BALANCE'
   | 'RETURN';
 
@@ -78,6 +79,8 @@ export interface Organization {
   maxWarehouses?: number;
   searchName?: string;
   subscriptionMetadata?: Record<string, string | number | boolean | null>;
+  accounting_version?: 1 | 2;
+  accounting_activated_at?: string;
   id: string;
   name: string; // Legal / business name
   display_name: string;
@@ -175,6 +178,12 @@ export interface OrgSubscription {
 }
 
 export interface InventoryMovement {
+  value_delta_sdg?: number;
+  value_delta_usd?: number;
+  unit_cost_sdg?: number;
+  unit_cost_usd?: number;
+  journal_id?: string;
+  costing_version?: 2;
   id: string;
   product_id: string;
   product_name: string;
@@ -228,6 +237,13 @@ export interface Customer {
 }
 
 export interface Product {
+  cost_status?: "unknown" | "valued";
+  cost_effective_date?: string;
+  cost_last_movement_date?: string;
+  average_cost_sdg?: number;
+  average_cost_usd?: number;
+  inventory_value_sdg?: number;
+  inventory_value_usd?: number;
   id: string;
   name: string;
   description?: string;
@@ -248,6 +264,12 @@ export interface Product {
 }
 
 export interface InvoiceItem {
+  cost_status?: "unknown" | "valued" | "not_tracked";
+  unit_cost_sdg?: number;
+  unit_cost_usd?: number;
+  total_cost_sdg?: number;
+  total_cost_usd?: number;
+  cost_recorded_at?: string;
   id: string;
   product_id?: string;
   description: string;
@@ -261,6 +283,10 @@ export interface InvoiceItem {
 }
 
 export interface Invoice {
+  costing_status?: "complete" | "incomplete";
+  costing_version?: 2;
+  cogs_sdg?: number;
+  cogs_usd?: number;
   receivable_currency?: 'SDG' | 'USD';
   id: string;
   invoice_number: string;

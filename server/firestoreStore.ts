@@ -5,6 +5,7 @@ import { clean } from '../src/domain/store';
 import { ensure } from '../src/domain/validation';
 
 export class FirestoreStore implements Store {
+  readonly authority = 'server' as const;
   constructor(private db: Firestore) {}
   transaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.db.runTransaction(async native => {
@@ -32,3 +33,4 @@ export class FirestoreStore implements Store {
     });
   }
 }
+

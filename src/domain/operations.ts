@@ -1,15 +1,16 @@
-import type { Account, Invoice, JournalEntry, MerchantSettings, Organization, OrgRole, OrgSubscription, Payment } from '../types';
+import type { Product, Account, Invoice, JournalEntry, MerchantSettings, Organization, OrgRole, OrgSubscription, Payment } from '../types';
 import BigNumber from 'bignumber.js';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
 import { INITIAL_SETTINGS } from '../data/initialData';
 import { createDefaultSubscription, subscriptionLimits } from '../lib/plans';
 import { loadSubscription, assertSubscriptionActive, assertFeature, invoiceQuotaReached } from './subscriptions';
 import { safeAdd, safeSub } from '../lib/currency';
-import { getDefaultChartOfAccounts, generateExpenseJournalEntry, calculateTrialBalance, calculateIncomeStatement, calculateBalanceSheet, calculateCashFlowStatement } from '../services/accountingService';
+import { getDefaultChartOfAccounts, generateExpenseJournalEntry, calculateTrialBalance, calculateIncomeStatement, calculateBalanceSheet, calculateCashFlowStatement, getAccountCodeForPaymentMethod } from '../services/accountingService';
 import { hasPermission, type ActionType } from '../services/rbacService';
-import { assertOpenPeriod, dateOnly, ensure, identifier, money, text, validateJournal, validateSettings } from './validation';
+import { BusinessError, assertOpenPeriod, dateOnly, ensure, identifier, money, text, validateJournal, validateSettings } from './validation';
 import { invoiceFinancials, journal, journalLine, paymentQuote, receiptJournal, receivableCurrency, reverseJournal } from './financial';
 import { clean, type Change, type Document, type Store, type Transaction } from './store';
+import { acquisitionCost, allocateCost, costFields, costState, issueCost, receiveCost, validateCostState, hasIncompleteInvoiceCosts } from './inventoryCost';
 import { classifyAccount } from './accountClassification';
 import { financialCollections, reconcileFinancialData, type FinancialData } from './reconciliation';
 
@@ -19,6 +20,7 @@ export interface OperationResult { result: Document; changes: Change[]; }
 const actions: Record<string, ActionType> = {
   'customer.create': 'customers:create', 'customer.update': 'customers:update', 'customer.delete': 'customers:delete',
   'product.create': 'products:create', 'product.update': 'products:update', 'product.delete': 'products:delete', 'product.stock': 'products:stock_adjustment',
+  'accounting.activate': 'org:update_settings', 'product.cost.establish': 'products:stock_adjustment', 'inventory.receive': 'products:stock_adjustment',
   'invoice.create': 'invoices:create', 'invoice.update': 'invoices:update', 'invoice.void': 'invoices:void',
   'payment.create': 'payments:create', 'expense.create': 'expenses:create', 'expense.void': 'expenses:delete',
   'journal.create': 'journal:create', 'account.create': 'accounts:create', 'account.update': 'accounts:update', 'account.reset': 'accounts:update',
@@ -48,15 +50,16 @@ function monthKey(now: Date, timeZone: string) {
   return `${parts.find(p => p.type === 'year')!.value}-${parts.find(p => p.type === 'month')!.value}`;
 }
 export class Operations {
-  constructor(public store: Store, private now: () => Date = () => new Date(), private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = (_saved, orgId) => createDefaultSubscription(orgId)) {}
-  async advancedReports(orgId: string, actor: Actor) {
+  constructor(public store: Store, private now: () => Date = () => new Date(), private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = (_saved, orgId) => createDefaultSubscription(orgId), private verifyCostingSecurity?: () => Promise<void>) {}
+  async advancedReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}) {
     return this.store.transaction(async tx => {
       const { org, role } = await membership(tx, orgId, actor);
       ensure(hasPermission(role, 'reports:advanced'), 'التقارير المتقدمة غير مسموحة لهذا الدور.', 403);
       const subscription = await loadSubscription(tx, orgId, org, this.now(), this.subscriptionPolicy);
       assertSubscriptionActive(subscription); assertFeature(subscription, 'accounting'); assertFeature(subscription, 'advanced_reports');
       const accounts = await tx.list(`organizations/${orgId}/accounts`) as Account[], entries = await tx.list(`organizations/${orgId}/journal_entries`) as JournalEntry[];
-      return { organizationId: orgId, generatedAt: this.now().toISOString(), trialBalance: calculateTrialBalance(accounts, entries), incomeStatement: calculateIncomeStatement(entries), balanceSheet: calculateBalanceSheet(accounts, entries), cashFlow: calculateCashFlowStatement(accounts, entries) };
+      const invoices = await tx.list(`organizations/${orgId}/invoices`) as Invoice[], products = await tx.list(`organizations/${orgId}/products`) as Product[];
+      return { organizationId: orgId, generatedAt: this.now().toISOString(), period, trialBalance: calculateTrialBalance(accounts, entries, period), incomeStatement: { ...calculateIncomeStatement(entries, accounts, period), costs_complete: !hasIncompleteInvoiceCosts(invoices, products, entries, period) }, balanceSheet: calculateBalanceSheet(accounts, entries, period), cashFlow: calculateCashFlowStatement(accounts, entries, period) };
     });
   }
   async snapshot(orgId: string, actor: Actor, backup = false) {
@@ -92,6 +95,15 @@ export class Operations {
     return this.store.transaction(async tx => {
       const { org, role } = await membership(tx, orgId, actor, command.action === 'subscription.request');
       ensure(actions[command.action] && hasPermission(role, actions[command.action]), 'ليس لديك صلاحية هذه العملية.', 403);
+      let securityChecked = false;
+      const requireCostAuthority = async () => {
+        if (this.store.authority === 'browser') throw new BusinessError('هذه العملية المالية تتطلب خدمة الخادم.', 403, 'accounting_server_required');
+        if (this.store.authority === 'server' && !securityChecked) {
+          if (!this.verifyCostingSecurity) throw new BusinessError('تعذر تأكيد قواعد حماية V2 المنشورة.', 503, 'accounting_rules_not_verified');
+          await this.verifyCostingSecurity(); securityChecked = true;
+        }
+      };
+      if (org.accounting_version === 2 || ['accounting.activate', 'product.cost.establish', 'inventory.receive'].includes(command.action)) await requireCostAuthority();
       const operationPath = `${root}/idempotency/${command.operationId}`;
       const previous = await tx.get(operationPath);
       if (previous) {
@@ -112,13 +124,14 @@ export class Operations {
       const plan = subscriptionLimits(subscription);
       if (command.action === 'subscription.request') ensure(role === 'Owner', 'طلب تغيير الباقة متاح لمالك الشركة فقط.', 403);
       if (command.action !== 'subscription.request') assertSubscriptionActive(subscription);
-      if (['product.stock'].includes(command.action) || command.action === 'product.create' && data.track_inventory) assertFeature(subscription, 'inventory_tracking');
-      if (command.action.startsWith('account.') || command.action === 'journal.create') assertFeature(subscription, 'accounting');
+      if (['product.stock', 'product.cost.establish', 'inventory.receive'].includes(command.action) || command.action === 'product.create' && data.track_inventory) assertFeature(subscription, 'inventory_tracking');
+      if (command.action.startsWith('account.') || command.action === 'journal.create' || command.action === 'accounting.activate') assertFeature(subscription, 'accounting');
       if (command.action === 'invoice.create' && data.currency_mode !== 'single_sdg') assertFeature(subscription, 'multi_currency');
       const counterAdd = (key: string, delta: number) => { counters[key] = Math.max(0, (counters[key] || 0) + delta); };
+      const beforeValues = new Map<string, Document>([[root, org]]);
       const required = async (collection: string, id: string) => {
         const record = await tx.get(`${root}/${collection}/${identifier(id)}`);
-        ensure(record, 'السجل المطلوب غير موجود.', 404); return record;
+        ensure(record, 'السجل المطلوب غير موجود.', 404); beforeValues.set(`${root}/${collection}/${id}`, record); return record;
       };
       const post = async (entry: JournalEntry) => {
         assertOpenPeriod(entry.date, settings);
@@ -132,6 +145,23 @@ export class Operations {
         ensure(!await tx.get(`${root}/journal_entries/${entry.id}`), 'القيد موجود مسبقاً.', 409);
         set(`${root}/journal_entries/${entry.id}`, entry);
       };
+      const inventoryPosting = async (id: string, reference: string, description: string, delta: { sdg: number; usd: number }, creditCode: string, rate = 0) => {
+        if (!delta.sdg && !delta.usd) return undefined;
+        const positive = delta.sdg >= 0 && delta.usd >= 0;
+        ensure(positive || delta.sdg <= 0 && delta.usd <= 0, 'فروق قيمة المخزون يجب أن تحمل نفس اتجاه الحركة في العملتين.');
+        const lines = positive ? [journalLine('1300', 'المخزون', delta.sdg, 0, delta.usd, 0), journalLine(creditCode, 'مقابل حركة المخزون', 0, delta.sdg, 0, delta.usd)] : [journalLine(creditCode, 'مقابل حركة المخزون', -delta.sdg, 0, -delta.usd, 0), journalLine('1300', 'المخزون', 0, -delta.sdg, 0, -delta.usd)];
+        const entry = journal(id, orgId, actor.uid, iso, 'inventory', reference, description, lines, rate); await post(entry); return entry.id;
+      };
+      const inventoryControl = async () => {
+        const products = await tx.list(`${root}/products`), entries = await tx.list(`${root}/journal_entries`), accounts = await tx.list(`${root}/accounts`);
+        const codes = new Set(['1300', ...accounts.filter(a => classifyAccount(a as Account).reporting_group === 'inventory').map(a => a.code)]);
+        for (const currency of ['sdg', 'usd'] as const) {
+          const valuation = products.filter(p => p.track_inventory && p.cost_status === 'valued').reduce((sum, p) => sum.plus(validateCostState(p as Product)[`inventory_value_${currency}`]), new BigNumber(0));
+          const balance = entries.flatMap(e => e.lines || []).filter(l => codes.has(l.account_code)).reduce((sum, l) => sum.plus(l[`debit_${currency}`]).minus(l[`credit_${currency}`]), new BigNumber(0));
+          ensure(balance.eq(valuation), 'قيمة المخزون لا تطابق دفتر الأستاذ؛ راجع الأرصدة قبل إثبات التكلفة أو تفعيل V2.', 409);
+        }
+      };
+      const costEvidence = pick(data, ['cost_currency', 'unit_cost', 'unit_cost_sdg', 'unit_cost_usd', 'exchange_rate_used', 'zero_cost_reason']);
       const stamp = { org_id: orgId, created_by: actor.uid, schema_version: 3, created_at: iso };
       let result: Document = {};
       switch (command.action) {
@@ -161,6 +191,7 @@ export class Operations {
           ensure(updating || !await tx.get(`${root}/products/${id}`), 'معرّف المنتج موجود مسبقاً.', 409);
           const input = updating ? data.updates : data;
           ensure(input && typeof input === 'object', 'بيانات المنتج غير صالحة.');
+          ensure(!costFields.some(k => input[k] !== undefined), 'حقول التكلفة تتغير بعملية تكلفة موثقة فقط.');
           if (input.stock_quantity !== undefined) money(input.stock_quantity, 6);
           ensure(!updating || input.stock_quantity === undefined || input.stock_quantity === old.stock_quantity, 'تعديل الكمية يتطلب عملية تسوية مخزون.');
           ensure(!updating || input.track_inventory === undefined || input.track_inventory === old.track_inventory, 'غيّر تتبع المخزون عبر إنشاء منتج مستقل للحفاظ على الجرد.');
@@ -170,9 +201,17 @@ export class Operations {
           money(result.price_sdg, 0); money(result.price_usd, 2); money(result.tax_rate ?? 0, 4); ensure((result.tax_rate || 0) <= 100, 'نسبة الضريبة غير صالحة.');
           money(result.stock_quantity ?? 0, 6); money(result.min_stock_alert ?? 0, 6);
           ensure(typeof result.is_active === 'boolean' && (result.track_inventory === undefined || typeof result.track_inventory === 'boolean'), 'حالة المنتج غير صالحة.');
+          let openingValue: Document = {};
+          if (!updating && result.track_inventory && org.accounting_version === 2) {
+            const quantity = result.stock_quantity;
+            const delta = quantity ? acquisitionCost(quantity, input) : { sdg: 0, usd: 0 };
+            Object.assign(result, costState(quantity, delta.sdg, delta.usd, iso));
+            const journalId = await inventoryPosting(`jv-stock-${command.operationId}`, `mov-${command.operationId}`, 'رصيد مخزون افتتاحي موثق', delta, '3900');
+            openingValue = { value_delta_sdg: delta.sdg, value_delta_usd: delta.usd, costing_version: 2, journal_id: journalId };
+          }
           set(`${root}/products/${id}`, result);
           if (!updating && result.track_inventory) {
-            const movement = { ...stamp, id: `mov-${command.operationId}`, product_id: id, product_name: result.name, type: 'OPENING_BALANCE', quantity: result.stock_quantity, previous_stock: 0, resulting_stock: result.stock_quantity, reference_type: 'manual', reference_id: id, operation_id: command.operationId };
+            const movement = { ...stamp, ...openingValue, ...costEvidence, id: `mov-${command.operationId}`, product_id: id, product_name: result.name, type: 'OPENING_BALANCE', quantity: result.stock_quantity, previous_stock: 0, resulting_stock: result.stock_quantity, reference_type: 'manual', reference_id: id, operation_id: command.operationId };
             set(`${root}/inventory_movements/${movement.id}`, movement); counterAdd('inventory_movement_count', 1);
           }
           break;
@@ -187,7 +226,50 @@ export class Operations {
           money(data.newStock, 6); text(data.reason || '', 500, true);
           assertOpenPeriod(iso, settings);
           const movement = { ...stamp, id: `mov-${command.operationId}`, product_id: product.id, product_name: product.name, type: 'ADJUSTMENT', quantity: safeSub(data.newStock, product.stock_quantity || 0, 6), previous_stock: product.stock_quantity || 0, resulting_stock: data.newStock, reference_type: 'audit_adjustment', reference_id: product.id, reason: data.reason, operation_id: command.operationId };
-          result = { ...product, stock_quantity: data.newStock }; set(`${root}/products/${product.id}`, result); set(`${root}/inventory_movements/${movement.id}`, movement); counterAdd('inventory_movement_count', 1); break;
+          result = { ...product, stock_quantity: data.newStock };
+          if (product.cost_status === 'valued' || org.accounting_version === 2) {
+            await requireCostAuthority();
+            const before = validateCostState(product as Product), quantity = new BigNumber(data.newStock).minus(before.stock_quantity).toNumber();
+            let after;
+            if (quantity > 0) { const delta = acquisitionCost(quantity, data); after = receiveCost(product as Product, quantity, delta, iso); }
+            else if (quantity < 0) after = issueCost(product as Product, -quantity, iso).after;
+            else after = before;
+            Object.assign(result, after);
+            const delta = { sdg: new BigNumber(after.inventory_value_sdg).minus(before.inventory_value_sdg).toNumber(), usd: new BigNumber(after.inventory_value_usd).minus(before.inventory_value_usd).toNumber() };
+            Object.assign(movement, { value_delta_sdg: delta.sdg, value_delta_usd: delta.usd, costing_version: 2, journal_id: await inventoryPosting(`jv-stock-${command.operationId}`, movement.id, `تسوية المخزون: ${data.reason}`, delta, '5900') });
+          }
+          set(`${root}/products/${product.id}`, result); set(`${root}/inventory_movements/${movement.id}`, movement); counterAdd('inventory_movement_count', 1); break;
+        }
+        case 'product.cost.establish': {
+          ensure(role === 'Owner', 'إثبات تكلفة تاريخية متاح للمالك فقط.', 403); assertOpenPeriod(iso, settings); text(data.reason, 500, true);
+          const product = await required('products', data.id);
+          ensure(product.track_inventory && product.cost_status !== 'valued', 'التكلفة مثبتة مسبقاً أو المنتج غير متتبع.', 409);
+          await inventoryControl();
+          const quantity = product.stock_quantity || 0, delta = quantity ? acquisitionCost(quantity, data) : { sdg: 0, usd: 0 }, movementId = `mov-${command.operationId}`;
+          result = { ...product, ...costState(quantity, delta.sdg, delta.usd, iso) };
+          const journalId = await inventoryPosting(`jv-cost-${command.operationId}`, movementId, `إثبات تكلفة افتتاحية: ${data.reason}`, delta, '3900');
+          set(`${root}/products/${product.id}`, result);
+          set(`${root}/inventory_movements/${movementId}`, { ...stamp, ...costEvidence, id: movementId, product_id: product.id, product_name: product.name, type: 'COST_ESTABLISHMENT', quantity: 0, previous_stock: quantity, resulting_stock: quantity, reference_type: 'manual', reference_id: product.id, value_delta_sdg: delta.sdg, value_delta_usd: delta.usd, costing_version: 2, journal_id: journalId, reason: data.reason, operation_id: command.operationId }); counterAdd('inventory_movement_count', 1); break;
+        }
+        case 'inventory.receive': {
+          assertOpenPeriod(iso, settings); text(data.reason, 500, true);
+          const product = await required('products', data.id); ensure(product.is_active, 'المنتج غير نشط.');
+          const before = validateCostState(product as Product), delta = acquisitionCost(data.quantity, data), after = receiveCost(product as Product, data.quantity, delta, iso), movementId = `mov-${command.operationId}`;
+          const method = data.payment_method || 'cash'; ensure(method !== 'custom' || data.payment_account_code, 'اختر حساب السداد المخصص.'); ensure(['cash', 'bankak', 'fawry', 'bank_transfer', 'other', 'custom'].includes(method), 'استلام المخزون في A2 يتطلب حساب سداد نقدي/بنكي؛ فاتورة المورد الآجلة ضمن المرحلة B.');
+          const code = data.payment_account_code || getAccountCodeForPaymentMethod(method, data.cost_currency || 'SDG');
+          const account = await tx.get(`${root}/accounts/${identifier(code)}`) || getDefaultChartOfAccounts(orgId).find(a => a.code === code);
+          ensure(account?.is_active && classifyAccount(account as Account).reporting_group === 'cash_bank', 'حساب سداد المخزون يجب أن يكون نقدياً/بنكياً نشطاً.');
+          const journalId = await inventoryPosting(`jv-receive-${command.operationId}`, movementId, `استلام مخزون: ${data.reason}`, delta, code, data.exchange_rate_used || 0);
+          result = { ...product, ...after }; set(`${root}/products/${product.id}`, result);
+          set(`${root}/inventory_movements/${movementId}`, { ...stamp, ...costEvidence, id: movementId, product_id: product.id, product_name: product.name, type: 'PURCHASE', quantity: data.quantity, previous_stock: before.stock_quantity, resulting_stock: after.stock_quantity, reference_type: 'manual', reference_id: product.id, value_delta_sdg: delta.sdg, value_delta_usd: delta.usd, costing_version: 2, journal_id: journalId, payment_account_code: code, reason: data.reason, operation_id: command.operationId }); counterAdd('inventory_movement_count', 1); break;
+        }
+        case 'accounting.activate': {
+          ensure(role === 'Owner', 'تفعيل V2 متاح للمالك فقط.', 403); text(data.reason, 500, true);
+          ensure(org.accounting_version !== 2, 'V2 مفعّل بالفعل.', 409); await inventoryControl();
+          const collections = Object.fromEntries(await Promise.all(financialCollections.map(async name => [name, await tx.list(`${root}/${name}`)]))) as FinancialData;
+          ensure(collections.products.filter(p => p.track_inventory).every(p => p.cost_status === 'valued'), 'أثبت تكلفة جميع المنتجات المتتبعة قبل التفعيل.', 409);
+          ensure(!reconcileFinancialData(collections, settings, { requireCosting: true }).length, 'توجد فروقات مالية؛ عالجها قبل تفعيل V2.', 409);
+          result = { ...org, accounting_version: 2, accounting_activated_at: iso, updated_at: iso }; set(root, result); break;
         }
         case 'invoice.create': {
           assertOpenPeriod(data.issue_date, settings);
@@ -214,21 +296,34 @@ export class Operations {
           const id = `inv-${command.operationId}`;
           const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone, customer_address: customer.address || '', ...financials, paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
           invoice.receivable_currency = receivableCurrency(invoice);
+          let cogsSdg = 0, cogsUsd = 0;
+          for (const item of invoice.items) item.cost_status = item.product_id ? 'unknown' : 'not_tracked';
           const quantities = new Map<string, number>();
           for (const item of invoice.items) if (item.product_id) quantities.set(identifier(item.product_id), safeAdd(quantities.get(item.product_id) || 0, item.quantity, 6));
           for (const [productId, quantity] of quantities) {
             const product = await required('products', productId); ensure(product.is_active, 'منتج الفاتورة غير نشط.');
-            if (!product.track_inventory) continue;
+            if (!product.track_inventory) { invoice.items.filter(item => item.product_id === productId).forEach(item => { item.cost_status = 'not_tracked'; }); continue; }
             assertFeature(subscription, 'inventory_tracking');
             const previousStock = product.stock_quantity || 0; ensure(previousStock >= quantity, `المخزون غير كافٍ للمنتج: ${product.name}`, 409);
             const resultingStock = safeSub(previousStock, quantity, 6), movementId = `mov-${command.operationId}-${productId}`;
-            set(`${root}/products/${productId}`, { ...product, stock_quantity: resultingStock });
-            set(`${root}/inventory_movements/${movementId}`, { ...stamp, id: movementId, product_id: productId, product_name: product.name, type: 'SALE', quantity: -quantity, previous_stock: previousStock, resulting_stock: resultingStock, reference_type: 'invoice', reference_id: id, operation_id: command.operationId }); counterAdd('inventory_movement_count', 1);
+            let productUpdate = { ...product, stock_quantity: resultingStock }, costMovement: Document = {};
+            if (product.cost_status === 'valued' || org.accounting_version === 2) {
+            await requireCostAuthority();
+              const cost = issueCost(product as Product, quantity, data.issue_date), items = invoice.items.filter(item => item.product_id === productId), allocated = allocateCost(cost.delta, items.map(item => item.quantity));
+              items.forEach((item, index) => Object.assign(item, { cost_status: 'valued', unit_cost_sdg: cost.unit_sdg, unit_cost_usd: cost.unit_usd, total_cost_sdg: allocated[index].sdg, total_cost_usd: allocated[index].usd, cost_recorded_at: iso }));
+              productUpdate = { ...product, ...cost.after }; cogsSdg = safeAdd(cogsSdg, cost.delta.sdg, 0); cogsUsd = safeAdd(cogsUsd, cost.delta.usd, 2);
+              costMovement = { value_delta_sdg: -cost.delta.sdg, value_delta_usd: -cost.delta.usd, unit_cost_sdg: cost.unit_sdg, unit_cost_usd: cost.unit_usd, costing_version: 2, journal_id: `jv-inv-${id}` };
+            }
+            set(`${root}/products/${productId}`, productUpdate);
+            set(`${root}/inventory_movements/${movementId}`, { ...stamp, ...costMovement, id: movementId, product_id: productId, product_name: product.name, type: 'SALE', quantity: -quantity, previous_stock: previousStock, resulting_stock: resultingStock, reference_type: 'invoice', reference_id: id, operation_id: command.operationId }); counterAdd('inventory_movement_count', 1);
           }
           const lines = [journalLine('1200', 'ذمم العملاء', invoice.grand_total_sdg, 0, invoice.grand_total_usd, 0)];
           const revenueSdg = safeSub(invoice.grand_total_sdg, invoice.tax_total_sdg, 0), revenueUsd = safeSub(invoice.grand_total_usd, invoice.tax_total_usd, 2);
           if (revenueSdg || revenueUsd) lines.push(journalLine('4100', 'إيراد المبيعات', 0, revenueSdg, 0, revenueUsd));
           if (invoice.tax_total_sdg || invoice.tax_total_usd) lines.push(journalLine('2130', 'ضريبة المبيعات المستحقة', 0, invoice.tax_total_sdg, 0, invoice.tax_total_usd));
+          invoice.costing_status = invoice.items.some(item => item.cost_status === 'unknown') ? 'incomplete' : 'complete';
+          invoice.costing_version = 2; invoice.cogs_sdg = cogsSdg; invoice.cogs_usd = cogsUsd;
+          if (cogsSdg || cogsUsd) lines.push(journalLine('5100', 'تكلفة البضاعة المباعة', cogsSdg, 0, cogsUsd, 0), journalLine('1300', 'المخزون', 0, cogsSdg, 0, cogsUsd));
           await post(journal(`jv-inv-${id}`, orgId, actor.uid, data.issue_date, 'invoice', id, `إصدار الفاتورة ${invoice.invoice_number}`, lines, invoice.exchange_rate_used));
           set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeAdd(customer.balance_sdg || 0, invoice.remaining_sdg, 0), balance_usd: safeAdd(customer.balance_usd || 0, invoice.remaining_usd, 2), updated_at: iso });
           set(`${root}/invoices/${id}`, invoice); set(numberKey, { invoice_id: id }); result = invoice;
@@ -282,8 +377,16 @@ export class Operations {
           const quantities = new Map<string, number>(); for (const movement of movements) quantities.set(movement.product_id, safeAdd(quantities.get(movement.product_id) || 0, -movement.quantity, 6));
           for (const [productId, quantity] of quantities) {
             const product = await required('products', productId), resultingStock = safeAdd(product.stock_quantity || 0, quantity, 6), id = `rev-${command.operationId}-${productId}`;
-            set(`${root}/products/${productId}`, { ...product, stock_quantity: resultingStock });
-            set(`${root}/inventory_movements/${id}`, { ...stamp, id, product_id: productId, product_name: product.name, type: 'VOID_REVERSAL', quantity, previous_stock: product.stock_quantity || 0, resulting_stock: resultingStock, reference_type: 'void', reference_id: invoice.id, operation_id: command.operationId }); counterAdd('inventory_movement_count', 1);
+            let productUpdate = { ...product, stock_quantity: resultingStock }, costMovement: Document = {};
+            if (product.cost_status === 'valued' || org.accounting_version === 2) {
+            await requireCostAuthority();
+              const sources = movements.filter(m => m.product_id === productId);
+              ensure(sources.every(m => m.costing_version === 2), 'تكلفة الفاتورة القديمة غير متاحة؛ الإبطال يتطلب معالجة ترحيل موثقة ولا يستعمل تكلفة اليوم.', 409);
+              const delta = { sdg: sources.reduce((sum, m) => sum.minus(m.value_delta_sdg || 0), new BigNumber(0)).toNumber(), usd: sources.reduce((sum, m) => sum.minus(m.value_delta_usd || 0), new BigNumber(0)).toNumber() };
+              productUpdate = { ...product, ...receiveCost(product as Product, quantity, delta, iso) }; costMovement = { value_delta_sdg: delta.sdg, value_delta_usd: delta.usd, costing_version: 2, journal_id: `jv-void-${invoice.id}` };
+            }
+            set(`${root}/products/${productId}`, productUpdate);
+            set(`${root}/inventory_movements/${id}`, { ...stamp, ...costMovement, id, product_id: productId, product_name: product.name, type: 'VOID_REVERSAL', quantity, previous_stock: product.stock_quantity || 0, resulting_stock: resultingStock, reference_type: 'void', reference_id: invoice.id, operation_id: command.operationId }); counterAdd('inventory_movement_count', 1);
           }
           set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeSub(customer.balance_sdg || 0, invoice.remaining_sdg, 0), balance_usd: safeSub(customer.balance_usd || 0, invoice.remaining_usd, 2), updated_at: iso });
           result = { ...invoice, status: 'void', remaining_sdg: 0, remaining_usd: 0, voided_at: iso, voided_by: actor.uid, void_reason: data.reason || 'إبطال الفاتورة', updated_at: iso }; set(`${root}/invoices/${invoice.id}`, result); break;
@@ -315,6 +418,7 @@ export class Operations {
         }
         case 'journal.create': {
           ensure(['manual', 'opening_balance'].includes(data.reference_type), 'الترحيل الآلي متاح من العملية الأصلية فقط.');
+          if (org.accounting_version === 2) for (const line of data.lines || []) { const account = await tx.get(`${root}/accounts/${identifier(line.account_code)}`) || getDefaultChartOfAccounts(orgId).find(a => a.code === line.account_code); ensure(account && !['inventory', 'cogs'].includes(classifyAccount(account as Account).reporting_group), 'قيود المخزون والتكلفة تُرحّل من العملية الأصلية فقط.'); }
           result = journal(`jv-${command.operationId}`, orgId, actor.uid, data.date, data.reference_type, command.operationId, text(data.description, 1000, true), data.lines, data.exchange_rate_used || 0); await post(result as JournalEntry); break;
         }
         case 'account.create': case 'account.update': {
@@ -328,6 +432,7 @@ export class Operations {
           result = { ...old, ...pick(input, ['name_ar', 'name_en', 'type', 'nature', 'parent_code', 'description', 'is_active', 'subtype', 'reporting_group', 'cash_flow_category', 'normal_balance']), ...(!updating ? { ...stamp, is_system: false, balance_sdg: 0, balance_usd: 0 } : {}), code };
           text(result.name_ar, 200, true); ensure(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].includes(result.type) && ['DEBIT', 'CREDIT'].includes(result.nature) && typeof result.is_active === 'boolean', 'تصنيف الحساب غير صالح.');
           const metadata = classifyAccount(result as Account);
+          ensure(!updating || !old.is_system || canonical(metadata) === canonical(classifyAccount(old as Account)), 'تصنيف حسابات النظام ثابت.');
           if (updating && (await tx.list(`${root}/journal_entries`)).some(e => e.lines?.some((l: Document) => l.account_code === code))) {
             const oldMetadata = classifyAccount(old as Account);
             ensure(['type', 'nature'].every(k => result[k] === old[k]) && canonical(metadata) === canonical(oldMetadata), 'تصنيف الحساب المُستخدم في القيود ثابت؛ أنشئ حساباً جديداً عند تغيير تصنيفه.');
@@ -396,15 +501,19 @@ export class Operations {
             ensure(new Set(ids).size === ids.length, 'معرّفات النسخة مكررة.');
           }
           const importedSettings = validateSettings(backup.settings);
+          const backupVersion = backup.org?.accounting_version || 1;
+          ensure(backupVersion === 1 || backupVersion === 2, 'إصدار المحاسبة في النسخة غير مدعوم.');
+          if (backupVersion === 2 || backup.collections.products.some((p: Document) => p.cost_status === 'valued')) await requireCostAuthority();
+          ensure(org.accounting_version !== 2 || backupVersion === 2, 'استعادة نسخة قديمة تحتاج ترحيلاً موثقاً قبل مؤسسة V2.');
           for (const customer of backup.collections.customers) { text(customer.name, 200, true); text(customer.phone, 100); money(customer.balance_sdg, 0); money(customer.balance_usd, 2); }
           for (const product of backup.collections.products) { text(product.name, 200, true); text(product.unit, 50, true); money(product.price_sdg, 0); money(product.price_usd, 2); money(product.stock_quantity ?? 0, 6); ensure(typeof product.is_active === 'boolean', 'حالة المنتج غير صالحة.'); }
           for (const invoice of backup.collections.invoices) { ensure(['sent', 'paid', 'partially_paid', 'overdue', 'void'].includes(invoice.status), 'حالة الفاتورة غير قابلة للاستعادة.'); dateOnly(invoice.created_at); }
           for (const payment of backup.collections.payments) ensure(['SDG', 'USD'].includes(payment.currency) && ['cash', 'bankak', 'fawry', 'bank_transfer', 'other'].includes(payment.payment_method), 'سند النسخة غير صالح.');
           for (const account of backup.collections.accounts) { text(account.name_ar, 200, true); ensure(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].includes(account.type) && ['DEBIT', 'CREDIT'].includes(account.nature) && typeof account.is_active === 'boolean', 'حساب النسخة غير صالح.'); money(account.balance_sdg || 0, 0); money(account.balance_usd || 0, 2); }
           for (const expense of backup.collections.expenses) { text(expense.title, 200, true); dateOnly(expense.date); ensure(['SDG', 'USD'].includes(expense.currency), 'عملة المصروف غير صالحة.'); money(expense.amount, expense.currency === 'USD' ? 2 : 0, true); }
-          ensure(!reconcileFinancialData(backup.collections as FinancialData, importedSettings).length, 'النسخة تحتوي فروقات مالية أو مراجع ناقصة. افحصها بإجراء التدقيق قبل الاستعادة.');
+          ensure(!reconcileFinancialData(backup.collections as FinancialData, importedSettings, { requireCosting: backupVersion === 2 }).length, 'النسخة تحتوي فروقات مالية أو مراجع ناقصة. افحصها بإجراء التدقيق قبل الاستعادة.');
           for (const name of names) for (const record of backup.collections[name]) { const id = identifier(name === 'accounts' ? record.code : record.id); set(`${root}/${name}/${id}`, { ...record, org_id: orgId }); }
-          result = { ...org, settings: importedSettings, base_currency: importedSettings.primary_currency, secondary_currency: importedSettings.secondary_currency, timezone: importedSettings.timezone || org.timezone, updated_at: iso }; set(root, result);
+          result = { ...org, accounting_version: backupVersion, ...(backup.org?.accounting_activated_at ? { accounting_activated_at: backup.org.accounting_activated_at } : {}), settings: importedSettings, base_currency: importedSettings.primary_currency, secondary_currency: importedSettings.secondary_currency, timezone: importedSettings.timezone || org.timezone, updated_at: iso }; set(root, result);
           for (const [name, field] of Object.entries({ invoices: 'invoice_count', customers: 'customer_count', products: 'product_count', payments: 'payment_count', expenses: 'expense_count', inventory_movements: 'inventory_movement_count' })) counters[field] = backup.collections[name].length;
           const importedMonth = monthKey(now, importedSettings.timezone || org.timezone || 'Africa/Khartoum');
           const importedMonthly = backup.collections.invoices.filter((invoice: Document) => monthKey(new Date(invoice.created_at), importedSettings.timezone || org.timezone || 'Africa/Khartoum') === importedMonth).length;
@@ -415,7 +524,10 @@ export class Operations {
         }
       }
       counters.updated_at = iso; counters.revision = (counters.revision || 0) + 1; set(`${root}/meta/counters`, counters);
-      const audit = { id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
+      const auditKeys = ['id', 'code', 'name', 'type', 'nature', 'reporting_group', 'cash_flow_category', 'normal_balance', 'stock_quantity', ...costFields, 'status', 'accounting_version', 'grand_total_sdg', 'grand_total_usd', 'remaining_sdg', 'remaining_usd', 'paid_amount_sdg', 'paid_amount_usd', 'amount', 'currency', 'payment_account_code', 'expense_account_code', 'cogs_sdg', 'cogs_usd', 'balance_sdg', 'balance_usd'];
+      const previousState = Object.fromEntries(changes.filter(change => beforeValues.has(change.path)).map(change => [change.path, pick(beforeValues.get(change.path)!, auditKeys)]));
+      const newState = Object.fromEntries(changes.filter(change => !change.path.includes('/meta/')).map(change => [change.path, change.value ? pick(change.value, auditKeys) : null]));
+      const audit = { actor_role: role, reason: data.reason || '', cost_evidence: costEvidence, previous_state: previousState, new_state: newState, id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
       tx.set(`${root}/audit_logs/${audit.id}`, audit);
       const visible = changes.filter(c => {
         if (c.path === root || c.path.startsWith(`${root}/meta/`)) return true;

@@ -143,3 +143,25 @@ async function invokeNetlify(path: string, headers?: Record<string, string>) {
   const response = await handle(new Request('https://sodaflow.netlify.app' + path, { headers }), { ip: '127.0.0.1' } as import('@netlify/functions').Context);
   return { statusCode: response.status, body: await response.text() };
 }
+
+test('A2 HTTP rejects unverified deployed rules and confirms cost once with the same authenticated retry ID', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { verifyAccountingRulesSource } = await import('../server/accountingSecurity');
+  const store = new MemoryStore(), actor = { uid: 'cost-api', email: 'cost-api@example.com', emailVerified: true };
+  const org = await new Organizations(store).create(actor, 'تكلفة API', INITIAL_SETTINGS, 'setup', true);
+  const product = (await new Operations(store).execute(org.id, actor, { action: 'product.create', operationId: 'product', data: { name: 'منتج', unit: 'قطعة', price_sdg: 100, price_usd: 1, tax_rate: 0, is_active: true, track_inventory: true, stock_quantity: 10 } })).result;
+  const before = store.dump(), rules = await readFile('firestore.rules', 'utf8'); let verified = false;
+  const serverStore: import('../src/domain/store').Store = { authority: 'server', transaction: work => store.transaction(work) };
+  const operations = new Operations(serverStore, undefined, undefined, async () => verifyAccountingRulesSource([{ content: verified ? rules : 'unreviewed rules' }]));
+  const app = express(); app.use(express.json()); app.use('/api', createApi({ operations, verify: async () => actor }));
+  const server = app.listen(0, '127.0.0.1'); await new Promise<void>(resolve => server.once('listening', resolve));
+  try {
+    const url = `http://127.0.0.1:${(server.address() as any).port}/api/organizations/${org.id}/operations`;
+    const body = JSON.stringify({ action: 'product.cost.establish', operationId: 'cost-proof', data: { id: product.id, unit_cost_sdg: 100, unit_cost_usd: 1, reason: 'وثيقة اختبار' } });
+    const send = () => fetch(url, { method: 'POST', headers: { Authorization: 'Bearer valid', 'Content-Type': 'application/json' }, body });
+    const blocked = await send(); assert.equal(blocked.status, 503); assert.equal((await blocked.json()).code, 'accounting_rules_not_deployed'); assert.deepEqual(store.dump(), before);
+    verified = true; const accepted = await send(); assert.equal(accepted.status, 200); const result = await accepted.json();
+    const retry = await send(); assert.equal(retry.status, 200); assert.deepEqual(await retry.json(), result);
+    assert.equal(Object.entries(store.dump()).filter(([path]) => path.includes('/journal_entries/jv-cost-')).length, 1);
+  } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
+});

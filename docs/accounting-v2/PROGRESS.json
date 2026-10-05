@@ -10,7 +10,7 @@
   "lease": {
     "worker": "root-accounting-v2",
     "started_at": "2026-10-05T04:41:50.241Z",
-    "expires_at": "2026-10-05T05:26:50.241Z"
+    "expires_at": "2026-10-05T05:37:35.203Z"
   },
   "milestones": [
     {
@@ -25,7 +25,7 @@
     },
     {
       "id": "A2",
-      "status": "in_progress",
+      "status": "implemented_ci_pending",
       "branch": "codex/accounting-v2-a2-inventory-costing",
       "pr": null
     },
@@ -78,11 +78,11 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_A1.md",
+  "last_report": "REPORT_A2.md",
   "next_steps": [
-    "Check A1 CI and correct any failures on A1 branch",
-    "Implement A2 costing, controlled migration, inventory GL, API-only V2 writes and rules",
-    "Do not start B before full phase A acceptance; never merge main"
+    "Verify A2 CI (unit/API, rules emulator and all Playwright tests); fix failures on A2 branch",
+    "Start B only after phase A acceptance; branch from A2 and target its PR until user merges it",
+    "Keep C/D/E and Excel 1-4 pending; no production operations or main merge"
   ],
-  "updated_at": "2026-10-05T04:41:50.241Z"
+  "updated_at": "2026-10-05T04:52:35.202Z"
 }

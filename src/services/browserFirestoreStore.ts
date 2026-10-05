@@ -25,6 +25,7 @@ import { ensure } from '../domain/validation';
  * applied. Business-critical mutable documents are still re-read transactionally.
  */
 export class BrowserFirestoreStore implements Store {
+  readonly authority = 'browser' as const;
   constructor(private db: Firestore) {}
 
   transaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {

@@ -4,10 +4,15 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "ecee366e960a820b621c8dbded6909c43a4a3096",
   "user_merges_only": true,
-  "active_milestone": "B1",
-  "active_branch": "codex/accounting-v2-b1-supplier-purchases",
+  "active_milestone": "B2",
+  "active_branch": "codex/accounting-v2-b2-operational-ledger",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "root-accounting-v2-20261005-1014",
+    "started_at": "2026-10-05T10:36:05.240Z",
+    "expires_at": "2026-10-05T11:42:48.371Z",
+    "updated_at": "2026-10-05T10:57:48.371Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -70,7 +75,42 @@
         {
           "id": "B2",
           "scope": "AR statements/aging, GL, cash/bank, internal transfers, bank/cash reconciliation",
-          "status": "pending"
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-b2-operational-ledger",
+          "completed_parts": [
+            "GL date/opening/source-line reports and native-book projection",
+            "historical AR statements, five aging buckets and overdue customers",
+            "cash balance/report foundation from classified GL",
+            "authorized UI and audited CSV/PDF report exports",
+            "financial account registry, immutable COA/currency mapping and API-only collections",
+            "same-currency atomic transfers using proportional source carrying values; insufficient/raced/backdated funds checks",
+            "cash source reconciliation and backward-compatible backup/restore mapping validation"
+          ],
+          "checks": {
+            "unit_api": 97,
+            "status": "passed",
+            "types": "passed",
+            "build": "passed",
+            "targeted_ui": 2,
+            "targeted_ui_status": "passed",
+            "new_emulator_test": "pending_CI",
+            "full_ci": "cash_checkpoint_pending"
+          },
+          "remaining_parts": [
+            "bank statement manual matching and cash counts with difference reasons and stale detection",
+            "cash account daily inflows/outflows, last transactions and reconciliation status",
+            "backup/restore source validation for bank/cash reconciliation documents"
+          ],
+          "pr": 16,
+          "ci": {
+            "conclusion": "success",
+            "run_id": 37298989461,
+            "commit_sha": "843ad2e1d55be8ab19b0beac7f1d9cdb02bb6a07",
+            "scope": "report_foundation_only",
+            "unit_api": 90,
+            "rules": 7,
+            "ui": 24
+          }
         },
         {
           "id": "B3",
@@ -122,11 +162,11 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B1.md",
+  "last_report": "REPORT_B2.md",
   "next_steps": [
-    "Verify B1 CI and real Firestore concurrency tests; fix failures before proceeding",
-    "Start B2 from the tested B1 branch; dependent PR targets B1 while it is unmerged",
-    "B3, C/D/E and Excel 1-4 remain pending; no merge/deployment/production writes"
+    "Complete B2 financial accounts, transfers and bank/cash reconciliation; B2 is incomplete",
+    "B2 PR must target B1 while PR 15 is unmerged",
+    "Then B3, C, D, E and Excel 1-4; user merges only; no deployment or production writes"
   ],
-  "updated_at": "2026-10-05T10:35:41.806Z"
+  "updated_at": "2026-10-05T10:57:48.371Z"
 }

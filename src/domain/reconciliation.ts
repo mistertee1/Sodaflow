@@ -5,10 +5,11 @@ import { validateCostState } from './inventoryCost';
 import { classifyAccount } from './accountClassification';
 import { generateExpenseJournalEntry } from '../services/accountingService';
 import { invoiceFinancials } from './financial';
+import { cashCollections, reconcileCashManagement } from './cashManagement';
 import { payableCollections, reconcilePayables } from './payables';
 import { dateOnly, identifier, money, validateJournal } from './validation';
 
-export const financialCollections = ['customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections] as const;
+export const financialCollections = ['customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections] as const;
 export type FinancialCollection = typeof financialCollections[number];
 export type FinancialData = Record<FinancialCollection, Document[]>;
 export interface Finding {
@@ -163,7 +164,7 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
       compare('invoices', invoice.id, `posted_cogs_${currency}`, snapshot.toNumber(), sourceEntries('invoice', invoice.id).flatMap(e => e.lines || []).filter(l => l.account_code === '5100').reduce((sum, l) => sum.plus(l[`debit_${currency}`]).minus(l[`credit_${currency}`]), new BigNumber(0)).toNumber());
     }
   });
-  findings.push(...reconcilePayables(data));
+  findings.push(...reconcilePayables(data), ...reconcileCashManagement(data));
   return findings;
 }
 

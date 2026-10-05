@@ -1,17 +1,19 @@
 {
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
-  "sourceBase": "ef4232efb14cd6fe2c08181d4c5d65914e60596a",
-  "updatedAt": "2026-10-05T08:12:36.907878+00:00",
-  "activeRunId": "super-admin-interactive-20261005",
-  "leaseUntil": "2026-10-05T08:57:36.907878+00:00",
+  "sourceBase": "9d5c740670c436441469ebf1a850f841fb4355e8",
+  "updatedAt": "2026-10-05T12:57:18.000Z",
+  "activeRunId": "super-admin-run-20261005T1257",
+  "leaseUntil": "2026-10-05T13:42:18.000Z",
   "automationId": "6ac35722234c819194e0535527c23124",
   "currentStage": 3,
-  "workBranch": "codex/super-admin-phases-20261005",
+  "workBranch": "codex/super-admin-ui-rules-20261005T1257",
   "ownedPaths": [
     "src/components/SuperAdminPage.tsx",
     "tests/ui/super-admin.spec.ts",
-    "tests/ui/helpers",
+    "tests/ui/helpers/platform.ts",
+    "package.json",
+    "tsconfig.core.json",
     "docs/super-admin"
   ],
   "stages": [
@@ -60,7 +62,8 @@
         "skipped": 0,
         "newBillingTests": 16,
         "regressionsBeforeFix": 4
-      }
+      },
+      "mergedCommit": "dde401536fe395e8da8d5b3cfd28527126de8baf"
     },
     {
       "id": 3,

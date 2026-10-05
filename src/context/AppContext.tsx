@@ -5,6 +5,8 @@ import { INITIAL_SETTINGS } from '../data/initialData';
 import { auth, onAuthStateChanged, logout, type User } from '../lib/firebase';
 import { createDefaultSubscription } from '../lib/plans';
 import { Operations, type Actor } from '../domain/operations';
+import type { FinancialAccount } from '../domain/cashManagement';
+import type { OperationalReportTypes, OperationalView, LedgerQuery, ReportPeriod } from '../domain/operationalReports';
 import type { CostInput } from '../domain/inventoryCost';
 import type { Change, Document } from '../domain/store';
 import { api, operationId } from '../services/businessApi';
@@ -37,6 +39,14 @@ interface AppContextType {
   createPurchase: (data: Document) => Promise<PurchaseBill>;
   paySupplier: (data: Document) => Promise<SupplierPayment>;
   loadPayablesReport: (period: { start?: string; end?: string }, exporting?: boolean) => Promise<Awaited<ReturnType<Operations['payableReports']>>>;
+  loadOperationalReport: <View extends OperationalView>(view: View, query: ReportPeriod & Partial<LedgerQuery>, exporting?: boolean) => Promise<OperationalReportTypes[View] & { organizationId: string; generatedAt: string; view: View }>;
+  financialAccounts: FinancialAccount[];
+  internalTransfers: Document[];
+  saveFinancialAccount: (data: Document, id?: string) => Promise<FinancialAccount>;
+  transferCash: (data: Document) => Promise<Document>;
+  loadCashReconciliations: (asOf: string) => Promise<Awaited<ReturnType<Operations['cashReconciliationReports']>>>;
+  saveBankReconciliation: (data: Document) => Promise<Document>;
+  recordCashCount: (data: Document) => Promise<Document>;
   inventoryMovements: InventoryMovement[];
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
@@ -371,6 +381,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (exporting) return run('payables.export', { period }) as Promise<Awaited<ReturnType<Operations['payableReports']>>>;
       return id === guestId && !userRef.current ? getGuest().payableReports(id, guestActor, period) : api(`/organizations/${encodeURIComponent(id)}/reports/payables?start=${encodeURIComponent(period.start || '')}&end=${encodeURIComponent(period.end || '')}`);
     },
+    loadOperationalReport: async (view, query, exporting = false) => {
+      const id = activeOrg.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');
+      if (exporting) return run('operational.export', { view, query });
+      const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== undefined).map(([key, value]) => [key, value!]));
+      return id === guestId && !userRef.current ? getGuest().operationalReport(id, guestActor, view, query) : api(`/organizations/${encodeURIComponent(id)}/reports/${view}?${params}`);
+    },
+    financialAccounts: rows<FinancialAccount>('financial_accounts'), internalTransfers: rows<Document>('internal_transfers'),
+    saveFinancialAccount: (data, id) => run<FinancialAccount>(id ? 'financialAccount.update' : 'financialAccount.create', id ? { id, updates: data } : data),
+    transferCash: data => run('cashTransfer.create', data),
+    loadCashReconciliations: async asOf => {
+      const id = activeOrg.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');
+      return id === guestId && !userRef.current ? getGuest().cashReconciliationReports(id, guestActor, asOf) : api(`/organizations/${encodeURIComponent(id)}/reports/reconciliations?asOf=${encodeURIComponent(asOf)}`);
+    },
+    saveBankReconciliation: data => run('bankReconciliation.create', data),
+    recordCashCount: data => run('cashCount.create', data),
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
     isActionAllowed, switchOrganization, createNewOrg,
     inviteMember: async (email, role) => { await run('invitation.create', { email, role }); },

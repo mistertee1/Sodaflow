@@ -89,6 +89,12 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   router.get('/organizations/:orgId/backup', route(async (req, actor) => service().snapshot(req.params.orgId, actor, true)));
   router.get('/organizations/:orgId/reports/advanced', route(async (req, actor) => service().advancedReports(req.params.orgId, actor, { start: typeof req.query.start === 'string' ? req.query.start : undefined, end: typeof req.query.end === 'string' ? req.query.end : undefined })));
   router.get('/organizations/:orgId/reports/payables', route(async (req, actor) => service().payableReports(req.params.orgId, actor, { start: typeof req.query.start === 'string' ? req.query.start : undefined, end: typeof req.query.end === 'string' ? req.query.end : undefined })));
+  for (const view of ['ledger', 'receivables', 'cash'] as const) {
+    router.get(`/organizations/:orgId/reports/${view}`, (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, route(async (req, actor) => {
+      return service().operationalReport(req.params.orgId, actor, view, req.query);
+    }));
+  }
+  router.get('/organizations/:orgId/reports/reconciliations', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route(async(req,actor)=>{ensure(Object.keys(req.query).every(key=>key==='asOf')&&(!('asOf' in req.query)||typeof req.query.asOf==='string'&&!!req.query.asOf),'مرشحات المطابقة غير صالحة.');return service().cashReconciliationReports(req.params.orgId,actor,req.query.asOf as string|undefined);}));
   router.post('/organizations/:orgId/operations', route(async (req, actor) => service().execute(req.params.orgId, actor, req.body)));
   router.post('/organizations/:orgId/invitations/:invId/accept', route(async (req, actor) => new Organizations(service().store).accept(actor, req.params.orgId, req.params.invId)));
   router.post('/organizations/:orgId/images/:folder', express.raw({ type: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], limit: '2mb' }), route(async (req, actor) => {

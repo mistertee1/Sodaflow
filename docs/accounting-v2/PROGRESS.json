@@ -2,10 +2,10 @@
   "schema_version": 1,
   "source_sha256": "a6ef84e96568ee751ede2a5a932e30c17140f914bcb61df5f38727f390ee4a45",
   "repository": "mistertee1/Sodaflow",
-  "base_main_sha": "ecee366e960a820b621c8dbded6909c43a4a3096",
+  "base_main_sha": "51a6df857bc099d8167fe7564b502047b8522574",
   "user_merges_only": true,
-  "active_milestone": "B1",
-  "active_branch": "codex/accounting-v2-b1-supplier-purchases",
+  "active_milestone": "B2",
+  "active_branch": "codex/accounting-v2-b2-cash-reconciliation",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -49,7 +49,7 @@
         {
           "id": "B1",
           "scope": "Suppliers, purchase bills, supplier payments, AP aging/statements",
-          "status": "implemented_ci_passed",
+          "status": "merged_ci_passed",
           "branch": "codex/accounting-v2-b1-supplier-purchases",
           "checks": {
             "unit_api": 81,
@@ -70,7 +70,44 @@
         {
           "id": "B2",
           "scope": "AR statements/aging, GL, cash/bank, internal transfers, bank/cash reconciliation",
-          "status": "pending"
+          "status": "implemented_ci_passed",
+          "branch": "codex/accounting-v2-b2-cash-reconciliation",
+          "completed_parts": [
+            "GL date/opening/source-line reports and native-book projection",
+            "historical AR statements, five aging buckets and overdue customers",
+            "cash balance/report foundation from classified GL",
+            "authorized UI and audited CSV/PDF report exports",
+            "financial account registry, immutable COA/currency mapping and API-only collections",
+            "same-currency atomic transfers using proportional source carrying values; insufficient/raced/backdated funds checks",
+            "cash source reconciliation and backward-compatible backup/restore mapping validation",
+            "immutable manual bank matching and native cash counts with reasons, source-linked opening proof and snapshot hashes",
+            "backdated stale detection and dated current reconciliation status",
+            "per-account daily flows and last ten transactions",
+            "source validation and captured hash verification for reconciliation backup/restore"
+          ],
+          "checks": {
+            "unit_api": 117,
+            "status": "passed",
+            "types": "passed",
+            "build": "passed",
+            "rules": 22,
+            "rules_status": "passed",
+            "ui": 35,
+            "ui_status": "passed",
+            "production_audit_vulnerabilities": 0
+          },
+          "remaining_parts": [],
+          "pr": 17,
+          "ci": {
+            "conclusion": "success",
+            "run_id": 37340980490,
+            "commit_sha": "86b7f92a0aa5ef2a2a654e90a16bfbbbdc759b60",
+            "scope": "complete_B2_manual_workflows",
+            "unit_api": 117,
+            "rules": 22,
+            "ui": 35
+          },
+          "previous_pr": 16
         },
         {
           "id": "B3",
@@ -122,11 +159,22 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B1.md",
+  "last_report": "REPORT_B2.md",
   "next_steps": [
-    "Verify B1 CI and real Firestore concurrency tests; fix failures before proceeding",
-    "Start B2 from the tested B1 branch; dependent PR targets B1 while it is unmerged",
-    "B3, C/D/E and Excel 1-4 remain pending; no merge/deployment/production writes"
+    "Start B3 immutable credit-note/return/refund source contracts and workflows",
+    "Then C, D, E and Excel1-4, including deferred PRD50 bank statement import",
+    "User reviews and merges; no main writes, deployment or production data"
   ],
-  "updated_at": "2026-10-05T10:35:41.806Z"
+  "updated_at": "2026-10-05T16:32:45.042Z",
+  "deferred_requirements": [
+    {
+      "prd": "50",
+      "scope": "CSV/Excel bank statement import with matching preview",
+      "depends_on": [
+        "Excel1 staging",
+        "Excel2 controlled import"
+      ],
+      "status": "pending"
+    }
+  ]
 }

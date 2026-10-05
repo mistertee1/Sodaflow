@@ -1,19 +1,14 @@
 {
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
-  "sourceBase": "ef4232efb14cd6fe2c08181d4c5d65914e60596a",
-  "updatedAt": "2026-10-05T08:12:36.907878+00:00",
-  "activeRunId": "super-admin-interactive-20261005",
-  "leaseUntil": "2026-10-05T08:57:36.907878+00:00",
+  "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
+  "updatedAt": "2026-10-05T13:34:56.000Z",
+  "activeRunId": null,
+  "leaseUntil": null,
   "automationId": "6ac35722234c819194e0535527c23124",
-  "currentStage": 3,
-  "workBranch": "codex/super-admin-phases-20261005",
-  "ownedPaths": [
-    "src/components/SuperAdminPage.tsx",
-    "tests/ui/super-admin.spec.ts",
-    "tests/ui/helpers",
-    "docs/super-admin"
-  ],
+  "currentStage": 5,
+  "workBranch": null,
+  "ownedPaths": [],
   "stages": [
     {
       "id": 0,
@@ -60,25 +55,93 @@
         "skipped": 0,
         "newBillingTests": 16,
         "regressionsBeforeFix": 4
-      }
+      },
+      "mergedCommit": "dde401536fe395e8da8d5b3cfd28527126de8baf"
     },
     {
       "id": 3,
-      "status": "in_progress"
+      "status": "completed",
+      "evidence": {
+        "commands": [
+          "npm test",
+          "npm run lint:core",
+          "npm run lint",
+          "npm run build",
+          "npm run test:ui"
+        ],
+        "unitApi": 81,
+        "ui": 32,
+        "superAdminUi": 9,
+        "failed": 0,
+        "skipped": 0,
+        "baseline": "9afe99d100d2af20081476918549f215c9c6cd85"
+      },
+      "mergedCommit": "c7e01969a95b5f73d4dcf70e8ee000eaaadbcc6a"
     },
     {
       "id": 4,
-      "status": "pending"
+      "status": "completed",
+      "evidence": {
+        "commands": [
+          "npm test",
+          "npm run lint:core",
+          "npm run lint",
+          "npm run build",
+          "npm run test:emulator",
+          "npm run test:ui"
+        ],
+        "unitApi": 93,
+        "migrationUnit": 11,
+        "firestoreEmulator": 20,
+        "platformFirestore": 13,
+        "ui": 32,
+        "superAdminUi": 9,
+        "failed": 0,
+        "skipped": 0,
+        "emulatorProject": "demo-sudaflow",
+        "baseline": "c7e01969a95b5f73d4dcf70e8ee000eaaadbcc6a",
+        "rulesSourceUnchanged": true,
+        "productionWrites": 0,
+        "githubChecks": {
+          "id": 37317374627,
+          "status": "completed",
+          "conclusion": "success",
+          "sha": "2a92aa74e3a218b1b33db1fad22966c09c611449",
+          "url": "https://github.com/mistertee1/Sodaflow/actions/runs/37317374627"
+        }
+      },
+      "mergedCommit": "2a92aa74e3a218b1b33db1fad22966c09c611449"
     },
     {
       "id": 5,
       "status": "blocked",
       "blockers": [
-        "Firestore API SERVICE_DISABLED on sodaflow",
-        "Netlify project access and live API deployment unavailable",
+        "Live API readiness reports firestore_database_missing; default Firestore database does not exist in sodaflow",
+        "Connected Netlify project lookup does not expose sodaflow; live API remains 3.0.3-netlify",
         "Explicit verified platform-admin UID not supplied"
       ]
     }
   ],
-  "productionValidated": false
+  "productionValidated": false,
+  "lastCompletedStage": 4,
+  "unmergedWorkBranch": null,
+  "lastSourceCommit": "2a92aa74e3a218b1b33db1fad22966c09c611449",
+  "sourceStagesComplete": true,
+  "status": "blocked_external",
+  "resumeFrom": "production_activation",
+  "lastReport": "docs/super-admin/REPORT.md",
+  "productionReadiness": {
+    "checkedAt": "2026-10-05T13:28:33.000Z",
+    "projectId": "sodaflow",
+    "databaseId": "(default)",
+    "liveVersion": "3.0.3-netlify",
+    "liveReadinessHttp": 503,
+    "firestoreCode": "firestore_database_missing",
+    "directFirestoreHttp": 404,
+    "directFirestoreDatabaseMissing": true,
+    "netlifyTargetAvailable": false,
+    "verifiedPlatformAdminUidProvided": false,
+    "storageCode": "storage_bucket_missing",
+    "productionWrites": 0
+  }
 }

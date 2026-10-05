@@ -16,9 +16,13 @@
     "tests/firestore.test.ts",
     "tests/inventoryCost.test.ts",
     "tests/payables.test.ts",
-    "tests/operationalReports.test.ts",
     "tests/platformAdmin.test.ts",
     "tests/platformBilling.test.ts",
+    "tests/platformMigration.test.ts",
+    "tests/ui/super-admin.spec.ts",
+    "tests/ui/helpers/platform.ts",
+    "tests/platformFirestore.test.ts",
+    "tests/operationalReports.test.ts",
     "tests/cashManagement.test.ts"
   ]
 }

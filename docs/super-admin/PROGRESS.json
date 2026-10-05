@@ -2,16 +2,17 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "9d5c740670c436441469ebf1a850f841fb4355e8",
-  "updatedAt": "2026-10-05T12:57:18.000Z",
+  "updatedAt": "2026-10-05T13:12:27.000Z",
   "activeRunId": "super-admin-run-20261005T1257",
-  "leaseUntil": "2026-10-05T13:42:18.000Z",
+  "leaseUntil": "2026-10-05T13:57:27.000Z",
   "automationId": "6ac35722234c819194e0535527c23124",
-  "currentStage": 3,
+  "currentStage": 4,
   "workBranch": "codex/super-admin-ui-rules-20261005T1257",
   "ownedPaths": [
-    "src/components/SuperAdminPage.tsx",
-    "tests/ui/super-admin.spec.ts",
-    "tests/ui/helpers/platform.ts",
+    "server/billingMigration.ts",
+    "scripts/migrate-platform-billing.ts",
+    "tests/platformFirestore.test.ts",
+    "tests/platformMigration.test.ts",
     "package.json",
     "tsconfig.core.json",
     "docs/super-admin"
@@ -67,11 +68,26 @@
     },
     {
       "id": 3,
-      "status": "in_progress"
+      "status": "completed",
+      "evidence": {
+        "commands": [
+          "npm test",
+          "npm run lint:core",
+          "npm run lint",
+          "npm run build",
+          "npm run test:ui"
+        ],
+        "unitApi": 81,
+        "ui": 32,
+        "superAdminUi": 9,
+        "failed": 0,
+        "skipped": 0,
+        "baseline": "9afe99d100d2af20081476918549f215c9c6cd85"
+      }
     },
     {
       "id": 4,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 5,

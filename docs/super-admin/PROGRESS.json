@@ -1,16 +1,18 @@
 {
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
-  "sourceBase": "9d5c740670c436441469ebf1a850f841fb4355e8",
-  "updatedAt": "2026-10-05T13:12:27.000Z",
+  "sourceBase": "c7e01969a95b5f73d4dcf70e8ee000eaaadbcc6a",
+  "updatedAt": "2026-10-05T13:29:40.000Z",
   "activeRunId": "super-admin-run-20261005T1257",
-  "leaseUntil": "2026-10-05T13:57:27.000Z",
+  "leaseUntil": "2026-10-05T14:14:40.000Z",
   "automationId": "6ac35722234c819194e0535527c23124",
-  "currentStage": 4,
+  "currentStage": 5,
   "workBranch": "codex/super-admin-ui-rules-20261005T1257",
   "ownedPaths": [
     "server/billingMigration.ts",
+    "server/platformBilling.ts",
     "scripts/migrate-platform-billing.ts",
+    "tests/platformBilling.test.ts",
     "tests/platformFirestore.test.ts",
     "tests/platformMigration.test.ts",
     "package.json",
@@ -83,18 +85,41 @@
         "failed": 0,
         "skipped": 0,
         "baseline": "9afe99d100d2af20081476918549f215c9c6cd85"
-      }
+      },
+      "mergedCommit": "c7e01969a95b5f73d4dcf70e8ee000eaaadbcc6a"
     },
     {
       "id": 4,
-      "status": "in_progress"
+      "status": "completed",
+      "evidence": {
+        "commands": [
+          "npm test",
+          "npm run lint:core",
+          "npm run lint",
+          "npm run build",
+          "npm run test:emulator",
+          "npm run test:ui"
+        ],
+        "unitApi": 93,
+        "migrationUnit": 11,
+        "firestoreEmulator": 20,
+        "platformFirestore": 13,
+        "ui": 32,
+        "superAdminUi": 9,
+        "failed": 0,
+        "skipped": 0,
+        "emulatorProject": "demo-sudaflow",
+        "baseline": "c7e01969a95b5f73d4dcf70e8ee000eaaadbcc6a",
+        "rulesSourceUnchanged": true,
+        "productionWrites": 0
+      }
     },
     {
       "id": 5,
       "status": "blocked",
       "blockers": [
-        "Firestore API SERVICE_DISABLED on sodaflow",
-        "Netlify project access and live API deployment unavailable",
+        "Live API readiness reports firestore_database_missing; default Firestore database does not exist in sodaflow",
+        "Connected Netlify project lookup does not expose sodaflow; live API remains 3.0.3-netlify",
         "Explicit verified platform-admin UID not supplied"
       ]
     }

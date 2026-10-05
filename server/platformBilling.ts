@@ -170,6 +170,7 @@ export class PlatformBilling {
       ensure(org, 'الشركة غير موجودة.', 404);
       ensure(Number(body.expectedRevision) === (org.billingRevision || 0), 'اشتراك الشركة تغيّر. حدّث البيانات قبل الحفظ.', 409);
       const current = await loadSubscription(tx, orgId, org, new Date(), resolveSubscription);
+      const counters = await tx.get(`${root}/meta/counters`);
       const now = new Date(), payload = body.payload || {};
       const next: Organization = { ...org, planId: current.plan_id, subscriptionStatus: current.effective_status,
         subscriptionStart: current.subscription_start, subscriptionEnd: current.subscription_end ?? null, renewalAt: current.renewal_at ?? null,
@@ -219,6 +220,8 @@ export class PlatformBilling {
       // The read projection is compatibility data. Entitlements always reread the canonical root and live plan.
       const projected = { ...current, plan: next.planId, plan_id: next.planId, plan_definition: plan, status: next.subscriptionStatus, effective_status: next.subscriptionStatus, subscription_start: next.subscriptionStart, subscription_end: next.subscriptionEnd, renewal_at: next.renewalAt, billing_revision: next.billingRevision, max_members: plan.limits.maxUsers, max_branches: plan.limits.maxBranches, max_warehouses: plan.limits.maxWarehouses, max_invoices_total: plan.limits.invoicePeriod === 'lifetime' ? plan.limits.maxInvoices : 999999, max_invoices_per_month: plan.limits.invoicePeriod === 'month' ? plan.limits.maxInvoices : 999999, invoice_period: plan.limits.invoicePeriod, max_customers: plan.limits.maxCustomers, max_products: plan.limits.maxProducts, features: { ...plan.features } };
       tx.set(`${root}/meta/subscription`, projected);
+      // The tenant sync listener watches this revision for all confirmed server changes.
+      tx.set(`${root}/meta/counters`, { ...counters, revision: (counters?.revision || 0) + 1, updated_at: now.toISOString() });
       return { previous: projection(org), next: projection(next), result: { organizationId: orgId, billingRevision: next.billingRevision, subscription: projected } };
     });
   }

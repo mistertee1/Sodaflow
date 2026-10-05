@@ -68,6 +68,20 @@ test('commercial retries are exactly once; a changed payload cannot reuse the op
   assert.equal(log[0].method, 'bank_transfer'); assert.equal(log[0].reason, body.reason);
 });
 
+test('a commercial edit publishes a tenant revision once and preserves all business counter values', async () => {
+  for (const initialRevision of [undefined, 7]) {
+  const f = await platformFixture(), path = `organizations/${f.org.id}/meta/counters`;
+  await f.store.transaction(async tx => tx.set(path, { ...await tx.get(path), ...(initialRevision === undefined ? {} : { revision: initialRevision }), invoice_count: 12, lifetime_invoice_count: 105, inventory_movement_seq: 19 }));
+  const before = f.store.dump()[path];
+  const body = { action: 'change_plan', payload: { planId: 'Professional' }, expectedRevision: 1, operationId: 'commercial-revision', reason: 'تفعيل مع تحديث المزامنة' };
+  await f.platform.updateSubscription(f.admin, f.org.id, body);
+  const after = f.store.dump()[path];
+  assert.equal(after.revision, (before.revision || 0) + 1);
+  for (const key of Object.keys(before).filter(key => !['revision', 'updated_at'].includes(key))) assert.deepEqual(after[key], before[key]);
+  await f.platform.updateSubscription(f.admin, f.org.id, body); assert.deepEqual(f.store.dump()[path], after);
+  }
+});
+
 test('optimistic revisions allow exactly one concurrent commercial edit and one audit event', async () => {
   const f = await platformFixture();
   const edit = (status: string) => f.platform.updateSubscription(f.admin, f.org.id, { action: 'set_status', payload: { status }, expectedRevision: 1, operationId: 'race-' + status, reason: 'تعديل متزامن' });

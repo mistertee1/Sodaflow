@@ -18,7 +18,9 @@
     "tests/payables.test.ts",
     "tests/platformAdmin.test.ts",
     "tests/platformBilling.test.ts",
+    "tests/platformMigration.test.ts",
     "tests/ui/super-admin.spec.ts",
-    "tests/ui/helpers/platform.ts"
+    "tests/ui/helpers/platform.ts",
+    "tests/platformFirestore.test.ts"
   ]
 }

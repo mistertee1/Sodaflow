@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import type { Customer, Product, Invoice, Payment, Expense, MerchantSettings, Currency, InventoryMovement, Organization, OrgMember, OrgRole, Account, JournalEntry, OrganizationCounters, OrgSubscription } from '../types';
+import type { Customer, Product, Invoice, Supplier, PurchaseBill, SupplierPayment, Payment, Expense, MerchantSettings, Currency, InventoryMovement, Organization, OrgMember, OrgRole, Account, JournalEntry, OrganizationCounters, OrgSubscription } from '../types';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
 import { INITIAL_SETTINGS } from '../data/initialData';
 import { auth, onAuthStateChanged, logout, type User } from '../lib/firebase';
@@ -30,6 +30,13 @@ interface AppContextType {
   invoices: Invoice[];
   payments: Payment[];
   expenses: Expense[];
+  suppliers: Supplier[];
+  purchaseBills: PurchaseBill[];
+  supplierPayments: SupplierPayment[];
+  saveSupplier: (data: Document, id?: string) => Promise<Supplier>;
+  createPurchase: (data: Document) => Promise<PurchaseBill>;
+  paySupplier: (data: Document) => Promise<SupplierPayment>;
+  loadPayablesReport: (period: { start?: string; end?: string }, exporting?: boolean) => Promise<Awaited<ReturnType<Operations['payableReports']>>>;
   inventoryMovements: InventoryMovement[];
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
@@ -313,10 +320,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!state.org || !state.exported_at || !hasPermission(state.role, action)) return false;
     const status = state.subscription.effective_status || state.subscription.status;
     const active = state.org.status === 'active' && ['active', 'trial', 'trialing'].includes(status) && (!state.subscription.subscription_end || Date.parse(state.subscription.subscription_end) > Date.now());
-    const sensitive = ['audit_logs:view', 'journal:read', 'accounts:read'];
+    const sensitive = ['payables:read', 'audit_logs:view', 'journal:read', 'accounts:read'];
     const readOnly = action.endsWith(':read') || action === 'members:view';
     if (!active && (!readOnly || sensitive.includes(action))) return false;
-    const features: Partial<Record<ActionType, string>> = { 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
+    const features: Partial<Record<ActionType, string>> = { 'payables:read': 'accounting', 'payables:write': 'accounting', 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
     if (features[action] && state.subscription.features[features[action]!] !== true) return false;
     if (action === 'invoices:create' && invoiceQuotaReached(state.subscription, state.counters.lifetime_invoice_count || state.counters.invoice_count, state.counters.monthly_invoice_count || 0)) return false;
     return true;
@@ -356,6 +363,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     currentUser, authLoading, syncStatus, syncError, dismissSyncError: () => setSyncError(null), lastSyncedAt,
     currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.exported_at ? state.member?.status || (state.role === 'Owner' ? 'active' : 'unknown') : 'unknown', orgMembers: rows<OrgMember>('members'),
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
+    suppliers: rows<Supplier>('suppliers'), purchaseBills: rows<PurchaseBill>('purchase_bills'), supplierPayments: rows<SupplierPayment>('supplier_payments'),
+    saveSupplier: (data, id) => run<Supplier>(id ? 'supplier.update' : 'supplier.create', id ? { id, updates: data } : data),
+    createPurchase: data => run<PurchaseBill>('purchase.create', data), paySupplier: data => run<SupplierPayment>('supplierPayment.create', data),
+    loadPayablesReport: async (period, exporting = false) => {
+      const id = activeOrg.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');
+      if (exporting) return run('payables.export', { period }) as Promise<Awaited<ReturnType<Operations['payableReports']>>>;
+      return id === guestId && !userRef.current ? getGuest().payableReports(id, guestActor, period) : api(`/organizations/${encodeURIComponent(id)}/reports/payables?start=${encodeURIComponent(period.start || '')}&end=${encodeURIComponent(period.end || '')}`);
+    },
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
     isActionAllowed, switchOrganization, createNewOrg,
     inviteMember: async (email, role) => { await run('invitation.create', { email, role }); },

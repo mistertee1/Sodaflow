@@ -5,7 +5,8 @@ import { createDefaultSubscription, getPlanConfig } from '../lib/plans';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
 
 export const guestId = 'local-guest-org';
-export const guestActor = { uid: 'guest', email: '', emailVerified: false, name: 'ضيف' };
+// Local-only domain actor; signed-in cloud identities still require verified token claims.
+export const guestActor = { uid: 'guest', email: '', emailVerified: true, name: 'ضيف' };
 const storageKey = 'sudaflow_guest_transactions_v3';
 export function createGuestStore() {
   const saved = localStorage.getItem(storageKey);
@@ -27,3 +28,4 @@ export function createGuestStore() {
   seed[`${root}/members/guest`] = { uid: 'guest', org_id: guestId, email: '', display_name: 'ضيف', role: 'Owner', status: 'active', joined_at: now };
   return new MemoryStore(seed, data => localStorage.setItem(storageKey, JSON.stringify(data)));
 }
+

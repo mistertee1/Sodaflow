@@ -2,10 +2,10 @@
   "schema_version": 1,
   "source_sha256": "a6ef84e96568ee751ede2a5a932e30c17140f914bcb61df5f38727f390ee4a45",
   "repository": "mistertee1/Sodaflow",
-  "base_main_sha": "3b056a813b7c532a5a8d8dc9b53069fc6da11991",
+  "base_main_sha": "ecee366e960a820b621c8dbded6909c43a4a3096",
   "user_merges_only": true,
-  "active_milestone": "A2",
-  "active_branch": "codex/accounting-v2-a2-inventory-costing",
+  "active_milestone": "B1",
+  "active_branch": "codex/accounting-v2-b1-supplier-purchases",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -21,7 +21,7 @@
     },
     {
       "id": "A2",
-      "status": "implemented_ci_passed",
+      "status": "merged_ci_passed",
       "branch": "codex/accounting-v2-a2-inventory-costing",
       "pr": 14,
       "checks": {
@@ -42,9 +42,42 @@
     },
     {
       "id": "B",
-      "status": "pending",
-      "branch": null,
-      "pr": null
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-b1-supplier-purchases",
+      "pr": 15,
+      "steps": [
+        {
+          "id": "B1",
+          "scope": "Suppliers, purchase bills, supplier payments, AP aging/statements",
+          "status": "implemented_ci_passed",
+          "branch": "codex/accounting-v2-b1-supplier-purchases",
+          "checks": {
+            "unit_api": 81,
+            "status": "passed",
+            "rules": 7,
+            "rules_status": "passed",
+            "ui": 23,
+            "ui_status": "passed",
+            "production_audit_vulnerabilities": 0
+          },
+          "pr": 15,
+          "ci": {
+            "conclusion": "success",
+            "run_id": 37297113305,
+            "commit_sha": "c77265dfeec2f2899a08fa7e9fcb3b537918f6bf"
+          }
+        },
+        {
+          "id": "B2",
+          "scope": "AR statements/aging, GL, cash/bank, internal transfers, bank/cash reconciliation",
+          "status": "pending"
+        },
+        {
+          "id": "B3",
+          "scope": "Credit notes, sales/purchase returns and refunds",
+          "status": "pending"
+        }
+      ]
     },
     {
       "id": "C",
@@ -89,11 +122,11 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_A2.md",
+  "last_report": "REPORT_B1.md",
   "next_steps": [
-    "Implement B1 supplier master, purchase bills, supplier payments and AP reports on dependent branch targeting A2 until user merges",
-    "Complete B2 cash/bank, GL, AR reports and reconciliation, then B3 returns/refunds before marking B complete",
-    "C/D/E and Excel 1-4 remain pending; user review/merge only; no production changes"
+    "Verify B1 CI and real Firestore concurrency tests; fix failures before proceeding",
+    "Start B2 from the tested B1 branch; dependent PR targets B1 while it is unmerged",
+    "B3, C/D/E and Excel 1-4 remain pending; no merge/deployment/production writes"
   ],
-  "updated_at": "2026-10-05T05:04:38.080Z"
+  "updated_at": "2026-10-05T10:35:41.806Z"
 }

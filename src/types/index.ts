@@ -191,7 +191,7 @@ export interface InventoryMovement {
   quantity: number; // positive for addition, negative for deduction
   previous_stock: number;
   resulting_stock: number;
-  reference_type: 'invoice' | 'audit_adjustment' | 'manual' | 'void';
+  reference_type: 'invoice' | 'audit_adjustment' | 'manual' | 'void' | 'purchase_bill';
   reference_id: string;
   reason?: string;
   created_at: string;
@@ -400,3 +400,5 @@ export interface MerchantSettings {
 }
 
 export * from './accounting';
+
+export type { Supplier, PurchaseBill, SupplierPayment } from '../domain/payables';

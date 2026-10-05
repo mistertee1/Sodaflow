@@ -5,9 +5,10 @@ import { validateCostState } from './inventoryCost';
 import { classifyAccount } from './accountClassification';
 import { generateExpenseJournalEntry } from '../services/accountingService';
 import { invoiceFinancials } from './financial';
+import { payableCollections, reconcilePayables } from './payables';
 import { dateOnly, identifier, money, validateJournal } from './validation';
 
-export const financialCollections = ['customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries'] as const;
+export const financialCollections = ['customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections] as const;
 export type FinancialCollection = typeof financialCollections[number];
 export type FinancialData = Record<FinancialCollection, Document[]>;
 export interface Finding {
@@ -31,7 +32,7 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
     try { work(); } catch (error) { add('invalid_record', collection, id, { message: error instanceof Error ? error.message : 'بيانات غير صالحة.' }); }
   };
   const indexes = Object.fromEntries(financialCollections.map(name => [name, new Map<string, Document>()])) as Record<FinancialCollection, Map<string, Document>>;
-  for (const name of financialCollections) for (const row of data[name]) {
+  for (const name of financialCollections) for (const row of data[name] || []) {
     const id = name === 'accounts' ? row.code : row.id;
     inspect(name, String(id), () => { identifier(id); });
     if (indexes[name].has(id)) add('duplicate_id', name, String(id));
@@ -162,6 +163,7 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
       compare('invoices', invoice.id, `posted_cogs_${currency}`, snapshot.toNumber(), sourceEntries('invoice', invoice.id).flatMap(e => e.lines || []).filter(l => l.account_code === '5100').reduce((sum, l) => sum.plus(l[`debit_${currency}`]).minus(l[`credit_${currency}`]), new BigNumber(0)).toNumber());
     }
   });
+  findings.push(...reconcilePayables(data));
   return findings;
 }
 

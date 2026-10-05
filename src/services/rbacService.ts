@@ -1,6 +1,8 @@
 import { OrgRole } from '../types';
 
 export type ActionType =
+  | 'payables:read'
+  | 'payables:write'
   | 'org:read'
   | 'org:update_settings'
   | 'org:archive'
@@ -40,6 +42,7 @@ export type ActionType =
 
 const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
   Owner: new Set<ActionType>([
+    'payables:read', 'payables:write',
     'org:read',
     'org:update_settings',
     'org:archive',
@@ -78,6 +81,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'backup:restore',
   ]),
   Admin: new Set<ActionType>([
+    'payables:read', 'payables:write',
     'org:read',
     'org:update_settings',
     'members:view',
@@ -114,6 +118,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'backup:restore',
   ]),
   Accountant: new Set<ActionType>([
+    'payables:read', 'payables:write',
     'org:read',
     'members:view',
     'customers:read',
@@ -166,6 +171,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'accounts:read',
   ]),
   Viewer: new Set<ActionType>([
+    'payables:read',
     'org:read',
     'members:view',
     'customers:read',
@@ -203,3 +209,4 @@ export const getRoleArabicLabel = (role: OrgRole): string => {
       return role;
   }
 };
+

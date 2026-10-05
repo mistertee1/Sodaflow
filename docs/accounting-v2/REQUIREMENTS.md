@@ -16,14 +16,14 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 10 | Inventory Cost Snapshot | A2 — immutable line cost snapshot; CI passed (45 unit/API, 6 rules, 22 UI) |
 | 11 | Product Profitability | A-E / release gate |
 | 12 | فصل المشتريات عن المصروفات | A1/A2 — expense separation and cash purchase receipt; supplier bills in B |
-| 13 | Suppliers | A-E / release gate |
-| 14 | Purchase Bills | A-E / release gate |
-| 15 | Supplier Payments | A-E / release gate |
-| 16 | Accounts Payable | A-E / release gate |
-| 17 | AP Aging | A-E / release gate |
+| 13 | Suppliers | B1 — CI passed (81 unit/API/platform, 7 rules, 23 UI); REPORT_B1.md; returns/tax/policies tracked in B3/C/D |
+| 14 | Purchase Bills | B1 — CI passed (81 unit/API/platform, 7 rules, 23 UI); REPORT_B1.md; returns/tax/policies tracked in B3/C/D |
+| 15 | Supplier Payments | B1 — CI passed (81 unit/API/platform, 7 rules, 23 UI); REPORT_B1.md; returns/tax/policies tracked in B3/C/D |
+| 16 | Accounts Payable | B1 — CI passed (81 unit/API/platform, 7 rules, 23 UI); REPORT_B1.md; returns/tax/policies tracked in B3/C/D |
+| 17 | AP Aging | B1 — CI passed (81 unit/API/platform, 7 rules, 23 UI); REPORT_B1.md; returns/tax/policies tracked in B3/C/D |
 | 18 | Accounts Receivable Aging | A-E / release gate |
 | 19 | Customer Statement | A-E / release gate |
-| 20 | Supplier Statement | A-E / release gate |
+| 20 | Supplier Statement | B1 — CI passed (81 unit/API/platform, 7 rules, 23 UI); REPORT_B1.md; returns/tax/policies tracked in B3/C/D |
 | 21 | Cash & Bank Center | A-E / release gate |
 | 22 | Bank Accounts | A-E / release gate |
 | 23 | Internal Transfers | A-E / release gate |
@@ -104,7 +104,7 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 98 | Accounting Regression Tests | A1/A2 regression coverage; full release suite pending |
 | 99 | CFO Acceptance Criteria | A-E / release gate |
 | 100 | Accounting V2 Phase A — Financial Integrity | A1 merged CI passed; A2 implemented CI passed (45 unit/API, 6 rules, 22 UI); automated A acceptance passed; user review and release acceptance pending |
-| 101 | Accounting V2 Phase B — Operational Accounting | A-E / release gate |
+| 101 | Accounting V2 Phase B — Operational Accounting | B1 CI passed; B2/B3 pending |
 | 102 | Accounting V2 Phase C — Professional Accounting | A-E / release gate |
 | 103 | Accounting V2 Phase D — Management Accounting | A-E / release gate |
 | 104 | Accounting V2 Phase E — Automation & Intelligence | A-E / release gate |

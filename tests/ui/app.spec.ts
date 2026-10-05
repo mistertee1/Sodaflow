@@ -318,3 +318,25 @@ test('A2 income report marks unknown historical cost instead of presenting compl
   await expect(page.getByRole('status')).toContainText('تكلفة بعض فواتير هذه الفترة غير موثقة');
   await expect(page.getByText('غير مكتمل', { exact: true }).first()).toBeVisible();
 });
+
+test('B1 mobile supplier purchase and partial FX payment post once and export the dated statement', async ({ page }, testInfo) => {
+  await page.addInitScript(() => { const products=JSON.parse(localStorage.getItem('hisabuk_guest_v1_products') || '[]');products[0].stock_quantity=0;localStorage.setItem('hisabuk_guest_v1_products',JSON.stringify(products)); });
+  await page.setViewportSize({width:390,height:844});await page.goto('/');await page.locator('#tab-products').click();
+  await page.getByRole('button',{name:'تسجيل تكلفة أو استلام مخزون'}).click();let dialog=page.getByRole('dialog',{name:'تكلفة المخزون',exact:true});
+  await dialog.getByLabel('منتج التكلفة',{exact:true}).selectOption('product');await dialog.getByLabel('تكلفة الوحدة الموثقة',{exact:true}).fill('2');await dialog.getByLabel('عملة التكلفة',{exact:true}).selectOption('USD');await dialog.getByLabel('سبب العملية ومرجع وثيقة التكلفة').fill('رصيد فارغ موثق');await dialog.getByRole('button',{name:'حفظ عملية التكلفة'}).click();await expect(dialog).toHaveCount(0);
+  await page.getByRole('button',{name:'تفعيل المحاسبة V2 بعد المطابقة'}).click();await expect(page.getByText('المحاسبة V2 مفعّلة',{exact:false}).first()).toBeVisible();
+  await page.locator('#tab-accounting').click();await page.getByRole('button',{name:'الموردون والمشتريات',exact:true}).click();await page.getByRole('button',{name:'إضافة مورد',exact:true}).click();
+  dialog=page.getByRole('dialog',{name:'بيانات المورد',exact:true});await dialog.getByLabel('اسم المورد',{exact:true}).fill('مورد الموبايل');await dialog.getByLabel('عملة المورد',{exact:true}).selectOption('USD');await dialog.getByRole('button',{name:'حفظ المورد'}).click();await expect(dialog).toHaveCount(0);
+  await page.getByRole('button',{name:'فاتورة شراء جديدة',exact:true}).click();dialog=page.getByRole('dialog',{name:'فاتورة شراء',exact:true});
+  await dialog.getByLabel('رقم فاتورة المورد',{exact:true}).fill('MOB-1');await dialog.getByLabel('عملة الشراء',{exact:true}).selectOption('USD');await dialog.getByLabel('منتج الشراء 1',{exact:true}).selectOption('product');await dialog.getByLabel('كمية الشراء 1',{exact:true}).fill('10');await dialog.getByLabel('تكلفة شراء 1',{exact:true}).fill('2');await dialog.getByLabel('سبب الشراء',{exact:true}).fill('فاتورة المورد MOB-1');
+  await dialog.locator('form').evaluate(f=>{(f as HTMLFormElement).requestSubmit();(f as HTMLFormElement).requestSubmit();});await expect(dialog).toHaveCount(0);
+  await page.getByRole('button',{name:'سداد MOB-1',exact:true}).click();dialog=page.getByRole('dialog',{name:'سداد المورد',exact:true});await dialog.getByLabel('مبلغ سداد المورد',{exact:true}).fill('10');await dialog.getByLabel('صرف سداد المورد',{exact:true}).fill('3000');await dialog.getByLabel('طريقة سداد المورد',{exact:true}).selectOption('bankak');await dialog.locator('form').evaluate(f=>{(f as HTMLFormElement).requestSubmit();(f as HTMLFormElement).requestSubmit();});await expect(dialog).toHaveCount(0);
+  const data=await page.evaluate(()=>Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}')));
+  expect(data.filter(([p])=>p.includes('/purchase_bills/'))).toHaveLength(1);expect(data.filter(([p])=>p.includes('/supplier_payments/'))).toHaveLength(1);
+  const bill=data.find(([p])=>p.includes('/purchase_bills/'))![1] as any;const payment=data.find(([p])=>p.includes('/supplier_payments/'))![1] as any;
+  expect(bill.remaining_usd).toBe(10);expect(bill.remaining_sdg).toBe(20000);expect(payment.cash_amount_sdg).toBe(30000);
+  const supplier=data.find(([p])=>p.includes('/suppliers/'))![1] as any;await page.getByLabel('المورد للكشف',{exact:true}).selectOption(supplier.id);
+  await expect(page.getByRole('button',{name:'تصدير كشف CSV',exact:true})).toBeVisible();const csvDownload=page.waitForEvent('download');await page.getByRole('button',{name:'تصدير كشف CSV',exact:true}).click();const csv=await csvDownload;const csvPath=testInfo.outputPath('supplier.csv');await csv.saveAs(csvPath);expect(await readFile(csvPath,'utf8')).toContain('closing');
+  const pdfDownload=page.waitForEvent('download');await page.getByRole('button',{name:'تحميل كشف PDF',exact:true}).click();const pdf=await pdfDownload;const pdfPath=testInfo.outputPath('supplier.pdf');await pdf.saveAs(pdfPath);expect((await readFile(pdfPath)).subarray(0,5).toString()).toBe('%PDF-');
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:'test-results/accounting-v2-payables-mobile.png',fullPage:true});
+});

@@ -120,3 +120,25 @@ test('Firebase organization fallback respects tenant rules and ignores stale mem
   const foreign = env.authenticatedContext('foreign', { email_verified: true }).firestore();
   await assertFails(readFirebaseOrganizations(foreign as unknown as import('firebase/firestore').Firestore, 'owner'));
 });
+
+test('B1 Firestore transactions keep repeated purchase lines, concurrent supplier payments and AP/stock atomic', async () => {
+  const app=initializeApp({projectId:project},'test-supplier-admin'), db=getFirestore(app);
+  try {
+    const store=new FirestoreStore(db), actor={uid:'supplier-integration-owner',email:'supplier-i@example.com',emailVerified:true};
+    const org=await new Organizations(store).create(actor,'الموردون',INITIAL_SETTINGS,'supplier-integration',true), root=`organizations/${org.id}`;
+    await store.transaction(async tx=>tx.set(root,{...await tx.get(root),planId:'Enterprise',subscriptionEnd:'2027-01-01T00:00:00Z',subscriptionEndMillis:Date.parse('2027-01-01')}));
+    const rules=await readFile('firestore.rules','utf8'), ops=new Operations(store,()=>new Date('2026-10-05T12:00:00Z'),saved=>saved as any,async()=>verifyAccountingRulesSource([{content:rules}]));
+    const run=(action:string,data:Record<string,unknown>,operationId:string)=>ops.execute(org.id,actor,{action,data,operationId});
+    const p=(await run('product.create',{name:'صنف',unit:'قطعة',price_sdg:10000,price_usd:5,tax_rate:0,is_active:true,track_inventory:true,stock_quantity:0},'product')).result;
+    await run('product.cost.establish',{id:p.id,cost_currency:'USD',unit_cost:2,exchange_rate_used:2000,reason:'فارغ موثق'},'basis');await run('accounting.activate',{reason:'مطابقة'},'activate');
+    const supplier=(await run('supplier.create',{name:'المورد'},'supplier')).result;
+    const purchase={supplier_id:supplier.id,supplier_reference:'FS-1',issue_date:'2026-10-05',currency:'USD',exchange_rate_used:2000,settlement:'credit',reason:'وثيقة',items:[{product_id:p.id,quantity:5,unit_cost:2},{product_id:p.id,quantity:5,unit_cost:2}]};
+    const buys=await Promise.all([run('purchase.create',purchase,'buy'),run('purchase.create',purchase,'buy')]);assert.equal(buys[0].result.id,buys[1].result.id);
+    const payment={bill_id:buys[0].result.id,amount:15,currency:'USD',exchange_rate_used:3000,payment_date:'2026-10-05',payment_method:'bankak'};
+    const paid=await Promise.allSettled([run('supplierPayment.create',payment,'pay-a'),run('supplierPayment.create',payment,'pay-b')]);assert.equal(paid.filter(r=>r.status==='fulfilled').length,1);assert.equal(paid.filter(r=>r.status==='rejected').length,1);
+    const winner=paid[0].status==='fulfilled'?'pay-a':'pay-b';await run('supplierPayment.create',payment,winner);
+    const snapshot=await ops.snapshot(org.id,actor,true);assert.equal(snapshot.collections.purchase_bills.length,1);assert.equal(snapshot.collections.supplier_payments.length,1);assert.equal(snapshot.collections.products[0].stock_quantity,10);assert.equal(snapshot.collections.purchase_bills[0].remaining_usd,5);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
+    const client=env.authenticatedContext(actor.uid,{email_verified:true}).firestore();
+    for(const name of ['suppliers','purchase_bills','supplier_payments']) {await assertFails(setDoc(doc(client,`${root}/${name}/forged`),{id:'forged'}));await assertFails(getDocs(collection(client,`${root}/${name}`)));}
+  } finally {await deleteApp(app);}
+});

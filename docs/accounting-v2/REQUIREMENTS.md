@@ -10,12 +10,12 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 4 | Financial Owner Dashboard | A-E / release gate |
 | 5 | Financial Summary | A-E / release gate |
 | 6 | المبدأ الأساسي للترحيل المحاسبي | A-E / release gate |
-| 7 | Inventory Costing | A-E / release gate |
-| 8 | طريقة تقييم المخزون | A-E / release gate |
-| 9 | Cost of Goods Sold | A-E / release gate |
-| 10 | Inventory Cost Snapshot | A-E / release gate |
+| 7 | Inventory Costing | A2 — implemented; REPORT_A2.md; CI pending |
+| 8 | طريقة تقييم المخزون | A2 — WAC and rounding conservation; CI pending |
+| 9 | Cost of Goods Sold | A2 — atomic COGS with sales; CI pending |
+| 10 | Inventory Cost Snapshot | A2 — immutable line cost snapshot; CI pending |
 | 11 | Product Profitability | A-E / release gate |
-| 12 | فصل المشتريات عن المصروفات | A-E / release gate |
+| 12 | فصل المشتريات عن المصروفات | A1/A2 — expense separation and cash purchase receipt; supplier bills in B |
 | 13 | Suppliers | A-E / release gate |
 | 14 | Purchase Bills | A-E / release gate |
 | 15 | Supplier Payments | A-E / release gate |
@@ -27,18 +27,18 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 21 | Cash & Bank Center | A-E / release gate |
 | 22 | Bank Accounts | A-E / release gate |
 | 23 | Internal Transfers | A-E / release gate |
-| 24 | Expense Payment Source | A-E / release gate |
+| 24 | Expense Payment Source | A1 — selected payment account; merged with CI passed |
 | 25 | Expense on Credit | A-E / release gate |
 | 26 | Expense Categories | A-E / release gate |
 | 27 | General Ledger | A-E / release gate |
-| 28 | Account Classification | A-E / release gate |
-| 29 | Reporting Groups | A-E / release gate |
-| 30 | Income Statement | A-E / release gate |
-| 31 | Gross Margin | A-E / release gate |
-| 32 | Balance Sheet | A-E / release gate |
-| 33 | Cash Flow Statement | A-E / release gate |
-| 34 | Reporting Periods | A-E / release gate |
-| 35 | As-of Reports | A-E / release gate |
+| 28 | Account Classification | A1 — account metadata; merged with CI passed |
+| 29 | Reporting Groups | A1 — metadata reporting groups; merged with CI passed |
+| 30 | Income Statement | A1/A2 — dated income, cost completeness; A2 CI pending |
+| 31 | Gross Margin | A2 — gross profit incomplete when unknown; profitability analysis in D |
+| 32 | Balance Sheet | A1 — ledger cumulative BS; merged with CI passed |
+| 33 | Cash Flow Statement | A1 — classified ledger cash flow; merged with CI passed |
+| 34 | Reporting Periods | A1/A2 — UI and API date ranges; A2 CI pending |
+| 35 | As-of Reports | A1 — cumulative as-of balances; merged with CI passed |
 | 36 | Comparative Reports | A-E / release gate |
 | 37 | Accounting Periods | A-E / release gate |
 | 38 | Soft Close | A-E / release gate |
@@ -77,9 +77,9 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 71 | Financial Alerts | A-E / release gate |
 | 72 | Accounting Health Center | A-E / release gate |
 | 73 | Accounting Health Principle | A-E / release gate |
-| 74 | Reconciliation Checks | A-E / release gate |
+| 74 | Reconciliation Checks | A1/A2 — AR/inventory/expense/COGS checks; AP and bank reconciliation in B |
 | 75 | No Hard Delete | A-E / release gate |
-| 76 | Audit Requirements | A-E / release gate |
+| 76 | Audit Requirements | A2 — actor role, before/after, cost evidence; later-source audit in B–E |
 | 77 | Accounting Permissions | A-E / release gate |
 | 78 | Sensitive Financial Permissions | A-E / release gate |
 | 79 | Simplified Accounting Labels | A-E / release gate |
@@ -91,8 +91,8 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 85 | Recurring Journal Entries | A-E / release gate |
 | 86 | Attachments | A-E / release gate |
 | 87 | Notes & Evidence | A-E / release gate |
-| 88 | Financial Data Source of Truth | A-E / release gate |
-| 89 | Subledger Reconciliation | A-E / release gate |
+| 88 | Financial Data Source of Truth | A1/A2 — journal source and cost subledger; later subledgers in B–E |
+| 89 | Subledger Reconciliation | A2 — current inventory and AR; AP/bank in B |
 | 90 | Commercial Readiness Definition | A-E / release gate |
 | 91 | Commercial MVP | A-E / release gate |
 | 92 | Professional SMB Level | A-E / release gate |
@@ -100,10 +100,10 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 94 | Release Candidate Scenario | A-E / release gate |
 | 95 | Release Accounting Assertions | A-E / release gate |
 | 96 | Zero Difference Requirement | A-E / release gate |
-| 97 | Backup & Restore | A-E / release gate |
-| 98 | Accounting Regression Tests | A-E / release gate |
+| 97 | Backup & Restore | A2 — strict V2 cost restore with target ownership; later collections/jobs pending |
+| 98 | Accounting Regression Tests | A1/A2 regression coverage; full release suite pending |
 | 99 | CFO Acceptance Criteria | A-E / release gate |
-| 100 | Accounting V2 Phase A — Financial Integrity | A-E / release gate |
+| 100 | Accounting V2 Phase A — Financial Integrity | A1 merged CI passed; A2 implemented CI pending; final phase A acceptance pending |
 | 101 | Accounting V2 Phase B — Operational Accounting | A-E / release gate |
 | 102 | Accounting V2 Phase C — Professional Accounting | A-E / release gate |
 | 103 | Accounting V2 Phase D — Management Accounting | A-E / release gate |

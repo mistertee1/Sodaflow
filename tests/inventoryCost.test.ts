@@ -140,3 +140,12 @@ test('A2 moving-average dates forbid using a later receipt cost for a backdated 
   const before = f.store.dump(); await assert.rejects(f.run('invoice.create', { ...f.invoice(), issue_date: '2026-10-06' }, 'backdated'), /آخر حركة تكلفة/); assert.deepEqual(f.store.dump(), before);
   await f.run('invoice.create', f.invoice(), 'dated'); assertBooks(await f.snapshot());
 });
+
+test('A2 server report honors periods and custom account metadata after billing integration', async () => {
+  const f = await fixture();
+  await f.run('account.create', { code: 'consulting', name_ar: 'استشارات', name_en: 'Consulting', type: 'REVENUE', nature: 'CREDIT', is_active: true }, 'account');
+  for (const date of ['2026-10-04', '2026-10-05']) await f.run('journal.create', { date, reference_type: 'manual', description: 'استشارات نقدية', lines: [journalLine('1110', 'cash', 100), journalLine('consulting', 'consulting', 0, 100)] }, 'journal-' + date);
+  const report = await f.ops.advancedReports(f.org.id, owner, { start: '2026-10-05', end: '2026-10-05' });
+  assert.equal(report.incomeStatement.sales_revenue_sdg, 100); assert.equal(report.incomeStatement.net_profit_sdg, 100); assert.equal(report.balanceSheet.total_assets_sdg, 200);
+  await assert.rejects(f.ops.advancedReports(f.org.id, owner, { start: '2026-10-06', end: '2026-10-05' }), /بداية الفترة/);
+});

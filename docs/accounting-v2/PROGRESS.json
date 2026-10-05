@@ -10,7 +10,7 @@
   "lease": {
     "worker": "root-accounting-v2",
     "started_at": "2026-10-05T04:41:50.241Z",
-    "expires_at": "2026-10-05T05:37:35.203Z"
+    "expires_at": "2026-10-05T05:40:05.934Z"
   },
   "milestones": [
     {
@@ -27,7 +27,7 @@
       "id": "A2",
       "status": "implemented_ci_pending",
       "branch": "codex/accounting-v2-a2-inventory-costing",
-      "pr": null
+      "pr": 14
     },
     {
       "id": "B",
@@ -84,5 +84,5 @@
     "Start B only after phase A acceptance; branch from A2 and target its PR until user merges it",
     "Keep C/D/E and Excel 1-4 pending; no production operations or main merge"
   ],
-  "updated_at": "2026-10-05T04:52:35.202Z"
+  "updated_at": "2026-10-05T04:55:05.934Z"
 }

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "repository": "mistertee1/Sodaflow",
+  "sourceBase": "afc3ef69c9eec98219a71713e701e666ab66e5c1",
+  "updatedAt": "2026-10-05T07:55:21.108001+00:00",
+  "activeRunId": "super-admin-interactive-20261005",
+  "leaseUntil": "2026-10-05T08:40:21.108001+00:00",
+  "automationId": "6ac35722234c819194e0535527c23124",
+  "currentStage": 1,
+  "workBranch": null,
+  "ownedPaths": [
+    "server/organizations.ts",
+    "server/platformBilling.ts",
+    "src/domain/operations.ts",
+    "tests/platformBilling.test.ts",
+    "tests/domain.test.ts",
+    "tests/api.test.ts",
+    "package.json",
+    "tsconfig.core.json",
+    "docs/super-admin"
+  ],
+  "stages": [
+    {
+      "id": 0,
+      "status": "completed",
+      "evidence": {
+        "command": "npm test",
+        "tests": 34,
+        "passed": 31,
+        "failed": 3
+      },
+      "interpretation": "baseline audit complete, feature validation not passed"
+    },
+    {
+      "id": 1,
+      "status": "in_progress"
+    },
+    {
+      "id": 2,
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "status": "pending"
+    },
+    {
+      "id": 4,
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "status": "blocked",
+      "blockers": [
+        "Firestore API SERVICE_DISABLED on sodaflow",
+        "Netlify project access and live API deployment unavailable",
+        "Explicit verified platform-admin UID not supplied"
+      ]
+    }
+  ],
+  "productionValidated": false
+}

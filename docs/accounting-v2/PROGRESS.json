@@ -7,12 +7,7 @@
   "active_milestone": "B2",
   "active_branch": "codex/accounting-v2-b2-cash-reconciliation",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "root-accounting-v2-20261005-1612",
-    "started_at": "2026-10-05T16:16:22.855Z",
-    "updated_at": "2026-10-05T16:27:07.989Z",
-    "expires_at": "2026-10-05T17:12:07.989Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -75,7 +70,7 @@
         {
           "id": "B2",
           "scope": "AR statements/aging, GL, cash/bank, internal transfers, bank/cash reconciliation",
-          "status": "implemented_pending_ci",
+          "status": "implemented_ci_passed",
           "branch": "codex/accounting-v2-b2-cash-reconciliation",
           "completed_parts": [
             "GL date/opening/source-line reports and native-book projection",
@@ -95,22 +90,22 @@
             "status": "passed",
             "types": "passed",
             "build": "passed",
-            "targeted_ui": 3,
-            "targeted_ui_status": "passed",
-            "full_ci": "pending"
+            "rules": 29,
+            "rules_status": "passed",
+            "ui": 35,
+            "ui_status": "passed",
+            "production_audit_vulnerabilities": 0
           },
-          "remaining_parts": [
-            "Verify new complete B2 CI before progressing to B3"
-          ],
-          "pr": null,
+          "remaining_parts": [],
+          "pr": 17,
           "ci": {
             "conclusion": "success",
-            "run_id": 37299922052,
-            "commit_sha": "cfa98082684afc65be09a02fa1d51f610100396f",
-            "scope": "report_and_cash_checkpoint",
-            "unit_api": 97,
-            "rules": 8,
-            "ui": 25
+            "run_id": 37340980490,
+            "commit_sha": "86b7f92a0aa5ef2a2a654e90a16bfbbbdc759b60",
+            "scope": "complete_B2_manual_workflows",
+            "unit_api": 117,
+            "rules": 29,
+            "ui": 35
           },
           "previous_pr": 16
         },
@@ -166,11 +161,11 @@
   ],
   "last_report": "REPORT_B2.md",
   "next_steps": [
-    "Integrate main Super Admin changes without dropping B2; complete bank/cash reconciliation and cash views",
-    "Publish B2 continuation PR for user review, then B3, C, D, E and Excel 1-4",
-    "User merges only; no deployment or production writes"
+    "Start B3 immutable credit-note/return/refund source contracts and workflows",
+    "Then C, D, E and Excel1-4, including deferred PRD50 bank statement import",
+    "User reviews and merges; no main writes, deployment or production data"
   ],
-  "updated_at": "2026-10-05T16:27:07.989Z",
+  "updated_at": "2026-10-05T16:32:45.042Z",
   "deferred_requirements": [
     {
       "prd": "50",

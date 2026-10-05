@@ -2,27 +2,31 @@
   "schema_version": 1,
   "source_sha256": "a6ef84e96568ee751ede2a5a932e30c17140f914bcb61df5f38727f390ee4a45",
   "repository": "mistertee1/Sodaflow",
-  "base_main_sha": "bfc3b23754e76598007c83dd01f72231b01ed78a",
+  "base_main_sha": "3b056a813b7c532a5a8d8dc9b53069fc6da11991",
   "user_merges_only": true,
   "active_milestone": "A2",
-  "active_branch": "codex/accounting-v2-a1-ledger-foundation",
+  "active_branch": "codex/accounting-v2-a2-inventory-costing",
   "overall_status": "in_progress",
   "lease": {
     "worker": "root-accounting-v2",
-    "started_at": "2026-10-05T00:13:09.188Z",
-    "expires_at": "2026-10-05T00:58:09.188Z"
+    "started_at": "2026-10-05T04:41:50.241Z",
+    "expires_at": "2026-10-05T05:26:50.241Z"
   },
   "milestones": [
     {
       "id": "A1",
-      "status": "implemented_ci_pending",
+      "status": "merged_ci_passed",
       "branch": "codex/accounting-v2-a1-ledger-foundation",
-      "pr": 13
+      "pr": 13,
+      "ci": {
+        "conclusion": "success",
+        "run_id": 37246643311
+      }
     },
     {
       "id": "A2",
-      "status": "pending",
-      "branch": null,
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-a2-inventory-costing",
       "pr": null
     },
     {
@@ -79,5 +83,6 @@
     "Check A1 CI and correct any failures on A1 branch",
     "Implement A2 costing, controlled migration, inventory GL, API-only V2 writes and rules",
     "Do not start B before full phase A acceptance; never merge main"
-  ]
+  ],
+  "updated_at": "2026-10-05T04:41:50.241Z"
 }

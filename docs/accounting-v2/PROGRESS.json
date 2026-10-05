@@ -90,7 +90,7 @@
             "status": "passed",
             "types": "passed",
             "build": "passed",
-            "rules": 29,
+            "rules": 22,
             "rules_status": "passed",
             "ui": 35,
             "ui_status": "passed",
@@ -104,7 +104,7 @@
             "commit_sha": "86b7f92a0aa5ef2a2a654e90a16bfbbbdc759b60",
             "scope": "complete_B2_manual_workflows",
             "unit_api": 117,
-            "rules": 29,
+            "rules": 22,
             "ui": 35
           },
           "previous_pr": 16

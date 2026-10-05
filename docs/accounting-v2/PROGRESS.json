@@ -2,15 +2,15 @@
   "schema_version": 1,
   "source_sha256": "a6ef84e96568ee751ede2a5a932e30c17140f914bcb61df5f38727f390ee4a45",
   "repository": "mistertee1/Sodaflow",
-  "base_main_sha": "3b056a813b7c532a5a8d8dc9b53069fc6da11991",
+  "base_main_sha": "ecee366e960a820b621c8dbded6909c43a4a3096",
   "user_merges_only": true,
   "active_milestone": "B1",
   "active_branch": "codex/accounting-v2-b1-supplier-purchases",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "root-accounting-v2",
-    "started_at": "2026-10-05T05:05:24.865Z",
-    "expires_at": "2026-10-05T05:50:24.865Z"
+    "worker": "root-accounting-v2-20261005-1014",
+    "started_at": "2026-10-05T10:15:16.033Z",
+    "expires_at": "2026-10-05T11:00:16.033Z"
   },
   "milestones": [
     {
@@ -25,7 +25,7 @@
     },
     {
       "id": "A2",
-      "status": "implemented_ci_passed",
+      "status": "merged_ci_passed",
       "branch": "codex/accounting-v2-a2-inventory-costing",
       "pr": 14,
       "checks": {
@@ -116,5 +116,5 @@
     "Complete B2 cash/bank, GL, AR reports and reconciliation, then B3 returns/refunds before marking B complete",
     "C/D/E and Excel 1-4 remain pending; user review/merge only; no production changes"
   ],
-  "updated_at": "2026-10-05T05:05:24.865Z"
+  "updated_at": "2026-10-05T10:15:16.033Z"
 }

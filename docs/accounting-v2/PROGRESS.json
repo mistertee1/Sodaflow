@@ -10,8 +10,8 @@
   "lease": {
     "worker": "root-accounting-v2-20261005-1612",
     "started_at": "2026-10-05T16:16:22.855Z",
-    "updated_at": "2026-10-05T16:16:22.855Z",
-    "expires_at": "2026-10-05T17:01:22.855Z"
+    "updated_at": "2026-10-05T16:27:07.989Z",
+    "expires_at": "2026-10-05T17:12:07.989Z"
   },
   "milestones": [
     {
@@ -75,7 +75,7 @@
         {
           "id": "B2",
           "scope": "AR statements/aging, GL, cash/bank, internal transfers, bank/cash reconciliation",
-          "status": "in_progress",
+          "status": "implemented_pending_ci",
           "branch": "codex/accounting-v2-b2-cash-reconciliation",
           "completed_parts": [
             "GL date/opening/source-line reports and native-book projection",
@@ -84,24 +84,23 @@
             "authorized UI and audited CSV/PDF report exports",
             "financial account registry, immutable COA/currency mapping and API-only collections",
             "same-currency atomic transfers using proportional source carrying values; insufficient/raced/backdated funds checks",
-            "cash source reconciliation and backward-compatible backup/restore mapping validation"
+            "cash source reconciliation and backward-compatible backup/restore mapping validation",
+            "immutable manual bank matching and native cash counts with reasons, source-linked opening proof and snapshot hashes",
+            "backdated stale detection and dated current reconciliation status",
+            "per-account daily flows and last ten transactions",
+            "source validation and captured hash verification for reconciliation backup/restore"
           ],
           "checks": {
-            "unit_api": 97,
+            "unit_api": 117,
             "status": "passed",
             "types": "passed",
             "build": "passed",
-            "targeted_ui": 2,
+            "targeted_ui": 3,
             "targeted_ui_status": "passed",
-            "new_emulator_test": "passed",
-            "full_ci": "cash_checkpoint_passed",
-            "rules": 8,
-            "ui": 25
+            "full_ci": "pending"
           },
           "remaining_parts": [
-            "bank statement manual matching and cash counts with difference reasons and stale detection",
-            "cash account daily inflows/outflows, last transactions and reconciliation status",
-            "backup/restore source validation for bank/cash reconciliation documents"
+            "Verify new complete B2 CI before progressing to B3"
           ],
           "pr": null,
           "ci": {
@@ -171,5 +170,16 @@
     "Publish B2 continuation PR for user review, then B3, C, D, E and Excel 1-4",
     "User merges only; no deployment or production writes"
   ],
-  "updated_at": "2026-10-05T16:16:22.855Z"
+  "updated_at": "2026-10-05T16:27:07.989Z",
+  "deferred_requirements": [
+    {
+      "prd": "50",
+      "scope": "CSV/Excel bank statement import with matching preview",
+      "depends_on": [
+        "Excel1 staging",
+        "Excel2 controlled import"
+      ],
+      "status": "pending"
+    }
+  ]
 }

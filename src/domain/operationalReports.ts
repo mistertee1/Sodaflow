@@ -119,7 +119,13 @@ export function receivableReports(customers: Document[], invoices: Document[], p
 export function cashBalances(accounts: Account[], entries: JournalEntry[], periodInput: ReportPeriod, asOf: string) {
   const period = reportPeriod(periodInput, asOf), dated = datedEntries(entries, period.end), chart = chartIndex(accounts, dated);
   const cash = [...chart.values()].filter(account => classifyAccount(account).reporting_group === 'cash_bank');
-  const balances = cash.map(account => ({ ...accountLedger(accounts, entries, { ...periodInput, accountCode: account.code }, asOf) }));
+  const balances = cash.map(account => {
+    const ledger = accountLedger(accounts, entries, { ...periodInput, accountCode: account.code }, asOf);
+    const history = accountLedger(accounts, entries, { end: period.end, accountCode: account.code }, asOf);
+    const daily = history.rows.filter(row => row.date === period.end);
+    const movement = (field: 'debit' | 'credit', book: Book) => daily.reduce((n, row) => sum(n, row[field][book] || 0), 0);
+    return { ...ledger, activity_date: period.end, daily_inflow: { SDG: movement('debit','SDG'), USD: movement('debit','USD') }, daily_outflow: { SDG: movement('credit','SDG'), USD: movement('credit','USD') }, recent_rows: history.rows.slice(-10).reverse() };
+  });
   const total = (field: 'opening' | 'closing', book: Book) => balances.reduce((n, balance) => sum(n, balance[field][book] || 0), 0);
   // Aggregate inflow/outflow is net cash movement per journal, so internal cash transfers never inflate it.
   let inflow = zero(), outflow = zero();

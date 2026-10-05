@@ -157,3 +157,24 @@ test('B2 Firestore transfers cannot race source cash and direct SDK cannot forge
     const client=env.authenticatedContext(actor.uid,{email_verified:true}).firestore();for(const name of ['financial_accounts','financial_account_mappings','internal_transfers']){await assertFails(setDoc(doc(client,`${root}/${name}/forged`),{id:'forged'}));await assertFails(getDocs(collection(client,`${root}/${name}`)));}
   } finally {await deleteApp(app);}
 });
+
+test('B2 Firestore preserves bank/cash evidence across map ordering, retries and backdated changes; SDK reconciliation access stays denied', async () => {
+  const app = initializeApp({ projectId: project }, 'test-reconciliation-admin'), db = getFirestore(app);
+  try {
+    const store = new FirestoreStore(db), actor = { uid:'reconciliation-integration-owner', email:'r-i@example.com', emailVerified:true };
+    const org = await new Organizations(store).create(actor,'مطابقة فعلية',INITIAL_SETTINGS,'reconciliation-integration',true), root=`organizations/${org.id}`;
+    await store.transaction(async tx => tx.set(root,{...await tx.get(root),planId:'Enterprise',subscriptionEnd:'2027-01-01',subscriptionEndMillis:Date.parse('2027-01-01')}));
+    const rules=await readFile('firestore.rules','utf8'), ops=new Operations(store,()=>new Date('2026-10-05T12:00:00Z'),saved=>saved as any,async()=>verifyAccountingRulesSource([{content:rules}]));
+    const {journalLine}=await import('../src/domain/financial'); const run=(action:string,data:Record<string,unknown>,operationId:string)=>ops.execute(org.id,actor,{action,data,operationId});
+    await run('journal.create',{reference_type:'opening_balance',description:'افتتاحي',date:'2026-10-01',lines:[journalLine('1130','بنك',1000,0,.5,0),journalLine('1110','صندوق',500,0,.25,0),journalLine('3100','رأس مال',0,1500,0,.75)]},'opening'); await run('accounting.activate',{reason:'مطابقة بلا مخزون'},'activate');
+    const bank=(await run('financialAccount.create',{name:'بنك',account_code:'1130',currency:'SDG',kind:'bank'},'bank')).result,cash=(await run('financialAccount.create',{name:'صندوق',account_code:'1110',currency:'SDG',kind:'cash'},'cash')).result;
+    const data={financial_account_id:bank.id,period:{start:'2026-10-01',end:'2026-10-05'},statement_opening:0,statement_closing:1000,statement_lines:[{id:'deposit',date:'2026-10-01',direction:'inflow',amount:1000,reference:'OPEN',description:''}],matches:[{statement_line_id:'deposit',journal_id:'jv-opening',line_index:0}]};
+    const duplicate=await Promise.all([run('bankReconciliation.create',data,'capture'),run('bankReconciliation.create',data,'capture')]);assert.equal(duplicate[0].result.id,duplicate[1].result.id);
+    await run('cashCount.create',{financial_account_id:cash.id,date:'2026-10-05',actual_count:480,difference_reason:'نقص عند الجرد'},'count');
+    let report=await ops.cashReconciliationReports(org.id,actor);assert.equal(report.accounts.find(a=>a.financial_account_id===bank.id)!.current_status,'matched');assert.equal(report.accounts.find(a=>a.financial_account_id===cash.id)!.latest!.difference,-20);
+    await run('journal.create',{reference_type:'manual',date:'2026-10-02',description:'حركة جديدة متعادلة',lines:[journalLine('1130','بنك',10,0,.01,0),journalLine('1130','بنك',0,10,0,.01)]},'backdate');
+    report=await ops.cashReconciliationReports(org.id,actor);assert.equal(report.accounts.find(a=>a.financial_account_id===bank.id)!.current_status,'stale');
+    const snapshot=await ops.snapshot(org.id,actor,true);assert.equal(snapshot.collections.bank_reconciliations.length,1);assert.equal(snapshot.collections.cash_reconciliations.length,1);assert.equal(snapshot.collections.journal_entries.length,2);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
+    const client=env.authenticatedContext(actor.uid,{email_verified:true}).firestore();for(const name of ['bank_reconciliations','cash_reconciliations']){await assertFails(setDoc(doc(client,`${root}/${name}/forged`),{id:'forged'}));await assertFails(getDocs(collection(client,`${root}/${name}`)));}
+  } finally { await deleteApp(app); }
+});

@@ -44,6 +44,9 @@ interface AppContextType {
   internalTransfers: Document[];
   saveFinancialAccount: (data: Document, id?: string) => Promise<FinancialAccount>;
   transferCash: (data: Document) => Promise<Document>;
+  loadCashReconciliations: (asOf: string) => Promise<Awaited<ReturnType<Operations['cashReconciliationReports']>>>;
+  saveBankReconciliation: (data: Document) => Promise<Document>;
+  recordCashCount: (data: Document) => Promise<Document>;
   inventoryMovements: InventoryMovement[];
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
@@ -387,6 +390,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     financialAccounts: rows<FinancialAccount>('financial_accounts'), internalTransfers: rows<Document>('internal_transfers'),
     saveFinancialAccount: (data, id) => run<FinancialAccount>(id ? 'financialAccount.update' : 'financialAccount.create', id ? { id, updates: data } : data),
     transferCash: data => run('cashTransfer.create', data),
+    loadCashReconciliations: async asOf => {
+      const id = activeOrg.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');
+      return id === guestId && !userRef.current ? getGuest().cashReconciliationReports(id, guestActor, asOf) : api(`/organizations/${encodeURIComponent(id)}/reports/reconciliations?asOf=${encodeURIComponent(asOf)}`);
+    },
+    saveBankReconciliation: data => run('bankReconciliation.create', data),
+    recordCashCount: data => run('cashCount.create', data),
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
     isActionAllowed, switchOrganization, createNewOrg,
     inviteMember: async (email, role) => { await run('invitation.create', { email, role }); },

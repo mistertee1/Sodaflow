@@ -23,6 +23,7 @@
     "tests/ui/helpers/platform.ts",
     "tests/platformFirestore.test.ts",
     "tests/operationalReports.test.ts",
-    "tests/cashManagement.test.ts"
+    "tests/cashManagement.test.ts",
+    "tests/cashReconciliation.test.ts"
   ]
 }

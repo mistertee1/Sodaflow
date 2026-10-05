@@ -375,3 +375,29 @@ test('B2 mobile cash account mapping and rapid duplicate transfer preserve total
   const records=await page.evaluate(()=>Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3')||'{}')));const transfers=records.filter(([key])=>key.includes('/internal_transfers/'));expect(transfers).toHaveLength(1);expect((transfers[0][1] as any).amount_sdg).toBe(2500);expect((transfers[0][1] as any).amount_usd).toBe(1.25);expect(records.filter(([key])=>key.includes('/journal_entries/'))).toHaveLength(2);expect(records.filter(([key])=>key.includes('/financial_accounts/'))).toHaveLength(2);expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:'test-results/accounting-v2-cash-transfer-mobile.png',fullPage:true});
 });
+
+test('B2 mobile bank matching and cash counts preserve evidence, require difference reasons and never auto-post adjustments', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('hisabuk_guest_v1_products','[]');
+    const line=(code:string,ds:number,cs:number,du:number,cu:number)=>({account_code:code,account_name:code,debit_sdg:ds,credit_sdg:cs,debit_usd:du,credit_usd:cu});
+    localStorage.setItem('hisabuk_guest_v1_journal_entries',JSON.stringify([
+      {id:'opening-reconcile',entry_number:'JV-OPEN',date:'2026-10-01',reference_type:'opening_balance',reference_id:'opening-reconcile',description:'افتتاحي للمطابقة',lines:[line('1130',6000,0,3,0),line('1110',1000,0,.5,0),line('3100',0,7000,0,3.5)]},
+      {id:'bank-out',entry_number:'JV-OUT',date:'2026-10-03',reference_type:'manual',reference_id:'bank-out',description:'صرف بنكي مثبت',lines:[line('5200',1000,0,.5,0),line('1130',0,1000,0,.5)]},
+    ]));
+  });
+  await page.setViewportSize({width:390,height:844});await page.goto('/');await page.locator('#tab-products').click();await page.getByRole('button',{name:'تفعيل المحاسبة V2 بعد المطابقة'}).click();await expect(page.getByText('المحاسبة V2 مفعّلة',{exact:false}).first()).toBeVisible();
+  await page.locator('#tab-accounting').click();await page.getByRole('button',{name:'النقدية والبنوك',exact:true}).click();
+  for(const [name,code,kind] of [['صندوق الجرد','1110','cash'],['بنك المطابقة','1130','bank']]){
+    await page.getByRole('button',{name:'ربط حساب مالي',exact:true}).click();const dialog=page.getByRole('dialog',{name:'ربط حساب مالي',exact:true});await dialog.getByLabel('اسم الحساب المالي').fill(name);await dialog.getByLabel('حساب الدليل المالي').selectOption(code);await dialog.getByLabel('نوع الحساب المالي').selectOption(kind);await dialog.getByRole('button',{name:'حفظ الحساب المالي',exact:true}).click();await expect(dialog).toHaveCount(0);
+  }
+  const center=page.getByRole('region',{name:'النقدية والبنوك',exact:true});await center.getByLabel('نهاية التقرير التشغيلي').fill('2026-10-05');
+  await page.getByRole('button',{name:'مطابقة كشف بنك',exact:true}).click();let dialog=page.getByRole('dialog',{name:'مطابقة كشف بنك',exact:true});await dialog.getByLabel('حساب المطابقة').selectOption({label:'بنك المطابقة (SDG)'});await dialog.getByLabel('بداية المطابقة').fill('2026-10-01');await dialog.getByLabel('نهاية المطابقة').fill('2026-10-05');await expect(dialog).toContainText('5,000');await dialog.getByLabel('ختامي كشف البنك').fill('5000');
+  for (const [index,date,direction,amount,match] of [[1,'2026-10-01','inflow','6000','opening-reconcile:0'],[2,'2026-10-03','outflow','1000','bank-out:1']] as const) {
+    await dialog.getByRole('button',{name:'إضافة حركة كشف',exact:true}).click();await dialog.getByLabel(`تاريخ حركة ${index}`).fill(date);await dialog.getByLabel(`اتجاه حركة ${index}`).selectOption(direction);await dialog.getByLabel(`مبلغ حركة ${index}`).fill(amount);await dialog.getByLabel(`مطابقة حركة ${index}`).selectOption(match);
+  }
+  await dialog.locator('form').evaluate(form=>{(form as HTMLFormElement).requestSubmit();(form as HTMLFormElement).requestSubmit();});await expect(dialog).toHaveCount(0);
+  const rec=page.getByRole('region',{name:'مطابقة البنك وجرد الصندوق',exact:true});await expect(rec.getByRole('cell',{name:'مطابق',exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'جرد صندوق',exact:true}).click();dialog=page.getByRole('dialog',{name:'جرد صندوق',exact:true});await dialog.getByLabel('حساب المطابقة').selectOption({label:'صندوق الجرد (SDG)'});await dialog.getByLabel('نهاية المطابقة').fill('2026-10-05');await expect(dialog).toContainText('1,000');await dialog.getByLabel('النقد الفعلي').fill('980');await dialog.getByRole('button',{name:'حفظ إثبات المطابقة',exact:true}).click();await expect(dialog.getByRole('alert')).toBeVisible();await expect(dialog.getByLabel('النقد الفعلي')).toHaveValue('980');await dialog.getByLabel('سبب فرق المطابقة').fill('نقص عشرين موثق عند الجرد');await dialog.getByRole('button',{name:'حفظ إثبات المطابقة',exact:true}).click();await expect(dialog).toHaveCount(0);await expect(rec.getByRole('cell',{name:'يحتاج تسوية',exact:true})).toBeVisible();
+  const data=await page.evaluate(()=>Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3')||'{}')));expect(data.filter(([key])=>key.includes('/bank_reconciliations/'))).toHaveLength(1);expect(data.filter(([key])=>key.includes('/cash_reconciliations/'))).toHaveLength(1);expect(data.filter(([key])=>key.includes('/journal_entries/'))).toHaveLength(2);expect(data.filter(([key,value])=>key.includes('/audit_logs/')&&(value as any).action==='bankReconciliation.create')).toHaveLength(1);
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/accounting-v2-reconciliation-mobile.png',fullPage:true});
+});

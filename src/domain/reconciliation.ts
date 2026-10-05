@@ -1,6 +1,8 @@
 import BigNumber from 'bignumber.js';
 import type { MerchantSettings, Invoice } from '../types';
 import type { Document } from './store';
+import { classifyAccount } from './accountClassification';
+import { generateExpenseJournalEntry } from '../services/accountingService';
 import { invoiceFinancials } from './financial';
 import { dateOnly, identifier, money, validateJournal } from './validation';
 
@@ -34,6 +36,7 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
     if (indexes[name].has(id)) add('duplicate_id', name, String(id));
     indexes[name].set(id, row);
   }
+  for (const account of data.accounts) inspect('accounts', account.code, () => { classifyAccount(account as any); });
   const entriesByReference = new Map<string, Document[]>();
   let arSdg = new BigNumber(0), arUsd = new BigNumber(0);
   for (const entry of data.journal_entries) {
@@ -106,7 +109,15 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
   }
   for (const expense of data.expenses) {
     if (sourceEntries('expense', expense.id).length !== 1) add('missing_or_duplicate_journal', 'expenses', expense.id);
+    inspect('expenses', expense.id, () => {
+      const expected = generateExpenseJournalEntry(expense as any, expense.org_id || '', expense.created_by);
+      const actual = sourceEntries('expense', expense.id).flatMap(e => e.lines || []);
+      for (const line of expected.lines) for (const field of ['debit_sdg', 'credit_sdg', 'debit_usd', 'credit_usd'] as const) {
+        compare('expenses', expense.id, `${line.account_code}:${field}`, line[field], actual.filter(l => l.account_code === line.account_code).reduce((total, l) => total.plus(l[field] || 0), new BigNumber(0)).toNumber());
+      }
+    });
     if (expense.voided_at && sourceEntries('void', expense.id).length !== 1) add('missing_reversal', 'expenses', expense.id);
   }
   return findings;
 }
+

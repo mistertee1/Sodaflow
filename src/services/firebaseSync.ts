@@ -1,7 +1,14 @@
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
-import type { Operations, OperationResult } from '../domain/operations';
+import { FirebaseError } from 'firebase/app';
+import { doc, getDocFromServer, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
+import { canonical, Operations, type Actor, type OperationResult } from '../domain/operations';
+import type { Document } from '../domain/store';
+import type { OrgSubscription } from '../types';
+import { createDefaultSubscription } from '../lib/plans';
+import { BusinessError } from '../domain/validation';
+import { BrowserFirestoreStore } from './browserFirestoreStore';
 import { api, sendCommand } from './businessApi';
+import { rememberOperation, forgetOperation } from './pendingOperations';
 
 // Keep realtime revision notifications and the confirmed snapshot cache. All tenant reads
 // and financial writes use the same authenticated API and authoritative live entitlements.

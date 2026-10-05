@@ -157,8 +157,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     apply(loaded);
     if (id !== guestId) cacheConfirmedSnapshot(loaded);
     setSyncStatus(id === guestId ? 'idle' : 'synced'); setSyncError(null); setLastSyncedAt(id === guestId ? null : new Date());
+    startRevisionWatch(id, epoch);
+  };
+  const startRevisionWatch = (id: string, epoch: number) => {
+    if (revisionWatch.current || id === guestId || !userRef.current || epoch !== session.current) return;
+    let monitoringFailed = false;
+    revisionWatch.current = watchFirebaseRevision(
+      id,
+      revision => {
+        if (epoch !== session.current || activeOrg.current !== id || (revision <= confirmedRevision.current && !monitoringFailed) || pendingRefresh.current) return;
+        pendingRefresh.current = true;
+        void refresh(id, epoch)
+          .then(() => { monitoringFailed = false; })
+          .catch(error => { if (epoch === session.current && activeOrg.current === id) { monitoringFailed = true; fail(error); } })
+          .finally(() => { pendingRefresh.current = false; });
+      },
+      error => { if (epoch === session.current && activeOrg.current === id) { monitoringFailed = true; fail(error); } },
+    );
   };
   const load = async (org: Organization) => {
+    revisionWatch.current?.(); revisionWatch.current = null;
     const epoch = ++session.current;
     activeOrg.current = org.id;
     confirmedRevision.current = -1;
@@ -179,18 +197,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await refresh(org.id, epoch);
       if (epoch === session.current && userRef.current) {
         localStorage.setItem(`sudaflow_active_org_${userRef.current.uid}`, org.id);
-        revisionWatch.current?.();
-        revisionWatch.current = watchFirebaseRevision(
-          org.id,
-          revision => {
-            if (epoch !== session.current || activeOrg.current !== org.id || revision <= confirmedRevision.current || pendingRefresh.current) return;
-            pendingRefresh.current = true;
-            void refresh(org.id, epoch)
-              .catch(error => { if (epoch === session.current && activeOrg.current === org.id) fail(error); })
-              .finally(() => { pendingRefresh.current = false; });
-          },
-          error => { if (epoch === session.current && activeOrg.current === org.id) fail(error); },
-        );
       }
     } catch (error) { if (epoch === session.current) fail(error); throw error; }
   };
@@ -247,9 +253,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     const interval = window.setInterval(reconcile, 30000);
     window.addEventListener('focus', reconcile); window.addEventListener('online', reconcile);
+    document.addEventListener('visibilitychange', reconcile);
     return () => {
       window.clearInterval(interval);
       window.removeEventListener('focus', reconcile); window.removeEventListener('online', reconcile);
+      document.removeEventListener('visibilitychange', reconcile);
       revisionWatch.current?.(); revisionWatch.current = null;
     };
   }, []);

@@ -1,6 +1,7 @@
 import { auth } from '../lib/firebase';
 import { canonical, type Command, type OperationResult } from '../domain/operations';
 import { BusinessError } from '../domain/validation';
+import { rememberOperation, forgetOperation } from './pendingOperations';
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const user = auth.currentUser;
@@ -38,20 +39,22 @@ export async function platformMutation<T>(path: string, payload: Record<string, 
   }
 }
 export async function sendCommand(orgId: string, action: string, data: Record<string, unknown>, suggestedId?: string): Promise<OperationResult> {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
   const fingerprint = canonical({ action, data });
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
   const digest = Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
-  const key = `sudaflow_pending_${auth.currentUser?.uid}_${orgId}_${digest}`;
-  const id = localStorage.getItem(key) || suggestedId || operationId();
+  if (auth.currentUser?.uid !== uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401);
+  const key = `sudaflow_pending_${uid}_${orgId}_${digest}`;
+  const id = rememberOperation(key, suggestedId);
   // Persist the ID before sending so uncertain transport failures can be retried after reload.
-  localStorage.setItem(key, id);
   const command: Command = { action, operationId: id, data };
   try {
     const response = await api<OperationResult>(`/organizations/${encodeURIComponent(orgId)}/operations`, { method: 'POST', body: JSON.stringify(command) });
-    try { localStorage.removeItem(key); } catch { /* The confirmed server result still succeeds. */ }
+    forgetOperation(key);
     return response;
   } catch (error) {
-    if (error instanceof BusinessError && error.status < 500 && error.status !== 429) localStorage.removeItem(key);
+    if (error instanceof BusinessError && error.status < 500 && error.status !== 429) forgetOperation(key);
     throw error;
   }
 }

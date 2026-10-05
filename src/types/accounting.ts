@@ -8,6 +8,10 @@ export interface Account {
   name_en: string;
   type: AccountCategory;
   nature: AccountNature;
+  subtype?: string;
+  reporting_group?: import("../domain/accountClassification").ReportingGroup;
+  cash_flow_category?: import("../domain/accountClassification").CashFlowCategory;
+  normal_balance?: AccountNature;
   parent_code?: string;
   is_system: boolean;
   is_active: boolean;
@@ -113,6 +117,7 @@ export interface BalanceSheetSummary {
   total_liabilities_and_equity_usd: number;
   is_balanced: boolean;
   variance_sdg: number;
+  variance_usd?: number;
   difference_sdg?: number;
 }
 
@@ -151,4 +156,5 @@ export interface CashFlowSummary {
   ending_cash_sdg: number;
   ending_cash_usd: number;
 }
+
 

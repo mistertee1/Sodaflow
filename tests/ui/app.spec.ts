@@ -239,3 +239,31 @@ test('merchant profile saves before exchange setup and remains after reopening a
   await page.reload();
   await expect(page.getByText('متجر محفوظ', { exact: true }).first()).toBeVisible();
 });
+
+test('A1 expense payment selection saves the bank account and removes merchandise expense classification', async ({ page }) => {
+  await page.goto('/'); await page.locator('#tab-expenses').click();
+  await page.getByRole('button', { name: /إضافة مصروف|مصروف جديد/ }).first().click();
+  const form = page.locator('form').last();
+  await form.locator('input[type="text"]').first().fill('إيجار مدفوع ببنكك');
+  await form.locator('input[type="number"]').first().fill('100');
+  await form.getByLabel('طريقة سداد المصروف').selectOption('bankak');
+  await expect(form.locator('option', { hasText: 'مشتريات بضاعة وتوريدات' })).toHaveCount(0);
+  await form.getByRole('button', { name: 'تسجيل المصروف' }).click();
+  await expect(form).not.toBeVisible();
+  const records = await page.evaluate(() => Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}')));
+  const expense = records.find(([key]) => key.includes('/expenses/'))![1] as any;
+  const posting = records.find(([key]) => key.includes('/journal_entries/'))![1] as any;
+  expect(expense.payment_account_code).toBe('1130');
+  expect(posting.lines.find((line: any) => line.account_code === '1130').credit_sdg).toBe(100);
+});
+
+test('A1 report dates reject reversed ranges without hiding account repair controls', async ({ page }) => {
+  await page.goto('/'); await page.locator('#tab-accounting').click();
+  await page.getByLabel('بداية فترة التقرير').fill('2026-11-01');
+  await page.getByLabel('نهاية فترة التقرير').fill('2026-10-01');
+  await expect(page.getByRole('alert')).toContainText('بداية الفترة');
+  await expect(page.getByRole('button', { name: 'إضافة حساب', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'كل الفترات', exact: true }).click();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByText('دليل الحسابات المتوافق', { exact: false })).toBeVisible();
+});

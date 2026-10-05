@@ -333,6 +333,9 @@ export interface Expense {
   voided_at?: string;
   id: string;
   title: string;
+  payment_method?: PaymentMethod | "on_credit" | "custom";
+  payment_account_code?: string;
+  expense_account_code?: string;
   category: string; // إيجار, نقل وترحيل, بضاعة, رواتب ومكافآت, كهرباء وماء, صيانة, أخرى
   amount: number;
   currency: Currency;
@@ -371,3 +374,4 @@ export interface MerchantSettings {
 }
 
 export * from './accounting';
+

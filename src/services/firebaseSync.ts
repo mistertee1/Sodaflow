@@ -1,5 +1,5 @@
 import { FirebaseError } from 'firebase/app';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getDocFromServer, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { canonical, Operations, type Actor, type OperationResult } from '../domain/operations';
 import type { Document } from '../domain/store';
@@ -8,6 +8,7 @@ import { createDefaultSubscription } from '../lib/plans';
 import { BusinessError } from '../domain/validation';
 import { BrowserFirestoreStore } from './browserFirestoreStore';
 import { api, sendCommand } from './businessApi';
+import { rememberOperation, forgetOperation } from './pendingOperations';
 
 type FirebaseSnapshot = Awaited<ReturnType<Operations['snapshot']>>;
 
@@ -74,37 +75,36 @@ export async function firebaseSnapshot(orgId: string, backup = false) {
   }
 }
 
-const operationId = () => crypto.randomUUID();
-
 export async function firebaseCommand(
   orgId: string,
   action: string,
   data: Record<string, unknown>,
   suggestedId?: string,
 ): Promise<OperationResult> {
-  const user = auth.currentUser;
-  if (!user) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
+  const actor = currentActor();
   const fingerprint = canonical({ action, data });
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
   const digest = Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
-  const key = `sudaflow_pending_${user.uid}_${orgId}_${digest}`;
-  const id = localStorage.getItem(key) || suggestedId || operationId();
-  localStorage.setItem(key, id);
+  if (auth.currentUser?.uid !== actor.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401);
+  const key = `sudaflow_pending_${actor.uid}_${orgId}_${digest}`;
+  const id = rememberOperation(key, suggestedId);
   try {
     const bridge = testBridge();
-    const response = bridge?.command
-      ? await bridge.command(orgId, action, data, id)
-      : await operations.execute(orgId, currentActor(), { action, operationId: id, data: data as Document });
-    try { localStorage.removeItem(key); } catch { /* confirmed write already succeeded */ }
+    let response: OperationResult;
+    try {
+      response = bridge?.command
+        ? await bridge.command(orgId, action, data, id)
+        : await operations.execute(orgId, actor, { action, operationId: id, data: data as Document });
+    } catch (error) {
+      if (!isPermissionDenied(error)) throw error;
+      // Retain the same ID across SDK/API retries and clear it after either confirms success.
+      response = await sendCommand(orgId, action, data, id);
+    }
+    forgetOperation(key);
     return response;
   } catch (error) {
-    if (isPermissionDenied(error)) {
-      // Production may still be running pre-direct-sync Firestore rules. The API uses
-      // the same Operations engine and operation ID, so fallback is safe and idempotent.
-      return sendCommand(orgId, action, data, id);
-    }
     if (error instanceof BusinessError && error.status < 500 && error.status !== 429) {
-      try { localStorage.removeItem(key); } catch { /* no-op */ }
+      forgetOperation(key);
     }
     return directFailure(error);
   }
@@ -124,8 +124,17 @@ export function watchFirebaseRevision(
     if (!current() || polling || document.visibilityState !== 'visible') return;
     polling = true;
     try {
-      const result = await api<{ revision: number }>(`/organizations/${encodeURIComponent(orgId)}/revision`);
-      if (current()) onRevision(result.revision);
+      let revision: number;
+      try {
+        const snapshot = await getDocFromServer(doc(db, `organizations/${orgId}/meta/counters`));
+        if (!snapshot.exists()) throw new BusinessError('عدّاد المؤسسة غير موجود؛ راجع تهيئة المؤسسة.', 503, 'counters_missing');
+        revision = Number(snapshot.data().revision);
+      } catch (error) {
+        if (!isPermissionDenied(error)) throw error;
+        revision = (await api<{ revision: number }>(`/organizations/${encodeURIComponent(orgId)}/revision`)).revision;
+      }
+      if (!Number.isSafeInteger(revision) || revision < 0) throw new BusinessError('استجابة عدّاد المزامنة غير صالحة.', 503, 'invalid_revision');
+      if (current()) onRevision(revision);
     } catch (error) {
       if (current()) onError?.(error);
     } finally {
@@ -140,8 +149,8 @@ export function watchFirebaseRevision(
   };
   const recover = () => {
     if (!current() || fallback) return;
-    // A failed Firestore listener receives no more events. Keep monitoring through
-    // the authenticated API; membership is rechecked on every revision read.
+    // A failed listener receives no more events. Continue through server-confirmed
+    // SDK reads first; the Admin API remains a fallback for Rules that deny these reads.
     fallback = true;
     unsubscribe?.();
     void poll().finally(schedule);

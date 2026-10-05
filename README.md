@@ -41,6 +41,8 @@ npm audit --omit=dev
 
 ## تنظيم الكود
 
+مقارنة النسخة القديمة وإصلاح اتصال SDK وتخفيف الاعتماد على Admin API في تحميل الشركات موثقان في [مقارنة المزامنة](docs/legacy-sync-comparison.md). لا يغير الإصلاح مشروع Firebase ولا ينسخ بيانات مشروع Hesabak القديم تلقائياً.
+
 - `src/domain`: التحقق، الحسابات المالية، العمليات الذرية، ومحرك الوضع المحلي.
 - `server`: مصادقة الخادم، محول Firestore، المؤسسات، وتحقق الاشتراكات.
 - `src/services/firebaseSync.ts`: مزامنة Firestore المباشرة، realtime revision listener، وfallback خادمي فقط عند رفض القواعد المباشرة.

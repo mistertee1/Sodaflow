@@ -12,13 +12,23 @@ import {
   onAuthStateChanged,
   User,
 } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, type Firestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+const databaseId = firebaseConfig.firestoreDatabaseId || '(default)';
+let firestore: Firestore;
+try {
+  // Preserve the legacy client's transport on restricted mobile/proxy networks.
+  firestore = initializeFirestore(app, { experimentalForceLongPolling: true }, databaseId);
+} catch (error) {
+  // Vite HMR can retain a Firestore instance initialized before this module reloads.
+  if ((error as { code?: string }).code !== 'failed-precondition') throw error;
+  firestore = getFirestore(app, databaseId);
+}
+export const db = firestore;
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({
   prompt: 'select_account',
@@ -174,4 +184,3 @@ export const logout = async () => {
 
 export { onAuthStateChanged };
 export type { User };
-

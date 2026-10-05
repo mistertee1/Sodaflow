@@ -8,33 +8,38 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (!user) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
   const request = async (forceRefresh = false) => {
     const token = await user.getIdToken(forceRefresh);
-    if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401);
+    if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
     try {
       return await fetch(`/api${path}`, { ...init, headers: { ...(init.body instanceof Blob ? {} : { 'Content-Type': 'application/json' }), ...init.headers, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(60000) });
     } catch { throw new BusinessError('تعذر تأكيد الحفظ من الخادم. أعد المحاولة بنفس البيانات؛ لن تتكرر العملية.', 503); }
   };
   let response = await request();
+  if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
   // Retry only authentication rejection; retain the same command and operation ID.
   if (response.status === 401) response = await request(true);
+  if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
   if (!response.headers.get('content-type')?.includes('application/json')) throw new BusinessError('خدمة الحفظ السحابي غير مهيأة على هذا الموقع. تواصل مع إدارة المنصة؛ حسابك لم يُعلّق.', 503, 'backend_unavailable');
   const result = await response.json().catch(() => { throw new BusinessError('تعذر قراءة استجابة خدمة الحفظ. أعد المحاولة؛ لم يتم تأكيد الحفظ.', 502, 'invalid_response'); });
+  if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
   if (!response.ok) throw new BusinessError(result.error || 'تعذر إكمال العملية.', response.status, result.code);
   return result;
 }
 export const operationId = () => crypto.randomUUID();
 /** Persist only a request ID, never secrets or commercial payloads, across uncertain retries. */
 export async function platformMutation<T>(path: string, payload: Record<string, unknown>): Promise<T> {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical({ path, payload })));
   const digest = Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
-  const key = `sudaflow_platform_pending_${auth.currentUser?.uid}_${digest}`;
-  const id = localStorage.getItem(key) || operationId();
-  localStorage.setItem(key, id);
+  if (auth.currentUser?.uid !== uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
+  const key = `sudaflow_platform_pending_${uid}_${digest}`;
+  const id = rememberOperation(key);
   try {
     const result = await api<T>(path, { method: 'POST', body: JSON.stringify({ ...payload, operationId: id }) });
-    try { localStorage.removeItem(key); } catch { /* Confirmed server success remains authoritative. */ }
+    forgetOperation(key);
     return result;
   } catch (error) {
-    if (error instanceof BusinessError && error.status < 500 && error.status !== 429) localStorage.removeItem(key);
+    if (error instanceof BusinessError && error.status < 500 && error.status !== 429 && error.code !== 'session_changed') forgetOperation(key);
     throw error;
   }
 }
@@ -44,7 +49,7 @@ export async function sendCommand(orgId: string, action: string, data: Record<st
   const fingerprint = canonical({ action, data });
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
   const digest = Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
-  if (auth.currentUser?.uid !== uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401);
+  if (auth.currentUser?.uid !== uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
   const key = `sudaflow_pending_${uid}_${orgId}_${digest}`;
   const id = rememberOperation(key, suggestedId);
   // Persist the ID before sending so uncertain transport failures can be retried after reload.
@@ -54,7 +59,7 @@ export async function sendCommand(orgId: string, action: string, data: Record<st
     forgetOperation(key);
     return response;
   } catch (error) {
-    if (error instanceof BusinessError && error.status < 500 && error.status !== 429) forgetOperation(key);
+    if (error instanceof BusinessError && error.status < 500 && error.status !== 429 && error.code !== 'session_changed') forgetOperation(key);
     throw error;
   }
 }

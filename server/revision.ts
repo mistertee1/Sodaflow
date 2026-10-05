@@ -5,7 +5,9 @@ import { ensure } from '../src/domain/validation';
 /** Read the synchronization counter without scanning financial collections. */
 export async function organizationRevision(store: Store, orgId: string, actor: Actor) {
   return store.transaction(async tx => {
-    await membership(tx, orgId, actor);
+    // The counter is a tenant-scoped read, like the historical snapshot. Protected
+    // writes still validate company and subscription status in Operations.execute.
+    await membership(tx, orgId, actor, true);
     const counters = await tx.get(`organizations/${orgId}/meta/counters`);
     const revision = Number(counters?.revision || 0);
     ensure(Number.isSafeInteger(revision) && revision >= 0, 'عداد المزامنة غير صالح. أعد المحاولة.', 503);

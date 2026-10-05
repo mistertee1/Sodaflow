@@ -143,6 +143,8 @@ export const getDefaultChartOfAccounts = (orgId: string): Account[] => {
       created_at: now,
     },
 
+    { code: '2140', name_ar: 'مصروفات مستحقة غير مرتبطة بمورد', name_en: 'Accrued Operating Expenses', type: 'LIABILITY', nature: 'CREDIT', is_system: true, is_active: true, balance_sdg: 0, balance_usd: 0, org_id: orgId, created_at: now },
+
     // 3000s: حقوق الملكية (EQUITY)
     {
       code: '3100',

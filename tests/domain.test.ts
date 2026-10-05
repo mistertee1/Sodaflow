@@ -176,7 +176,9 @@ test('tax liability is separated from revenue, and expense reversal preserves im
 
 test('historical client-written subscriptions confer no paid rights; only signed server billing is trusted', async () => {
   const { resolveSubscription, signSubscription } = await import('../server/subscriptions');
-  const f = await fixture(), untrusted = new Operations(f.store); assert.equal((await untrusted.snapshot(f.org.id, owner)).subscription.plan, 'Free');
+  const f = await fixture({ free: true });
+  await f.store.transaction(async tx => { const forged = getPlanConfig('Enterprise'); tx.set(`organizations/${f.org.id}/meta/subscription`, { ...createDefaultSubscription(f.org.id), ...forged, plan: forged.name }); });
+  const untrusted = new Operations(f.store); assert.equal((await untrusted.snapshot(f.org.id, owner)).subscription.plan, 'Free');
   const before = process.env.BILLING_SIGNING_SECRET; process.env.BILLING_SIGNING_SECRET = 'test-only-signing-secret-32-characters-long';
   try {
     const tier = getPlanConfig('Professional'), signed = signSubscription({ ...createDefaultSubscription(f.org.id), ...tier, plan: tier.name, updated_at: '2026-10-01' }, process.env.BILLING_SIGNING_SECRET);

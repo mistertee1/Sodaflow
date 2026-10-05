@@ -10,7 +10,7 @@
   "lease": {
     "worker": "root-accounting-v2-20261005-1014",
     "started_at": "2026-10-05T10:15:16.033Z",
-    "expires_at": "2026-10-05T11:00:16.033Z"
+    "expires_at": "2026-10-05T11:10:30.985Z"
   },
   "milestones": [
     {
@@ -53,7 +53,14 @@
         {
           "id": "B1",
           "scope": "Suppliers, purchase bills, supplier payments, AP aging/statements",
-          "status": "in_progress"
+          "status": "implemented_ci_pending",
+          "branch": "codex/accounting-v2-b1-supplier-purchases",
+          "checks": {
+            "unit_api": 81,
+            "status": "passed",
+            "ui_local_b1": "passed",
+            "rules_status": "CI pending (Java 21)"
+          }
         },
         {
           "id": "B2",
@@ -110,11 +117,11 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_A2.md",
+  "last_report": "REPORT_B1.md",
   "next_steps": [
-    "Implement B1 supplier master, purchase bills, supplier payments and AP reports on dependent branch targeting A2 until user merges",
-    "Complete B2 cash/bank, GL, AR reports and reconciliation, then B3 returns/refunds before marking B complete",
-    "C/D/E and Excel 1-4 remain pending; user review/merge only; no production changes"
+    "Verify B1 CI and real Firestore concurrency tests; fix failures before proceeding",
+    "Start B2 from the tested B1 branch; dependent PR targets B1 while it is unmerged",
+    "B3, C/D/E and Excel 1-4 remain pending; no merge/deployment/production writes"
   ],
-  "updated_at": "2026-10-05T10:15:16.033Z"
+  "updated_at": "2026-10-05T10:25:30.985Z"
 }

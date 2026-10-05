@@ -44,6 +44,7 @@ import { BalanceSheetReport } from './accounting/BalanceSheetReport';
 import { CashFlowReport } from './accounting/CashFlowReport';
 import { classifyAccount, reportingGroupsFor, reportingGroupLabels, type ReportingGroup } from '../domain/accountClassification';
 import { hasIncompleteInvoiceCosts } from '../domain/inventoryCost';
+import { PayablesCenter } from './accounting/PayablesCenter';
 import { Dialog } from './Dialog';
 export const AccountingView: React.FC = () => {
   const {
@@ -63,7 +64,7 @@ export const AccountingView: React.FC = () => {
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<
-    'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
+    'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
   >('coa');
   const [reportStart, setReportStart] = useState('');
   const [reportEnd, setReportEnd] = useState('');
@@ -445,6 +446,7 @@ export const AccountingView: React.FC = () => {
 
         {/* Sub-Navigation Tabs */}
         <div className="flex items-center gap-2 border-t border-sf-border mt-6 pt-4 overflow-x-auto pb-1">
+          {isActionAllowed('payables:read') && <button onClick={() => setActiveSubTab('payables')} className="sf-btn sf-btn-secondary whitespace-nowrap">الموردون والمشتريات</button>}
           <button
             onClick={() => setActiveSubTab('coa')}
             className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
@@ -926,6 +928,8 @@ export const AccountingView: React.FC = () => {
       {!reportBundle.error && !reportError && advancedAllowed && reportsReady && activeSubTab === 'cash_flow' && <CashFlowReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
 
       {/* SUB-TAB 7: ACCOUNTING PERIOD LOCK (إقفال الفترات المحاسبية) */}
+      {activeSubTab === 'payables' && <PayablesCenter />}
+
       {activeSubTab === 'period_lock' && (
         <div className="space-y-6">
           {/* Status Card */}

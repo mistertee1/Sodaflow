@@ -54,7 +54,13 @@ export const owner: Actor = { uid: 'owner', email: 'owner@example.com', emailVer
 export async function fixture(options: { stock?: number; free?: boolean; persist?: () => void } = {}) {
   const store = new MemoryStore({}, options.persist), orgs = new Organizations(store, saved => saved as any);
   const org = await orgs.create(owner, 'متجر الاختبار', { ...INITIAL_SETTINGS, invoice_prefix: 'INV-', default_exchange_rate: 2000 }, 'setup', true);
-  await store.transaction(async tx => { const plan = getPlanConfig(options.free ? 'Free' : 'Enterprise'); tx.set(`organizations/${org.id}/meta/subscription`, { ...createDefaultSubscription(org.id), ...plan, plan: plan.name }); });
+  await store.transaction(async tx => {
+    const plan = getPlanConfig(options.free ? 'Free' : 'Enterprise');
+    tx.set(`organizations/${org.id}/meta/subscription`, { ...createDefaultSubscription(org.id), ...plan, plan: plan.name });
+    // Financial fixtures simulate an administrator-issued paid contract. A legacy
+    // projection alone can no longer override the canonical Free organization.
+    if (!options.free) tx.set(`organizations/${org.id}`, { ...org, planId: 'Enterprise', subscriptionStatus: 'active', subscriptionEnd: '2027-01-01T00:00:00.000Z', subscriptionEndMillis: Date.parse('2027-01-01T00:00:00.000Z') });
+  });
   let clock = new Date('2026-10-01T12:00:00Z');
   const ops = new Operations(store, () => clock, saved => saved as any);
   const run = (action: string, data: Record<string, unknown>, operationId: string = crypto.randomUUID(), actor = owner) => ops.execute(org.id, actor, { action, data, operationId });
@@ -146,12 +152,13 @@ test('unpaid void reverses the actual original journal and restores stock exactl
   const second = await f.run('invoice.create', f.invoice(), 'sale2'); await f.run('payment.create', { invoice_id: second.result.id, amount: 10, currency: 'USD', exchange_rate_used: 2000, payment_method: 'cash' }); await assert.rejects(f.run('invoice.void', { id: second.result.id }), /ردّ مبلغ/);
 });
 
-test('monthly quota resets at organization month boundary; client cannot self-upgrade', async () => {
+test('Free quota is 100 lifetime invoices across month changes; Owner requests cannot self-upgrade', async () => {
   const f = await fixture({ free: true, stock: 101 }); for (let i = 0; i < 100; i++) await f.run('invoice.create', f.invoice(1, 1, 'SDG'), `oct-${i}`);
   await f.run('subscription.request', { plan: 'Enterprise' }, 'request'); assert.equal((await f.ops.snapshot(f.org.id, owner)).subscription.plan, 'Free');
-  await assert.rejects(f.run('invoice.create', f.invoice(1, 1, 'SDG')), /حد الفواتير/);
-  f.setClock('2026-11-01T12:00:00Z'); await f.run('invoice.create', f.invoice(1, 1, 'SDG'), 'nov-1');
-  const s = await f.ops.snapshot(f.org.id, owner); assert.equal(s.counters.invoice_count, 101); assert.equal(s.counters.monthly_invoice_count, 1);
+  await assert.rejects(f.run('invoice.create', f.invoice(1, 1, 'SDG')), /100 فاتورة إجمالاً/);
+  f.setClock('2026-11-01T12:00:00Z');
+  await assert.rejects(f.run('invoice.create', f.invoice(1, 1, 'SDG'), 'nov-1'), /100 فاتورة إجمالاً/);
+  const s = await f.ops.snapshot(f.org.id, owner); assert.equal(s.counters.invoice_count, 100); assert.equal(s.counters.monthly_invoice_count, 0); assert.equal(s.counters.lifetime_invoice_count, 100);
 });
 
 test('backup and reports include 100 of 100 records independently of display pages', async () => {
@@ -176,7 +183,9 @@ test('tax liability is separated from revenue, and expense reversal preserves im
 
 test('historical client-written subscriptions confer no paid rights; only signed server billing is trusted', async () => {
   const { resolveSubscription, signSubscription } = await import('../server/subscriptions');
-  const f = await fixture(), untrusted = new Operations(f.store); assert.equal((await untrusted.snapshot(f.org.id, owner)).subscription.plan, 'Free');
+  const f = await fixture({ free: true });
+  await f.store.transaction(async tx => { const forged = getPlanConfig('Enterprise'); tx.set(`organizations/${f.org.id}/meta/subscription`, { ...createDefaultSubscription(f.org.id), ...forged, plan: forged.name }); });
+  const untrusted = new Operations(f.store); assert.equal((await untrusted.snapshot(f.org.id, owner)).subscription.plan, 'Free');
   const before = process.env.BILLING_SIGNING_SECRET; process.env.BILLING_SIGNING_SECRET = 'test-only-signing-secret-32-characters-long';
   try {
     const tier = getPlanConfig('Professional'), signed = signSubscription({ ...createDefaultSubscription(f.org.id), ...tier, plan: tier.name, updated_at: '2026-10-01' }, process.env.BILLING_SIGNING_SECRET);

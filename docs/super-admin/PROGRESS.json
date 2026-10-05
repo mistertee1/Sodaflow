@@ -1,22 +1,22 @@
 {
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
-  "sourceBase": "afc3ef69c9eec98219a71713e701e666ab66e5c1",
-  "updatedAt": "2026-10-05T07:55:21.108001+00:00",
+  "sourceBase": "8574843565287f3bdcfaa226f66ffc16b54e3f8e",
+  "updatedAt": "2026-10-05T08:06:40.261465+00:00",
   "activeRunId": "super-admin-interactive-20261005",
-  "leaseUntil": "2026-10-05T08:40:21.108001+00:00",
+  "leaseUntil": "2026-10-05T08:51:40.261465+00:00",
   "automationId": "6ac35722234c819194e0535527c23124",
-  "currentStage": 1,
-  "workBranch": null,
+  "currentStage": 2,
+  "workBranch": "codex/super-admin-phases-20261005",
   "ownedPaths": [
-    "server/organizations.ts",
     "server/platformBilling.ts",
-    "src/domain/operations.ts",
+    "src/domain/subscriptions.ts",
+    "src/types.ts",
+    "src/services/subscription.ts",
+    "src/context/AppContext.tsx",
     "tests/platformBilling.test.ts",
-    "tests/domain.test.ts",
-    "tests/api.test.ts",
+    "tests/helpers/platform.ts",
     "package.json",
-    "tsconfig.core.json",
     "docs/super-admin"
   ],
   "stages": [
@@ -33,11 +33,24 @@
     },
     {
       "id": 1,
-      "status": "in_progress"
+      "status": "completed",
+      "evidence": {
+        "commands": [
+          "npm test",
+          "npm run lint:core",
+          "npm run lint",
+          "npm run build"
+        ],
+        "tests": 44,
+        "passed": 44,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "domain, HTTP authorization, account isolation and build; UI and Rules are later stages"
+      }
     },
     {
       "id": 2,
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": 3,

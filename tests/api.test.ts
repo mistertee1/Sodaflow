@@ -123,6 +123,21 @@ test('readiness checks actual read access without writing data or exposing crede
   assert.equal(badCredential.checks.firestore, undefined);
 });
 
+test('disabled Firestore API is diagnosed separately from IAM denial without exposing upstream details', async () => {
+  const { firebaseServiceFailure } = await import('../server/serviceErrors');
+  for (const error of [
+    { code: 7, reason: 'SERVICE_DISABLED' },
+    { code: 7, statusDetails: [{ reason: 'SERVICE_DISABLED' }] },
+    { code: 7, message: 'Cloud Firestore API has not been used in project sodaflow before or it is disabled. PRIVATE-UPSTREAM' },
+  ]) {
+    const failure = firebaseServiceFailure(error, 'firestore');
+    assert.equal(failure.status, 503);
+    assert.equal(failure.code, 'firestore_api_disabled');
+    assert.equal(failure.message.includes('PRIVATE-UPSTREAM'), false);
+  }
+  assert.equal(firebaseServiceFailure({ code: 7 }, 'firestore').code, 'firestore_access_denied');
+});
+
 test('Netlify readiness refuses to report success for a missing service account', async () => {
   const previousNetlify = process.env.NETLIFY;
   const previousCredential = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;

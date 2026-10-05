@@ -40,7 +40,8 @@ export function validatePlatformPlan(input: Document, id: string, old?: Platform
 export class PlatformBilling {
   constructor(private store: Store, private db?: Firestore) {}
   async assertAdmin(actor: Actor, tx?: Transaction) {
-    if (!actor.superAdmin) throw new BusinessError('هذا الحساب لا يملك صلاحية إدارة المنصة.', 403, 'super_admin_required');
+    ensure(actor.emailVerified === true, 'أكّد بريدك الإلكتروني قبل إدارة المنصة.', 403);
+    if (actor.superAdmin !== true) throw new BusinessError('هذا الحساب لا يملك صلاحية إدارة المنصة.', 403, 'super_admin_required');
     const read = async (transaction: Transaction) => {
       const admin = await transaction.get(`platformAdmins/${identifier(actor.uid)}`);
       ensure(admin?.active === true && admin.role === 'super_admin', 'صلاحية إدارة المنصة غير فعّالة لهذا الحساب.', 403);

@@ -10,8 +10,8 @@
   "lease": {
     "worker": "root-accounting-v2-20261005-1014",
     "started_at": "2026-10-05T10:36:05.240Z",
-    "expires_at": "2026-10-05T11:33:02.253Z",
-    "updated_at": "2026-10-05T10:48:02.253Z"
+    "expires_at": "2026-10-05T11:42:48.371Z",
+    "updated_at": "2026-10-05T10:57:48.371Z"
   },
   "milestones": [
     {
@@ -81,24 +81,36 @@
             "GL date/opening/source-line reports and native-book projection",
             "historical AR statements, five aging buckets and overdue customers",
             "cash balance/report foundation from classified GL",
-            "authorized UI and audited CSV/PDF report exports"
+            "authorized UI and audited CSV/PDF report exports",
+            "financial account registry, immutable COA/currency mapping and API-only collections",
+            "same-currency atomic transfers using proportional source carrying values; insufficient/raced/backdated funds checks",
+            "cash source reconciliation and backward-compatible backup/restore mapping validation"
           ],
           "checks": {
-            "unit_api": 90,
+            "unit_api": 97,
             "status": "passed",
             "types": "passed",
             "build": "passed",
-            "targeted_ui": 1,
+            "targeted_ui": 2,
             "targeted_ui_status": "passed",
-            "full_ci": "pending"
+            "new_emulator_test": "pending_CI",
+            "full_ci": "cash_checkpoint_pending"
           },
           "remaining_parts": [
-            "financial account registry and COA mapping",
-            "atomic internal transfers",
-            "bank statement matching and cash counts with difference reasons and stale detection",
+            "bank statement manual matching and cash counts with difference reasons and stale detection",
             "cash account daily inflows/outflows, last transactions and reconciliation status",
-            "financial backup/restore and source reconciliation for new cash documents"
-          ]
+            "backup/restore source validation for bank/cash reconciliation documents"
+          ],
+          "pr": 16,
+          "ci": {
+            "conclusion": "success",
+            "run_id": 37298989461,
+            "commit_sha": "843ad2e1d55be8ab19b0beac7f1d9cdb02bb6a07",
+            "scope": "report_foundation_only",
+            "unit_api": 90,
+            "rules": 7,
+            "ui": 24
+          }
         },
         {
           "id": "B3",
@@ -156,5 +168,5 @@
     "B2 PR must target B1 while PR 15 is unmerged",
     "Then B3, C, D, E and Excel 1-4; user merges only; no deployment or production writes"
   ],
-  "updated_at": "2026-10-05T10:48:02.253Z"
+  "updated_at": "2026-10-05T10:57:48.371Z"
 }

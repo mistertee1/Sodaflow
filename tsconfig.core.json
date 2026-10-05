@@ -18,6 +18,7 @@
     "tests/payables.test.ts",
     "tests/operationalReports.test.ts",
     "tests/platformAdmin.test.ts",
-    "tests/platformBilling.test.ts"
+    "tests/platformBilling.test.ts",
+    "tests/cashManagement.test.ts"
   ]
 }

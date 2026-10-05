@@ -142,3 +142,18 @@ test('B1 Firestore transactions keep repeated purchase lines, concurrent supplie
     for(const name of ['suppliers','purchase_bills','supplier_payments']) {await assertFails(setDoc(doc(client,`${root}/${name}/forged`),{id:'forged'}));await assertFails(getDocs(collection(client,`${root}/${name}`)));}
   } finally {await deleteApp(app);}
 });
+
+test('B2 Firestore transfers cannot race source cash and direct SDK cannot forge mappings or journals',async()=>{
+  const app=initializeApp({projectId:project},'test-cash-admin'),db=getFirestore(app);
+  try {
+    const store=new FirestoreStore(db),actor={uid:'cash-integration-owner',email:'cash-i@example.com',emailVerified:true},org=await new Organizations(store).create(actor,'النقدية',INITIAL_SETTINGS,'cash-integration',true),root=`organizations/${org.id}`;
+    await store.transaction(async tx=>tx.set(root,{...await tx.get(root),planId:'Enterprise',subscriptionEnd:'2027-01-01',subscriptionEndMillis:Date.parse('2027-01-01')}));
+    const rules=await readFile('firestore.rules','utf8'),ops=new Operations(store,()=>new Date('2026-10-05T12:00:00Z'),saved=>saved as any,async()=>verifyAccountingRulesSource([{content:rules}]));
+    const {journalLine}=await import('../src/domain/financial');const run=(action:string,data:Record<string,unknown>,operationId:string)=>ops.execute(org.id,actor,{action,data,operationId});
+    await run('journal.create',{reference_type:'opening_balance',description:'رأس مال',date:'2026-10-01',lines:[journalLine('1110','نقد',1000,0,1,0),journalLine('3100','رأس مال',0,1000,0,1)]},'opening');await run('accounting.activate',{reason:'دفتر مطابق بلا مخزون'},'activate');
+    const from=(await run('financialAccount.create',{name:'صندوق',account_code:'1110',currency:'SDG',kind:'cash'},'from')).result,to=(await run('financialAccount.create',{name:'بنك',account_code:'1130',currency:'SDG',kind:'bank'},'to')).result;
+    const data={from_id:from.id,to_id:to.id,amount:800,date:'2026-10-05',reason:'تحويل مثبت'};const race=await Promise.allSettled([run('cashTransfer.create',data,'race-a'),run('cashTransfer.create',data,'race-b')]);assert.equal(race.filter(r=>r.status==='fulfilled').length,1);assert.equal(race.filter(r=>r.status==='rejected').length,1);
+    const winner=race[0].status==='fulfilled'?'race-a':'race-b';await run('cashTransfer.create',data,winner);const snapshot=await ops.snapshot(org.id,actor,true);assert.equal(snapshot.collections.internal_transfers.length,1);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
+    const client=env.authenticatedContext(actor.uid,{email_verified:true}).firestore();for(const name of ['financial_accounts','financial_account_mappings','internal_transfers']){await assertFails(setDoc(doc(client,`${root}/${name}/forged`),{id:'forged'}));await assertFails(getDocs(collection(client,`${root}/${name}`)));}
+  } finally {await deleteApp(app);}
+});

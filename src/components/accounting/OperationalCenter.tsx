@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import type { OperationalView, Book } from '../../domain/operationalReports';
 import { merchantDay, operationalPermissions } from '../../domain/operationalReports';
 import { downloadOperationalCsv, downloadOperationalPdf, type OperationalResponse } from '../../services/operationalExport';
+import { FinancialAccountsCenter } from './FinancialAccountsCenter';
 import { formatMoney } from '../../lib/currency';
 const titles = { ledger: 'دفتر الأستاذ العام', receivables: 'كشوف العملاء وأعمار الديون', cash: 'النقدية والبنوك' };
 const amount = (sdg: number, usd: number) => <span dir="ltr" className="whitespace-nowrap">{formatMoney(sdg, 'SDG')} / {formatMoney(usd, 'USD')}</span>;
@@ -36,6 +37,7 @@ export function OperationalCenter({ view }: { view: OperationalView }) {
   const lastPage = Math.max(0, Math.ceil(rows.length / 50) - 1), currentPage = Math.min(page, lastPage);
   return <section className="sf-card p-4 space-y-4" aria-label={titles[view]}>
     <h2 className="font-bold">{titles[view]}</h2>
+    {view === 'cash' && <FinancialAccountsCenter />}
     <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
       {view === 'ledger' && <><label>حساب الأستاذ<select aria-label="حساب الأستاذ" disabled={busy} className="sf-field w-full" value={accountCode} onChange={e => setAccountCode(e.target.value)}>{accounts.map(account => <option key={account.code} value={account.code}>{account.code} — {account.name_ar}{!account.is_active ? ' (غير نشط)' : ''}</option>)}</select></label><label>عملة الأستاذ<select aria-label="عملة الأستاذ" disabled={busy} className="sf-field w-full" value={currency} onChange={e => setCurrency(e.target.value as 'both' | Book)}><option value="both">SDG / USD</option><option>SDG</option><option>USD</option></select></label></>}
       {view === 'receivables' && <label>العميل للكشف<select aria-label="العميل للكشف" disabled={busy} className="sf-field w-full" value={customerId} onChange={e => { setCustomerId(e.target.value); setPage(0); }}><option value="">كل العملاء</option>{customers.map(customer => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></label>}

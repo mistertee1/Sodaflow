@@ -5,6 +5,7 @@ import { INITIAL_SETTINGS } from '../data/initialData';
 import { auth, onAuthStateChanged, logout, type User } from '../lib/firebase';
 import { createDefaultSubscription } from '../lib/plans';
 import { Operations, type Actor } from '../domain/operations';
+import type { FinancialAccount } from '../domain/cashManagement';
 import type { OperationalReportTypes, OperationalView, LedgerQuery, ReportPeriod } from '../domain/operationalReports';
 import type { CostInput } from '../domain/inventoryCost';
 import type { Change, Document } from '../domain/store';
@@ -39,6 +40,10 @@ interface AppContextType {
   paySupplier: (data: Document) => Promise<SupplierPayment>;
   loadPayablesReport: (period: { start?: string; end?: string }, exporting?: boolean) => Promise<Awaited<ReturnType<Operations['payableReports']>>>;
   loadOperationalReport: <View extends OperationalView>(view: View, query: ReportPeriod & Partial<LedgerQuery>, exporting?: boolean) => Promise<OperationalReportTypes[View] & { organizationId: string; generatedAt: string; view: View }>;
+  financialAccounts: FinancialAccount[];
+  internalTransfers: Document[];
+  saveFinancialAccount: (data: Document, id?: string) => Promise<FinancialAccount>;
+  transferCash: (data: Document) => Promise<Document>;
   inventoryMovements: InventoryMovement[];
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
@@ -379,6 +384,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== undefined).map(([key, value]) => [key, value!]));
       return id === guestId && !userRef.current ? getGuest().operationalReport(id, guestActor, view, query) : api(`/organizations/${encodeURIComponent(id)}/reports/${view}?${params}`);
     },
+    financialAccounts: rows<FinancialAccount>('financial_accounts'), internalTransfers: rows<Document>('internal_transfers'),
+    saveFinancialAccount: (data, id) => run<FinancialAccount>(id ? 'financialAccount.update' : 'financialAccount.create', id ? { id, updates: data } : data),
+    transferCash: data => run('cashTransfer.create', data),
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
     isActionAllowed, switchOrganization, createNewOrg,
     inviteMember: async (email, role) => { await run('invitation.create', { email, role }); },

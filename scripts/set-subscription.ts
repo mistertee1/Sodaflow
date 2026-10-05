@@ -1,18 +1,19 @@
 import 'dotenv/config';
 import { adminServices } from '../server/admin';
-import { signSubscription } from '../server/subscriptions';
-import { createDefaultSubscription, getPlanConfig, PLAN_TIERS } from '../src/lib/plans';
-import { identifier, ensure } from '../src/domain/validation';
-import type { SubscriptionPlan } from '../src/types';
-const [orgInput, planInput] = process.argv.slice(2);
-const orgId = identifier(orgInput);
-ensure(Object.hasOwn(PLAN_TIERS, planInput), 'Usage: node --import tsx scripts/set-subscription.ts ORG_ID PLAN');
-const now = new Date().toISOString(), tier = getPlanConfig(planInput as SubscriptionPlan);
-const data = signSubscription({ ...createDefaultSubscription(orgId), ...tier, plan: tier.name, updated_at: now }, process.env.BILLING_SIGNING_SECRET || '');
-const { db } = adminServices();
-await db.runTransaction(async tx => {
-  const ref = db.doc(`organizations/${orgId}`); ensure((await tx.get(ref)).exists, 'Organization does not exist.');
-  tx.set(db.doc(`organizations/${orgId}/meta/subscription`), data);
-  tx.set(db.doc(`organizations/${orgId}/audit_logs/billing-${crypto.randomUUID()}`), { org_id: orgId, action: 'subscription.verified', actor_uid: 'billing-operator', plan: tier.name, created_at: now });
-});
-console.log('Verified subscription stored.');
+import { FirestoreStore } from '../server/firestoreStore';
+import { PlatformBilling } from '../server/platformBilling';
+import { identifier, ensure, text } from '../src/domain/validation';
+
+// Emergency operator tool; daily commercial changes belong in /super-admin.
+const args = process.argv.slice(2), [uidInput, orgInput, planInput] = args;
+const option = (key: string) => { const at = args.indexOf(key); return at >= 0 ? args[at + 1] : undefined; };
+const uid = identifier(uidInput), orgId = identifier(orgInput), planId = identifier(planInput);
+const operationId = identifier(option('--operation-id')), reason = text(option('--reason'), 1000, true);
+const { auth, db } = adminServices(), user = await auth.getUser(uid);
+ensure(user.emailVerified && !user.disabled, 'Operator account must be enabled and verified.');
+const actor = { uid, email: user.email || '', emailVerified: user.emailVerified, superAdmin: user.customClaims?.superAdmin === true };
+const billing = new PlatformBilling(new FirestoreStore(db), db);
+await billing.assertAdmin(actor);
+const company = await billing.company(actor, orgId), days = option('--days');
+await billing.updateSubscription(actor, orgId, { action: 'change_plan', expectedRevision: company.billingRevision, operationId, reason, method: 'manual', payload: { planId, ...(days ? { days: Number(days) } : {}) } });
+console.log('Subscription changed and immutable audit event stored.');

@@ -54,8 +54,9 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   } = useApp();
 
   const planConfig = getPlanConfig(subscription?.plan);
-  const maxInvoices = subscription?.max_invoices_per_month ?? planConfig.max_invoices_per_month;
-  const currentInvoiceCount = counters?.monthly_invoice_count ?? 0;
+  const lifetimeQuota = subscription.invoice_period === 'lifetime';
+  const maxInvoices = lifetimeQuota ? subscription.max_invoices_total ?? 100 : subscription?.max_invoices_per_month ?? planConfig.max_invoices_per_month;
+  const currentInvoiceCount = lifetimeQuota ? counters.lifetime_invoice_count ?? counters.invoice_count : counters?.monthly_invoice_count ?? 0;
   const isInvoiceLimitReached = !isUnlimited(maxInvoices) && currentInvoiceCount >= maxInvoices;
 
   // Invoice Fields

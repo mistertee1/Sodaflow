@@ -1,4 +1,6 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { api } from '../services/businessApi';
+import type { Operations } from '../domain/operations';
 import { useApp } from '../context/AppContext';
 import {
   BookOpen,
@@ -54,11 +56,22 @@ export const AccountingView: React.FC = () => {
     settings,
     updateSettings,
     theme,
+    currentUser, currentOrg, counters,
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<
     'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
   >('coa');
+  const [remoteReports, setRemoteReports] = useState<Awaited<ReturnType<Operations['advancedReports']>> | null>(null);
+  const [reportError, setReportError] = useState('');
+  const advancedAllowed = isActionAllowed('reports:advanced');
+  const advancedTab = ['income', 'balance_sheet', 'cash_flow'].includes(activeSubTab);
+  const reportsReady = !currentUser || remoteReports?.organizationId === currentOrg?.id;
+  useEffect(() => {
+    let active = true; setRemoteReports(null); setReportError('');
+    if (currentUser && currentOrg && advancedAllowed && advancedTab) void api<Awaited<ReturnType<Operations['advancedReports']>>>(`/organizations/${encodeURIComponent(currentOrg.id)}/reports/advanced`).then(value => { if (active) setRemoteReports(value); }).catch(error => { if (active) setReportError(error instanceof Error ? error.message : 'تعذر تحميل التقارير.'); });
+    return () => { active = false; };
+  }, [currentUser?.uid, currentOrg?.id, counters.revision, advancedAllowed, advancedTab]);
   const [searchQuery, setSearchQuery] = useState('');
   const [reportStart, setReportStart] = useState('');
   const [reportEnd, setReportEnd] = useState('');

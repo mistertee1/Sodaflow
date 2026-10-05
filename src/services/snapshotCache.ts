@@ -1,3 +1,4 @@
+import config from '../../firebase-applet-config.json';
 export interface SnapshotCacheStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -15,7 +16,7 @@ export interface SnapshotCacheEntry<T> {
 }
 
 const CACHE_VERSION = 1;
-const CACHE_PREFIX = 'sudaflow_cloud_snapshot_v1';
+const CACHE_PREFIX = `sudaflow_cloud_snapshot_v2_${config.projectId}_${config.firestoreDatabaseId || '(default)'}`;
 const MAX_CACHE_CHARS = 3_500_000;
 
 const cacheKey = (uid: string, orgId: string) =>

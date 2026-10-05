@@ -16,9 +16,13 @@
     "test:ui": "playwright test",
     "check": "npm run lint && npm run lint:core && npm test && npm run build",
     "lint:core": "tsc --project tsconfig.core.json",
-    "deploy:firebase:rules": "firebase deploy --only firestore:rules,firestore:indexes --project sodaflow"
+    "deploy:firebase:rules": "firebase deploy --only firestore:rules,firestore:indexes --project sodaflow",
+    "billing:readiness": "node --import tsx scripts/check-cloud-readiness.ts",
+    "billing:migrate": "node --import tsx scripts/migrate-platform-billing.ts",
+    "billing:bootstrap": "node --import tsx scripts/bootstrap-platform-admin.ts"
   },
   "dependencies": {
+    "@netlify/functions": "^6.0.2",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "bignumber.js": "^11.1.5",
@@ -32,6 +36,7 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "recharts": "^3.10.1",
+    "serverless-http": "^4.0.0",
     "vite": "^6.2.3"
   },
   "devDependencies": {

@@ -14,14 +14,17 @@ import { Organizations } from './organizations';
 import { adminServices } from './admin';
 import { FirestoreStore } from './firestoreStore';
 import { resolveSubscription } from './subscriptions';
+import { PlatformBilling } from './platformBilling';
+import { loadSubscription, assertSubscriptionActive } from '../src/domain/subscriptions';
 
 type Verify = (token: string) => Promise<Actor>;
 export function createApi(options?: { operations: Operations; verify: Verify }) {
   const router = express.Router();
   const service = () => options?.operations || new Engine(new FirestoreStore(adminServices().db), undefined, resolveSubscription);
+  const platform = () => new PlatformBilling(service().store, options ? undefined : adminServices().db);
   const verify: Verify = options?.verify || (async token => {
     const claims = await adminServices().auth.verifyIdToken(token, true);
-    return { uid: claims.uid, email: claims.email || '', emailVerified: claims.email_verified === true, name: claims.name };
+    return { uid: claims.uid, email: claims.email || '', emailVerified: claims.email_verified === true, name: claims.name, superAdmin: claims.superAdmin === true };
   });
   router.get('/health', (_req, res) => res.json({ status: 'ok', app: 'SudaFlow', version: '3.0.0' }));
   router.get('/health/ready', async (_req, res) => {
@@ -65,6 +68,16 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   const route = (work: (req: express.Request, actor: Actor) => Promise<unknown>): express.RequestHandler => async (req, res, next) => {
     try { res.json(await work(req, res.locals.actor)); } catch (e) { next(e); }
   };
+  router.get('/plans', route(async () => (await platform().catalog()).filter(plan => plan.active)));
+  router.get('/super-admin/session', route(async (_req, actor) => { await platform().assertAdmin(actor); return { uid: actor.uid, email: actor.email, role: 'super_admin' }; }));
+  router.get('/super-admin/overview', route(async (_req, actor) => platform().overview(actor)));
+  router.get('/super-admin/companies', route(async (req, actor) => platform().companies(actor, req.query)));
+  router.get('/super-admin/companies/:orgId', route(async (req, actor) => platform().company(actor, req.params.orgId)));
+  router.post('/super-admin/companies/:orgId/subscription', route(async (req, actor) => platform().updateSubscription(actor, req.params.orgId, req.body)));
+  router.get('/super-admin/plans', route(async (_req, actor) => platform().plans(actor)));
+  router.post('/super-admin/plans/:planId', route(async (req, actor) => platform().updatePlan(actor, req.params.planId, req.body)));
+  router.get('/super-admin/events', route(async (req, actor) => platform().events(actor, req.query)));
+  router.get('/super-admin/requests', route(async (req, actor) => platform().requests(actor, req.query)));
   router.get('/organizations', route(async (_req, actor) => new Organizations(service().store).list(actor)));
   router.post('/organizations', route(async (req, actor) => {
     ensure(typeof req.body.initial === 'boolean', 'نوع إنشاء المؤسسة مطلوب.');
@@ -73,12 +86,13 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   router.get('/organizations/:orgId/revision', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, route(async (req, actor) => organizationRevision(service().store, req.params.orgId, actor)));
   router.get('/organizations/:orgId/snapshot', route(async (req, actor) => service().snapshot(req.params.orgId, actor)));
   router.get('/organizations/:orgId/backup', route(async (req, actor) => service().snapshot(req.params.orgId, actor, true)));
+  router.get('/organizations/:orgId/reports/advanced', route(async (req, actor) => service().advancedReports(req.params.orgId, actor)));
   router.post('/organizations/:orgId/operations', route(async (req, actor) => service().execute(req.params.orgId, actor, req.body)));
   router.post('/organizations/:orgId/invitations/:invId/accept', route(async (req, actor) => new Organizations(service().store).accept(actor, req.params.orgId, req.params.invId)));
   router.post('/organizations/:orgId/images/:folder', express.raw({ type: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], limit: '2mb' }), route(async (req, actor) => {
     const folder = req.params.folder; ensure(['logos', 'receipts'].includes(folder), 'مسار الصور غير صالح.');
     const engine = service();
-    await engine.store.transaction(async tx => { const { role } = await membership(tx, req.params.orgId, actor); ensure(hasPermission(role, folder === 'logos' ? 'org:update_settings' : 'expenses:create'), 'رفع الصورة غير مسموح.', 403); });
+    await engine.store.transaction(async tx => { const { role, org } = await membership(tx, req.params.orgId, actor); const subscription = await loadSubscription(tx, req.params.orgId, org, new Date(), resolveSubscription); assertSubscriptionActive(subscription); ensure(hasPermission(role, folder === 'logos' ? 'org:update_settings' : 'expenses:create'), 'رفع الصورة غير مسموح.', 403); });
     const buffer = req.body as Buffer, type = req.headers['content-type'];
     ensure(Buffer.isBuffer(buffer) && buffer.length > 0, 'بيانات الصورة غير صالحة.');
     const valid = type === 'image/png' ? buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) : type === 'image/jpeg' ? buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255 : type === 'image/gif' ? /^GIF8[79]a$/.test(buffer.subarray(0, 6).toString()) : type === 'image/webp' && buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP';

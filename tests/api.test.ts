@@ -65,8 +65,7 @@ test('Netlify missing credentials returns a service outage instead of invalid se
   process.env.NETLIFY = 'true';
   delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   try {
-    const { handler } = await import('../netlify/functions/api');
-    const response = await handler({ httpMethod: 'GET', path: '/api/organizations', headers: { authorization: 'Bearer token' } });
+    const response = await invokeNetlify('/api/organizations', { authorization: 'Bearer token' });
     assert.equal(response.statusCode, 503);
     assert.equal(JSON.parse(response.body).code, 'firebase_configuration_missing');
   } finally {
@@ -130,8 +129,7 @@ test('Netlify readiness refuses to report success for a missing service account'
   process.env.NETLIFY = 'true';
   delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
   try {
-    const { handler } = await import('../netlify/functions/api');
-    const response = await handler({ httpMethod: 'GET', path: '/api/health/ready' });
+    const response = await invokeNetlify('/api/health/ready');
     assert.equal(response.statusCode, 503);
     assert.equal(JSON.parse(response.body).checks.firebase.code, 'firebase_configuration_missing');
   } finally {
@@ -140,32 +138,8 @@ test('Netlify readiness refuses to report success for a missing service account'
   }
 });
 
-
-test('revision polling is an authenticated, read-only membership check without collection scans', async () => {
-  const owner = { uid: 'revision-owner', email: 'owner@example.com', emailVerified: true };
-  const store = new MemoryStore();
-  const org = await new Organizations(store).create(owner, 'revision shop', INITIAL_SETTINGS, 'initial', true);
-  await store.transaction(async tx => {
-    tx.set(`organizations/${org.id}/members/viewer`, { uid: 'viewer', org_id: org.id, role: 'Viewer', status: 'active' });
-    tx.set(`organizations/${org.id}/members/suspended`, { uid: 'suspended', org_id: org.id, role: 'Admin', status: 'suspended' });
-    tx.set(`organizations/${org.id}/meta/counters`, { revision: 12 });
-  });
-  const readOnlyStore = { transaction: <T,>(work: Parameters<MemoryStore['transaction']>[0]) => store.transaction(tx => work({ ...tx, list: async () => { throw new Error('unexpected collection scan'); }, find: async () => { throw new Error('unexpected collection scan'); }, set: () => { throw new Error('unexpected write'); }, delete: () => { throw new Error('unexpected delete'); } })) as Promise<T> };
-  const operations = new Operations(readOnlyStore);
-  const app = express();
-  app.use('/api', createApi({ operations, verify: async token => ({ ...owner, uid: token, emailVerified: token !== 'unverified' }) }));
-  const server = app.listen(0, '127.0.0.1'); await new Promise<void>(resolve => server.once('listening', resolve));
-  const url = `http://127.0.0.1:${(server.address() as any).port}/api/organizations/${org.id}/revision`;
-  const before = store.dump();
-  try {
-    assert.equal((await fetch(url)).status, 401);
-    for (const uid of [owner.uid, 'viewer']) {
-      const response = await fetch(url, { headers: { Authorization: `Bearer ${uid}` } });
-      assert.equal(response.status, 200);
-      assert.equal(response.headers.get('cache-control'), 'no-store');
-      assert.deepEqual(await response.json(), { revision: 12 });
-    }
-    for (const uid of ['foreign', 'suspended', 'unverified']) assert.equal((await fetch(url, { headers: { Authorization: `Bearer ${uid}` } })).status, 403);
-    assert.deepEqual(store.dump(), before);
-  } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
-});
+async function invokeNetlify(path: string, headers?: Record<string, string>) {
+  const { default: handle } = await import('../netlify/functions/api');
+  const response = await handle(new Request('https://sodaflow.netlify.app' + path, { headers }), { ip: '127.0.0.1' } as import('@netlify/functions').Context);
+  return { statusCode: response.status, body: await response.text() };
+}

@@ -14,6 +14,7 @@ import { readSnapshotCache, writeSnapshotCache } from '../services/snapshotCache
 import { hasPermission, type ActionType } from '../services/rbacService';
 import { getDefaultChartOfAccounts } from '../services/accountingService';
 import { BusinessError } from '../domain/validation';
+import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
   currentUser: User | null;
@@ -36,7 +37,7 @@ interface AppContextType {
   currentOrg: Organization | null;
   userOrgs: Organization[];
   userRole: OrgRole;
-  memberStatus: 'active' | 'suspended';
+  memberStatus: 'active' | 'suspended' | 'unknown';
   orgMembers: OrgMember[];
   switchOrganization: (orgId: string) => Promise<void>;
   createNewOrg: (name: string) => Promise<Organization>;
@@ -235,16 +236,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (epoch !== session.current) return;
         activeOrg.current = guestId; apply(loaded); setUserOrgs([loaded.org]); setSyncStatus('idle');
       } else {
+        if (window.location.pathname === '/super-admin' || window.location.pathname.startsWith('/super-admin/')) { setSyncStatus('idle'); return; }
         await initializeCloudOrganization(user, epoch);
       }
     } catch (error) { if (userRef.current?.uid === user?.uid) fail(error); }
     finally { if (userRef.current?.uid === user?.uid) setAuthLoading(false); }
   }), []);
-  // Firestore listener is the primary synchronization path. Focus/online are fallback reconciliations.
+  // Realtime notifications plus periodic reconciliation recover missed revisions and stream outages.
   useEffect(() => {
     const reconcile = () => {
       const user = userRef.current, epoch = session.current;
-      if (!user || pendingRefresh.current || document.visibilityState !== 'visible') return;
+      if (!user || pendingRefresh.current || document.visibilityState !== 'visible' || window.location.pathname.startsWith('/super-admin')) return;
       pendingRefresh.current = true;
       const work = activeOrg.current ? refresh() : initializeCloudOrganization(user, epoch);
       void work.catch(error => { if (epoch === session.current && userRef.current?.uid === user.uid) fail(error); }).finally(() => { pendingRefresh.current = false; });
@@ -293,7 +295,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const customers = rows<Customer>('customers'), products = rows<Product>('products'), invoices = rows<Invoice>('invoices'), payments = rows<Payment>('payments');
   const expenses = rows<Expense>('expenses').filter(e => !e.voided_at), inventoryMovements = rows<InventoryMovement>('inventory_movements');
   const accounts = rows<Account>('accounts'), journalEntries = rows<JournalEntry>('journal_entries');
-  const isActionAllowed = (action: ActionType) => Boolean(state.org && hasPermission(state.role, action));
+  const isActionAllowed = (action: ActionType) => {
+    if (!state.org || !state.exported_at || !hasPermission(state.role, action)) return false;
+    const status = state.subscription.effective_status || state.subscription.status;
+    const active = state.org.status === 'active' && ['active', 'trial', 'trialing'].includes(status) && (!state.subscription.subscription_end || Date.parse(state.subscription.subscription_end) > Date.now());
+    const sensitive = ['audit_logs:view', 'journal:read', 'accounts:read'];
+    const readOnly = action.endsWith(':read') || action === 'members:view';
+    if (!active && (!readOnly || sensitive.includes(action))) return false;
+    const features: Partial<Record<ActionType, string>> = { 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
+    if (features[action] && state.subscription.features[features[action]!] !== true) return false;
+    if (action === 'invoices:create' && invoiceQuotaReached(state.subscription, state.counters.lifetime_invoice_count || state.counters.invoice_count, state.counters.monthly_invoice_count || 0)) return false;
+    return true;
+  };
   const switchOrganization = async (id: string) => {
     const orgs = await cloudOrganizations(); setUserOrgs(orgs);
     const org = orgs.find(o => o.id === id); if (!org) throw new BusinessError('عضوية المؤسسة غير متاحة.', 403);
@@ -327,7 +340,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const nothing = async () => {};
   const value: AppContextType = {
     currentUser, authLoading, syncStatus, syncError, dismissSyncError: () => setSyncError(null), lastSyncedAt,
-    currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.member?.status === 'suspended' ? 'suspended' : 'active', orgMembers: rows<OrgMember>('members'),
+    currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.exported_at ? state.member?.status || (state.role === 'Owner' ? 'active' : 'unknown') : 'unknown', orgMembers: rows<OrgMember>('members'),
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
     isActionAllowed, switchOrganization, createNewOrg,

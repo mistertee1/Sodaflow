@@ -31,7 +31,6 @@ import {
 import { signInWithGoogle, logout } from '../lib/firebase';
 import { validateExchangeRate, formatMoney, getCurrencySymbol } from '../lib/currency';
 import { Currency, SubscriptionPlan } from '../types';
-import { PLAN_TIERS, getPlanConfig, isUnlimited } from '../lib/plans';
 import { TeamManagementSection } from './TeamManagementSection';
 import {
   uploadOrganizationImage,
@@ -39,6 +38,7 @@ import {
   MAX_IMAGE_FILE_SIZE_BYTES,
 } from '../services/storageService';
 import { Dialog } from './Dialog';
+import { SubscriptionPanel } from './SubscriptionPanel';
 
 const AVAILABLE_CURRENCIES: { code: Currency; label: string }[] = [
   { code: 'SDG', label: 'جنيه سوداني (SDG)' },
@@ -65,8 +65,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     theme,
     setTheme,
     logoutUser,
-    subscription,
-    counters,
     updateSubscriptionPlan,
     orgMembers,
     userRole,
@@ -77,9 +75,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [address, setAddress] = useState(settings.address || '');
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [updatingPlan, setUpdatingPlan] = useState(false);
-  const [planSuccess, setPlanSuccess] = useState<string | null>(null);
-  const [planError, setPlanError] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | undefined>(settings.logo_url);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoUploadProgress, setLogoUploadProgress] = useState(0);
@@ -398,257 +393,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             )}
           </div>
 
-          {/* Section: Subscription Plan & Usage Limits (خطة الاشتراك وحدود الاستخدام) */}
-          <div className="bg-sf-raised p-4 rounded-xl border border-sf-border space-y-4">
-            <div className="flex items-center justify-between border-b border-sf-border pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-sf-info-bg/10 text-sf-info border border-sf-info/20">
-                  <CreditCard className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-xs text-sf-text">خطة الاشتراك وحدود الاستخدام</h3>
-                  <p className="text-xs text-sf-muted">إدارة الباقة الحالية ومتابعة استهلاك الفواتير والعملاء والمنتجات</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs px-3 py-1 rounded-full font-semibold bg-sf-info-bg/80 text-sf-info border border-sf-info/50">
-                  باقة {getPlanConfig(subscription?.plan || 'Free').arabic_name}
-                </span>
-                <span className="text-xs px-2 py-1 rounded-full font-medium bg-sf-selected/70 text-sf-action border border-sf-action/40">
-                  نشط
-                </span>
-              </div>
-            </div>
-
-            {planSuccess && (
-              <div className="p-3 rounded-xl bg-sf-selected/80 border border-sf-action/50 text-sf-action text-xs flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-sf-action shrink-0" />
-                <span>{planSuccess}</span>
-              </div>
-            )}
-
-            {planError && (
-              <div className="p-3 rounded-xl bg-sf-danger-bg/80 border border-sf-danger/50 text-sf-danger text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-sf-danger shrink-0" />
-                <span>{planError}</span>
-              </div>
-            )}
-
-            {/* Current Plan Overview Card */}
-            {(() => {
-              const currentPlan = getPlanConfig(subscription?.plan || 'Free');
-              const maxInvoices = subscription?.max_invoices_per_month ?? currentPlan.max_invoices_per_month;
-              const maxMembers = subscription?.max_members ?? currentPlan.max_members;
-              const maxCustomers = subscription?.max_customers ?? currentPlan.max_customers;
-              const maxProducts = subscription?.max_products ?? currentPlan.max_products;
-
-              const invoiceCount = counters?.monthly_invoice_count ?? 0;
-              const customerCount = counters?.customer_count ?? 0;
-              const productCount = counters?.product_count ?? 0;
-              const memberCount = orgMembers?.length || 1;
-
-              const invPct = isUnlimited(maxInvoices) ? 0 : Math.min(100, Math.round((invoiceCount / maxInvoices) * 100));
-              const custPct = isUnlimited(maxCustomers) ? 0 : Math.min(100, Math.round((customerCount / maxCustomers) * 100));
-              const prodPct = isUnlimited(maxProducts) ? 0 : Math.min(100, Math.round((productCount / maxProducts) * 100));
-              const memPct = isUnlimited(maxMembers) ? 0 : Math.min(100, Math.round((memberCount / maxMembers) * 100));
-
-              const getBarColor = (pct: number) => {
-                if (pct >= 100) return 'bg-sf-danger-bg';
-                if (pct >= 80) return 'bg-sf-warning-bg';
-                return 'bg-sf-action';
-              };
-
-              const getBadgeColor = (pct: number) => {
-                if (pct >= 100) return 'text-sf-danger bg-sf-danger-bg/50 border-sf-danger/60';
-                if (pct >= 80) return 'text-sf-warning bg-sf-warning-bg/50 border-sf-warning/60';
-                return 'text-sf-action bg-sf-selected/50 border-sf-action/60';
-              };
-
-              return (
-                <div className="space-y-4">
-                  <div className="bg-sf-raised p-4 rounded-xl border border-sf-border flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm text-sf-text">{currentPlan.arabic_name}</span>
-                        <span className="text-xs text-sf-muted font-mono">({currentPlan.name})</span>
-                      </div>
-                      <p className="text-xs text-sf-muted mt-1">{currentPlan.description}</p>
-                    </div>
-                    <div className="text-left sm:text-right shrink-0">
-                      <span className="text-base font-semibold text-sf-text font-mono">{currentPlan.price_usd_monthly}</span>
-                    </div>
-                  </div>
-
-                  {/* Usage vs Limits Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {/* Invoices */}
-                    <div className="bg-sf-raised p-3 rounded-xl border border-sf-border space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-medium text-sf-text">الفواتير الشهرية</span>
-                        <span className={`text-xs px-2 py-1 rounded-md font-mono border ${getBadgeColor(invPct)}`}>
-                          {invoiceCount} / {isUnlimited(maxInvoices) ? '∞ غير محدود' : maxInvoices}
-                        </span>
-                      </div>
-                      <div className="w-full bg-sf-surface rounded-full h-2 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-(--sf-motion-state) ${getBarColor(invPct)}`}
-                          style={{ width: isUnlimited(maxInvoices) ? '10%' : `${invPct}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center text-xs text-sf-muted">
-                        <span>{isUnlimited(maxInvoices) ? 'باقة غير محدودة' : `${invPct}% مستهلك`}</span>
-                        {invPct >= 100 && <span className="text-sf-danger font-semibold">وصلت للحد الأقصى</span>}
-                      </div>
-                    </div>
-
-                    {/* Customers */}
-                    <div className="bg-sf-raised p-3 rounded-xl border border-sf-border space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-medium text-sf-text">قاعدة العملاء</span>
-                        <span className={`text-xs px-2 py-1 rounded-md font-mono border ${getBadgeColor(custPct)}`}>
-                          {customerCount} / {isUnlimited(maxCustomers) ? '∞ غير محدود' : maxCustomers}
-                        </span>
-                      </div>
-                      <div className="w-full bg-sf-surface rounded-full h-2 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-(--sf-motion-state) ${getBarColor(custPct)}`}
-                          style={{ width: isUnlimited(maxCustomers) ? '10%' : `${custPct}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center text-xs text-sf-muted">
-                        <span>{isUnlimited(maxCustomers) ? 'باقة غير محدودة' : `${custPct}% مستهلك`}</span>
-                        {custPct >= 100 && <span className="text-sf-danger font-semibold">وصلت للحد الأقصى</span>}
-                      </div>
-                    </div>
-
-                    {/* Products */}
-                    <div className="bg-sf-raised p-3 rounded-xl border border-sf-border space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-medium text-sf-text">المنتجات والمخزون</span>
-                        <span className={`text-xs px-2 py-1 rounded-md font-mono border ${getBadgeColor(prodPct)}`}>
-                          {productCount} / {isUnlimited(maxProducts) ? '∞ غير محدود' : maxProducts}
-                        </span>
-                      </div>
-                      <div className="w-full bg-sf-surface rounded-full h-2 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-(--sf-motion-state) ${getBarColor(prodPct)}`}
-                          style={{ width: isUnlimited(maxProducts) ? '10%' : `${prodPct}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center text-xs text-sf-muted">
-                        <span>{isUnlimited(maxProducts) ? 'باقة غير محدودة' : `${prodPct}% مستهلك`}</span>
-                        {prodPct >= 100 && <span className="text-sf-danger font-semibold">وصلت للحد الأقصى</span>}
-                      </div>
-                    </div>
-
-                    {/* Members */}
-                    <div className="bg-sf-raised p-3 rounded-xl border border-sf-border space-y-2">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-medium text-sf-text">أعضاء الفريق</span>
-                        <span className={`text-xs px-2 py-1 rounded-md font-mono border ${getBadgeColor(memPct)}`}>
-                          {memberCount} / {isUnlimited(maxMembers) ? '∞ غير محدود' : maxMembers}
-                        </span>
-                      </div>
-                      <div className="w-full bg-sf-surface rounded-full h-2 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-(--sf-motion-state) ${getBarColor(memPct)}`}
-                          style={{ width: isUnlimited(maxMembers) ? '10%' : `${memPct}%` }}
-                        />
-                      </div>
-                      <div className="flex justify-between items-center text-xs text-sf-muted">
-                        <span>{isUnlimited(maxMembers) ? 'باقة غير محدودة' : `${memPct}% مستهلك`}</span>
-                        {memPct >= 100 && <span className="text-sf-danger font-semibold">وصلت للحد الأقصى</span>}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Plan Switcher / Upgrade Tier Selection */}
-                  <div className="pt-3 border-t border-sf-border space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold text-xs text-sf-text flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 text-sf-warning" />
-                        <span>ترقية أو تغيير باقة الاشتراك</span>
-                      </h4>
-                      {updatingPlan && (
-                        <div className="flex items-center gap-2 text-xs text-sf-info">
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>جاري التحديث...</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                      {(Object.keys(PLAN_TIERS) as SubscriptionPlan[]).map((planKey) => {
-                        const tier = PLAN_TIERS[planKey];
-                        const isCurrent = (subscription?.plan || 'Free') === planKey;
-                        const canChange = userRole === 'Owner' || userRole === 'Admin';
-
-                        return (
-                          <button
-                            key={planKey}
-                            type="button"
-                            disabled={isCurrent || updatingPlan || !canChange}
-                            onClick={async () => {
-                              if (isCurrent || updatingPlan || !canChange) return;
-                              setUpdatingPlan(true);
-                              setPlanError(null);
-                              setPlanSuccess(null);
-                              try {
-                                await updateSubscriptionPlan(planKey);
-                                setImportStatus('تم تسجيل طلب تغيير الباقة. التفعيل يتم بعد اعتماد الاشتراك.');
-                                setPlanSuccess(`تم تسجيل طلب ${tier.arabic_name}. التفعيل بعد اعتماد الاشتراك.`);
-                              } catch (err: any) {
-                                setPlanError(err.message || 'فشل تحديث باقة الاشتراك');
-                              } finally {
-                                setUpdatingPlan(false);
-                              }
-                            }}
-                            className={`p-3 rounded-xl border text-right transition-all flex flex-col justify-between ${
-                              isCurrent
-                                ? 'bg-sf-info-bg/60 border-sf-info text-sf-text shadow-lg shadow-indigo-950/30'
-                                : canChange
-                                ? 'bg-sf-raised border-sf-border hover:border-sf-border text-sf-text hover:text-sf-text cursor-pointer'
-                                : 'bg-sf-raised/50 border-sf-border text-sf-muted cursor-not-allowed'
-                            }`}
-                          >
-                            <div>
-                              <div className="flex items-center justify-between">
-                                <span className="font-semibold text-xs">{tier.arabic_name}</span>
-                                {isCurrent && (
-                                  <span className="w-2 h-2 rounded-full bg-sf-action" title="الباقة الحالية" />
-                                )}
-                              </div>
-                              <span className="text-xs text-sf-muted block mt-1">{tier.price_usd_monthly}</span>
-                            </div>
-                            <div className="mt-2 pt-2 border-t border-white/5 text-xs text-sf-muted">
-                              {isUnlimited(tier.max_invoices_per_month) ? 'فواتير غير محدودة' : `${tier.max_invoices_per_month} فاتورة`}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {!(userRole === 'Owner' || userRole === 'Admin') && (
-                      <p className="text-xs text-sf-warning/80">
-                        * ترقية وتغيير باقات الاشتراك متاح لمالكي ومديري المؤسسة فقط.
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Enforcement Scope Disclosure */}
-                  <div className="p-3 bg-sf-raised/60 rounded-xl border border-sf-border text-xs text-sf-muted space-y-1">
-                    <div className="flex items-center gap-2 font-semibold text-sf-text text-xs">
-                      <ShieldCheck className="w-3.5 h-3.5 text-sf-action shrink-0" />
-                      <span>نطاق التحقق والفرض (Enforcement Scope)</span>
-                    </div>
-                    <p className="leading-relaxed">
-                      يتم فحص حدود الباقات الحالية عبر واجهة التطبيق (Client-side UX guardrails) لحماية المتجر من استنفاد الحصص وتوفير تنبيهات فورية للمستخدم. يتم تتبع الاستهلاك تلقائياً وبشكل ذري عبر عدادات المؤسسة السحابية (<code className="font-mono text-xs text-sf-info">meta/counters</code>). الفرض الصارم عبر قواعد أمان فايربيس (Server-side Rules) يجري تعميمه لضمان موثوقية كاملة.
-                    </p>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
+          <SubscriptionPanel />
 
           {/* Section: Multi-Tenant Team & Organization Management */}
           <TeamManagementSection />

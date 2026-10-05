@@ -1,24 +1,14 @@
 {
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
-  "sourceBase": "c7e01969a95b5f73d4dcf70e8ee000eaaadbcc6a",
-  "updatedAt": "2026-10-05T13:29:40.000Z",
-  "activeRunId": "super-admin-run-20261005T1257",
-  "leaseUntil": "2026-10-05T14:14:40.000Z",
+  "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
+  "updatedAt": "2026-10-05T13:34:56.000Z",
+  "activeRunId": null,
+  "leaseUntil": null,
   "automationId": "6ac35722234c819194e0535527c23124",
   "currentStage": 5,
-  "workBranch": "codex/super-admin-ui-rules-20261005T1257",
-  "ownedPaths": [
-    "server/billingMigration.ts",
-    "server/platformBilling.ts",
-    "scripts/migrate-platform-billing.ts",
-    "tests/platformBilling.test.ts",
-    "tests/platformFirestore.test.ts",
-    "tests/platformMigration.test.ts",
-    "package.json",
-    "tsconfig.core.json",
-    "docs/super-admin"
-  ],
+  "workBranch": null,
+  "ownedPaths": [],
   "stages": [
     {
       "id": 0,
@@ -111,8 +101,16 @@
         "emulatorProject": "demo-sudaflow",
         "baseline": "c7e01969a95b5f73d4dcf70e8ee000eaaadbcc6a",
         "rulesSourceUnchanged": true,
-        "productionWrites": 0
-      }
+        "productionWrites": 0,
+        "githubChecks": {
+          "id": 37317374627,
+          "status": "completed",
+          "conclusion": "success",
+          "sha": "2a92aa74e3a218b1b33db1fad22966c09c611449",
+          "url": "https://github.com/mistertee1/Sodaflow/actions/runs/37317374627"
+        }
+      },
+      "mergedCommit": "2a92aa74e3a218b1b33db1fad22966c09c611449"
     },
     {
       "id": 5,
@@ -124,5 +122,26 @@
       ]
     }
   ],
-  "productionValidated": false
+  "productionValidated": false,
+  "lastCompletedStage": 4,
+  "unmergedWorkBranch": null,
+  "lastSourceCommit": "2a92aa74e3a218b1b33db1fad22966c09c611449",
+  "sourceStagesComplete": true,
+  "status": "blocked_external",
+  "resumeFrom": "production_activation",
+  "lastReport": "docs/super-admin/REPORT.md",
+  "productionReadiness": {
+    "checkedAt": "2026-10-05T13:28:33.000Z",
+    "projectId": "sodaflow",
+    "databaseId": "(default)",
+    "liveVersion": "3.0.3-netlify",
+    "liveReadinessHttp": 503,
+    "firestoreCode": "firestore_database_missing",
+    "directFirestoreHttp": 404,
+    "directFirestoreDatabaseMissing": true,
+    "netlifyTargetAvailable": false,
+    "verifiedPlatformAdminUidProvided": false,
+    "storageCode": "storage_bucket_missing",
+    "productionWrites": 0
+  }
 }

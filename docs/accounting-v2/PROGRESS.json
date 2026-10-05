@@ -4,10 +4,14 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "ecee366e960a820b621c8dbded6909c43a4a3096",
   "user_merges_only": true,
-  "active_milestone": "B1",
-  "active_branch": "codex/accounting-v2-b1-supplier-purchases",
+  "active_milestone": "B2",
+  "active_branch": "codex/accounting-v2-b2-operational-ledger",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "root-accounting-v2-20261005-1014",
+    "started_at": "2026-10-05T10:36:05.240Z",
+    "expires_at": "2026-10-05T11:21:05.240Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -70,7 +74,9 @@
         {
           "id": "B2",
           "scope": "AR statements/aging, GL, cash/bank, internal transfers, bank/cash reconciliation",
-          "status": "pending"
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-b2-operational-ledger",
+          "completed_parts": []
         },
         {
           "id": "B3",
@@ -128,5 +134,5 @@
     "Start B2 from the tested B1 branch; dependent PR targets B1 while it is unmerged",
     "B3, C/D/E and Excel 1-4 remain pending; no merge/deployment/production writes"
   ],
-  "updated_at": "2026-10-05T10:35:41.806Z"
+  "updated_at": "2026-10-05T10:36:05.240Z"
 }

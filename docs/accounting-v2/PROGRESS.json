@@ -10,7 +10,7 @@
   "lease": {
     "worker": "root-accounting-v2-20261005-1014",
     "started_at": "2026-10-05T10:15:16.033Z",
-    "expires_at": "2026-10-05T11:10:30.985Z"
+    "expires_at": "2026-10-05T11:16:14.160Z"
   },
   "milestones": [
     {
@@ -48,7 +48,7 @@
       "id": "B",
       "status": "in_progress",
       "branch": "codex/accounting-v2-b1-supplier-purchases",
-      "pr": null,
+      "pr": 15,
       "steps": [
         {
           "id": "B1",
@@ -58,8 +58,17 @@
           "checks": {
             "unit_api": 81,
             "status": "passed",
-            "ui_local_b1": "passed",
-            "rules_status": "CI pending (Java 21)"
+            "rules": 7,
+            "rules_status": "passed",
+            "ui": 23,
+            "ui_status": "passed_previous_head",
+            "production_audit_vulnerabilities": 0
+          },
+          "pr": 15,
+          "ci": {
+            "conclusion": "success",
+            "run_id": 37296575822,
+            "commit_sha": "2915098691219644f2f0f0b9201f4a2d1594453d"
           }
         },
         {
@@ -123,5 +132,5 @@
     "Start B2 from the tested B1 branch; dependent PR targets B1 while it is unmerged",
     "B3, C/D/E and Excel 1-4 remain pending; no merge/deployment/production writes"
   ],
-  "updated_at": "2026-10-05T10:25:30.985Z"
+  "updated_at": "2026-10-05T10:31:14.160Z"
 }

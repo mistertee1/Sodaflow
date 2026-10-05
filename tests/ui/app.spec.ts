@@ -338,5 +338,5 @@ test('B1 mobile supplier purchase and partial FX payment post once and export th
   const supplier=data.find(([p])=>p.includes('/suppliers/'))![1] as any;await page.getByLabel('المورد للكشف',{exact:true}).selectOption(supplier.id);
   await expect(page.getByRole('button',{name:'تصدير كشف CSV',exact:true})).toBeVisible();const csvDownload=page.waitForEvent('download');await page.getByRole('button',{name:'تصدير كشف CSV',exact:true}).click();const csv=await csvDownload;const csvPath=testInfo.outputPath('supplier.csv');await csv.saveAs(csvPath);expect(await readFile(csvPath,'utf8')).toContain('closing');
   const pdfDownload=page.waitForEvent('download');await page.getByRole('button',{name:'تحميل كشف PDF',exact:true}).click();const pdf=await pdfDownload;const pdfPath=testInfo.outputPath('supplier.pdf');await pdf.saveAs(pdfPath);expect((await readFile(pdfPath)).subarray(0,5).toString()).toBe('%PDF-');
-  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/accounting-v2-payables-mobile.png',fullPage:true});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:'test-results/accounting-v2-payables-mobile.png',fullPage:true});
 });

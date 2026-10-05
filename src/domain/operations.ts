@@ -9,6 +9,7 @@ import { hasPermission, type ActionType } from '../services/rbacService';
 import { assertOpenPeriod, dateOnly, ensure, identifier, money, text, validateJournal, validateSettings } from './validation';
 import { invoiceFinancials, journal, journalLine, paymentQuote, receiptJournal, receivableCurrency, reverseJournal } from './financial';
 import { clean, type Change, type Document, type Store, type Transaction } from './store';
+import { classifyAccount } from './accountClassification';
 import { financialCollections, reconcileFinancialData, type FinancialData } from './reconciliation';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; }
@@ -263,8 +264,23 @@ export class Operations {
         }
         case 'expense.create': {
           assertOpenPeriod(data.date, settings); ensure(['SDG', 'USD'].includes(data.currency), 'عملة المصروف غير مدعومة.'); money(data.amount, data.currency === 'USD' ? 2 : 0, true); text(data.title, 200, true);
-          result = { ...pick(data, ['title', 'category', 'amount', 'currency', 'exchange_rate_used', 'date', 'notes', 'receipt_image']), ...stamp, id: `exp-${command.operationId}` };
-          await post(generateExpenseJournalEntry(result as any, orgId, actor.uid)); set(`${root}/expenses/${result.id}`, result); counterAdd('expense_count', 1); break;
+          ensure(data.kind === undefined || data.kind === 'expense', 'مشتريات المخزون تُسجّل بعملية شراء مستقلة.');
+          const category = text(data.category || '', 200).trim().toLowerCase();
+          ensure(!/(بضاعة|توريدات|مشتريات|inventory|merchandise|stock purchase)/i.test(category), 'مشتريات المخزون ليست مصروفاً تشغيلياً؛ استخدم عملية شراء.');
+          const method = data.payment_method || 'cash';
+          ensure(['cash', 'bankak', 'fawry', 'bank_transfer', 'other', 'on_credit', 'custom'].includes(method), 'طريقة سداد المصروف غير صالحة.');
+          ensure(method !== 'custom' || data.payment_account_code, 'اختر حساب السداد المخصص.');
+          result = { ...pick(data, ['title', 'category', 'amount', 'currency', 'exchange_rate_used', 'date', 'notes', 'receipt_image', 'payment_account_code', 'expense_account_code']), payment_method: method, ...stamp, id: `exp-${command.operationId}` };
+          const entry = generateExpenseJournalEntry(result as any, orgId, actor.uid);
+          for (const [index, line] of entry.lines.entries()) {
+            const account = await tx.get(`${root}/accounts/${identifier(line.account_code)}`) || getDefaultChartOfAccounts(orgId).find(a => a.code === line.account_code);
+            ensure(account?.is_active, 'حساب المصروف أو السداد غير موجود أو غير نشط.');
+            const classification = classifyAccount(account as Account);
+            ensure(index === 0 ? account.type === 'EXPENSE' && classification.reporting_group === 'operating_expense' : method === 'on_credit' ? account.type === 'LIABILITY' && classification.reporting_group === 'payables' : account.type === 'ASSET' && classification.reporting_group === 'cash_bank', 'الحساب المختار لا يطابق المصروف أو طريقة السداد.');
+          }
+          result.expense_account_code = entry.lines[0].account_code;
+          result.payment_account_code = entry.lines[1].account_code;
+          await post(entry); set(`${root}/expenses/${result.id}`, result); counterAdd('expense_count', 1); break;
         }
         case 'expense.void': {
           const expense = await required('expenses', data.id); ensure(!expense.voided_at, 'المصروف معكوس مسبقاً.'); assertOpenPeriod(expense.date, settings);
@@ -283,8 +299,14 @@ export class Operations {
           ensure(input && typeof input === 'object' && !Array.isArray(input), 'بيانات الحساب غير صالحة.');
           ensure(!updating || !old.is_system || !['code', 'type', 'nature', 'is_active', 'is_system', 'parent_code'].some(k => input[k] !== undefined && input[k] !== old[k]), 'هيكل حسابات النظام ثابت.');
           ensure(!['balance_sdg', 'balance_usd'].some(k => input[k] !== undefined && input[k] !== (old[k] || 0)), 'الرصيد الافتتاحي يُسجّل بقيد افتتاحي متزن.');
-          result = { ...old, ...pick(input, ['name_ar', 'name_en', 'type', 'nature', 'parent_code', 'description', 'is_active']), ...(!updating ? { ...stamp, is_system: false, balance_sdg: 0, balance_usd: 0 } : {}), code };
+          result = { ...old, ...pick(input, ['name_ar', 'name_en', 'type', 'nature', 'parent_code', 'description', 'is_active', 'subtype', 'reporting_group', 'cash_flow_category', 'normal_balance']), ...(!updating ? { ...stamp, is_system: false, balance_sdg: 0, balance_usd: 0 } : {}), code };
           text(result.name_ar, 200, true); ensure(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].includes(result.type) && ['DEBIT', 'CREDIT'].includes(result.nature) && typeof result.is_active === 'boolean', 'تصنيف الحساب غير صالح.');
+          const metadata = classifyAccount(result as Account);
+          if (updating && (await tx.list(`${root}/journal_entries`)).some(e => e.lines?.some((l: Document) => l.account_code === code))) {
+            const oldMetadata = classifyAccount(old as Account);
+            ensure(['type', 'nature'].every(k => result[k] === old[k]) && canonical(metadata) === canonical(oldMetadata), 'تصنيف الحساب المُستخدم في القيود ثابت؛ أنشئ حساباً جديداً عند تغيير تصنيفه.');
+          }
+          Object.assign(result, metadata);
           if (result.parent_code) ensure(result.parent_code !== code && await tx.get(`${root}/accounts/${identifier(result.parent_code)}`), 'الحساب الأب غير صالح.');
           set(`${root}/accounts/${code}`, result); break;
         }
@@ -360,3 +382,4 @@ export class Operations {
     });
   }
 }
+

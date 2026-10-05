@@ -19,12 +19,12 @@ export const BalanceSheetReport: React.FC<Props> = ({ trialBalance, incomeStatem
                 ) : (
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sf-danger-bg/80 text-sf-danger border border-sf-danger/50 flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5" />
-                    فارق عدم توازن: {formatMoney(balanceSheet.difference_sdg, 'SDG')}
+                    فارق عدم توازن: {formatMoney(balanceSheet.difference_sdg, 'SDG')} / {formatMoney(balanceSheet.variance_usd || 0, 'USD')}
                   </span>
                 )}
               </div>
               <p className="text-xs text-sf-muted mt-1">
-                توضح المركز المالي للمنشأة في تاريخ محدد، وتشمل أرباح الفترة الحالية المنقولة تلقائياً من قائمة الدخل.
+                توضح المركز المالي للمنشأة في تاريخ محدد، وتشمل الأرباح المتراكمة حتى تاريخ التقرير ما لم تُرحّل بقيود إقفال.
               </p>
             </div>
 
@@ -218,3 +218,4 @@ export const BalanceSheetReport: React.FC<Props> = ({ trialBalance, incomeStatem
         </div>
 
 );
+

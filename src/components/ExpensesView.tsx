@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { classifyAccount } from '../domain/accountClassification';
+import { getAccountCodeForPaymentMethod } from '../services/accountingService';
 import { Expense, Currency } from '../types';
 import {
   Plus,
@@ -23,7 +25,7 @@ import {
 import { Dialog } from './Dialog';
 
 export const ExpensesView: React.FC = () => {
-  const { expenses, addExpense, deleteExpense, settings, currentUser, currentOrg, isActionAllowed } = useApp();
+  const { accounts, expenses, addExpense, deleteExpense, settings, currentUser, currentOrg, isActionAllowed } = useApp();
 
   const submitLock = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -32,6 +34,8 @@ export const ExpensesView: React.FC = () => {
   const [amount, setAmount] = useState<number>(0);
   const [currency, setCurrency] = useState<Currency>('SDG');
   const [expenseExchangeRate, setExpenseExchangeRate] = useState<number>(settings.default_exchange_rate || 0);
+  const [paymentMethod, setPaymentMethod] = useState<NonNullable<Expense['payment_method']>>('cash');
+  const [paymentAccount, setPaymentAccount] = useState('');
   const [category, setCategory] = useState('نقل وترحيل');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
@@ -48,7 +52,6 @@ export const ExpensesView: React.FC = () => {
   const defaultCategories = [
     'نقل وترحيل',
     'إيجار المحل / المستودع',
-    'مشتريات بضاعة وتوريدات',
     'رواتب ومكافآت عمال',
     'كهرباء وماء وخدمات',
     'صيانة وتجهيزات',
@@ -142,6 +145,8 @@ export const ExpensesView: React.FC = () => {
       amount: Number(amount),
       currency,
       category,
+      payment_method: paymentMethod,
+      payment_account_code: paymentMethod === 'custom' ? paymentAccount : paymentMethod === 'on_credit' ? '2110' : getAccountCodeForPaymentMethod(paymentMethod, currency),
       date,
       notes: notes.trim() || '',
       receipt_image: receiptImage || '',
@@ -386,6 +391,17 @@ export const ExpensesView: React.FC = () => {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <label className="block font-semibold text-sf-text text-xs" htmlFor="expense-payment-method">طريقة سداد المصروف</label>
+                <select id="expense-payment-method" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value as NonNullable<Expense['payment_method']>)} className="w-full bg-sf-raised border border-sf-border rounded-xl p-2 text-xs">
+                  <option value="cash">نقداً</option><option value="bankak">بنكك</option><option value="fawry">فوري</option><option value="bank_transfer">تحويل بنكي</option><option value="on_credit">آجل — ذمم دائنة</option><option value="custom">حساب نقدي / بنكي مخصص</option>
+                </select>
+                {paymentMethod === 'custom' && <select aria-label="حساب سداد المصروف" required value={paymentAccount} onChange={e => setPaymentAccount(e.target.value)} className="w-full bg-sf-raised border border-sf-border rounded-xl p-2 text-xs">
+                  <option value="">اختر الحساب</option>{accounts.filter(a => a.is_active && classifyAccount(a).reporting_group === 'cash_bank').map(a => <option key={a.code} value={a.code}>{a.code} — {a.name_ar}</option>)}
+                </select>}
+                <p className="text-xs text-sf-muted">شراء البضاعة يُسجّل ضمن المشتريات والمخزون. المصروف الآجل يثبت التزاماً ولا يخصم النقدية.</p>
+              </div>
+
               {/* Receipt Image Attachment (Camera) */}
               <div>
                 <label className="block font-semibold text-sf-text mb-1 text-xs">
@@ -510,3 +526,4 @@ export const ExpensesView: React.FC = () => {
     </div>
   );
 };
+

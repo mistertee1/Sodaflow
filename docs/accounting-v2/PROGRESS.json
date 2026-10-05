@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "source_sha256": "a6ef84e96568ee751ede2a5a932e30c17140f914bcb61df5f38727f390ee4a45",
+  "repository": "mistertee1/Sodaflow",
+  "base_main_sha": "bfc3b23754e76598007c83dd01f72231b01ed78a",
+  "user_merges_only": true,
+  "active_milestone": "A2",
+  "active_branch": "codex/accounting-v2-a1-ledger-foundation",
+  "overall_status": "in_progress",
+  "lease": null,
+  "milestones": [
+    {
+      "id": "A1",
+      "status": "implemented_ci_pending",
+      "branch": "codex/accounting-v2-a1-ledger-foundation",
+      "pr": null
+    },
+    {
+      "id": "A2",
+      "status": "pending",
+      "branch": null,
+      "pr": null
+    },
+    {
+      "id": "B",
+      "status": "pending",
+      "branch": null,
+      "pr": null
+    },
+    {
+      "id": "C",
+      "status": "pending",
+      "branch": null,
+      "pr": null
+    },
+    {
+      "id": "D",
+      "status": "pending",
+      "branch": null,
+      "pr": null
+    },
+    {
+      "id": "E",
+      "status": "pending",
+      "branch": null,
+      "pr": null
+    },
+    {
+      "id": "Excel1",
+      "status": "pending",
+      "branch": null,
+      "pr": null
+    },
+    {
+      "id": "Excel2",
+      "status": "pending",
+      "branch": null,
+      "pr": null
+    },
+    {
+      "id": "Excel3",
+      "status": "pending",
+      "branch": null,
+      "pr": null
+    },
+    {
+      "id": "Excel4",
+      "status": "pending",
+      "branch": null,
+      "pr": null
+    }
+  ],
+  "last_report": "REPORT_A1.md",
+  "next_steps": [
+    "Check A1 CI and correct any failures on A1 branch",
+    "Implement A2 costing, controlled migration, inventory GL, API-only V2 writes and rules",
+    "Do not start B before full phase A acceptance; never merge main"
+  ]
+}

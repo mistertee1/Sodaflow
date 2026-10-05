@@ -1,0 +1,91 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { MemoryStore } from '../src/domain/store';
+import { Operations } from '../src/domain/operations';
+import { Organizations } from '../server/organizations';
+import { INITIAL_SETTINGS } from '../src/data/initialData';
+import type { Account, JournalEntry } from '../src/types';
+import { getDefaultChartOfAccounts, calculateTrialBalance, calculateIncomeStatement, calculateBalanceSheet, calculateCashFlowStatement } from '../src/services/accountingService';
+import { classifyAccount } from '../src/domain/accountClassification';
+import { journal, journalLine } from '../src/domain/financial';
+import { reconcileFinancialData, type FinancialData } from '../src/domain/reconciliation';
+
+const actor = { uid: 'owner', email: 'owner@example.com', emailVerified: true };
+const entry = (id: string, date: string, lines: JournalEntry['lines']) => journal(id, 'org', 'owner', date, 'manual', id, id, lines, 2000);
+const account = (code: string, type: Account['type'], nature: Account['nature'], metadata: Partial<Account> = {}): Account => ({ code, type, nature, name_ar: code, name_en: code, is_active: true, is_system: false, balance_sdg: 0, balance_usd: 0, org_id: 'org', ...metadata });
+async function fixture() {
+  const store = new MemoryStore(), org = await new Organizations(store).create(actor, 'متجر', INITIAL_SETTINGS, 'setup', true);
+  const ops = new Operations(store, () => new Date('2026-10-05T12:00:00Z'));
+  const run = (action: string, data: Record<string, unknown>, operationId: string = crypto.randomUUID()) => ops.execute(org.id, actor, { action, data, operationId });
+  return { store, org, ops, run };
+}
+
+test('A1 custom revenue uses declared classification regardless of numeric or arbitrary code', () => {
+  const chart = [...getDefaultChartOfAccounts('org'), account('consulting', 'REVENUE', 'CREDIT'), account('9999', 'REVENUE', 'CREDIT', { reporting_group: 'other_revenue' })];
+  const entries = [entry('sales', '2026-10-02', [journalLine('1110', 'cash', 150, 0, 1.5, 0), journalLine('consulting', 'service', 0, 100, 0, 1), journalLine('9999', 'other', 0, 50, 0, .5)])];
+  assert.equal(calculateIncomeStatement(entries, chart).sales_revenue_sdg, 150);
+  assert.equal(calculateIncomeStatement(entries, chart).net_profit_usd, 1.5);
+  assert.equal(calculateBalanceSheet(chart, entries).is_balanced, true);
+});
+
+test('A1 date ranges are inclusive with ledger openings and no duplicated account balance cache', () => {
+  const chart = getDefaultChartOfAccounts('org'); chart.find(a => a.code === '1110')!.balance_sdg = 99999;
+  const entries = [entry('opening', '2026-09-30', [journalLine('1110', 'cash', 1000, 0, 10, 0), journalLine('3100', 'capital', 0, 1000, 0, 10)]), entry('sale', '2026-10-01T00:00:00Z', [journalLine('1110', 'cash', 100, 0, 1, 0), journalLine('4100', 'sales', 0, 100, 0, 1)]), entry('expense', '2026-10-31T23:59:59Z', [journalLine('5200', 'rent', 20, 0, .2, 0), journalLine('1110', 'cash', 0, 20, 0, .2)]), entry('later', '2026-11-01', [journalLine('1110', 'cash', 900, 0, 9, 0), journalLine('4100', 'sales', 0, 900, 0, 9)])];
+  const period = { start: '2026-10-01', end: '2026-10-31' }, trial = calculateTrialBalance(chart, entries, period), cash = trial.items.find(a => a.account_code === '1110')!;
+  assert.equal(cash.opening_balance_sdg, 1000); assert.equal(cash.total_debit_sdg, 100); assert.equal(cash.total_credit_sdg, 20); assert.equal(cash.net_balance_sdg, 1080); assert.equal(trial.isBalanced, true);
+  assert.equal(calculateIncomeStatement(entries, chart, period).net_profit_sdg, 80);
+  assert.equal(calculateBalanceSheet(chart, entries, period).total_assets_sdg, 1080);
+  const flow = calculateCashFlowStatement(chart, entries, period);
+  assert.equal(flow.beginning_cash_sdg, 1000); assert.equal(flow.net_change_in_cash_sdg, 80); assert.equal(flow.ending_cash_sdg, 1080);
+  assert.throws(() => calculateTrialBalance(chart, entries, { start: '2026-11-01', end: '2026-10-01' }), /بداية الفترة/);
+  assert.throws(() => calculateIncomeStatement(entries, chart, { end: '2026-02-30' }), /التاريخ/);
+});
+
+test('A1 balance sheet subtracts drawings and contra assets, retaining prior-period income', () => {
+  const chart = [...getDefaultChartOfAccounts('org'), account('depreciation', 'ASSET', 'CREDIT', { reporting_group: 'fixed_assets' })];
+  const entries = [entry('capital', '2026-09-01', [journalLine('1110', 'cash', 1000, 0, 10, 0), journalLine('3100', 'capital', 0, 1000, 0, 10)]), entry('sales', '2026-09-02', [journalLine('1110', 'cash', 100, 0, 1, 0), journalLine('4100', 'sales', 0, 100, 0, 1)]), entry('drawings', '2026-10-01', [journalLine('3200', 'drawings', 40, 0, .4, 0), journalLine('1110', 'cash', 0, 40, 0, .4)]), entry('depreciation', '2026-10-02', [journalLine('5800', 'expense', 10, 0, .1, 0), journalLine('depreciation', 'contra', 0, 10, 0, .1)])];
+  const balance = calculateBalanceSheet(chart, entries, { start: '2026-10-01', end: '2026-10-31' });
+  assert.equal(balance.total_assets_sdg, 1050); assert.equal(balance.total_equity_sdg, 1050); assert.equal(balance.current_period_profit_sdg, 90); assert.equal(balance.is_balanced, true);
+  assert.equal(balance.equity.find(a => a.code === '3200')!.amount_sdg, -40); assert.equal(balance.assets.find(a => a.code === 'depreciation')!.amount_sdg, -10);
+});
+
+test('A1 cash flow uses account metadata, ignores internal transfers and separates mixed activity counterparts', () => {
+  const chart = [...getDefaultChartOfAccounts('org'), account('wallet', 'ASSET', 'DEBIT', { reporting_group: 'cash_bank' }), account('equipment', 'ASSET', 'DEBIT', { reporting_group: 'fixed_assets' }), account('loan', 'LIABILITY', 'CREDIT', { cash_flow_category: 'financing' })];
+  const entries = [entry('funding', '2026-10-01', [journalLine('wallet', 'wallet', 1000, 0, 10, 0), journalLine('loan', 'loan', 0, 1000, 0, 10)]), entry('transfer', '2026-10-02', [journalLine('1110', 'cash', 100, 0, 1, 0), journalLine('wallet', 'wallet', 0, 100, 0, 1)]), entry('mixed', '2026-10-03', [journalLine('equipment', 'asset', 200, 0, 2, 0), journalLine('5200', 'rent', 50, 0, .5, 0), journalLine('wallet', 'wallet', 0, 250, 0, 2.5)])];
+  const flow = calculateCashFlowStatement(chart, entries);
+  assert.equal(flow.net_cash_financing_sdg, 1000); assert.equal(flow.net_cash_investing_sdg, -200); assert.equal(flow.net_cash_operating_sdg, -50); assert.equal(flow.ending_cash_sdg, 750);
+  const ambiguous = entry('ambiguous', '2026-10-04', [journalLine('wallet', 'cash', 100, 0, 1, 0), journalLine('equipment', 'asset', 50, 0, .5, 0), journalLine('3100', 'capital', 0, 150, 0, 1.5)]);
+  assert.throws(() => calculateCashFlowStatement(chart, [ambiguous]), /قيد نقدي مختلط/);
+});
+
+test('A1 classification and missing accounts fail visibly rather than reporting invented values', () => {
+  assert.throws(() => classifyAccount(account('bad', 'ASSET', 'DEBIT', { reporting_group: 'sales' })), /مجموعة التقرير/);
+  assert.throws(() => classifyAccount(account('bad', 'REVENUE', 'CREDIT', { cash_flow_category: 'cash' })), /التدفق النقدي/);
+  const entries = [entry('missing', '2026-10-01', [journalLine('1110', 'cash', 10, 0, .1, 0), journalLine('missing', 'missing', 0, 10, 0, .1)])];
+  assert.throws(() => calculateIncomeStatement(entries), /غير موجود/);
+});
+
+test('A1 expenses credit selected bank, USD bank, custom cash or payable with exact journal reconciliation', async () => {
+  const f = await fixture();
+  await f.run('account.create', { ...account('wallet', 'ASSET', 'DEBIT', { reporting_group: 'cash_bank' }) });
+  for (const [method, code, currency] of [['bankak', '1130', 'SDG'], ['fawry', '1140', 'USD'], ['bank_transfer', '1150', 'SDG'], ['custom', 'wallet', 'SDG'], ['on_credit', '2110', 'SDG']] as const) {
+    const expense = (await f.run('expense.create', { title: 'إيجار', category: 'إيجار', amount: 10, currency, exchange_rate_used: 2000, date: '2026-10-05', payment_method: method, ...(method === 'custom' ? { payment_account_code: code } : {}) }, `expense-${method}`)).result;
+    const snapshot = await f.ops.snapshot(f.org.id, actor), posting = snapshot.collections.journal_entries.find(e => e.reference_id === expense.id)!;
+    assert.equal(expense.payment_account_code, code); assert.equal(posting.lines[1].account_code, code); assert.equal(posting.lines[1][currency === 'USD' ? 'credit_usd' : 'credit_sdg'], 10);
+    assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData, snapshot.settings), []);
+    await f.run('expense.create', { title: 'إيجار', category: 'إيجار', amount: 10, currency, exchange_rate_used: 2000, date: '2026-10-05', payment_method: method, ...(method === 'custom' ? { payment_account_code: code } : {}) }, `expense-${method}`);
+    assert.equal((await f.ops.snapshot(f.org.id, actor)).collections.expenses.length, snapshot.collections.expenses.length);
+  }
+});
+
+test('A1 backend rejects inventory purchases, invalid expense funding and changing used account classification atomically', async () => {
+  const f = await fixture(), base = { title: 'اختبار', category: 'أخرى', amount: 10, currency: 'SDG', date: '2026-10-05' };
+  for (const input of [{ category: 'مشتريات بضاعة وتوريدات' }, { kind: 'purchase' }, { payment_method: 'custom', payment_account_code: '1300' }, { expense_account_code: '5100' }, { payment_method: 'on_credit', payment_account_code: '1110' }]) {
+    const before = f.store.dump(); await assert.rejects(f.run('expense.create', { ...base, ...input })); assert.deepEqual(f.store.dump(), before);
+  }
+  await f.run('account.create', { ...account('consulting', 'REVENUE', 'CREDIT') });
+  await f.run('journal.create', { reference_type: 'manual', description: 'إيراد', date: '2026-10-05', lines: [journalLine('1110', 'cash', 10, 0, .1, 0), journalLine('consulting', 'service', 0, 10, 0, .1)] });
+  const before = f.store.dump();
+  await assert.rejects(f.run('account.update', { code: 'consulting', updates: { reporting_group: 'fx_gain' } }), /تصنيف الحساب المُستخدم/);
+  assert.deepEqual(f.store.dump(), before);
+});

@@ -4,10 +4,15 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "51a6df857bc099d8167fe7564b502047b8522574",
   "user_merges_only": true,
-  "active_milestone": "B2",
-  "active_branch": "codex/accounting-v2-b2-cash-reconciliation",
+  "active_milestone": "B3",
+  "active_branch": "codex/accounting-v2-b3-return-foundation",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "root-accounting-v2-20261005-1612",
+    "started_at": "2026-10-05T16:34:19.935Z",
+    "updated_at": "2026-10-05T16:34:19.935Z",
+    "expires_at": "2026-10-05T17:19:19.935Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -112,7 +117,20 @@
         {
           "id": "B3",
           "scope": "Credit notes, sales/purchase returns and refunds",
-          "status": "pending"
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-b3-return-foundation",
+          "substeps": [
+            {
+              "id": "B3.1",
+              "scope": "Source return allocation, original-cost restock, purchase WAC variance and refund carrying-value contracts",
+              "status": "in_progress"
+            },
+            {
+              "id": "B3.2",
+              "scope": "Atomic source-linked credit notes, sales/purchase returns and refunds; reports, reconciliation, backup and UI",
+              "status": "pending"
+            }
+          ]
         }
       ]
     },
@@ -159,13 +177,12 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B2.md",
+  "last_report": "REPORT_B3.md",
   "next_steps": [
-    "Start B3 immutable credit-note/return/refund source contracts and workflows",
-    "Then C, D, E and Excel1-4, including deferred PRD50 bank statement import",
-    "User reviews and merges; no main writes, deployment or production data"
+    "Finish/test B3.1 source calculation contracts, then integrate B3.2 immutable transactional workflows",
+    "Then C, D, E and Excel1-4 with deferred PRD50 import"
   ],
-  "updated_at": "2026-10-05T16:32:45.042Z",
+  "updated_at": "2026-10-05T16:34:19.935Z",
   "deferred_requirements": [
     {
       "prd": "50",

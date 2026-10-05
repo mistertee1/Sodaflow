@@ -20,13 +20,13 @@ export async function loadSubscription(tx: Transaction, orgId: string, org: Orga
   if (status === 'trial' && !end) status = 'expired';
   // Only Free and explicitly reviewed legacy contracts may be non-expiring.
   if (org.planId && planId !== 'Free' && !end && org.subscriptionMetadata?.legacyNonExpiring !== true) status = 'expired';
-  return { ...legacy, plan_id: planId, plan_definition: plan, status, effective_status: status,
+  return { ...legacy, plan: planId, plan_id: planId, plan_definition: plan, status, effective_status: status,
     subscription_start: start, subscription_end: end, renewal_at: org.renewalAt ?? end, billing_revision: org.billingRevision || 0,
     max_members: plan.limits.maxUsers, max_branches: plan.limits.maxBranches, max_warehouses: plan.limits.maxWarehouses,
     max_invoices_per_month: plan.limits.invoicePeriod === 'month' ? plan.limits.maxInvoices : 999999,
     max_invoices_total: plan.limits.invoicePeriod === 'lifetime' ? plan.limits.maxInvoices : 999999,
     invoice_period: plan.limits.invoicePeriod, max_customers: plan.limits.maxCustomers, max_products: plan.limits.maxProducts,
-    features: { ...legacy.features, ...plan.features } };
+    features: { ...plan.features } as OrgSubscription['features'] };
 }
 
 export function assertSubscriptionActive(subscription: OrgSubscription) {

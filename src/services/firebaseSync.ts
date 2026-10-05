@@ -5,7 +5,8 @@ import { api, sendCommand } from './businessApi';
 
 // Keep realtime revision notifications and the confirmed snapshot cache. All tenant reads
 // and financial writes use the same authenticated API and authoritative live entitlements.
-// Firestore SDK writes cannot enforce cross-document invoice quotas safely and are denied.
+// Tenant writes stay on the authenticated API, where subscription checks and counters
+// are committed atomically. Revision notifications use the Firestore SDK.
 export function firebaseSnapshot(orgId: string, backup = false) {
   return api<Awaited<ReturnType<Operations['snapshot']>>>(`/organizations/${encodeURIComponent(orgId)}/${backup ? 'backup' : 'snapshot'}`);
 }

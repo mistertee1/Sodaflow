@@ -14,6 +14,7 @@ import type { OrgSubscription } from '../src/types';
 export class Organizations {
   constructor(private store: Store, private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = resolveSubscription) {}
   list(actor: Actor) {
+    ensure(actor.emailVerified === true && actor.email, 'أكّد بريدك الإلكتروني قبل الوصول إلى المؤسسات.', 403);
     return this.store.transaction(async tx => {
       const index = await tx.list(`user_organizations/${identifier(actor.uid)}/orgs`);
       const owned = await tx.find('organizations', 'owner_uid', actor.uid);

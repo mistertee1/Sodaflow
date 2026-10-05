@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import type { Customer, Product, Invoice, Payment, Expense, MerchantSettings, Currency, InventoryMovement, Organization, OrgMember, OrgRole, Account, JournalEntry, OrganizationCounters, OrgSubscription, SubscriptionPlan } from '../types';
+import type { Customer, Product, Invoice, Payment, Expense, MerchantSettings, Currency, InventoryMovement, Organization, OrgMember, OrgRole, Account, JournalEntry, OrganizationCounters, OrgSubscription } from '../types';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
 import { INITIAL_SETTINGS } from '../data/initialData';
 import { auth, onAuthStateChanged, logout, type User } from '../lib/firebase';
@@ -88,7 +88,7 @@ interface AppContextType {
   // Subscription Plan & Limits
   subscription: OrgSubscription;
   refreshSubscription: () => Promise<void>;
-  updateSubscriptionPlan: (newPlan: SubscriptionPlan) => Promise<void>;
+  updateSubscriptionPlan: (newPlan: string) => Promise<void>;
   // Pagination for List Views
   hasMoreInvoices: boolean;
   isLoadingMoreInvoices: boolean;

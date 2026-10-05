@@ -27,7 +27,7 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
     const claims = await adminServices().auth.verifyIdToken(token, true);
     return { uid: claims.uid, email: claims.email || '', emailVerified: claims.email_verified === true, name: claims.name, superAdmin: claims.superAdmin === true };
   });
-  router.get('/health', (_req, res) => res.json({ status: 'ok', app: 'SudaFlow', version: '3.0.0' }));
+  router.get('/health', (_req, res) => res.json({ status: 'ok', app: 'SudaFlow', version: '3.0.0', release: '2026-10-05-central-sync-recovery' }));
   router.get('/health/ready', async (_req, res) => {
     const result = await firebaseReadiness();
     res.status(result.status === 'ready' ? 200 : 503).json(result);

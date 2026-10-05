@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "repository": "mistertee1/Sodaflow",
+  "sourceBase": "ef4232efb14cd6fe2c08181d4c5d65914e60596a",
+  "updatedAt": "2026-10-05T08:12:36.907878+00:00",
+  "activeRunId": "super-admin-interactive-20261005",
+  "leaseUntil": "2026-10-05T08:57:36.907878+00:00",
+  "automationId": "6ac35722234c819194e0535527c23124",
+  "currentStage": 3,
+  "workBranch": "codex/super-admin-phases-20261005",
+  "ownedPaths": [
+    "src/components/SuperAdminPage.tsx",
+    "tests/ui/super-admin.spec.ts",
+    "tests/ui/helpers",
+    "docs/super-admin"
+  ],
+  "stages": [
+    {
+      "id": 0,
+      "status": "completed",
+      "evidence": {
+        "command": "npm test",
+        "tests": 34,
+        "passed": 31,
+        "failed": 3
+      },
+      "interpretation": "baseline audit complete, feature validation not passed"
+    },
+    {
+      "id": 1,
+      "status": "completed",
+      "evidence": {
+        "commands": [
+          "npm test",
+          "npm run lint:core",
+          "npm run lint",
+          "npm run build"
+        ],
+        "tests": 44,
+        "passed": 44,
+        "failed": 0,
+        "skipped": 0,
+        "scope": "domain, HTTP authorization, account isolation and build; UI and Rules are later stages"
+      },
+      "mergedCommit": "ef4232efb14cd6fe2c08181d4c5d65914e60596a"
+    },
+    {
+      "id": 2,
+      "status": "completed",
+      "evidence": {
+        "commands": [
+          "npm test",
+          "npm run lint:core",
+          "npm run lint",
+          "npm run build"
+        ],
+        "tests": 60,
+        "passed": 60,
+        "failed": 0,
+        "skipped": 0,
+        "newBillingTests": 16,
+        "regressionsBeforeFix": 4
+      }
+    },
+    {
+      "id": 3,
+      "status": "in_progress"
+    },
+    {
+      "id": 4,
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "status": "blocked",
+      "blockers": [
+        "Firestore API SERVICE_DISABLED on sodaflow",
+        "Netlify project access and live API deployment unavailable",
+        "Explicit verified platform-admin UID not supplied"
+      ]
+    }
+  ],
+  "productionValidated": false
+}

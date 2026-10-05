@@ -35,6 +35,7 @@ export function canonical(value: unknown): string {
   return JSON.stringify(value) ?? 'null';
 }
 export async function membership(tx: Transaction, orgId: string, actor: Actor, allowInactive = false) {
+  ensure(actor.emailVerified === true, 'أكّد بريدك الإلكتروني قبل الوصول إلى بيانات المؤسسة.', 403);
   const org = await tx.get(`organizations/${identifier(orgId)}`) as Organization | undefined;
   ensure(org && (allowInactive || org.status === 'active'), 'المؤسسة غير متاحة أو معلقة.', 403);
   const member = await tx.get(`organizations/${orgId}/members/${identifier(actor.uid)}`);
@@ -541,4 +542,3 @@ export class Operations {
     });
   }
 }
-

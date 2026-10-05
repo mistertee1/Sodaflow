@@ -36,56 +36,11 @@ async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, 
   let org = { id: orgId, name: 'متجر الاختبار السحابي', owner_uid: uid, status: 'active', settings: { ...INITIAL_SETTINGS, business_name: 'متجر الاختبار السحابي', phone: '0912345678', default_exchange_rate: 2000, currencies_configured: true }, created_at: new Date().toISOString() };
   const requests: string[] = [];
   let loads = 0, revision = 0, failRevision = false;
-  await page.addInitScript(({ stateKey, initialOrg, ownerUid, ownerEmail, counters, subscription, denyDirect, failFirstSnapshot, fallbackOrganizations }) => {
-    let snapshots = 0;
-    const read = () => {
-      const raw = localStorage.getItem(stateKey);
-      if (raw) return JSON.parse(raw);
-      const seeded = { org: initialOrg, revision: Number(counters.revision || 0) };
-      localStorage.setItem(stateKey, JSON.stringify(seeded));
-      return seeded;
-    };
-    const write = (value: any) => localStorage.setItem(stateKey, JSON.stringify(value));
-    const makeSnapshot = () => {
-      const state = read();
-      const member = { uid: ownerUid, org_id: state.org.id, email: ownerEmail, role: 'Owner', status: 'active' };
-      return {
-        schema_version: 3,
-        org: state.org,
-        role: 'Owner',
-        member,
-        settings: state.org.settings,
-        collections: { customers: [], products: [], invoices: [], payments: [], expenses: [], inventory_movements: [], accounts: [], journal_entries: [], members: [member], audit_logs: [], invitations: [] },
-        counters: { ...counters, revision: state.revision },
-        subscription,
-        exported_at: new Date().toISOString(),
-      };
-    };
+  let snapshots = 0, failWrites = false;
+  const operationIds: string[] = [];
+  await page.addInitScript(({ initialOrg, fallbackOrganizations, denyDirect }) => {
     (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = {
-      organizations: async () => { if (!fallbackOrganizations) return []; return [makeSnapshot().org]; },
-      snapshot: async () => { if (failFirstSnapshot && ++snapshots === 1) throw new Error('انقطاع قراءة المؤسسة'); if (denyDirect) throw Object.assign(new Error('stale Firestore rules'), { code: 'permission-denied' }); return makeSnapshot(); },
-      command: async (orgId: string, action: string, data: any) => {
-        if (denyDirect) throw Object.assign(new Error('stale Firestore rules'), { code: 'permission-denied' });
-        if (action !== 'settings.update') throw new Error(`Unsupported UI-test direct command: ${action}`);
-        const state = read();
-        const updates = data?.updates || {};
-        state.org = {
-          ...state.org,
-          name: updates.business_name || state.org.name,
-          settings: { ...state.org.settings, ...updates },
-          updated_at: new Date().toISOString(),
-        };
-        state.revision = Number(state.revision || 0) + 1;
-        write(state);
-        window.dispatchEvent(new CustomEvent('sudaflow-test-revision', { detail: state.revision }));
-        return {
-          result: state.org.settings,
-          changes: [
-            { path: `organizations/${orgId}`, value: state.org },
-            { path: `organizations/${orgId}/meta/counters`, value: { ...counters, revision: state.revision } },
-          ],
-        };
-      },
+      organizations: async () => fallbackOrganizations ? [initialOrg] : [],
       watchRevision: (_orgId: string, onRevision: (revision: number) => void, onError: (error: unknown) => void) => {
         (window as any).__sudaflowWatchCount = Number((window as any).__sudaflowWatchCount || 0) + 1;
         if (denyDirect) { queueMicrotask(() => onError(Object.assign(new Error('listener permission denied'), { code: 'permission-denied' }))); return () => {}; }
@@ -94,7 +49,7 @@ async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, 
         return () => window.removeEventListener('sudaflow-test-revision', handler);
       },
     };
-  }, { stateKey: cloudStateKey, initialOrg: org, ownerUid: uid, ownerEmail: email, counters: DEFAULT_ORGANIZATION_COUNTERS, subscription: createDefaultSubscription(orgId), denyDirect, failFirstSnapshot, fallbackOrganizations });
+  }, { initialOrg: org, fallbackOrganizations, denyDirect });
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     requests.push(path);
@@ -110,13 +65,15 @@ async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, 
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ url: 'https://firebasestorage.googleapis.com/test-store-logo.png' }) });
     } else if (path.endsWith('/snapshot') || path.endsWith('/backup')) {
       if (failRevision) { await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'انقطاع مراقبة المزامنة' }) }); return; }
-      if (!denyDirect) throw new Error(`Tenant data unexpectedly used legacy API path: ${path}`);
+      if (failFirstSnapshot && ++snapshots === 1) { await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'انقطاع قراءة المؤسسة' }) }); return; }
       const member = { uid, org_id: orgId, email, role: 'Owner', status: 'active' };
       const collections = { customers: [], products: [], invoices: [], payments: [], expenses: [], inventory_movements: [], accounts: [], journal_entries: [], members: [member], audit_logs: [], invitations: [] };
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ schema_version: 3, org, role: 'Owner', member, settings: org.settings, collections, counters: { ...DEFAULT_ORGANIZATION_COUNTERS, revision }, subscription: createDefaultSubscription(orgId), exported_at: new Date().toISOString() }) });
     } else if (path.endsWith('/operations')) {
-      if (!denyDirect) throw new Error(`Tenant data unexpectedly used legacy API path: ${path}`);
+
       const command = route.request().postDataJSON();
+      operationIds.push(command.operationId);
+      if (failWrites) { await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'تعذر تأكيد الحفظ من الخادم', code: 'service_unavailable' }) }); return; }
       expect(command.action).toBe('settings.update');
       org = { ...org, name: command.data.updates.business_name || org.name, settings: { ...org.settings, ...command.data.updates } };
       revision += 1;
@@ -127,7 +84,7 @@ async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, 
     } else await route.abort();
   });
   await page.route('https://firebasestorage.googleapis.com/**', route => route.fulfill({ status: 200, contentType: 'image/png', body: png }));
-  return { requests, failNextRevision: () => { failRevision = true; }, recoverReads: () => { failRevision = false; }, remoteUpdate: (name: string) => { org = { ...org, name, settings: { ...org.settings, business_name: name } }; revision += 1; }, saved: () => page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}').org?.settings || {}, cloudStateKey) };
+  return { requests, failNextRevision: () => { failRevision = true; }, recoverReads: () => { failRevision = false; }, remoteUpdate: (name: string) => { org = { ...org, name, settings: { ...org.settings, business_name: name } }; revision += 1; }, saved: async () => structuredClone(org.settings), operationIds, failWrites: () => { failWrites = true; }, recoverWrites: () => { failWrites = false; } };
 }
 
 async function login(page: Page) {
@@ -194,7 +151,7 @@ test('an initial cloud outage recovers on reconnect and the owner can save shop 
 });
 
 
-test('stale production Firestore rules fall back to the idempotent operations API', async ({ page }) => {
+test('cloud writes stay on the idempotent API when Firestore notifications are denied', async ({ page }) => {
   await fakeFirebase(page, true);
   const cloud = await fakeCloud(page, false, true);
   await login(page);
@@ -211,13 +168,13 @@ test('stale production Firestore rules fall back to the idempotent operations AP
 });
 
 
-test('failed Firestore monitoring polls confirmed API revisions, recovers, and stops at logout', async ({ page }) => {
+test('failed Firestore monitoring reconciles confirmed API snapshots, recovers, and stops at logout', async ({ page }) => {
   await fakeFirebase(page, true);
   const cloud = await fakeCloud(page, false, true);
   await page.clock.install();
   await login(page);
   await expect(page.locator('header')).toContainText('متجر الاختبار السحابي');
-  await expect.poll(() => cloud.requests.filter(path => path.endsWith('/revision')).length).toBe(1);
+  await expect.poll(() => cloud.requests.filter(path => path.endsWith('/snapshot')).length).toBeGreaterThanOrEqual(2);
   await expect(page.getByRole('alert')).toHaveCount(0);
   cloud.remoteUpdate('تحديث من جهاز آخر');
   await page.clock.fastForward(31000);
@@ -230,10 +187,10 @@ test('failed Firestore monitoring polls confirmed API revisions, recovers, and s
   await expect(page.getByRole('alert')).toHaveCount(0);
   await page.getByTitle('تسجيل الخروج', { exact: true }).click();
   await expect(page.getByRole('button', { name: 'دخول الحساب السحابي', exact: true })).toBeVisible();
-  const reads = cloud.requests.filter(path => path.endsWith('/revision')).length;
+  const reads = cloud.requests.filter(path => path.endsWith('/snapshot')).length;
   await page.clock.fastForward(61000);
   await page.evaluate(() => window.dispatchEvent(new Event('online')));
-  expect(cloud.requests.filter(path => path.endsWith('/revision')).length).toBe(reads);
+  expect(cloud.requests.filter(path => path.endsWith('/snapshot')).length).toBe(reads);
 });
 
 test('manual retry after a failed initial snapshot starts the realtime monitor', async ({ page }) => {
@@ -244,12 +201,8 @@ test('manual retry after a failed initial snapshot starts the realtime monitor',
   await page.getByRole('button', { name: 'إعادة المحاولة', exact: true }).click();
   await expect(page.getByRole('alert')).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => (window as any).__sudaflowWatchCount)).toBe(1);
-  await page.evaluate(key => {
-    const state = JSON.parse(localStorage.getItem(key)!);
-    state.org.name = 'تحديث بعد التعافي'; state.org.settings.business_name = state.org.name; state.revision += 1;
-    localStorage.setItem(key, JSON.stringify(state));
-    window.dispatchEvent(new CustomEvent('sudaflow-test-revision', { detail: state.revision }));
-  }, cloudStateKey);
+  cloud.remoteUpdate('تحديث بعد التعافي');
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('sudaflow-test-revision', { detail: 1 })));
   await expect(page.locator('header')).toContainText('تحديث بعد التعافي');
   expect(cloud.requests.some(path => path.endsWith('/revision'))).toBe(false);
 });
@@ -267,18 +220,31 @@ test('an initial organization outage retries while the visible page remains open
 });
 
 
-test('an existing owner can load and save directly in Firebase during an admin API outage', async ({ page }) => {
+test('an existing owner can discover the company through Firebase while snapshots and writes remain on the API', async ({ page }) => {
   await fakeFirebase(page, true);
   const cloud = await fakeCloud(page, true, false, false, true);
   await login(page);
   await expect(page.locator('header')).toContainText('متجر الاختبار السحابي');
   await expect(page.getByRole('alert')).toHaveCount(0);
-  expect(cloud.requests.filter(path => path === '/api/organizations').length).toBe(1);
+  expect(cloud.requests.filter(path => path === '/api/organizations').length).toBe(0);
   await page.getByTitle('الإعدادات', { exact: true }).click();
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('textbox', { name: 'اسم المتجر أو المؤسسة' }).fill('حفظ مباشر أثناء الانقطاع');
   await dialog.getByRole('button', { name: 'حفظ كافة الإعدادات' }).click();
   await expect(page.locator('header')).toContainText('حفظ مباشر أثناء الانقطاع');
   expect((await cloud.saved()).business_name).toBe('حفظ مباشر أثناء الانقطاع');
-  expect(cloud.requests.some(path => path.endsWith('/operations'))).toBe(false);
+  expect(cloud.requests.some(path => path.endsWith('/operations'))).toBe(true);
+});
+
+
+test('API write outage retains settings and retries the same operation ID without direct Firebase writes', async ({ page }) => {
+  await fakeFirebase(page, true); const cloud = await fakeCloud(page); await login(page);
+  await expect(page.locator('header')).toContainText('متجر الاختبار السحابي');
+  await page.getByTitle('الإعدادات', { exact: true }).click(); const dialog = page.getByRole('dialog');
+  const name = dialog.getByRole('textbox', { name: 'اسم المتجر أو المؤسسة' }); await name.fill('تعديل ينتظر الحفظ');
+  cloud.failWrites(); await dialog.getByRole('button', { name: 'حفظ كافة الإعدادات' }).click();
+  await expect(dialog).toBeVisible(); await expect(name).toHaveValue('تعديل ينتظر الحفظ'); await expect(dialog.getByRole('alert')).toContainText('تعذر تأكيد الحفظ');
+  expect((await cloud.saved()).business_name).toBe('متجر الاختبار السحابي');
+  cloud.recoverWrites(); await dialog.getByRole('button', { name: 'حفظ كافة الإعدادات' }).click(); await expect(dialog).not.toBeVisible();
+  await expect(page.locator('header')).toContainText('تعديل ينتظر الحفظ'); expect(cloud.operationIds).toHaveLength(2); expect(cloud.operationIds[0]).toBe(cloud.operationIds[1]);
 });

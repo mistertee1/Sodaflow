@@ -1,14 +1,7 @@
-import { FirebaseError } from 'firebase/app';
-import { doc, getDocFromServer, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
-import { canonical, Operations, type Actor, type OperationResult } from '../domain/operations';
-import type { Document } from '../domain/store';
-import type { OrgSubscription } from '../types';
-import { createDefaultSubscription } from '../lib/plans';
-import { BusinessError } from '../domain/validation';
-import { BrowserFirestoreStore } from './browserFirestoreStore';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import type { Operations, OperationResult } from '../domain/operations';
 import { api, sendCommand } from './businessApi';
-import { rememberOperation, forgetOperation } from './pendingOperations';
 
 // Keep realtime revision notifications and the confirmed snapshot cache. All tenant reads
 // and financial writes use the same authenticated API and authoritative live entitlements.
@@ -20,5 +13,9 @@ export function firebaseCommand(orgId: string, action: string, data: Record<stri
   return sendCommand(orgId, action, data, suggestedId);
 }
 export function watchFirebaseRevision(orgId: string, onRevision: (revision: number) => void, onError?: (error: unknown) => void) {
+  // Only notification delivery is substituted in local UI tests; all financial data still uses the API.
+  const testWatch = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    ? (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__?.watchRevision : undefined;
+  if (testWatch) return testWatch(orgId, onRevision, onError);
   return onSnapshot(doc(db, `organizations/${orgId}/meta/counters`), snapshot => onRevision(Number(snapshot.data()?.revision || 0)), error => onError?.(error));
 }

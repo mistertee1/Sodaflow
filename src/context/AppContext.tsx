@@ -176,7 +176,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .catch(error => { if (epoch === session.current && activeOrg.current === id) { monitoringFailed = true; fail(error); } })
           .finally(() => { pendingRefresh.current = false; });
       },
-      error => { if (epoch === session.current && activeOrg.current === id) { monitoringFailed = true; fail(error); } },
+      () => {
+        if (epoch !== session.current || activeOrg.current !== id) return;
+        monitoringFailed = true;
+        // A denied/broken notification stream does not imply the confirmed API is unavailable.
+        // Reconcile immediately; periodic API reads keep recovering the failed stream.
+        if (pendingRefresh.current) return;
+        pendingRefresh.current = true;
+        void refresh(id, epoch).then(() => { monitoringFailed = false; })
+          .catch(error => { if (epoch === session.current && activeOrg.current === id) fail(error); })
+          .finally(() => { pendingRefresh.current = false; });
+      },
     );
   };
   const load = async (org: Organization) => {

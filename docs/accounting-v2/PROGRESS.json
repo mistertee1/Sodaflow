@@ -7,11 +7,7 @@
   "active_milestone": "A2",
   "active_branch": "codex/accounting-v2-a2-inventory-costing",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "root-accounting-v2",
-    "started_at": "2026-10-05T04:41:50.241Z",
-    "expires_at": "2026-10-05T05:44:43.778Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -25,7 +21,7 @@
     },
     {
       "id": "A2",
-      "status": "implemented_ci_pending",
+      "status": "implemented_ci_passed",
       "branch": "codex/accounting-v2-a2-inventory-costing",
       "pr": 14,
       "checks": {
@@ -35,8 +31,13 @@
         "production_audit_vulnerabilities": 0,
         "rules_emulator_tests": 6,
         "rules_emulator_status": "passed",
-        "rules_run_id": 37265398422,
-        "ui_status": "fixing_legacy_sync_tests"
+        "ui_tests": 22,
+        "ui_status": "passed"
+      },
+      "ci": {
+        "conclusion": "success",
+        "run_id": 37265855564,
+        "commit_sha": "485af1913e9e3cf51c860fc459f6c019d6a527ce"
       }
     },
     {
@@ -90,9 +91,9 @@
   ],
   "last_report": "REPORT_A2.md",
   "next_steps": [
-    "Verify A2 CI (unit/API, rules emulator and all Playwright tests); fix failures on A2 branch",
-    "Start B only after phase A acceptance; branch from A2 and target its PR until user merges it",
-    "Keep C/D/E and Excel 1-4 pending; no production operations or main merge"
+    "Implement B1 supplier master, purchase bills, supplier payments and AP reports on dependent branch targeting A2 until user merges",
+    "Complete B2 cash/bank, GL, AR reports and reconciliation, then B3 returns/refunds before marking B complete",
+    "C/D/E and Excel 1-4 remain pending; user review/merge only; no production changes"
   ],
-  "updated_at": "2026-10-05T04:59:43.778Z"
+  "updated_at": "2026-10-05T05:04:38.080Z"
 }

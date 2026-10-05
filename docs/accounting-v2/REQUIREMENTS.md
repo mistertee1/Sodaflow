@@ -10,10 +10,10 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 4 | Financial Owner Dashboard | A-E / release gate |
 | 5 | Financial Summary | A-E / release gate |
 | 6 | المبدأ الأساسي للترحيل المحاسبي | A-E / release gate |
-| 7 | Inventory Costing | A2 — implemented; REPORT_A2.md; CI pending |
-| 8 | طريقة تقييم المخزون | A2 — WAC and rounding conservation; CI pending |
-| 9 | Cost of Goods Sold | A2 — atomic COGS with sales; CI pending |
-| 10 | Inventory Cost Snapshot | A2 — immutable line cost snapshot; CI pending |
+| 7 | Inventory Costing | A2 — implemented; REPORT_A2.md; CI passed (45 unit/API, 6 rules, 22 UI) |
+| 8 | طريقة تقييم المخزون | A2 — WAC and rounding conservation; CI passed (45 unit/API, 6 rules, 22 UI) |
+| 9 | Cost of Goods Sold | A2 — atomic COGS with sales; CI passed (45 unit/API, 6 rules, 22 UI) |
+| 10 | Inventory Cost Snapshot | A2 — immutable line cost snapshot; CI passed (45 unit/API, 6 rules, 22 UI) |
 | 11 | Product Profitability | A-E / release gate |
 | 12 | فصل المشتريات عن المصروفات | A1/A2 — expense separation and cash purchase receipt; supplier bills in B |
 | 13 | Suppliers | A-E / release gate |
@@ -33,11 +33,11 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 27 | General Ledger | A-E / release gate |
 | 28 | Account Classification | A1 — account metadata; merged with CI passed |
 | 29 | Reporting Groups | A1 — metadata reporting groups; merged with CI passed |
-| 30 | Income Statement | A1/A2 — dated income, cost completeness; A2 CI pending |
+| 30 | Income Statement | A1/A2 — dated income, cost completeness; A2 CI passed (45 unit/API, 6 rules, 22 UI) |
 | 31 | Gross Margin | A2 — gross profit incomplete when unknown; profitability analysis in D |
 | 32 | Balance Sheet | A1 — ledger cumulative BS; merged with CI passed |
 | 33 | Cash Flow Statement | A1 — classified ledger cash flow; merged with CI passed |
-| 34 | Reporting Periods | A1/A2 — UI and API date ranges; A2 CI pending |
+| 34 | Reporting Periods | A1/A2 — UI and API date ranges; A2 CI passed (45 unit/API, 6 rules, 22 UI) |
 | 35 | As-of Reports | A1 — cumulative as-of balances; merged with CI passed |
 | 36 | Comparative Reports | A-E / release gate |
 | 37 | Accounting Periods | A-E / release gate |
@@ -103,7 +103,7 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 97 | Backup & Restore | A2 — strict V2 cost restore with target ownership; later collections/jobs pending |
 | 98 | Accounting Regression Tests | A1/A2 regression coverage; full release suite pending |
 | 99 | CFO Acceptance Criteria | A-E / release gate |
-| 100 | Accounting V2 Phase A — Financial Integrity | A1 merged CI passed; A2 implemented CI pending; final phase A acceptance pending |
+| 100 | Accounting V2 Phase A — Financial Integrity | A1 merged CI passed; A2 implemented CI passed (45 unit/API, 6 rules, 22 UI); automated A acceptance passed; user review and release acceptance pending |
 | 101 | Accounting V2 Phase B — Operational Accounting | A-E / release gate |
 | 102 | Accounting V2 Phase C — Professional Accounting | A-E / release gate |
 | 103 | Accounting V2 Phase D — Management Accounting | A-E / release gate |

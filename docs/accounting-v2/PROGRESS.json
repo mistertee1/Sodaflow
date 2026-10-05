@@ -2,28 +2,43 @@
   "schema_version": 1,
   "source_sha256": "a6ef84e96568ee751ede2a5a932e30c17140f914bcb61df5f38727f390ee4a45",
   "repository": "mistertee1/Sodaflow",
-  "base_main_sha": "bfc3b23754e76598007c83dd01f72231b01ed78a",
+  "base_main_sha": "3b056a813b7c532a5a8d8dc9b53069fc6da11991",
   "user_merges_only": true,
   "active_milestone": "A2",
-  "active_branch": "codex/accounting-v2-a1-ledger-foundation",
+  "active_branch": "codex/accounting-v2-a2-inventory-costing",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "root-accounting-v2",
-    "started_at": "2026-10-05T00:13:09.188Z",
-    "expires_at": "2026-10-05T00:58:09.188Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
-      "status": "implemented_ci_pending",
+      "status": "merged_ci_passed",
       "branch": "codex/accounting-v2-a1-ledger-foundation",
-      "pr": 13
+      "pr": 13,
+      "ci": {
+        "conclusion": "success",
+        "run_id": 37246643311
+      }
     },
     {
       "id": "A2",
-      "status": "pending",
-      "branch": null,
-      "pr": null
+      "status": "implemented_ci_passed",
+      "branch": "codex/accounting-v2-a2-inventory-costing",
+      "pr": 14,
+      "checks": {
+        "unit_api": 45,
+        "unit_api_status": "passed",
+        "build": "passed",
+        "production_audit_vulnerabilities": 0,
+        "rules_emulator_tests": 6,
+        "rules_emulator_status": "passed",
+        "ui_tests": 22,
+        "ui_status": "passed"
+      },
+      "ci": {
+        "conclusion": "success",
+        "run_id": 37265855564,
+        "commit_sha": "485af1913e9e3cf51c860fc459f6c019d6a527ce"
+      }
     },
     {
       "id": "B",
@@ -74,10 +89,11 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_A1.md",
+  "last_report": "REPORT_A2.md",
   "next_steps": [
-    "Check A1 CI and correct any failures on A1 branch",
-    "Implement A2 costing, controlled migration, inventory GL, API-only V2 writes and rules",
-    "Do not start B before full phase A acceptance; never merge main"
-  ]
+    "Implement B1 supplier master, purchase bills, supplier payments and AP reports on dependent branch targeting A2 until user merges",
+    "Complete B2 cash/bank, GL, AR reports and reconciliation, then B3 returns/refunds before marking B complete",
+    "C/D/E and Excel 1-4 remain pending; user review/merge only; no production changes"
+  ],
+  "updated_at": "2026-10-05T05:04:38.080Z"
 }

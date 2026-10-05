@@ -1,6 +1,7 @@
 import BigNumber from 'bignumber.js';
 import type { MerchantSettings, Invoice } from '../types';
 import type { Document } from './store';
+import { validateCostState } from './inventoryCost';
 import { classifyAccount } from './accountClassification';
 import { generateExpenseJournalEntry } from '../services/accountingService';
 import { invoiceFinancials } from './financial';
@@ -20,7 +21,7 @@ export interface Finding {
 }
 
 /** Read-only consistency checks. A finding requires review, never an automatic historical rewrite. */
-export function reconcileFinancialData(data: FinancialData, settings: MerchantSettings): Finding[] {
+export function reconcileFinancialData(data: FinancialData, settings: MerchantSettings, options: { requireCosting?: boolean } = {}): Finding[] {
   const findings: Finding[] = [];
   const add = (code: string, collection: string, id: string, extra: Partial<Finding> = {}) => findings.push({ code, collection, id, ...extra });
   const compare = (collection: string, id: string, field: string, expected: number, actual: number) => {
@@ -118,6 +119,49 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
     });
     if (expense.voided_at && sourceEntries('void', expense.id).length !== 1) add('missing_reversal', 'expenses', expense.id);
   }
+  // Legacy unknown cost is preserved; strict current-inventory readiness is requested for V2 activation/restore.
+  const valued = data.products.filter(product => product.track_inventory && product.cost_status === 'valued');
+  if (valued.length || options.requireCosting) {
+    const totals = { sdg: new BigNumber(0), usd: new BigNumber(0) }, movementValues = new Map<string, { sdg: BigNumber; usd: BigNumber }>(), journalValues = new Map<string, { sdg: BigNumber; usd: BigNumber }>();
+    for (const movement of data.inventory_movements) if (movement.costing_version === 2) {
+      inspect('inventory_movements', movement.id, () => {
+        for (const currency of ['sdg', 'usd'] as const) money(Math.abs(movement[`value_delta_${currency}`]), currency === 'sdg' ? 0 : 2);
+        const values = movementValues.get(movement.product_id) || { sdg: new BigNumber(0), usd: new BigNumber(0) };
+        values.sdg = values.sdg.plus(movement.value_delta_sdg); values.usd = values.usd.plus(movement.value_delta_usd); movementValues.set(movement.product_id, values);
+        if (movement.value_delta_sdg || movement.value_delta_usd) {
+          if (!movement.journal_id || !indexes.journal_entries.has(movement.journal_id)) add('missing_cost_journal', 'inventory_movements', movement.id);
+          const ledger = journalValues.get(movement.journal_id) || { sdg: new BigNumber(0), usd: new BigNumber(0) };
+          ledger.sdg = ledger.sdg.plus(movement.value_delta_sdg); ledger.usd = ledger.usd.plus(movement.value_delta_usd); journalValues.set(movement.journal_id, ledger);
+        }
+      });
+    }
+    for (const product of data.products) if (product.track_inventory) {
+      if (product.cost_status !== 'valued') { if (options.requireCosting) add('unknown_inventory_cost', 'products', product.id); continue; }
+      inspect('products', product.id, () => {
+        const state = validateCostState(product as any), movement = movementValues.get(product.id);
+        for (const currency of ['sdg', 'usd'] as const) { totals[currency] = totals[currency].plus(state[`inventory_value_${currency}`]); compare('products', product.id, `inventory_value_${currency}`, movement?.[currency].toNumber() || 0, state[`inventory_value_${currency}`]); }
+      });
+    }
+    const inventoryCodes = new Set(['1300', ...data.accounts.filter(a => { try { return classifyAccount(a as any).reporting_group === 'inventory'; } catch { return false; } }).map(a => a.code)]);
+    for (const currency of ['sdg', 'usd'] as const) {
+      const balance = data.journal_entries.flatMap(e => e.lines || []).filter(l => inventoryCodes.has(l.account_code)).reduce((sum, l) => sum.plus(l[`debit_${currency}`] || 0).minus(l[`credit_${currency}`] || 0), new BigNumber(0));
+      compare('journal_entries', 'Inventory-control', `valuation_${currency}`, totals[currency].toNumber(), balance.toNumber());
+    }
+    for (const [id, values] of journalValues) {
+      const entry = indexes.journal_entries.get(id);
+      for (const currency of ['sdg', 'usd'] as const) compare('journal_entries', id, `inventory_movement_${currency}`, values[currency].toNumber(), (entry?.lines || []).filter((l: Document) => l.account_code === '1300').reduce((sum: BigNumber, l: Document) => sum.plus(l[`debit_${currency}`]).minus(l[`credit_${currency}`]), new BigNumber(0)).toNumber());
+    }
+  }
+  for (const invoice of data.invoices) if (invoice.costing_version === 2) inspect('invoices', invoice.id, () => {
+    for (const item of invoice.items) if (item.cost_status === 'valued') {
+      money(item.unit_cost_sdg, 12); money(item.unit_cost_usd, 12); money(item.total_cost_sdg, 0); money(item.total_cost_usd, 2); dateOnly(item.cost_recorded_at);
+    }
+    for (const currency of ['sdg', 'usd'] as const) {
+      const snapshot = invoice.items.filter((item: Document) => item.cost_status === 'valued').reduce((sum: BigNumber, item: Document) => sum.plus(item[`total_cost_${currency}`]), new BigNumber(0));
+      compare('invoices', invoice.id, `cogs_${currency}`, snapshot.toNumber(), invoice[`cogs_${currency}`]);
+      compare('invoices', invoice.id, `posted_cogs_${currency}`, snapshot.toNumber(), sourceEntries('invoice', invoice.id).flatMap(e => e.lines || []).filter(l => l.account_code === '5100').reduce((sum, l) => sum.plus(l[`debit_${currency}`]).minus(l[`credit_${currency}`]), new BigNumber(0)).toNumber());
+    }
+  });
   return findings;
 }
 

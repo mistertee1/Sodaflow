@@ -22,10 +22,10 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
             <div className="bg-sf-surface border border-sf-border rounded-xl p-4 shadow-sm">
               <span className="text-xs text-sf-muted font-semibold block mb-1">مجمل الربح (Gross Profit)</span>
               <div className="text-lg font-semibold font-mono text-sf-text">
-                {formatMoney(incomeStatement.gross_profit_sdg, 'SDG')}
+                {incomeStatement.costs_complete === false ? 'غير مكتمل' : formatMoney(incomeStatement.gross_profit_sdg, 'SDG')}
               </div>
               <div className="text-xs font-mono text-sf-muted mt-1">
-                {formatMoney(incomeStatement.gross_profit_usd, 'USD')}
+                {incomeStatement.costs_complete === false ? 'غير مكتمل' : formatMoney(incomeStatement.gross_profit_usd, 'USD')}
               </div>
             </div>
 
@@ -44,10 +44,10 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
             <div className="bg-sf-surface border border-sf-action/30 rounded-xl p-4 shadow-sm ">
               <span className="text-xs text-sf-text font-semibold block mb-1">صافي الربح النهائي</span>
               <div className="text-xl font-semibold font-mono text-sf-text">
-                {formatMoney(incomeStatement.net_profit_sdg, 'SDG')}
+                {incomeStatement.costs_complete === false ? 'غير مكتمل' : formatMoney(incomeStatement.net_profit_sdg, 'SDG')}
               </div>
               <div className="text-xs font-mono text-sf-muted mt-1">
-                {formatMoney(incomeStatement.net_profit_usd, 'USD')}
+                {incomeStatement.costs_complete === false ? 'غير مكتمل' : formatMoney(incomeStatement.net_profit_usd, 'USD')}
               </div>
             </div>
           </div>
@@ -76,7 +76,7 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
               <div className="flex items-center justify-between py-2 border-b border-sf-border font-semibold bg-sf-raised px-3 rounded-lg">
                 <span className="text-sf-text">= مجمل الربح</span>
                 <span className="font-mono text-sf-text text-sm">
-                  {formatMoney(incomeStatement.gross_profit_sdg, 'SDG')}
+                  {incomeStatement.costs_complete === false ? 'غير مكتمل' : formatMoney(incomeStatement.gross_profit_sdg, 'SDG')}
                 </span>
               </div>
 
@@ -101,7 +101,7 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
               <div className="flex items-center justify-between py-3 font-semibold bg-sf-selected/40 border border-sf-action/40 px-3.5 rounded-xl mt-4">
                 <span className="text-sf-text text-sm">صافي الأرباح القابلة للتوزيع</span>
                 <span className="font-mono text-sf-text text-base">
-                  {formatMoney(incomeStatement.net_profit_sdg, 'SDG')}
+                  {incomeStatement.costs_complete === false ? 'غير مكتمل' : formatMoney(incomeStatement.net_profit_sdg, 'SDG')}
                 </span>
               </div>
             </div>

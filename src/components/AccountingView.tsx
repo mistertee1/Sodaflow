@@ -43,9 +43,12 @@ import { IncomeReport } from './accounting/IncomeReport';
 import { BalanceSheetReport } from './accounting/BalanceSheetReport';
 import { CashFlowReport } from './accounting/CashFlowReport';
 import { classifyAccount, reportingGroupsFor, reportingGroupLabels, type ReportingGroup } from '../domain/accountClassification';
+import { hasIncompleteInvoiceCosts } from '../domain/inventoryCost';
 import { Dialog } from './Dialog';
 export const AccountingView: React.FC = () => {
   const {
+    invoices,
+    products,
     accounts,
     journalEntries,
     addAccount,
@@ -62,19 +65,19 @@ export const AccountingView: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState<
     'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
   >('coa');
+  const [reportStart, setReportStart] = useState('');
+  const [reportEnd, setReportEnd] = useState('');
   const [remoteReports, setRemoteReports] = useState<Awaited<ReturnType<Operations['advancedReports']>> | null>(null);
   const [reportError, setReportError] = useState('');
   const advancedAllowed = isActionAllowed('reports:advanced');
   const advancedTab = ['income', 'balance_sheet', 'cash_flow'].includes(activeSubTab);
-  const reportsReady = !currentUser || remoteReports?.organizationId === currentOrg?.id;
+  const reportsReady = !currentUser || remoteReports?.organizationId === currentOrg?.id && (remoteReports.period.start || '') === reportStart && (remoteReports.period.end || '') === reportEnd;
   useEffect(() => {
     let active = true; setRemoteReports(null); setReportError('');
-    if (currentUser && currentOrg && advancedAllowed && advancedTab) void api<Awaited<ReturnType<Operations['advancedReports']>>>(`/organizations/${encodeURIComponent(currentOrg.id)}/reports/advanced`).then(value => { if (active) setRemoteReports(value); }).catch(error => { if (active) setReportError(error instanceof Error ? error.message : 'تعذر تحميل التقارير.'); });
+    if (currentUser && currentOrg && advancedAllowed && advancedTab) void api<Awaited<ReturnType<Operations['advancedReports']>>>(`/organizations/${encodeURIComponent(currentOrg.id)}/reports/advanced?start=${encodeURIComponent(reportStart)}&end=${encodeURIComponent(reportEnd)}`).then(value => { if (active) setRemoteReports(value); }).catch(error => { if (active) setReportError(error instanceof Error ? error.message : 'تعذر تحميل التقارير.'); });
     return () => { active = false; };
-  }, [currentUser?.uid, currentOrg?.id, counters.revision, advancedAllowed, advancedTab]);
+  }, [currentUser?.uid, currentOrg?.id, counters.revision, advancedAllowed, advancedTab, reportStart, reportEnd]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [reportStart, setReportStart] = useState('');
-  const [reportEnd, setReportEnd] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
 
   // Journal date & type filter + pagination
@@ -126,7 +129,10 @@ export const AccountingView: React.FC = () => {
     try { return { error: '', trial: calculateTrialBalance(accounts, journalEntries, period), income: calculateIncomeStatement(journalEntries, accounts, period), balance: calculateBalanceSheet(accounts, journalEntries, period), cash: calculateCashFlowStatement(accounts, journalEntries, period) }; }
     catch (error) { return { error: error instanceof Error ? error.message : 'تعذر حساب التقارير.', trial: calculateTrialBalance([], []), income: calculateIncomeStatement([], []), balance: calculateBalanceSheet([], []), cash: calculateCashFlowStatement([], []) }; }
   }, [accounts, journalEntries, reportStart, reportEnd]);
-  const { trial: trialBalance, income: incomeStatement, balance: balanceSheet, cash: cashFlow } = reportBundle;
+  const bundle = currentUser && remoteReports ? { trial: remoteReports.trialBalance, income: remoteReports.incomeStatement, balance: remoteReports.balanceSheet, cash: remoteReports.cashFlow } : reportBundle;
+  const { trial: trialBalance, income: ledgerIncome, balance: balanceSheet, cash: cashFlow } = bundle;
+  const incompleteCosts = currentUser ? remoteReports?.incomeStatement.costs_complete === false : hasIncompleteInvoiceCosts(invoices, products, journalEntries, { start: reportStart, end: reportEnd });
+  const incomeStatement = { ...ledgerIncome, costs_complete: !incompleteCosts };
 
   // Filtered Accounts
   const filteredAccounts = useMemo(() => {
@@ -374,6 +380,10 @@ export const AccountingView: React.FC = () => {
   return (
     <div className="space-y-6">
       {reportDates}
+      {incompleteCosts && <p role="status" className="bg-sf-warning-bg text-sf-warning border border-sf-border p-4 rounded-xl">تكلفة بعض فواتير هذه الفترة غير موثقة. الإيرادات والقيود محفوظة، لكن الربح الكامل غير متاح حتى مراجعة التكلفة التاريخية.</p>}
+      {advancedTab && !advancedAllowed && <p role="status" className="text-sf-muted p-4">التقارير المتقدمة غير متاحة في الباقة أو صلاحيات الحساب الحالية.</p>}
+      {advancedTab && advancedAllowed && currentUser && !reportsReady && !reportError && <p role="status" className="text-sf-muted p-4">جاري تحميل التقارير من الخادم…</p>}
+      {advancedTab && reportError && <p role="alert" className="text-sf-danger p-4">{reportError}</p>}
       {reportBundle.error && <p role="alert" className="bg-sf-danger-bg text-sf-danger border border-sf-danger p-4 rounded-xl">{reportBundle.error}</p>}
       {/* Top Header Card */}
       <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-6 shadow-sm">
@@ -477,6 +487,7 @@ export const AccountingView: React.FC = () => {
           </button>
 
           <button
+            disabled={!advancedAllowed}
             onClick={() => setActiveSubTab('income')}
             className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
               activeSubTab === 'income'
@@ -489,6 +500,7 @@ export const AccountingView: React.FC = () => {
           </button>
 
           <button
+            disabled={!advancedAllowed}
             onClick={() => setActiveSubTab('balance_sheet')}
             className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
               activeSubTab === 'balance_sheet'
@@ -506,6 +518,7 @@ export const AccountingView: React.FC = () => {
           </button>
 
           <button
+            disabled={!advancedAllowed}
             onClick={() => setActiveSubTab('cash_flow')}
             className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${
               activeSubTab === 'cash_flow'
@@ -904,13 +917,13 @@ export const AccountingView: React.FC = () => {
       {!reportBundle.error && activeSubTab === 'trial' && <TrialBalanceReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
 
       {/* SUB-TAB 4: INCOME STATEMENT (قائمة الدخل والأرباح) */}
-      {!reportBundle.error && activeSubTab === 'income' && <IncomeReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
+      {!reportBundle.error && !reportError && advancedAllowed && reportsReady && activeSubTab === 'income' && <IncomeReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
 
       {/* SUB-TAB 5: BALANCE SHEET (الميزانية العمومية والمركز المالي) */}
-      {!reportBundle.error && activeSubTab === 'balance_sheet' && <BalanceSheetReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
+      {!reportBundle.error && !reportError && advancedAllowed && reportsReady && activeSubTab === 'balance_sheet' && <BalanceSheetReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
 
       {/* SUB-TAB 6: CASH FLOW STATEMENT (قائمة التدفقات النقدية) */}
-      {!reportBundle.error && activeSubTab === 'cash_flow' && <CashFlowReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
+      {!reportBundle.error && !reportError && advancedAllowed && reportsReady && activeSubTab === 'cash_flow' && <CashFlowReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
 
       {/* SUB-TAB 7: ACCOUNTING PERIOD LOCK (إقفال الفترات المحاسبية) */}
       {activeSubTab === 'period_lock' && (

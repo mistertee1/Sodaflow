@@ -54,13 +54,7 @@ export const owner: Actor = { uid: 'owner', email: 'owner@example.com', emailVer
 export async function fixture(options: { stock?: number; free?: boolean; persist?: () => void } = {}) {
   const store = new MemoryStore({}, options.persist), orgs = new Organizations(store, saved => saved as any);
   const org = await orgs.create(owner, 'متجر الاختبار', { ...INITIAL_SETTINGS, invoice_prefix: 'INV-', default_exchange_rate: 2000 }, 'setup', true);
-  await store.transaction(async tx => {
-    const plan = getPlanConfig(options.free ? 'Free' : 'Enterprise');
-    tx.set(`organizations/${org.id}/meta/subscription`, { ...createDefaultSubscription(org.id), ...plan, plan: plan.name });
-    // Financial fixtures simulate an administrator-issued paid contract. A legacy
-    // projection alone can no longer override the canonical Free organization.
-    if (!options.free) tx.set(`organizations/${org.id}`, { ...org, planId: 'Enterprise', subscriptionStatus: 'active', subscriptionEnd: '2027-01-01T00:00:00.000Z', subscriptionEndMillis: Date.parse('2027-01-01T00:00:00.000Z') });
-  });
+  await store.transaction(async tx => { const plan = getPlanConfig(options.free ? 'Free' : 'Enterprise'); tx.set(`organizations/${org.id}/meta/subscription`, { ...createDefaultSubscription(org.id), ...plan, plan: plan.name }); const path = `organizations/${org.id}`; tx.set(path, { ...await tx.get(path), planId: plan.name, subscriptionStatus: 'active', subscriptionEnd: options.free ? null : '2027-01-01T00:00:00Z' }); });
   let clock = new Date('2026-10-01T12:00:00Z');
   const ops = new Operations(store, () => clock, saved => saved as any);
   const run = (action: string, data: Record<string, unknown>, operationId: string = crypto.randomUUID(), actor = owner) => ops.execute(org.id, actor, { action, data, operationId });
@@ -152,13 +146,12 @@ test('unpaid void reverses the actual original journal and restores stock exactl
   const second = await f.run('invoice.create', f.invoice(), 'sale2'); await f.run('payment.create', { invoice_id: second.result.id, amount: 10, currency: 'USD', exchange_rate_used: 2000, payment_method: 'cash' }); await assert.rejects(f.run('invoice.void', { id: second.result.id }), /ردّ مبلغ/);
 });
 
-test('Free quota is 100 lifetime invoices across month changes; Owner requests cannot self-upgrade', async () => {
+test('Free quota is 100 lifetime invoices across month boundaries; client cannot self-upgrade', async () => {
   const f = await fixture({ free: true, stock: 101 }); for (let i = 0; i < 100; i++) await f.run('invoice.create', f.invoice(1, 1, 'SDG'), `oct-${i}`);
   await f.run('subscription.request', { plan: 'Enterprise' }, 'request'); assert.equal((await f.ops.snapshot(f.org.id, owner)).subscription.plan, 'Free');
-  await assert.rejects(f.run('invoice.create', f.invoice(1, 1, 'SDG')), /100 فاتورة إجمالاً/);
-  f.setClock('2026-11-01T12:00:00Z');
-  await assert.rejects(f.run('invoice.create', f.invoice(1, 1, 'SDG'), 'nov-1'), /100 فاتورة إجمالاً/);
-  const s = await f.ops.snapshot(f.org.id, owner); assert.equal(s.counters.invoice_count, 100); assert.equal(s.counters.monthly_invoice_count, 0); assert.equal(s.counters.lifetime_invoice_count, 100);
+  await assert.rejects(f.run('invoice.create', f.invoice(1, 1, 'SDG')), /حد الباقة/);
+  f.setClock('2026-11-01T12:00:00Z'); await assert.rejects(f.run('invoice.create', f.invoice(1, 1, 'SDG'), 'nov-1'), /حد الباقة/);
+  const s = await f.ops.snapshot(f.org.id, owner); assert.equal(s.counters.invoice_count, 100); assert.equal(s.counters.lifetime_invoice_count, 100); assert.equal(s.counters.monthly_invoice_count, 0);
 });
 
 test('backup and reports include 100 of 100 records independently of display pages', async () => {

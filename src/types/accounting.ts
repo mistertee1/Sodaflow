@@ -39,7 +39,7 @@ export interface JournalEntry {
   id: string;
   entry_number: string; // e.g. JV-2026-0001
   date: string;
-  reference_type: 'invoice' | 'payment' | 'expense' | 'manual' | 'void' | 'opening_balance';
+  reference_type: 'invoice' | 'payment' | 'expense' | 'manual' | 'void' | 'opening_balance' | 'inventory';
   reference_id: string;
   description: string;
   lines: JournalEntryLine[];
@@ -70,6 +70,7 @@ export interface TrialBalanceItem {
 }
 
 export interface IncomeStatementSummary {
+  costs_complete?: boolean;
   sales_revenue_sdg: number;
   sales_revenue_usd: number;
   cogs_sdg: number;

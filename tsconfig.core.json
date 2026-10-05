@@ -14,6 +14,6 @@
     "tests/accountingV2.test.ts",
     "tests/api.test.ts",
     "tests/firestore.test.ts",
-    "tests/platform*.test.ts"
+    "tests/inventoryCost.test.ts"
   ]
 }

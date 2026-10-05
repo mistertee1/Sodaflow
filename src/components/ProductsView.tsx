@@ -19,11 +19,13 @@ import {
 } from 'lucide-react';
 import { formatMoney, convertCurrency } from '../lib/currency';
 import { getPlanConfig, isUnlimited } from '../lib/plans';
+import { InventoryCostCenter } from './InventoryCostCenter';
 import { InventoryAuditModal } from './InventoryAuditModal';
 import { Dialog } from './Dialog';
 
 export const ProductsView: React.FC = () => {
   const {
+    currentOrg,
     products,
     addProduct,
     updateProduct,
@@ -130,7 +132,7 @@ export const ProductsView: React.FC = () => {
     setPriceUsd(0);
     setTaxRate(0);
     setCategory('');
-    setStockQuantity(50);
+    setStockQuantity(currentOrg?.accounting_version === 2 ? 0 : 50);
     setMinStockAlert(10);
     setTrackInventory(true);
     setModalError(null);
@@ -203,7 +205,7 @@ export const ProductsView: React.FC = () => {
           tax_rate: Number(taxRate),
           category: category.trim() || '',
           is_active: true,
-          stock_quantity: Number(stockQuantity),
+          stock_quantity: currentOrg?.accounting_version === 2 && trackInventory ? 0 : Number(stockQuantity),
           min_stock_alert: Number(minStockAlert),
           track_inventory: trackInventory,
         });
@@ -223,6 +225,7 @@ export const ProductsView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-16">
+      <InventoryCostCenter />
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-sf-surface p-4 sm:p-6 rounded-xl border border-sf-border shadow-sm">
         <div>
@@ -667,7 +670,7 @@ export const ProductsView: React.FC = () => {
                       type="checkbox"
                       id="trackInv"
                       checked={trackInventory}
-                      disabled={!!editingProduct}
+                      disabled={!!editingProduct || currentOrg?.accounting_version === 2}
                       onChange={(e) => setTrackInventory(e.target.checked)}
                       className="rounded accent-sf-action text-sf-action w-4 h-4 cursor-pointer"
                     />
@@ -695,6 +698,7 @@ export const ProductsView: React.FC = () => {
                         className="w-full bg-sf-surface border border-sf-border rounded-xl px-3 py-2 text-xs font-mono font-semibold text-sf-text focus:outline-none focus:border-sf-action"
                         placeholder="0"
                       />
+                      {!editingProduct && currentOrg?.accounting_version === 2 && <p className="text-xs text-sf-muted mt-1">يبدأ المنتج بكمية صفر؛ سجّل الاستلام وتكلفته من مركز تكلفة المخزون.</p>}
                     </div>
 
                     <div>
@@ -825,3 +829,4 @@ export const ProductsView: React.FC = () => {
     </div>
   );
 };
+

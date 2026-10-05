@@ -62,12 +62,13 @@ export const InventoryAuditModal: React.FC<InventoryAuditModalProps> = ({ isOpen
       p.stock_quantity <= p.min_stock_alert
   ).length;
 
+  const unknownCostCount = products.filter(p => p.track_inventory && p.cost_status !== 'valued').length;
   const totalValueSdg = products.reduce(
-    (acc, p) => acc + (p.stock_quantity || 0) * (p.price_sdg || 0),
+    (acc, p) => acc + (p.track_inventory && p.cost_status === 'valued' ? p.inventory_value_sdg || 0 : 0),
     0
   );
   const totalValueUsd = products.reduce(
-    (acc, p) => acc + (p.stock_quantity || 0) * (p.price_usd || 0),
+    (acc, p) => acc + (p.track_inventory && p.cost_status === 'valued' ? p.inventory_value_usd || 0 : 0),
     0
   );
 
@@ -195,14 +196,14 @@ export const InventoryAuditModal: React.FC<InventoryAuditModalProps> = ({ isOpen
           <div className="p-3 bg-sf-raised rounded-xl border border-sf-border">
             <span className="text-xs text-sf-muted block mb-1">قيمة المخزون (ج.س)</span>
             <div className="text-sm sm:text-base font-semibold text-sf-text font-mono truncate">
-              {formatMoney(totalValueSdg, 'SDG', settings)}
+              {unknownCostCount ? 'التكلفة غير مكتملة' : formatMoney(totalValueSdg, 'SDG', settings)}
             </div>
           </div>
 
           <div className="p-3 bg-sf-raised rounded-xl border border-sf-border">
             <span className="text-xs text-sf-muted block mb-1">قيمة المخزون ($)</span>
             <div className="text-sm sm:text-base font-semibold text-sf-text font-mono truncate">
-              {formatMoney(totalValueUsd, 'USD', settings)}
+              {unknownCostCount ? 'التكلفة غير مكتملة' : formatMoney(totalValueUsd, 'USD', settings)}
             </div>
           </div>
         </div>
@@ -318,9 +319,9 @@ export const InventoryAuditModal: React.FC<InventoryAuditModalProps> = ({ isOpen
                           </span>
                           <span>•</span>
                           <span>
-                            القيمة الإجمالية بالمخزن:{' '}
+                            قيمة المخزون بالتكلفة:{' '}
                             <strong className="text-sf-text font-mono">
-                              {formatMoney(currentStock * product.price_sdg, 'SDG', settings)}
+                              {product.cost_status === 'valued' ? formatMoney(product.inventory_value_sdg || 0, 'SDG', settings) : 'تكلفة غير موثقة'}
                             </strong>
                           </span>
                         </div>
@@ -526,3 +527,4 @@ export const InventoryAuditModal: React.FC<InventoryAuditModalProps> = ({ isOpen
     </Dialog>
   );
 };
+

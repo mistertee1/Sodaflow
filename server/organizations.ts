@@ -28,8 +28,8 @@ export class Organizations {
     });
   }
   async create(actor: Actor, name: string, input: Partial<MerchantSettings>, operationId: string, initial = false) {
-    ensure(actor.emailVerified === true && actor.email, 'أكّد بريدك الإلكتروني قبل إنشاء مؤسسة.', 403);
-    identifier(actor.uid);
+    ensure(actor.emailVerified && actor.email, 'أكّد بريدك الإلكتروني قبل إنشاء المؤسسة.', 403);
+    identifier(actor.uid); identifier(operationId);
     const id = initial ? `org-${identifier(actor.uid)}` : `org-${identifier(operationId)}`;
     return this.store.transaction(async tx => {
       const previous = await tx.get(`organizations/${id}`);

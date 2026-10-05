@@ -5,6 +5,7 @@ import { INITIAL_SETTINGS } from '../data/initialData';
 import { auth, onAuthStateChanged, logout, type User } from '../lib/firebase';
 import { createDefaultSubscription } from '../lib/plans';
 import { Operations, type Actor } from '../domain/operations';
+import type { CostInput } from '../domain/inventoryCost';
 import type { Change, Document } from '../domain/store';
 import { api, operationId } from '../services/businessApi';
 import { firebaseCommand, firebaseSnapshot, watchFirebaseRevision } from '../services/firebaseSync';
@@ -52,9 +53,12 @@ interface AppContextType {
   addCustomer: (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Promise<Customer>;
   updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
-  addProduct: (product: Omit<Product, 'id' | 'created_at'>) => Promise<Product>;
+  addProduct: (product: Omit<Product, 'id' | 'created_at'> & CostInput) => Promise<Product>;
   updateProduct: (id: string, updates: Partial<Product>) => Promise<void>;
-  updateProductStock: (id: string, newStock: number, reason?: string) => Promise<void>;
+  establishProductCost: (id: string, cost: CostInput, reason: string) => Promise<void>;
+  receiveInventory: (id: string, quantity: number, cost: CostInput, reason: string, paymentMethod: string) => Promise<void>;
+  activateAccountingV2: (reason: string) => Promise<void>;
+  updateProductStock: (id: string, newStock: number, reason?: string, cost?: CostInput) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
   createInvoice: (invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>) => Promise<Invoice>;
   updateInvoice: (id: string, updates: Partial<Invoice>) => Promise<void>;
@@ -172,7 +176,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           .catch(error => { if (epoch === session.current && activeOrg.current === id) { monitoringFailed = true; fail(error); } })
           .finally(() => { pendingRefresh.current = false; });
       },
-      error => { if (epoch === session.current && activeOrg.current === id) { monitoringFailed = true; fail(error); } },
+      () => {
+        if (epoch !== session.current || activeOrg.current !== id) return;
+        monitoringFailed = true;
+        // A denied/broken notification stream does not imply the confirmed API is unavailable.
+        // Reconcile immediately; periodic API reads keep recovering the failed stream.
+        if (pendingRefresh.current) return;
+        pendingRefresh.current = true;
+        void refresh(id, epoch).then(() => { monitoringFailed = false; })
+          .catch(error => { if (epoch === session.current && activeOrg.current === id) fail(error); })
+          .finally(() => { pendingRefresh.current = false; });
+      },
     );
   };
   const load = async (org: Organization) => {
@@ -352,7 +366,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateSettings: async updates => { await run('settings.update', { updates }); },
     addCustomer: data => run<Customer>('customer.create', data), updateCustomer: async (id, updates) => { await run('customer.update', { id, updates }); }, deleteCustomer: async id => { await run('customer.delete', { id }); },
     addProduct: data => run<Product>('product.create', data), updateProduct: async (id, updates) => { await run('product.update', { id, updates }); }, deleteProduct: async id => { await run('product.delete', { id }); },
-    updateProductStock: async (id, newStock, reason) => { await run('product.stock', { id, newStock, reason: reason || 'تسوية جرد' }); },
+    establishProductCost: async (id, cost, reason) => { await run('product.cost.establish', { id, ...cost, reason }); },
+    receiveInventory: async (id, quantity, cost, reason, paymentMethod) => { await run('inventory.receive', { id, quantity, ...cost, reason, payment_method: paymentMethod }); },
+    activateAccountingV2: async reason => { await run('accounting.activate', { reason }); },
+    updateProductStock: async (id, newStock, reason, cost) => { await run('product.stock', { id, newStock, ...(cost || {}), reason: reason || 'تسوية جرد' }); },
     createInvoice: data => { const { operation_id, ...payload } = data; return run<Invoice>('invoice.create', payload, operation_id); },
     updateInvoice: async (id, updates) => { await run('invoice.update', { id, updates }); }, voidInvoice: async (id, reason) => { await run('invoice.void', { id, reason: reason || 'إبطال الفاتورة' }); }, deleteInvoice: async id => { await run('invoice.void', { id, reason: 'إبطال الفاتورة' }); },
     recordPayment: data => { const { idempotency_key, ...payload } = data; return run<Payment>('payment.create', payload, idempotency_key); },

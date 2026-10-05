@@ -7,13 +7,17 @@
   "active_milestone": "A2",
   "active_branch": "codex/accounting-v2-a1-ledger-foundation",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "root-accounting-v2",
+    "started_at": "2026-10-05T00:13:09.188Z",
+    "expires_at": "2026-10-05T00:58:09.188Z"
+  },
   "milestones": [
     {
       "id": "A1",
       "status": "implemented_ci_pending",
       "branch": "codex/accounting-v2-a1-ledger-foundation",
-      "pr": null
+      "pr": 13
     },
     {
       "id": "A2",

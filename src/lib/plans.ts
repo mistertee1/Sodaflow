@@ -148,9 +148,9 @@ export function subscriptionLimits(subscription: OrgSubscription): PlanLimits {
   return { ...fallback, max_invoices_per_month: subscription.max_invoices_per_month, max_members: subscription.max_members, max_customers: subscription.max_customers ?? fallback.max_customers, max_products: subscription.max_products ?? fallback.max_products, features: { ...fallback.features, ...subscription.features } };
 }
 
-export const getPlanConfig = (planName?: SubscriptionPlan): PlanLimits => {
-  if (planName && PLAN_TIERS[planName]) {
-    return PLAN_TIERS[planName];
+export const getPlanConfig = (planName?: string): PlanLimits => {
+  if (planName && Object.hasOwn(PLAN_TIERS, planName)) {
+    return PLAN_TIERS[planName as SubscriptionPlan];
   }
   return PLAN_TIERS[DEFAULT_PLAN];
 };

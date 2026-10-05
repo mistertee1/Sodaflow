@@ -25,6 +25,7 @@ export function validatePlatformPlan(input: Document, id: string, old?: Platform
   const price = money(input.price, 2), durationDays = integer(input.durationDays, 0, 3650);
   ensure(id === 'Free' || durationDays > 0, 'الباقات المدفوعة تحتاج مدة اشتراك.');
   ensure(id !== 'Free' || price === 0, 'الباقة Free مجانية.');
+  ensure(id !== 'Free' || durationDays === 0 && limits.maxUsers === 2 && limits.maxInvoices === 100 && limits.invoicePeriod === 'lifetime', 'الباقة المجانية: 100 فاتورة إجمالاً، المالك وموظف واحد، وبدون مدة انتهاء تلقائية.');
   const features: Record<string, boolean> = {};
   const keys = Object.keys(input.features);
   ensure(keys.length <= 40, 'عدد الميزات كبير جداً.');
@@ -108,7 +109,11 @@ export class PlatformBilling {
       if (page.size > limit) nextCursor = page.docs[limit - 1].id;
     } else {
       rows = await this.store.transaction(tx => tx.list('organizations'));
-      rows = rows.filter(org => (!search || normalizeName(org.name).startsWith(search)) && (!planId || org.planId === planId) && (!state || org.subscriptionStatus === state) && (!companyStatus || org.status === companyStatus)).sort((a, b) => a.id.localeCompare(b.id));
+      const now = new Date().toISOString();
+      rows = rows.filter(org => {
+        const effective = org.subscriptionEnd && org.subscriptionEnd <= now && ['active', 'trial'].includes(org.subscriptionStatus) ? 'expired' : org.subscriptionStatus || 'active';
+        return (!search || normalizeName(org.name).startsWith(search)) && (!planId || org.planId === planId) && (!state || effective === state) && (!companyStatus || org.status === companyStatus);
+      }).sort((a, b) => a.id.localeCompare(b.id));
       if (params.cursor) rows = rows.filter(org => org.id > String(params.cursor));
       if (rows.length > limit) nextCursor = rows[limit - 1].id; rows = rows.slice(0, limit);
     }
@@ -212,7 +217,7 @@ export class PlatformBilling {
       next.subscriptionMetadata = { ...(next.subscriptionMetadata || org.subscriptionMetadata), legacyNonExpiring: Boolean(org.subscriptionMetadata?.legacyNonExpiring && !['renew', 'change_plan', 'extend', 'set_status'].includes(action)), method: body.method || 'manual', lastAction: action, updatedBy: actor.uid, updatedAt: now.toISOString(), providerReference: text(payload.providerReference || '', 200) };
       tx.set(root, next);
       // The read projection is compatibility data. Entitlements always reread the canonical root and live plan.
-      const projected = { ...current, plan_id: next.planId, plan_definition: plan, status: next.subscriptionStatus, effective_status: next.subscriptionStatus, subscription_start: next.subscriptionStart, subscription_end: next.subscriptionEnd, renewal_at: next.renewalAt, billing_revision: next.billingRevision, max_members: plan.limits.maxUsers, max_branches: plan.limits.maxBranches, max_warehouses: plan.limits.maxWarehouses, max_invoices_total: plan.limits.invoicePeriod === 'lifetime' ? plan.limits.maxInvoices : 999999, max_invoices_per_month: plan.limits.invoicePeriod === 'month' ? plan.limits.maxInvoices : 999999, invoice_period: plan.limits.invoicePeriod, max_customers: plan.limits.maxCustomers, max_products: plan.limits.maxProducts, features: { ...current.features, ...plan.features } };
+      const projected = { ...current, plan: next.planId, plan_id: next.planId, plan_definition: plan, status: next.subscriptionStatus, effective_status: next.subscriptionStatus, subscription_start: next.subscriptionStart, subscription_end: next.subscriptionEnd, renewal_at: next.renewalAt, billing_revision: next.billingRevision, max_members: plan.limits.maxUsers, max_branches: plan.limits.maxBranches, max_warehouses: plan.limits.maxWarehouses, max_invoices_total: plan.limits.invoicePeriod === 'lifetime' ? plan.limits.maxInvoices : 999999, max_invoices_per_month: plan.limits.invoicePeriod === 'month' ? plan.limits.maxInvoices : 999999, invoice_period: plan.limits.invoicePeriod, max_customers: plan.limits.maxCustomers, max_products: plan.limits.maxProducts, features: { ...plan.features } };
       tx.set(`${root}/meta/subscription`, projected);
       return { previous: projection(org), next: projection(next), result: { organizationId: orgId, billingRevision: next.billingRevision, subscription: projected } };
     });

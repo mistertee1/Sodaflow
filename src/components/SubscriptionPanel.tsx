@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { api } from '../services/businessApi';
 import { defaultPlatformPlans, formatLimitLabel } from '../lib/plans';
-import type { PlatformPlan, SubscriptionPlan } from '../types';
+import type { PlatformPlan } from '../types';
 
 export const subscriptionLabels: Record<string, string> = { trial: 'تجريبي', trialing: 'تجريبي', active: 'نشط', suspended: 'معلّق', expired: 'منتهٍ', past_due: 'منتهٍ', cancelled: 'ملغي', canceled: 'ملغي' };
 export function SubscriptionPanel() {
@@ -23,7 +23,7 @@ export function SubscriptionPanel() {
   ] as [string, number, number][];
   const requestPlan = async (id: string) => {
     setBusy(true); setMessage(''); setError('');
-    try { await updateSubscriptionPlan(id as SubscriptionPlan); setMessage('تم إرسال طلب الترقية لإدارة المنصة. الباقة الحالية مستمرة حتى اعتماد الطلب.'); }
+    try { await updateSubscriptionPlan(id); setMessage('تم إرسال طلب الترقية لإدارة المنصة. الباقة الحالية مستمرة حتى اعتماد الطلب.'); }
     catch (failure) { setError(failure instanceof Error ? failure.message : 'تعذر إرسال الطلب.'); }
     finally { setBusy(false); }
   };

@@ -156,7 +156,7 @@ export interface OrgSubscription {
   max_branches?: number;
   max_warehouses?: number;
   org_id: string;
-  plan: SubscriptionPlan;
+  plan: string;
   status: SubscriptionStatus | 'trialing' | 'past_due' | 'canceled';
   max_invoices_per_month: number;
   max_members: number;
@@ -374,4 +374,3 @@ export interface MerchantSettings {
 }
 
 export * from './accounting';
-

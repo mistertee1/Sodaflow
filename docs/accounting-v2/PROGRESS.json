@@ -4,10 +4,14 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "3b056a813b7c532a5a8d8dc9b53069fc6da11991",
   "user_merges_only": true,
-  "active_milestone": "A2",
-  "active_branch": "codex/accounting-v2-a2-inventory-costing",
+  "active_milestone": "B1",
+  "active_branch": "codex/accounting-v2-b1-supplier-purchases",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "root-accounting-v2",
+    "started_at": "2026-10-05T05:05:24.865Z",
+    "expires_at": "2026-10-05T05:50:24.865Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -42,9 +46,26 @@
     },
     {
       "id": "B",
-      "status": "pending",
-      "branch": null,
-      "pr": null
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-b1-supplier-purchases",
+      "pr": null,
+      "steps": [
+        {
+          "id": "B1",
+          "scope": "Suppliers, purchase bills, supplier payments, AP aging/statements",
+          "status": "in_progress"
+        },
+        {
+          "id": "B2",
+          "scope": "AR statements/aging, GL, cash/bank, internal transfers, bank/cash reconciliation",
+          "status": "pending"
+        },
+        {
+          "id": "B3",
+          "scope": "Credit notes, sales/purchase returns and refunds",
+          "status": "pending"
+        }
+      ]
     },
     {
       "id": "C",
@@ -95,5 +116,5 @@
     "Complete B2 cash/bank, GL, AR reports and reconciliation, then B3 returns/refunds before marking B complete",
     "C/D/E and Excel 1-4 remain pending; user review/merge only; no production changes"
   ],
-  "updated_at": "2026-10-05T05:04:38.080Z"
+  "updated_at": "2026-10-05T05:05:24.865Z"
 }

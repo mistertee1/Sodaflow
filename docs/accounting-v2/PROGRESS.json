@@ -7,11 +7,7 @@
   "active_milestone": "B1",
   "active_branch": "codex/accounting-v2-b1-supplier-purchases",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "root-accounting-v2-20261005-1014",
-    "started_at": "2026-10-05T10:15:16.033Z",
-    "expires_at": "2026-10-05T11:16:14.160Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -53,7 +49,7 @@
         {
           "id": "B1",
           "scope": "Suppliers, purchase bills, supplier payments, AP aging/statements",
-          "status": "implemented_ci_pending",
+          "status": "implemented_ci_passed",
           "branch": "codex/accounting-v2-b1-supplier-purchases",
           "checks": {
             "unit_api": 81,
@@ -61,14 +57,14 @@
             "rules": 7,
             "rules_status": "passed",
             "ui": 23,
-            "ui_status": "passed_previous_head",
+            "ui_status": "passed",
             "production_audit_vulnerabilities": 0
           },
           "pr": 15,
           "ci": {
             "conclusion": "success",
-            "run_id": 37296575822,
-            "commit_sha": "2915098691219644f2f0f0b9201f4a2d1594453d"
+            "run_id": 37297113305,
+            "commit_sha": "c77265dfeec2f2899a08fa7e9fcb3b537918f6bf"
           }
         },
         {
@@ -132,5 +128,5 @@
     "Start B2 from the tested B1 branch; dependent PR targets B1 while it is unmerged",
     "B3, C/D/E and Excel 1-4 remain pending; no merge/deployment/production writes"
   ],
-  "updated_at": "2026-10-05T10:31:14.160Z"
+  "updated_at": "2026-10-05T10:35:41.806Z"
 }

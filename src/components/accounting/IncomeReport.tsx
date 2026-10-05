@@ -9,7 +9,7 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Sales Revenue */}
             <div className="bg-sf-surface border border-sf-border rounded-xl p-4 shadow-sm">
-              <span className="text-xs text-sf-muted font-semibold block mb-1">إجمالي إيراد المبيعات</span>
+              <span className="text-xs text-sf-muted font-semibold block mb-1">إيرادات النشاط والإيرادات الأخرى</span>
               <div className="text-lg font-semibold font-mono text-sf-text">
                 {formatMoney(incomeStatement.sales_revenue_sdg, 'SDG')}
               </div>
@@ -60,7 +60,7 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
 
             <div className="space-y-3 text-xs">
               <div className="flex items-center justify-between py-2 border-b border-sf-border">
-                <span className="font-semibold text-sf-text">إيرادات النشاط التجاري (المبيعات)</span>
+                <span className="font-semibold text-sf-text">إيرادات النشاط والإيرادات الأخرى</span>
                 <span className="font-mono font-semibold text-sf-text">
                   {formatMoney(incomeStatement.sales_revenue_sdg, 'SDG')}
                 </span>
@@ -109,3 +109,4 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
         </div>
 
 );
+

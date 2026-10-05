@@ -40,6 +40,7 @@ import { TrialBalanceReport } from './accounting/TrialBalanceReport';
 import { IncomeReport } from './accounting/IncomeReport';
 import { BalanceSheetReport } from './accounting/BalanceSheetReport';
 import { CashFlowReport } from './accounting/CashFlowReport';
+import { classifyAccount, reportingGroupsFor, reportingGroupLabels, type ReportingGroup } from '../domain/accountClassification';
 import { Dialog } from './Dialog';
 export const AccountingView: React.FC = () => {
   const {
@@ -59,6 +60,8 @@ export const AccountingView: React.FC = () => {
     'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
   >('coa');
   const [searchQuery, setSearchQuery] = useState('');
+  const [reportStart, setReportStart] = useState('');
+  const [reportEnd, setReportEnd] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
 
   // Journal date & type filter + pagination
@@ -80,6 +83,7 @@ export const AccountingView: React.FC = () => {
   const [newAccNameEn, setNewAccNameEn] = useState('');
   const [newAccType, setNewAccType] = useState<AccountCategory>('EXPENSE');
   const [newAccNature, setNewAccNature] = useState<AccountNature>('DEBIT');
+  const [newAccGroup, setNewAccGroup] = useState<ReportingGroup>('operating_expense');
   const [newAccDesc, setNewAccDesc] = useState('');
   const [accFormError, setAccFormError] = useState<string | null>(null);
 
@@ -104,22 +108,12 @@ export const AccountingView: React.FC = () => {
   const entrySubmitting = useRef(false);
   const [isSavingEntry, setIsSavingEntry] = useState(false);
 
-  // Calculations
-  const trialBalance = useMemo(() => {
-    return calculateTrialBalance(accounts, journalEntries);
-  }, [accounts, journalEntries]);
-
-  const incomeStatement = useMemo(() => {
-    return calculateIncomeStatement(journalEntries);
-  }, [journalEntries]);
-
-  const balanceSheet = useMemo(() => {
-    return calculateBalanceSheet(accounts, journalEntries);
-  }, [accounts, journalEntries]);
-
-  const cashFlow = useMemo(() => {
-    return calculateCashFlowStatement(accounts, journalEntries);
-  }, [accounts, journalEntries]);
+  const reportBundle = useMemo(() => {
+    const period = { start: reportStart, end: reportEnd };
+    try { return { error: '', trial: calculateTrialBalance(accounts, journalEntries, period), income: calculateIncomeStatement(journalEntries, accounts, period), balance: calculateBalanceSheet(accounts, journalEntries, period), cash: calculateCashFlowStatement(accounts, journalEntries, period) }; }
+    catch (error) { return { error: error instanceof Error ? error.message : 'تعذر حساب التقارير.', trial: calculateTrialBalance([], []), income: calculateIncomeStatement([], []), balance: calculateBalanceSheet([], []), cash: calculateCashFlowStatement([], []) }; }
+  }, [accounts, journalEntries, reportStart, reportEnd]);
+  const { trial: trialBalance, income: incomeStatement, balance: balanceSheet, cash: cashFlow } = reportBundle;
 
   // Filtered Accounts
   const filteredAccounts = useMemo(() => {
@@ -190,6 +184,7 @@ export const AccountingView: React.FC = () => {
         name_en: newAccNameEn.trim() || '',
         type: newAccType,
         nature: newAccNature,
+        ...classifyAccount({ code: newAccCode.trim(), type: newAccType, nature: newAccNature, reporting_group: newAccGroup }),
         is_system: false,
         is_active: true,
         balance_sdg: 0,
@@ -356,8 +351,17 @@ export const AccountingView: React.FC = () => {
     }
   };
 
+  const reportDates = <div className="flex flex-wrap gap-3 items-end bg-sf-surface border border-sf-border p-4 rounded-xl">
+    <label className="text-xs space-y-1">من تاريخ<input aria-label="بداية فترة التقرير" type="date" value={reportStart} onChange={e => setReportStart(e.target.value)} className="block bg-sf-raised border border-sf-border rounded-lg p-2" /></label>
+    <label className="text-xs space-y-1">إلى تاريخ<input aria-label="نهاية فترة التقرير" type="date" value={reportEnd} onChange={e => setReportEnd(e.target.value)} className="block bg-sf-raised border border-sf-border rounded-lg p-2" /></label>
+    <button className="text-xs text-sf-action p-2" onClick={() => { setReportStart(''); setReportEnd(''); }}>كل الفترات</button>
+    <p className="text-xs text-sf-muted w-full">الدخل والتدفقات وحركة ميزان المراجعة للفترة المختارة. المركز المالي تراكمي حتى نهاية الفترة؛ الافتتاحي من القيود السابقة.</p>
+  </div>;
+
   return (
     <div className="space-y-6">
+      {reportDates}
+      {reportBundle.error && <p role="alert" className="bg-sf-danger-bg text-sf-danger border border-sf-danger p-4 rounded-xl">{reportBundle.error}</p>}
       {/* Top Header Card */}
       <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -452,7 +456,7 @@ export const AccountingView: React.FC = () => {
           >
             <Scale className="w-4 h-4" />
             <span>ميزان المراجعة</span>
-            {trialBalance.isBalanced ? (
+            {!reportBundle.error && trialBalance.isBalanced ? (
               <span className="w-2 h-2 rounded-full bg-sf-action"></span>
             ) : (
               <span className="w-2 h-2 rounded-full bg-sf-danger"></span>
@@ -617,10 +621,10 @@ export const AccountingView: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4 font-mono font-semibold text-sf-text">
-                          {formatMoney(balSdg, 'SDG')}
+                          {reportBundle.error ? '—' : formatMoney(balSdg, 'SDG')}
                         </td>
                         <td className="py-3 px-4 font-mono text-sf-muted">
-                          {formatMoney(balUsd, 'USD')}
+                          {reportBundle.error ? '—' : formatMoney(balUsd, 'USD')}
                         </td>
                         <td className="py-3 px-4">
                           {acc.is_system ? (
@@ -884,16 +888,16 @@ export const AccountingView: React.FC = () => {
       )}
 
       {/* SUB-TAB 3: TRIAL BALANCE (ميزان المراجعة) */}
-      {activeSubTab === 'trial' && <TrialBalanceReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
+      {!reportBundle.error && activeSubTab === 'trial' && <TrialBalanceReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
 
       {/* SUB-TAB 4: INCOME STATEMENT (قائمة الدخل والأرباح) */}
-      {activeSubTab === 'income' && <IncomeReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
+      {!reportBundle.error && activeSubTab === 'income' && <IncomeReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
 
       {/* SUB-TAB 5: BALANCE SHEET (الميزانية العمومية والمركز المالي) */}
-      {activeSubTab === 'balance_sheet' && <BalanceSheetReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
+      {!reportBundle.error && activeSubTab === 'balance_sheet' && <BalanceSheetReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
 
       {/* SUB-TAB 6: CASH FLOW STATEMENT (قائمة التدفقات النقدية) */}
-      {activeSubTab === 'cash_flow' && <CashFlowReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
+      {!reportBundle.error && activeSubTab === 'cash_flow' && <CashFlowReport trialBalance={trialBalance} incomeStatement={incomeStatement} balanceSheet={balanceSheet} cashFlow={cashFlow} settings={settings} theme={theme} />}
 
       {/* SUB-TAB 7: ACCOUNTING PERIOD LOCK (إقفال الفترات المحاسبية) */}
       {activeSubTab === 'period_lock' && (
@@ -1080,7 +1084,7 @@ export const AccountingView: React.FC = () => {
                   <label className="block text-sf-text font-semibold mb-1">التبويب</label>
                   <select
                     value={newAccType}
-                    onChange={(e) => setNewAccType(e.target.value as AccountCategory)}
+                    onChange={(e) => { const type = e.target.value as AccountCategory; setNewAccType(type); setNewAccGroup(reportingGroupsFor(type)[0]); setNewAccNature(['ASSET', 'EXPENSE'].includes(type) ? 'DEBIT' : 'CREDIT'); }}
                     className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action"
                   >
                     <option value="ASSET">أصول (Assets)</option>
@@ -1104,6 +1108,12 @@ export const AccountingView: React.FC = () => {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sf-text font-semibold mb-1" htmlFor="account-reporting-group">مجموعة التقرير</label>
+                <select id="account-reporting-group" value={newAccGroup} onChange={e => setNewAccGroup(e.target.value as ReportingGroup)} className="w-full bg-sf-raised border border-sf-border rounded-xl p-2">
+                  {reportingGroupsFor(newAccType).map(group => <option key={group} value={group}>{reportingGroupLabels[group]}</option>)}
+                </select>
+              </div>
               <div>
                 <label className="block text-sf-text font-semibold mb-1">وصف أو ملاحظات</label>
                 <textarea
@@ -1307,3 +1317,4 @@ export const AccountingView: React.FC = () => {
     </div>
   );
 };
+

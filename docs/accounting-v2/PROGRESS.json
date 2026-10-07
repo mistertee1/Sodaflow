@@ -10,8 +10,8 @@
   "lease": {
     "worker": "root-accounting-v2-20261007-b3",
     "started_at": "2026-10-07T03:55:55.000Z",
-    "updated_at": "2026-10-07T03:59:28.000Z",
-    "expires_at": "2026-10-07T04:44:28.000Z"
+    "updated_at": "2026-10-07T04:04:04.000Z",
+    "expires_at": "2026-10-07T04:49:04.000Z"
   },
   "milestones": [
     {
@@ -125,18 +125,26 @@
               "scope": "Source return allocation, original-cost restock, purchase WAC variance and refund carrying-value contracts",
               "status": "implemented_local_checks_passed",
               "checks": {
-                "unit_quotes": 11,
-                "unit_api": 128,
+                "unit_quotes": 17,
+                "unit_api": 134,
                 "types": "passed",
                 "build": "passed"
-              }
+              },
+              "completed_parts": [
+                "cumulative original-value allocation with history checks",
+                "original sales cost and purchase WAC variance",
+                "historical credit refund and balanced dual-book posting quotes",
+                "tenant/original journal proof and frozen invoice discount/rounding allocation",
+                "purchase original acquisition and posting proof"
+              ]
             },
             {
               "id": "B3.2",
               "scope": "Atomic source-linked credit notes, sales/purchase returns and refunds; reports, reconciliation, backup and UI",
               "status": "pending"
             }
-          ]
+          ],
+          "pr": 18
         }
       ]
     },
@@ -190,7 +198,7 @@
     "Integrate dated AR/AP and customer credits, reconciliation/backup, API permission/idempotency/period tests and UI",
     "Then C, D, E and Excel1-4 with deferred PRD50 import"
   ],
-  "updated_at": "2026-10-07T03:59:28.000Z",
+  "updated_at": "2026-10-07T04:04:04.000Z",
   "deferred_requirements": [
     {
       "prd": "50",

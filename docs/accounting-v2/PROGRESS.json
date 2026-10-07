@@ -10,8 +10,8 @@
   "lease": {
     "worker": "root-accounting-v2-20261007-b3",
     "started_at": "2026-10-07T03:55:55.000Z",
-    "updated_at": "2026-10-07T04:04:04.000Z",
-    "expires_at": "2026-10-07T04:49:04.000Z"
+    "updated_at": "2026-10-07T04:10:36.000Z",
+    "expires_at": "2026-10-07T04:55:36.000Z"
   },
   "milestones": [
     {
@@ -123,7 +123,7 @@
             {
               "id": "B3.1",
               "scope": "Source return allocation, original-cost restock, purchase WAC variance and refund carrying-value contracts",
-              "status": "implemented_local_checks_passed",
+              "status": "implemented_ci_pending",
               "checks": {
                 "unit_quotes": 17,
                 "unit_api": 134,
@@ -136,7 +136,13 @@
                 "historical credit refund and balanced dual-book posting quotes",
                 "tenant/original journal proof and frozen invoice discount/rounding allocation",
                 "purchase original acquisition and posting proof"
-              ]
+              ],
+              "ci": {
+                "conclusion": "pending",
+                "previous_run_id": 37569700068,
+                "previous_conclusion": "failure",
+                "reason": "Two inherited B2 UI tests set historical end before the runtime default start; explicit fixture start dates added. Unit/API, build, audit and 22 rules passed."
+              }
             },
             {
               "id": "B3.2",
@@ -198,7 +204,7 @@
     "Integrate dated AR/AP and customer credits, reconciliation/backup, API permission/idempotency/period tests and UI",
     "Then C, D, E and Excel1-4 with deferred PRD50 import"
   ],
-  "updated_at": "2026-10-07T04:04:04.000Z",
+  "updated_at": "2026-10-07T04:10:36.000Z",
   "deferred_requirements": [
     {
       "prd": "50",

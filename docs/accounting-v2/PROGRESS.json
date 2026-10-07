@@ -5,9 +5,14 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c1-period-ui",
+  "active_branch": "codex/accounting-v2-c2-opening-quotes",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "accounting-v2-20261007-c21-2116",
+    "acquired_at": "2026-10-07T21:16:14Z",
+    "updated_at": "2026-10-07T21:16:14Z",
+    "expires_at": "2026-10-07T22:01:14.000Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -299,8 +304,8 @@
     {
       "id": "C",
       "status": "in_progress",
-      "branch": "codex/accounting-v2-c1-period-ui",
-      "pr": 24,
+      "branch": "codex/accounting-v2-c2-opening-quotes",
+      "pr": null,
       "steps": [
         {
           "id": "C1",
@@ -388,6 +393,29 @@
               }
             }
           ]
+        },
+        {
+          "id": "C2",
+          "scope": "Opening balances wizard and Owner capital/drawings",
+          "status": "in_progress",
+          "substeps": [
+            {
+              "id": "C2.1",
+              "scope": "Read-only opening source/dual-book quote and validation contract",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-c2-opening-quotes"
+            },
+            {
+              "id": "C2.2",
+              "scope": "Atomic tenant opening batches, AR/AP/inventory source proof and protected preview/commit wizard",
+              "status": "pending"
+            },
+            {
+              "id": "C2.3",
+              "scope": "Owner capital/drawings source-backed operations and UI",
+              "status": "pending"
+            }
+          ]
         }
       ]
     },
@@ -433,7 +461,7 @@
     "Continue C2.1 opening-balance quote/source/precision contract",
     "Integrate C2.2 atomic opening batches and protected wizard, C2.3 owner capital/drawings; remaining C, D, E and Excel1-4"
   ],
-  "updated_at": "2026-10-07T21:16:00Z",
+  "updated_at": "2026-10-07T21:16:14Z",
   "deferred_requirements": [
     {
       "prd": "50",
@@ -445,7 +473,7 @@
       "status": "pending"
     }
   ],
-  "active_substep": "C1.2",
+  "active_substep": "C2.1",
   "observed_main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31",
   "lease_history": [
     {

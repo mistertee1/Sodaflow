@@ -39,7 +39,7 @@ export interface JournalEntry {
   id: string;
   entry_number: string; // e.g. JV-2026-0001
   date: string;
-  reference_type: 'invoice' | 'payment' | 'expense' | 'manual' | 'void' | 'opening_balance' | 'inventory' | 'purchase_bill' | 'supplier_payment' | 'internal_transfer';
+  reference_type: 'invoice' | 'payment' | 'expense' | 'manual' | 'void' | 'opening_balance' | 'inventory' | 'purchase_bill' | 'supplier_payment' | 'internal_transfer' | 'credit_note' | 'customer_refund';
   reference_id: string;
   description: string;
   lines: JournalEntryLine[];

@@ -178,3 +178,37 @@ test('B2 Firestore preserves bank/cash evidence across map ordering, retries and
     const client=env.authenticatedContext(actor.uid,{email_verified:true}).firestore();for(const name of ['bank_reconciliations','cash_reconciliations']){await assertFails(setDoc(doc(client,`${root}/${name}/forged`),{id:'forged'}));await assertFails(getDocs(collection(client,`${root}/${name}`)));}
   } finally { await deleteApp(app); }
 });
+
+test('B3 Firestore source corrections, overreturn/refund races and SDK restrictions commit stock, AR, audit and journals atomically', async () => {
+  const app = initializeApp({ projectId: project }, 'test-correction-admin'), db = getFirestore(app);
+  try {
+    const store = new FirestoreStore(db), actor = { uid: 'correction-integration-owner', email: 'credit-i@example.com', emailVerified: true };
+    const org = await new Organizations(store).create(actor, 'مردودات موثقة', INITIAL_SETTINGS, 'correction-integration', true), root = `organizations/${org.id}`;
+    await store.transaction(async tx => tx.set(root, { ...await tx.get(root), planId: 'Enterprise', subscriptionEnd: '2027-01-01', subscriptionEndMillis: Date.parse('2027-01-01') }));
+    const rules = await readFile('firestore.rules', 'utf8'), ops = new Operations(store, () => new Date('2026-10-07T12:00:00Z'), saved => saved as any, async () => verifyAccountingRulesSource([{ content: rules }]));
+    const run = (action: string, data: Record<string, unknown>, operationId: string) => ops.execute(org.id, actor, { action, data, operationId });
+    const customer = (await run('customer.create', { name: 'عميل', phone: '', preferred_currency: 'USD' }, 'customer')).result;
+    const product = (await run('product.create', { name: 'صنف', unit: 'قطعة', price_sdg: 200000, price_usd: 100, tax_rate: 0, is_active: true, track_inventory: true, stock_quantity: 10 }, 'product')).result;
+    await run('product.cost.establish', { id: product.id, cost_currency: 'USD', unit_cost: 20, exchange_rate_used: 2000, reason: 'افتتاحي' }, 'cost'); await run('accounting.activate', { reason: 'مطابقة' }, 'activate');
+    const item = { product_id: product.id, description: 'صنف', unit: 'قطعة', quantity: 1, unit_price: 100, currency: 'USD', tax_rate: 0, discount_percent: 0 };
+    const invoice = (await run('invoice.create', { customer_id: customer.id, issue_date: '2026-10-07', currency_mode: 'single_usd', exchange_rate_used: 2000, discount_type: 'fixed', discount_value: 0, items: [item, { ...item, quantity: 2 }] }, 'sale')).result;
+    await run('payment.create', { invoice_id: invoice.id, amount: 300, currency: 'USD', exchange_rate_used: 2000, payment_method: 'cash' }, 'pay');
+    const cash = (await run('financialAccount.create', { name: 'صندوق دولار', account_code: '1120', currency: 'USD', kind: 'cash' }, 'cash')).result;
+    const note = { invoice_id: invoice.id, date: '2026-10-07', kind: 'sales_return', reason: 'رد موثق', lines: [{ line_id: 'line-1', quantity: 1 }, { line_id: 'line-2', quantity: 2 }] };
+    const returns = await Promise.allSettled([run('creditNote.create', note, 'return-a'), run('creditNote.create', note, 'return-b')]); assert.equal(returns.filter(row => row.status === 'fulfilled').length, 1);
+    const winner = returns[0].status === 'fulfilled' ? 'return-a' : 'return-b'; await run('creditNote.create', note, winner);
+    const refund = { invoice_id: invoice.id, date: '2026-10-07', financial_account_id: cash.id, amount: 250, exchange_rate_used: 3000, reason: 'رد نقدي' };
+    const refunds = await Promise.allSettled([run('customerRefund.create', refund, 'refund-a'), run('customerRefund.create', refund, 'refund-b')]); assert.equal(refunds.filter(row => row.status === 'fulfilled').length, 1);
+    await run('customerRefund.create', refund, refunds[0].status === 'fulfilled' ? 'refund-a' : 'refund-b');
+    const snapshot = await ops.snapshot(org.id, actor, true); assert.equal(snapshot.collections.credit_notes.length, 1); assert.equal(snapshot.collections.customer_refunds.length, 1); assert.equal(snapshot.collections.products[0].stock_quantity, 10); assert.equal(snapshot.collections.products[0].inventory_value_usd, 200); assert.equal(snapshot.collections.customers[0].balance_usd, -50); assert.equal(snapshot.collections.inventory_movements.filter(row => row.reference_type === 'credit_note').length, 1);
+    assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData, snapshot.settings, { requireCosting: true }), []);
+    const report = await ops.operationalReport(org.id, actor, 'receivables', { end: '2026-10-07' }); assert.equal(report.unallocated_usd, 0); assert.equal(report.aging[0].credit_usd, 50);
+    const before = (await db.doc(`${root}/meta/counters`).get()).data(); await assert.rejects(run('invoice.void', { id: invoice.id, reason: 'تجاوز' }, 'void'), /المصححة/); assert.deepEqual((await db.doc(`${root}/meta/counters`).get()).data(), before);
+    for (const uid of [actor.uid, 'foreign']) {
+      const client = env.authenticatedContext(uid, { email_verified: true }).firestore();
+      for (const name of ['credit_notes', 'customer_refunds']) { await assertFails(setDoc(doc(client, `${root}/${name}/forged`), { id: 'forged' })); await assertFails(getDocs(collection(client, `${root}/${name}`))); }
+      await assertFails(setDoc(doc(client, `${root}/invoices/${invoice.id}`), { credit_balance_usd: 999 }, { merge: true }));
+    }
+    await store.transaction(async tx => tx.set(root, { ...await tx.get(root), subscriptionEnd: '2026-10-01', subscriptionEndMillis: Date.parse('2026-10-01') })); await assert.rejects(run('creditNote.create', note, winner), /انتهى|منتهي|الاشتراك/);
+  } finally { await deleteApp(app); }
+});

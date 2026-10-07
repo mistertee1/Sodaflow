@@ -27,6 +27,7 @@
     "tests/cashReconciliation.test.ts",
     "tests/returnQuotes.test.ts",
     "tests/returnSources.test.ts",
-    "tests/salesCorrectionState.test.ts"
+    "tests/salesCorrectionState.test.ts",
+    "tests/salesCorrections.test.ts"
   ]
 }

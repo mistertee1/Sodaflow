@@ -2,6 +2,7 @@ import BigNumber from 'bignumber.js';
 import type { Account, JournalEntry, JournalEntryLine } from '../types';
 import type { Document, Transaction } from './store';
 import type { ActionType } from '../services/rbacService';
+import { verifySalesSource } from './salesCorrections';
 import { classifyAccount } from './accountClassification';
 import { dateOnly, ensure, identifier, validateJournal } from './validation';
 
@@ -63,9 +64,11 @@ export function accountLedger(accounts: Account[], entries: JournalEntry[], quer
 }
 
 /** Historic AR is read from source-linked control lines, independent of today's invoice status and balance caches. */
-export function receivableReports(customers: Document[], invoices: Document[], payments: Document[], entries: JournalEntry[], periodInput: ReportPeriod, asOf: string) {
+export function receivableReports(customers: Document[], invoices: Document[], payments: Document[], entries: JournalEntry[], periodInput: ReportPeriod, asOf: string, corrections: { notes: Document[]; refunds: Document[]; financial?: Document[]; accounts?: Document[] } = { notes: [], refunds: [] }) {
   const period = reportPeriod(periodInput, asOf), dated = datedEntries(entries, period.end);
   const customerIndex = documentIndex(customers, 'العميل'), invoiceIndex = documentIndex(invoices, 'الفاتورة'), paymentIndex = documentIndex(payments, 'السند');
+  const noteIndex = documentIndex(corrections.notes, 'الإشعار'), refundIndex = documentIndex(corrections.refunds, 'الرد');
+  for (const invoice of invoices) if (corrections.notes.some(row => row.invoice_id === invoice.id) || corrections.refunds.some(row => row.invoice_id === invoice.id)) verifySalesSource(invoice as any, entries, payments.filter(row => row.invoice_id === invoice.id), corrections.notes.filter(row => row.invoice_id === invoice.id), corrections.refunds.filter(row => row.invoice_id === invoice.id), corrections.financial || [], corrections.accounts || [], false);
   const invoiceBalances = new Map<string, Balances>(), customerBalances = new Map<string, Balances>(), openings = new Map<string, Balances>(), movements = new Map<string, Document[]>();
   let control = zero(), allocated = zero();
   const sourceInvoice = (entry: JournalEntry) => {
@@ -76,9 +79,16 @@ export function receivableReports(customers: Document[], invoices: Document[], p
       if (invoice) ensure(payment!.customer_id === invoice.customer_id, 'مرجع عميل السند لا يطابق الفاتورة.', 409);
       return invoice;
     }
+    if (entry.reference_type === 'credit_note' || entry.reference_type === 'customer_refund') {
+      const source = (entry.reference_type === 'credit_note' ? noteIndex : refundIndex).get(entry.reference_id), invoice = source && invoiceIndex.get(source.invoice_id);
+      if (invoice) ensure(source!.customer_id === invoice.customer_id && source!.org_id === invoice.org_id && dateOnly(source!.date) === dateOnly(entry.date), 'مرجع الإشعار/الرد لا يطابق الفاتورة.', 409);
+      return invoice;
+    }
     return undefined;
   };
-  for (const entry of dated) {
+  const sequence = (entry: JournalEntry) => entry.reference_type === 'invoice' ? 0 : entry.reference_type === 'credit_note' ? noteIndex.get(entry.reference_id)?.source_sequence : entry.reference_type === 'customer_refund' ? refundIndex.get(entry.reference_id)?.source_sequence : entry.reference_type === 'payment' ? paymentIndex.get(entry.reference_id)?.source_sequence : Number.MAX_SAFE_INTEGER;
+  const ordered = [...dated].sort((a,b) => dateOnly(a.date).localeCompare(dateOnly(b.date)) || String(sourceInvoice(a)?.id || '').localeCompare(String(sourceInvoice(b)?.id || '')) || (sequence(a) || 0) - (sequence(b) || 0) || a.id.localeCompare(b.id));
+  for (const entry of ordered) {
     const lines = entry.lines.map((line, index) => ({ line, index })).filter(item => item.line.account_code === '1200');
     if (!lines.length) continue;
     const invoice = sourceInvoice(entry);
@@ -165,8 +175,8 @@ export async function readOperationalReport<View extends OperationalView>(tx: Tr
   const entries = await tx.list(`${root}/journal_entries`) as JournalEntry[];
   let report: Document;
   if (view === 'receivables') {
-    const [customers, invoices, payments] = await Promise.all(['customers', 'invoices', 'payments'].map(name => tx.list(`${root}/${name}`)));
-    report = receivableReports(customers, invoices, payments, entries, query, asOf);
+    const [customers, invoices, payments, notes, refunds, financial, accounts] = await Promise.all(['customers', 'invoices', 'payments', 'credit_notes', 'customer_refunds', 'financial_accounts', 'accounts'].map(name => tx.list(`${root}/${name}`)));
+    report = receivableReports(customers, invoices, payments, entries, query, asOf, { notes, refunds, financial, accounts });
   } else {
     const accounts = await tx.list(`${root}/accounts`) as Account[];
     report = view === 'ledger' ? accountLedger(accounts, entries, query as LedgerQuery, asOf) : cashBalances(accounts, entries, query, asOf);

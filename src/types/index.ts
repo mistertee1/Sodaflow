@@ -11,7 +11,7 @@ export type MovementType =
   | 'PURCHASE'
   | 'ADJUSTMENT'
   | 'VOID_REVERSAL'
-  | 'COST_ESTABLISHMENT'
+  | 'SALES_RETURN' | 'COST_ESTABLISHMENT'
   | 'OPENING_BALANCE'
   | 'RETURN';
 
@@ -42,6 +42,8 @@ export interface OrgInvitation {
 }
 
 export interface OrganizationCounters {
+  credit_note_count?: number;
+  customer_refund_count?: number;
   lifetime_invoice_count?: number;
   revision?: number;
   invoice_month?: string;
@@ -191,7 +193,7 @@ export interface InventoryMovement {
   quantity: number; // positive for addition, negative for deduction
   previous_stock: number;
   resulting_stock: number;
-  reference_type: 'invoice' | 'audit_adjustment' | 'manual' | 'void' | 'purchase_bill';
+  reference_type: 'invoice' | 'audit_adjustment' | 'manual' | 'void' | 'purchase_bill' | 'credit_note';
   reference_id: string;
   reason?: string;
   created_at: string;
@@ -283,6 +285,14 @@ export interface InvoiceItem {
 }
 
 export interface Invoice {
+  source_event_sequence?: number;
+  correction_count?: number;
+  credit_balance_sdg?: number;
+  credit_balance_usd?: number;
+  credited_amount_sdg?: number;
+  credited_amount_usd?: number;
+  refunded_amount_sdg?: number;
+  refunded_amount_usd?: number;
   costing_status?: "complete" | "incomplete";
   costing_version?: 2;
   cogs_sdg?: number;
@@ -329,6 +339,7 @@ export interface Invoice {
 }
 
 export interface Payment {
+  source_sequence?: number;
   settled_amount_sdg?: number;
   settled_amount_usd?: number;
   cash_amount_sdg?: number;

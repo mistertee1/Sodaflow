@@ -14,6 +14,7 @@ import { acquisitionCost, allocateCost, costFields, costState, issueCost, receiv
 import { payableCommand, payableCollections, payableReports } from './payables';
 import { cashReconciliationCollections, cashReconciliationCommand, cashReconciliationReports, verifyCashSessionHashes } from './cashReconciliation';
 import { cashCollections, cashCommand } from './cashManagement';
+import { salesCorrectionCollections, salesCorrectionCommand, loadSalesSource, salesInvoiceCaches, saveSalesCustomer } from './salesCorrections';
 import { classifyAccount } from './accountClassification';
 import { merchantDay, operationalPermissions, readOperationalReport, type LedgerQuery, type ReportPeriod, type OperationalReportTypes } from './operationalReports';
 import { financialCollections, reconcileFinancialData, type FinancialData } from './reconciliation';
@@ -22,6 +23,7 @@ export interface Actor { uid: string; email: string; emailVerified: boolean; nam
 export interface Command { action: string; operationId: string; data: Document; }
 export interface OperationResult { result: Document; changes: Change[]; }
 const actions: Record<string, ActionType> = {
+  'creditNote.create': 'journal:create', 'customerRefund.create': 'journal:create',
   'bankReconciliation.create': 'journal:create', 'cashCount.create': 'journal:create',
   'financialAccount.create': 'accounts:create', 'financialAccount.update': 'accounts:update', 'cashTransfer.create': 'journal:create',
   'operational.export': 'backup:export', 'payables.export': 'backup:export', 'supplier.create': 'payables:write', 'supplier.update': 'payables:write', 'purchase.create': 'payables:write', 'supplierPayment.create': 'payables:write',
@@ -35,7 +37,7 @@ const actions: Record<string, ActionType> = {
   'member.update': 'members:update_role', 'member.remove': 'members:remove',
   'invitation.create': 'members:invite', 'invitation.revoke': 'members:invite', 'backup.restore': 'backup:restore',
 };
-export const readPermissions: Record<string, ActionType> = { bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
+export const readPermissions: Record<string, ActionType> = { credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
@@ -107,7 +109,7 @@ export class Operations {
       if (backup) { ensure(org.status === 'active', 'المؤسسة متوقفة؛ التصدير المحمي غير متاح.', 403); assertSubscriptionActive(subscription); }
       const collections: Record<string, Document[]> = {};
       for (const [name, permission] of Object.entries(readPermissions)) {
-        const feature = name === 'audit_logs' ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections].includes(name) ? 'accounting' : null;
+        const feature = name === 'audit_logs' ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections].includes(name) ? 'accounting' : null;
         const activeSubscription = ['active', 'trial'].includes(subscription.effective_status || subscription.status) && org.status === 'active';
         collections[name] = hasPermission(role, permission) && (backup || !feature || activeSubscription && subscription.features[feature] === true) ? await tx.list(`${root}/${name}`) : [];
       }
@@ -144,13 +146,26 @@ export class Operations {
           await this.verifyCostingSecurity(); securityChecked = true;
         }
       };
-      if (org.accounting_version === 2 || ['accounting.activate', 'product.cost.establish', 'inventory.receive', 'purchase.create', 'supplierPayment.create', 'cashTransfer.create', 'bankReconciliation.create', 'cashCount.create'].includes(command.action)) await requireCostAuthority();
+      if (org.accounting_version === 2 || ['accounting.activate', 'product.cost.establish', 'inventory.receive', 'purchase.create', 'supplierPayment.create', 'cashTransfer.create', 'bankReconciliation.create', 'cashCount.create', 'creditNote.create', 'customerRefund.create'].includes(command.action)) await requireCostAuthority();
       if (['bankReconciliation.create', 'cashCount.create'].includes(command.action)) {
         const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
         assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
         ensure(org.accounting_version === 2, 'المطابقة والجرد يتطلبان محاسبة V2.', 409);
         const account = await tx.get(`${root}/financial_accounts/${identifier(command.data.financial_account_id)}`);
         if (account?.currency === 'USD') assertFeature(entitlement, 'multi_currency');
+      }
+      if (['creditNote.create', 'customerRefund.create'].includes(command.action)) {
+        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+        assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
+        assertOpenPeriod(command.data.date, org.settings);
+        ensure(org.accounting_version === 2, 'التصحيحات والردود تتطلب محاسبة V2.', 409);
+        const invoice = await tx.get(`${root}/invoices/${identifier(command.data.invoice_id)}`);
+        if (invoice && (invoice.currency_mode !== 'single_sdg' || invoice.grand_total_usd > 0)) assertFeature(entitlement, 'multi_currency');
+        if (command.data.kind === 'sales_return') assertFeature(entitlement, 'inventory_tracking');
+        if (command.action === 'customerRefund.create') {
+          const account = await tx.get(`${root}/financial_accounts/${identifier(command.data.financial_account_id)}`);
+          if (account?.currency === 'USD') assertFeature(entitlement, 'multi_currency');
+        }
       }
       const operationPath = `${root}/idempotency/${command.operationId}`;
       const previous = await tx.get(operationPath);
@@ -220,6 +235,9 @@ export class Operations {
       const stamp = { org_id: orgId, created_by: actor.uid, schema_version: 3, created_at: iso };
       let result: Document = {};
       switch (command.action) {
+        case 'creditNote.create': case 'customerRefund.create': {
+          result = await salesCorrectionCommand(command.action, data, { tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
+        }
         case 'bankReconciliation.create': case 'cashCount.create': {
           const source = await required('financial_accounts', data.financial_account_id); if (source.currency === 'USD') assertFeature(subscription, 'multi_currency');
           result = await cashReconciliationCommand(command.action, data, { tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
@@ -401,7 +419,8 @@ export class Operations {
           invoice.costing_version = 2; invoice.cogs_sdg = cogsSdg; invoice.cogs_usd = cogsUsd;
           if (cogsSdg || cogsUsd) lines.push(journalLine('5100', 'تكلفة البضاعة المباعة', cogsSdg, 0, cogsUsd, 0), journalLine('1300', 'المخزون', 0, cogsSdg, 0, cogsUsd));
           await post(journal(`jv-inv-${id}`, orgId, actor.uid, data.issue_date, 'invoice', id, `إصدار الفاتورة ${invoice.invoice_number}`, lines, invoice.exchange_rate_used));
-          set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeAdd(customer.balance_sdg || 0, invoice.remaining_sdg, 0), balance_usd: safeAdd(customer.balance_usd || 0, invoice.remaining_usd, 2), updated_at: iso });
+          if (org.accounting_version === 2) await saveSalesCustomer({ tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }, customer, invoice);
+          else set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeAdd(customer.balance_sdg || 0, invoice.remaining_sdg, 0), balance_usd: safeAdd(customer.balance_usd || 0, invoice.remaining_usd, 2), updated_at: iso });
           set(`${root}/invoices/${id}`, invoice); set(numberKey, { invoice_id: id }); result = invoice;
           counters.invoice_count = (existing?.length ?? counters.invoice_count) + 1; counters.last_invoice_number = number; counters.numbering_version = 3; counters.invoice_month = month; counters.monthly_invoice_count = monthCount + 1;
           counters.lifetime_invoice_count = lifetime + 1;
@@ -411,6 +430,8 @@ export class Operations {
           const invoice = await required('invoices', data.invoice_id) as Invoice;
           ensure(!['void', 'cancelled', 'draft', 'paid'].includes(invoice.status), 'لا يمكن تحصيل هذه الفاتورة.');
           assertOpenPeriod(iso, settings);
+          const sourceState = org.accounting_version === 2 ? await loadSalesSource(tx, root, invoice) : undefined;
+          if (sourceState) ensure(dateOnly(iso) >= sourceState.lastDate, 'التحصيل يسبق آخر حركة للمصدر.', 409);
           const previousPayments = await tx.find(`${root}/payments`, 'invoice_id', invoice.id);
           const linkedEntries = await tx.find(`${root}/journal_entries`, 'reference_id', invoice.id);
           ensure(linkedEntries.filter(e => e.reference_type === 'invoice').length === 1, 'قيد الإصدار يحتاج مراجعة قبل تحصيل هذه الفاتورة.');
@@ -420,18 +441,25 @@ export class Operations {
           }
           for (const currency of ['sdg', 'usd'] as const) {
             const carrying = linkedEntries.flatMap(e => e.lines || []).filter((l: Document) => l.account_code === '1200').reduce((n, l) => n.plus(l[`debit_${currency}`] || 0).minus(l[`credit_${currency}`] || 0), new BigNumber(0));
-            ensure(carrying.eq(invoice[`remaining_${currency}`]), 'رصيد الفاتورة لا يطابق الذمم. افحص البيانات التاريخية قبل التحصيل.', 409);
+            ensure(sourceState || carrying.eq(invoice[`remaining_${currency}`]), 'رصيد الفاتورة لا يطابق الذمم. افحص البيانات التاريخية قبل التحصيل.', 409);
           }
           ensure(['SDG', 'USD'].includes(data.currency) && ['cash', 'bankak', 'fawry', 'bank_transfer', 'other'].includes(data.payment_method), 'العملة أو طريقة الدفع غير مدعومة.');
           const rate = data.exchange_rate_used ?? invoice.exchange_rate_used;
           const quote = paymentQuote(invoice, data.amount, data.currency, rate);
           const customer = await required('customers', invoice.customer_id);
-          ensure(customer.balance_sdg >= quote.settledSdg && customer.balance_usd >= quote.settledUsd, 'رصيد العميل يحتاج مراجعة قبل التحصيل.', 409);
+          ensure(sourceState || customer.balance_sdg >= quote.settledSdg && customer.balance_usd >= quote.settledUsd, 'رصيد العميل يحتاج مراجعة قبل التحصيل.', 409);
           const payment: Payment = { ...pick(data, ['reference_number', 'notes']), ...stamp, id: `pay-${command.operationId}`, invoice_id: invoice.id, invoice_number: invoice.invoice_number, customer_id: customer.id, customer_name: customer.name, amount: data.amount, currency: data.currency, exchange_rate_used: rate, amount_in_other_currency: data.currency === 'USD' ? quote.cashSdg : quote.cashUsd, payment_method: data.payment_method, payment_date: iso, operation_id: command.operationId, idempotency_key: command.operationId, settled_amount_sdg: quote.settledSdg, settled_amount_usd: quote.settledUsd, cash_amount_sdg: quote.cashSdg, cash_amount_usd: quote.cashUsd };
+          if (sourceState) { ensure(sourceState.sequence < 200, 'سجل الفاتورة يتطلب إجراء ترحيل خادمي.', 409); payment.source_sequence = sourceState.sequence + 1; }
           await post(receiptJournal(payment, invoice, orgId, actor.uid));
           const remainingSdg = safeSub(invoice.remaining_sdg, quote.settledSdg, 0), remainingUsd = safeSub(invoice.remaining_usd, quote.settledUsd, 2);
+          if (sourceState) {
+            sourceState.balance = { sdg: remainingSdg, usd: remainingUsd }; sourceState.paid = { sdg: safeAdd(sourceState.paid.sdg, quote.settledSdg, 0), usd: safeAdd(sourceState.paid.usd, quote.settledUsd, 2) }; sourceState.sequence++;
+            const updated = salesInvoiceCaches(invoice, sourceState, iso);
+            await saveSalesCustomer({ tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }, customer, updated); set(`${root}/invoices/${invoice.id}`, updated);
+          } else {
           set(`${root}/invoices/${invoice.id}`, { ...invoice, remaining_sdg: remainingSdg, remaining_usd: remainingUsd, paid_amount_sdg: safeAdd(invoice.paid_amount_sdg, quote.settledSdg, 0), paid_amount_usd: safeAdd(invoice.paid_amount_usd, quote.settledUsd, 2), status: (receivableCurrency(invoice) === 'USD' ? remainingUsd : remainingSdg) === 0 ? 'paid' : 'partially_paid', updated_at: iso });
           set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeSub(customer.balance_sdg || 0, quote.settledSdg, 0), balance_usd: safeSub(customer.balance_usd || 0, quote.settledUsd, 2), updated_at: iso });
+          }
           set(`${root}/payments/${payment.id}`, payment); counterAdd('payment_count', 1); result = payment; break;
         }
         case 'invoice.update': {
@@ -444,6 +472,7 @@ export class Operations {
         case 'invoice.void': {
           const invoice = await required('invoices', data.id) as Invoice;
           assertOpenPeriod(invoice.issue_date, settings); assertOpenPeriod(iso, settings);
+          ensure(!(await tx.find(`${root}/credit_notes`, 'invoice_id', invoice.id)).length && !(await tx.find(`${root}/customer_refunds`, 'invoice_id', invoice.id)).length && !invoice.correction_count, 'الفاتورة المصححة تتطلب إشعاراً موثقاً؛ الإبطال المباشر ممنوع.', 409);
           ensure(invoice.status !== 'void', 'الفاتورة مبطلة مسبقاً.', 409);
           ensure(!(invoice.paid_amount_sdg || invoice.paid_amount_usd) && !(await tx.list(`${root}/payments`)).some(p => p.invoice_id === invoice.id), 'الفاتورة محصّلة. تتطلب معالجة ردّ مبلغ موثّقة قبل إبطالها؛ لن يُنشأ ردّ نقدي وهمي.');
           const original = await required('journal_entries', `jv-inv-${invoice.id}`) as JournalEntry;
@@ -464,8 +493,10 @@ export class Operations {
             set(`${root}/products/${productId}`, productUpdate);
             set(`${root}/inventory_movements/${id}`, { ...stamp, ...costMovement, id, product_id: productId, product_name: product.name, type: 'VOID_REVERSAL', quantity, previous_stock: product.stock_quantity || 0, resulting_stock: resultingStock, reference_type: 'void', reference_id: invoice.id, operation_id: command.operationId }); counterAdd('inventory_movement_count', 1);
           }
-          set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeSub(customer.balance_sdg || 0, invoice.remaining_sdg, 0), balance_usd: safeSub(customer.balance_usd || 0, invoice.remaining_usd, 2), updated_at: iso });
-          result = { ...invoice, status: 'void', remaining_sdg: 0, remaining_usd: 0, voided_at: iso, voided_by: actor.uid, void_reason: data.reason || 'إبطال الفاتورة', updated_at: iso }; set(`${root}/invoices/${invoice.id}`, result); break;
+          result = { ...invoice, status: 'void', remaining_sdg: 0, remaining_usd: 0, voided_at: iso, voided_by: actor.uid, void_reason: data.reason || 'إبطال الفاتورة', updated_at: iso };
+          if (org.accounting_version === 2) await saveSalesCustomer({ tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }, customer, result as Invoice);
+          else set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeSub(customer.balance_sdg || 0, invoice.remaining_sdg, 0), balance_usd: safeSub(customer.balance_usd || 0, invoice.remaining_usd, 2), updated_at: iso });
+          set(`${root}/invoices/${invoice.id}`, result); break;
         }
         case 'expense.create': {
           assertOpenPeriod(data.date, settings); ensure(['SDG', 'USD'].includes(data.currency), 'عملة المصروف غير مدعومة.'); money(data.amount, data.currency === 'USD' ? 2 : 0, true); text(data.title, 200, true);
@@ -563,7 +594,7 @@ export class Operations {
           const backup = data.backup;
           ensure(backup?.schema_version === 3 && backup.collections && backup.settings, 'صيغة النسخة الاحتياطية غير مدعومة.');
           const names = financialCollections;
-          for (const name of [...payableCollections, ...cashCollections, ...cashReconciliationCollections]) if (backup.collections[name] === undefined) backup.collections[name] = [];
+          for (const name of [...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections]) if (backup.collections[name] === undefined) backup.collections[name] = [];
           ensure(names.every(n => Array.isArray(backup.collections[n])), 'النسخة ناقصة.');
           ensure(names.reduce((n, key) => n + backup.collections[key].length, 0) + backup.collections.purchase_bills.length + backup.collections.financial_accounts.length <= 440, 'فهرس فواتير المورد يتجاوز حد الاستعادة الذرية.');
           ensure(names.reduce((n, key) => n + backup.collections[key].length, 0) <= 350, 'الاستعادة الذرية تدعم 350 سجلاً. استخدم إجراء ترحيل خادمي للنسخ الأكبر.');
@@ -580,15 +611,15 @@ export class Operations {
             const ids = backup.collections[name].map((record: Document) => { ensure(record && typeof record === 'object' && !Array.isArray(record), 'سجل النسخة غير صالح.'); return identifier(name === 'accounts' ? record.code : record.id); });
             ensure(new Set(ids).size === ids.length, 'معرّفات النسخة مكررة.');
           }
-          if ([...payableCollections, ...cashCollections, ...cashReconciliationCollections].some(name => backup.collections[name].length)) { assertFeature(subscription, 'accounting'); await requireCostAuthority(); }
+          if ([...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections].some(name => backup.collections[name].length)) { assertFeature(subscription, 'accounting'); await requireCostAuthority(); }
           const importedSettings = validateSettings(backup.settings);
           await verifyCashSessionHashes(backup.collections);
           const backupVersion = backup.org?.accounting_version || 1;
           ensure(backupVersion === 1 || backupVersion === 2, 'إصدار المحاسبة في النسخة غير مدعوم.');
-          ensure(!(backup.collections.purchase_bills.length || backup.collections.supplier_payments.length || backup.collections.internal_transfers.length || backup.collections.bank_reconciliations.length || backup.collections.cash_reconciliations.length) || backupVersion === 2, 'دفاتر الموردين تتطلب نسخة محاسبة V2.');
+          ensure(!(backup.collections.purchase_bills.length || backup.collections.supplier_payments.length || backup.collections.internal_transfers.length || backup.collections.bank_reconciliations.length || backup.collections.cash_reconciliations.length || backup.collections.credit_notes.length || backup.collections.customer_refunds.length) || backupVersion === 2, 'دفاتر الموردين تتطلب نسخة محاسبة V2.');
           if (backupVersion === 2 || backup.collections.products.some((p: Document) => p.cost_status === 'valued')) await requireCostAuthority();
           ensure(org.accounting_version !== 2 || backupVersion === 2, 'استعادة نسخة قديمة تحتاج ترحيلاً موثقاً قبل مؤسسة V2.');
-          for (const customer of backup.collections.customers) { text(customer.name, 200, true); text(customer.phone, 100); money(customer.balance_sdg, 0); money(customer.balance_usd, 2); }
+          for (const customer of backup.collections.customers) { text(customer.name, 200, true); text(customer.phone, 100); ensure(typeof customer.balance_sdg === 'number' && typeof customer.balance_usd === 'number', 'رصيد العميل في النسخة يجب أن يكون رقماً.'); money(Math.abs(customer.balance_sdg), 0); money(Math.abs(customer.balance_usd), 2); }
           for (const product of backup.collections.products) { text(product.name, 200, true); text(product.unit, 50, true); money(product.price_sdg, 0); money(product.price_usd, 2); money(product.stock_quantity ?? 0, 6); ensure(typeof product.is_active === 'boolean', 'حالة المنتج غير صالحة.'); }
           for (const invoice of backup.collections.invoices) { ensure(['sent', 'paid', 'partially_paid', 'overdue', 'void'].includes(invoice.status), 'حالة الفاتورة غير قابلة للاستعادة.'); dateOnly(invoice.created_at); }
           for (const payment of backup.collections.payments) ensure(['SDG', 'USD'].includes(payment.currency) && ['cash', 'bankak', 'fawry', 'bank_transfer', 'other'].includes(payment.payment_method), 'سند النسخة غير صالح.');
@@ -599,7 +630,7 @@ export class Operations {
           for (const bill of backup.collections.purchase_bills) { const path = `${root}/purchase_numbers/${bill.supplier_id}.${encodeURIComponent(bill.supplier_reference.toLowerCase())}`; set(path, { id: bill.id, supplier_id: bill.supplier_id, reference: bill.supplier_reference }); }
           for (const name of names) for (const record of backup.collections[name]) { const id = identifier(name === 'accounts' ? record.code : record.id); set(`${root}/${name}/${id}`, { ...record, org_id: orgId }); }
           result = { ...org, accounting_version: backupVersion, ...(backup.org?.accounting_activated_at ? { accounting_activated_at: backup.org.accounting_activated_at } : {}), settings: importedSettings, base_currency: importedSettings.primary_currency, secondary_currency: importedSettings.secondary_currency, timezone: importedSettings.timezone || org.timezone, updated_at: iso }; set(root, result);
-          for (const [name, field] of Object.entries({ invoices: 'invoice_count', customers: 'customer_count', products: 'product_count', payments: 'payment_count', expenses: 'expense_count', inventory_movements: 'inventory_movement_count' })) counters[field] = backup.collections[name].length;
+          for (const [name, field] of Object.entries({ invoices: 'invoice_count', customers: 'customer_count', products: 'product_count', payments: 'payment_count', expenses: 'expense_count', inventory_movements: 'inventory_movement_count', credit_notes: 'credit_note_count', customer_refunds: 'customer_refund_count' })) counters[field] = backup.collections[name].length;
           const importedMonth = monthKey(now, importedSettings.timezone || org.timezone || 'Africa/Khartoum');
           const importedMonthly = backup.collections.invoices.filter((invoice: Document) => monthKey(new Date(invoice.created_at), importedSettings.timezone || org.timezone || 'Africa/Khartoum') === importedMonth).length;
           ensure(importedMonthly <= subscription.max_invoices_per_month, 'فواتير الشهر في النسخة تتجاوز حصة الباقة.', 403);
@@ -609,7 +640,7 @@ export class Operations {
         }
       }
       counters.updated_at = iso; counters.revision = (counters.revision || 0) + 1; set(`${root}/meta/counters`, counters);
-      const auditKeys = ['financial_account_id', 'ledger_snapshot', 'statement_opening', 'statement_closing', 'statement_lines', 'matches', 'actual_count', 'difference', 'opening_difference', 'difference_reason', 'reconciliation_sequence', 'last_reconciliation_id', 'account_code', 'kind', 'from_id', 'to_id', 'from_account_code', 'to_account_code', 'amount_sdg', 'amount_usd', 'source_balance_sdg', 'source_balance_usd', 'revision', 'last_transfer_id', 'date', 'reason', 'id', 'code', 'name', 'type', 'nature', 'reporting_group', 'cash_flow_category', 'normal_balance', 'supplier_id', 'bill_id', 'supplier_reference', 'due_date', 'reference_number', 'payment_terms_days', 'credit_limit', 'default_currency', 'phone', 'email', 'address', 'tax_number', 'notes', 'sequence', 'payment_sequence', 'settled_amount_sdg', 'settled_amount_usd', 'cash_amount_sdg', 'cash_amount_usd', 'stock_quantity', ...costFields, 'status', 'accounting_version', 'grand_total_sdg', 'grand_total_usd', 'remaining_sdg', 'remaining_usd', 'paid_amount_sdg', 'paid_amount_usd', 'amount', 'currency', 'payment_account_code', 'expense_account_code', 'cogs_sdg', 'cogs_usd', 'balance_sdg', 'balance_usd'];
+      const auditKeys = ['invoice_id', 'lines', 'native_currency', 'source_sequence', 'correction_count', 'credit_sdg', 'credit_usd', 'restored_cost_sdg', 'restored_cost_usd', 'credited_amount_sdg', 'credited_amount_usd', 'refunded_amount_sdg', 'refunded_amount_usd', 'credit_balance_sdg', 'credit_balance_usd', 'receivable_due_sdg', 'receivable_due_usd', 'available_credit_sdg', 'available_credit_usd', 'financial_account_id', 'ledger_snapshot', 'statement_opening', 'statement_closing', 'statement_lines', 'matches', 'actual_count', 'difference', 'opening_difference', 'difference_reason', 'reconciliation_sequence', 'last_reconciliation_id', 'account_code', 'kind', 'from_id', 'to_id', 'from_account_code', 'to_account_code', 'amount_sdg', 'amount_usd', 'source_balance_sdg', 'source_balance_usd', 'revision', 'last_transfer_id', 'date', 'reason', 'id', 'code', 'name', 'type', 'nature', 'reporting_group', 'cash_flow_category', 'normal_balance', 'supplier_id', 'bill_id', 'supplier_reference', 'due_date', 'reference_number', 'payment_terms_days', 'credit_limit', 'default_currency', 'phone', 'email', 'address', 'tax_number', 'notes', 'sequence', 'payment_sequence', 'settled_amount_sdg', 'settled_amount_usd', 'cash_amount_sdg', 'cash_amount_usd', 'stock_quantity', ...costFields, 'status', 'accounting_version', 'grand_total_sdg', 'grand_total_usd', 'remaining_sdg', 'remaining_usd', 'paid_amount_sdg', 'paid_amount_usd', 'amount', 'currency', 'payment_account_code', 'expense_account_code', 'cogs_sdg', 'cogs_usd', 'balance_sdg', 'balance_usd'];
       const previousState = Object.fromEntries(changes.filter(change => beforeValues.has(change.path)).map(change => [change.path, pick(beforeValues.get(change.path)!, auditKeys)]));
       const newState = Object.fromEntries(changes.filter(change => !change.path.includes('/meta/')).map(change => [change.path, change.value ? pick(change.value, auditKeys) : null]));
       const audit = { ...(command.action === 'operational.export' ? { export_metadata: { report: data.view, period: result.period, account_code: data.query?.accountCode || '', currency: data.query?.currency || 'SDG/USD' } } : {}), ...(command.action === 'payables.export' ? { export_metadata: { report: 'payables', period: result.period } } : {}), actor_role: role, reason: data.reason || '', cost_evidence: costEvidence, previous_state: previousState, new_state: newState, id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
@@ -617,7 +648,7 @@ export class Operations {
       const visible = changes.filter(c => {
         if (c.path === root || c.path.startsWith(`${root}/meta/`)) return true;
         const collection = c.path.split('/')[2];
-        const feature = collection === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections].includes(collection) ? 'accounting' : collection === 'audit_logs' ? 'audit_trail' : null;
+        const feature = collection === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections].includes(collection) ? 'accounting' : collection === 'audit_logs' ? 'audit_trail' : null;
         return c.path.startsWith(`${root}/`) && hasPermission(role, readPermissions[collection]) && (!feature || subscription.features[feature] === true);
       });
       const response = clean({ result, changes: visible });

@@ -31,6 +31,10 @@ interface AppContextType {
   products: Product[];
   invoices: Invoice[];
   payments: Payment[];
+  creditNotes: Document[];
+  customerRefunds: Document[];
+  createCreditNote: (data: Document) => Promise<Document>;
+  refundCustomer: (data: Document) => Promise<Document>;
   expenses: Expense[];
   suppliers: Supplier[];
   purchaseBills: PurchaseBill[];
@@ -373,6 +377,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     currentUser, authLoading, syncStatus, syncError, dismissSyncError: () => setSyncError(null), lastSyncedAt,
     currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.exported_at ? state.member?.status || (state.role === 'Owner' ? 'active' : 'unknown') : 'unknown', orgMembers: rows<OrgMember>('members'),
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
+    creditNotes: rows<Document>('credit_notes'), customerRefunds: rows<Document>('customer_refunds'),
+    createCreditNote: data => run('creditNote.create', data), refundCustomer: data => run('customerRefund.create', data),
     suppliers: rows<Supplier>('suppliers'), purchaseBills: rows<PurchaseBill>('purchase_bills'), supplierPayments: rows<SupplierPayment>('supplier_payments'),
     saveSupplier: (data, id) => run<Supplier>(id ? 'supplier.update' : 'supplier.create', id ? { id, updates: data } : data),
     createPurchase: data => run<PurchaseBill>('purchase.create', data), paySupplier: data => run<SupplierPayment>('supplierPayment.create', data),

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { correctionGuestFixture } from './helpers/salesCorrections';
 
 async function seedBrandInvoices(page: Page, longInvoice = false) {
   await page.addInitScript(({ longInvoice }) => {
@@ -34,6 +35,33 @@ test.beforeEach(async ({ page }) => {
     localStorage.setItem('hisabuk_guest_v1_customers', JSON.stringify([{ id: 'customer', name: 'عميل الاختبار', phone: '', preferred_currency: 'USD', balance_sdg: 0, balance_usd: 0, created_at: '2026-10-01', updated_at: '2026-10-01' }]));
     localStorage.setItem('hisabuk_guest_v1_products', JSON.stringify([{ id: 'product', name: 'منتج الاختبار', unit: 'قطعة', price_sdg: 2000, price_usd: 1, tax_rate: 0, is_active: true, track_inventory: true, stock_quantity: 100, created_at: '2026-10-01' }]));
   });
+});
+
+test('B3 mobile credit/physical return/refund forms enforce sources, resist duplicate submission, and preserve both books after reload', async ({ page }) => {
+  const fixture = await correctionGuestFixture();
+  await page.addInitScript(records => localStorage.setItem('sudaflow_guest_transactions_v3', JSON.stringify(records)), fixture.records);
+  await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/'); await page.locator('#tab-invoices').click();
+  await page.getByRole('button', { name: `فتح الفاتورة ${fixture.invoiceNumber}`, exact: true }).click();
+  await page.getByRole('button', { name: 'إشعار دائن / مردود', exact: true }).click();
+  let dialog = page.getByRole('dialog', { name: 'إشعار دائن ومردود بيع', exact: true });
+  await dialog.getByLabel('تاريخ التصحيح أو الرد', { exact: true }).fill('2026-10-07'); await dialog.getByLabel('مبلغ التصحيح للبند 1').fill('101'); await dialog.getByLabel('سبب التصحيح أو الرد').fill('خصم متفق عليه');
+  await dialog.getByRole('button', { name: 'ترحيل الإشعار الدائن', exact: true }).click(); await expect(dialog.getByRole('alert')).toContainText('يتجاوز');
+  await dialog.getByLabel('مبلغ التصحيح للبند 1').fill('20'); await dialog.locator('form').evaluate(form => { (form as HTMLFormElement).requestSubmit(); (form as HTMLFormElement).requestSubmit(); }); await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'تصحيحات الفاتورة' })).toContainText('20.00 USD');
+  await page.getByRole('button', { name: 'إشعار دائن / مردود', exact: true }).click(); dialog = page.getByRole('dialog', { name: 'إشعار دائن ومردود بيع', exact: true });
+  await dialog.getByLabel('نوع الإشعار الدائن').selectOption('sales_return'); await dialog.getByLabel('تاريخ التصحيح أو الرد').fill('2026-10-07'); await dialog.getByLabel('كمية المردود للبند 1').fill('1'); await dialog.getByLabel('كمية المردود للبند 2').fill('2'); await dialog.getByLabel('سبب التصحيح أو الرد').fill('استلام المرتجع الفعلي'); await dialog.getByRole('button', { name: 'ترحيل الإشعار الدائن', exact: true }).click(); await expect(dialog).toHaveCount(0);
+  await page.getByRole('button', { name: 'رد نقدي للعميل', exact: true }).click(); dialog = page.getByRole('dialog', { name: 'رد رصيد العميل الدائن', exact: true });
+  await dialog.getByLabel('تاريخ التصحيح أو الرد').fill('2026-10-07'); await dialog.getByLabel('حساب الرد النقدي').selectOption(fixture.cashId); await dialog.getByLabel('مبلغ الرد النقدي').fill('300'); await dialog.getByLabel('سعر الصرف عند الرد').fill('3000'); await dialog.getByLabel('سبب التصحيح أو الرد').fill('رد كامل للعميل'); await dialog.locator('form').evaluate(form => { (form as HTMLFormElement).requestSubmit(); (form as HTMLFormElement).requestSubmit(); }); await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'تصحيحات الفاتورة' })).toContainText('رد نقدي'); await expect(page.getByRole('button', { name: 'رد نقدي للعميل', exact: true })).toHaveCount(0);
+  const records = await page.evaluate(() => Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}')));
+  const rows = (name: string) => records.filter(([path]) => path.includes(`/${name}/`)).map(([, row]) => row as any);
+  expect(rows('credit_notes')).toHaveLength(2); expect(rows('customer_refunds')).toHaveLength(1); expect(rows('products')[0].stock_quantity).toBe(10); expect(rows('products')[0].inventory_value_usd).toBe(20); expect(rows('invoices')[0].credit_balance_usd).toBe(0); expect(rows('invoices')[0].refunded_amount_usd).toBe(300); expect(rows('customers')[0].balance_usd).toBe(0);
+  expect(rows('journal_entries').find(row => row.reference_type === 'customer_refund').lines.find((line: any) => line.account_code === '5500').debit_sdg).toBe(300000);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true); await page.screenshot({ path: 'test-results/accounting-v2-sales-corrections-mobile.png', fullPage: true });
+  // Remove only the fixture initializer so the reload observes the actual committed guest store.
+  const saved = await page.evaluate(() => localStorage.getItem('sudaflow_guest_transactions_v3'));
+  await page.addInitScript(saved => localStorage.setItem('sudaflow_guest_transactions_v3', saved!), saved);
+  await page.reload(); await page.locator('#tab-invoices').click(); await page.getByRole('button', { name: `فتح الفاتورة ${fixture.invoiceNumber}`, exact: true }).click(); await expect(page.getByRole('region', { name: 'تصحيحات الفاتورة' })).toContainText('رد نقدي');
 });
 test('RTL brand, local assets, both themes and mobile navigation render without overflow', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));

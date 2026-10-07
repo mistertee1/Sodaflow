@@ -19,6 +19,7 @@ import { formatMoney, getInvoiceStatusInfo, getPaymentMethodLabel } from '../lib
 import { downloadInvoicePdf, printInvoiceThroughIsolatedIframe } from '../services/pdfService';
 import { Dialog } from './Dialog';
 import { DocumentWatermark } from './DocumentWatermark';
+import { SalesCorrectionModal } from './SalesCorrectionModal';
 import { InvoiceShareDialog } from './InvoiceShareDialog';
 
 interface InvoiceDetailModalProps {
@@ -32,9 +33,11 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({
   onClose,
   onOpenRecordPayment,
 }) => {
-  const { settings, payments, isActionAllowed } = useApp();
+  const { settings, payments, invoices: liveInvoices, currentOrg, creditNotes, customerRefunds, isActionAllowed } = useApp();
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [correction, setCorrection] = useState<'credit' | 'refund' | null>(null);
+  invoice = liveInvoices.find(row => row.id === invoice?.id) || invoice;
 
   if (!invoice) return null;
 
@@ -65,6 +68,7 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({
 
 
   return (
+    <>
     <Dialog label="معاينة الفاتورة" onClose={onClose} className="fixed inset-0 z-50 bg-sf-canvas/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
       <div className="bg-sf-surface rounded-xl shadow-2xl border border-sf-border max-w-3xl w-full my-auto max-h-[95vh] flex flex-col animate-in fade-in zoom-in-95 text-sf-text">
         {/* Actions Bar (Screen Only) */}
@@ -106,6 +110,10 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({
               <span>مشاركة واتساب</span>
             </button>
 
+            {currentOrg?.accounting_version === 2 && isActionAllowed('journal:create') && !['void','cancelled','draft'].includes(invoice.status) && <>
+              <button type="button" onClick={() => setCorrection('credit')} className="sf-secondary">إشعار دائن / مردود</button>
+              {(invoice.credit_balance_sdg || invoice.credit_balance_usd || 0) > 0 && <button type="button" onClick={() => setCorrection('refund')} className="sf-secondary">رد نقدي للعميل</button>}
+            </>}
             {isActionAllowed('payments:create') && !['paid', 'cancelled', 'void', 'draft'].includes(invoice.status) && (
               <button
                 onClick={() => {
@@ -128,6 +136,11 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({
           </div>
         </div>
 
+        {(invoice.correction_count || customerRefunds.some(row => row.invoice_id === invoice.id)) ? <section aria-label="تصحيحات الفاتورة" className="no-print p-4 border-b border-sf-border bg-sf-raised text-sm space-y-2">
+          <p>الرصيد الدائن القابل للرد: <bdi dir="ltr">{formatMoney(invoice.credit_balance_sdg || 0, 'SDG', settings)} / {formatMoney(invoice.credit_balance_usd || 0, 'USD', settings)}</bdi></p>
+          {creditNotes.filter(row => row.invoice_id === invoice.id).sort((a,b) => a.source_sequence-b.source_sequence).map(row => <p key={row.id}>{row.kind === 'sales_return' ? 'مردود بضاعة' : 'إشعار تصحيح سعر'} · <bdi dir="ltr">{row.date}</bdi> · <bdi dir="ltr">{formatMoney(row.credit_sdg, 'SDG', settings)} / {formatMoney(row.credit_usd, 'USD', settings)}</bdi> · {row.reason}</p>)}
+          {customerRefunds.filter(row => row.invoice_id === invoice.id).sort((a,b) => a.source_sequence-b.source_sequence).map(row => <p key={row.id}>رد نقدي · <bdi dir="ltr">{row.date}</bdi> · <bdi dir="ltr">{formatMoney(row.amount, row.currency, settings)}</bdi> · {row.reason}</p>)}
+        </section> : null}
         {/* Printable Invoice Container */}
         <div id="printable-invoice" className="sf-document-paper p-6 sm:p-8 overflow-y-auto space-y-6 flex-1 text-sf-text bg-sf-surface">
           <DocumentWatermark />
@@ -365,5 +378,8 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({
       </div>
       {isShareOpen && <InvoiceShareDialog invoice={invoice} onClose={() => setIsShareOpen(false)} />}
     </Dialog>
+    {correction && <SalesCorrectionModal invoice={invoice} mode={correction} onClose={() => setCorrection(null)} />}
+    </>
   );
 };
+

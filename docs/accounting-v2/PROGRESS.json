@@ -7,12 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c1-period-ui",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "accounting-v2-20261007-c12-2104",
-    "acquired_at": "2026-10-07T21:04:00Z",
-    "updated_at": "2026-10-07T21:07:00Z",
-    "expires_at": "2026-10-07T21:52:00Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -305,12 +300,12 @@
       "id": "C",
       "status": "in_progress",
       "branch": "codex/accounting-v2-c1-period-ui",
-      "pr": null,
+      "pr": 24,
       "steps": [
         {
           "id": "C1",
           "scope": "Accounting periods, close/reopen and month-end checklist",
-          "status": "implemented_ci_pending",
+          "status": "implemented_ci_passed",
           "substeps": [
             {
               "id": "C1.1",
@@ -358,7 +353,7 @@
             {
               "id": "C1.2",
               "scope": "Month-end checklist/closing evidence and controlled period UI/re-authentication",
-              "status": "implemented_ci_pending",
+              "status": "implemented_ci_passed",
               "branch": "codex/accounting-v2-c1-period-ui",
               "checks": {
                 "unit_api": 191,
@@ -367,8 +362,12 @@
                 "build": "passed",
                 "local_new_ui": 5,
                 "local_new_ui_status": "passed",
-                "rules_status": "pending_ci",
-                "full_ui_status": "pending_ci"
+                "rules_status": "passed",
+                "full_ui_status": "passed",
+                "rules": 26,
+                "full_ui": 44,
+                "production_audit_vulnerabilities": 0,
+                "pdf_visual_status": "mobile_period_screens_reviewed"
               },
               "completed_parts": [
                 "period lifecycle and closure evidence UI with covered-date guidance",
@@ -376,7 +375,17 @@
                 "linked-current-identity Firebase password/Google reauthentication with organization/session guards",
                 "explicit reasoned manual adjustments and preserved legacy-lock release",
                 "mobile workflow, duplicates, reload persistence and role-specific controls"
-              ]
+              ],
+              "pr": 24,
+              "ci": {
+                "run_id": 37687099864,
+                "commit_sha": "00962a6c9d8934ea1875d75b2677804b41ee7e0f",
+                "conclusion": "success",
+                "unit_api": 191,
+                "rules": 26,
+                "ui": 44,
+                "production_audit_vulnerabilities": 0
+              }
             }
           ]
         }
@@ -421,10 +430,10 @@
   ],
   "last_report": "REPORT_C1_2_PERIOD_UI.md",
   "next_steps": [
-    "Verify C1.2 full CI and role/mobile workflows",
-    "Continue C2 opening balances/capital/drawings, remaining C, D, E and Excel1-4"
+    "Continue C2.1 opening-balance quote/source/precision contract",
+    "Integrate C2.2 atomic opening batches and protected wizard, C2.3 owner capital/drawings; remaining C, D, E and Excel1-4"
   ],
-  "updated_at": "2026-10-07T21:07:00Z",
+  "updated_at": "2026-10-07T21:16:00Z",
   "deferred_requirements": [
     {
       "prd": "50",
@@ -443,6 +452,11 @@
       "worker": "accounting-v2-20261007-c11-2042",
       "released_at": "2026-10-07T21:03:00Z",
       "next_branch": "codex/accounting-v2-c1-period-ui"
+    },
+    {
+      "worker": "accounting-v2-20261007-c12-2104",
+      "released_at": "2026-10-07T21:16:00Z",
+      "next_branch": "codex/accounting-v2-c2-opening-quotes"
     }
   ]
 }

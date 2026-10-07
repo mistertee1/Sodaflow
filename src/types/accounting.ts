@@ -36,6 +36,9 @@ export interface JournalEntryLine {
 }
 
 export interface JournalEntry {
+  adjusting?: boolean;
+  adjustment_reason?: string;
+  period_id?: string | null;
   id: string;
   entry_number: string; // e.g. JV-2026-0001
   date: string;

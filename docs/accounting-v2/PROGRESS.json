@@ -10,8 +10,8 @@
   "lease": {
     "worker": "accounting-v2-20261007-c12-2104",
     "acquired_at": "2026-10-07T21:04:00Z",
-    "updated_at": "2026-10-07T21:04:00Z",
-    "expires_at": "2026-10-07T21:49:00Z"
+    "updated_at": "2026-10-07T21:07:00Z",
+    "expires_at": "2026-10-07T21:52:00Z"
   },
   "milestones": [
     {
@@ -310,7 +310,7 @@
         {
           "id": "C1",
           "scope": "Accounting periods, close/reopen and month-end checklist",
-          "status": "in_progress",
+          "status": "implemented_ci_pending",
           "substeps": [
             {
               "id": "C1.1",
@@ -358,8 +358,25 @@
             {
               "id": "C1.2",
               "scope": "Month-end checklist/closing evidence and controlled period UI/re-authentication",
-              "status": "in_progress",
-              "branch": "codex/accounting-v2-c1-period-ui"
+              "status": "implemented_ci_pending",
+              "branch": "codex/accounting-v2-c1-period-ui",
+              "checks": {
+                "unit_api": 191,
+                "new_unit_api": 4,
+                "types": "passed",
+                "build": "passed",
+                "local_new_ui": 5,
+                "local_new_ui_status": "passed",
+                "rules_status": "pending_ci",
+                "full_ui_status": "pending_ci"
+              },
+              "completed_parts": [
+                "period lifecycle and closure evidence UI with covered-date guidance",
+                "full-finding month-end summaries including wallets and source references",
+                "linked-current-identity Firebase password/Google reauthentication with organization/session guards",
+                "explicit reasoned manual adjustments and preserved legacy-lock release",
+                "mobile workflow, duplicates, reload persistence and role-specific controls"
+              ]
             }
           ]
         }
@@ -402,11 +419,12 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_C1_1_PERIOD_GUARDS.md",
+  "last_report": "REPORT_C1_2_PERIOD_UI.md",
   "next_steps": [
-    "Continue C1.2 protected period/checklist UI and owner reauthentication, then remaining C, D, E and Excel1-4"
+    "Verify C1.2 full CI and role/mobile workflows",
+    "Continue C2 opening balances/capital/drawings, remaining C, D, E and Excel1-4"
   ],
-  "updated_at": "2026-10-07T21:04:00Z",
+  "updated_at": "2026-10-07T21:07:00Z",
   "deferred_requirements": [
     {
       "prd": "50",

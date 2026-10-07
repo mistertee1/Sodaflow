@@ -104,3 +104,19 @@ test('C1 funded closed cash restores the exact period and matching source; strip
   }
   await f.ops.execute(target.id,targetOwner,{action:'backup.restore',data:{backup},operationId:'cash-period-restore'});const copied=await f.ops.snapshot(target.id,targetOwner,true);assert.equal(copied.collections.accounting_periods[0].close_evidence.reconciliations[0].id,'cr-cash-proof');assert.equal(copied.collections.cash_reconciliations[0].actual_count,100);assert.equal(copied.org.owner_uid,targetOwner.uid);
 });
+
+test('C1.2 checklist summaries include source failures beyond the 100-row display slice and refuse closing atomically',async()=>{
+  const f=await fixture();await f.create();
+  await f.store.transaction(async tx=>{
+    for(let i=0;i<101;i++)tx.set(`${f.root}/products/unknown-${i}`,{id:`unknown-${i}`,org_id:f.org.id,name:'صنف غير مقيم',track_inventory:true,stock_quantity:1,cost_status:'unknown'});
+    tx.set(`${f.root}/suppliers/bad-source`,{id:'bad-source',org_id:f.org.id,name:'مورد غير صالح',default_currency:'XXX'});
+  });
+  const report=await f.ops.periodReports(f.org.id,owner,'2026-10');assert.ok(report.checklist!.findings_count>100);assert.equal(report.checklist!.findings.length,100);assert.equal(report.checklist!.checks.inventory_reconciled,false);assert.equal(report.checklist!.findings.some(row=>row.collection==='suppliers'),false);assert.equal(report.checklist!.checks.ap_reconciled,false);assert.equal(report.checklist!.can_close,false);
+  await f.run('period.softClose',{id:'2026-10',expected_revision:1,reason:'فحص المصدر'});const before=f.store.dump();await assert.rejects(f.run('period.close',{id:'2026-10',expected_revision:2,reason:'لا يتجاوز الملاحظات',fx_review_completed:true}),/فحص/);assert.deepEqual(f.store.dump(),before);
+});
+
+test('C1.2 an unmapped or unmatched wallet is a bank-check failure and cannot appear reconciled in the closing assistant',async()=>{
+  const f=await fixture();await f.create();await f.run('financialAccount.create',{name:'محفظة بنكية',account_code:'1130',currency:'SDG',kind:'wallet'});
+  await f.run('journal.create',{reference_type:'manual',description:'تمويل المحفظة',date:'2026-10-07',lines:[journalLine('1130','wallet',100,0,0.05,0),journalLine('3100','capital',0,100,0,0.05)]});
+  const report=await f.ops.periodReports(f.org.id,owner,'2026-10');assert.deepEqual(report.checklist!.missing_reconciliations,['1130']);assert.equal(report.checklist!.checks.bank_reconciled,false);assert.equal(report.checklist!.checks.cash_reconciled,true);assert.equal(report.checklist!.can_close,false);
+});

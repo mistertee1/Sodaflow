@@ -1,3 +1,4 @@
+import { periodCollections, validatePeriods } from './periodContracts';
 import { reconcileAuditArchives } from './auditArchives';
 import BigNumber from 'bignumber.js';
 import type { MerchantSettings, Invoice } from '../types';
@@ -14,7 +15,7 @@ import { payableCollections, reconcilePayables } from './payables';
 import { salesCorrectionCollections, reconcileSalesCorrections, invoiceSignedBalance } from './salesCorrections';
 import { dateOnly, identifier, money, validateJournal } from './validation';
 
-export const financialCollections = ['audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
+export const financialCollections = [...periodCollections, 'audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
 export type FinancialCollection = typeof financialCollections[number];
 export type FinancialData = Record<FinancialCollection, Document[]>;
 export interface Finding {
@@ -37,6 +38,7 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
   const inspect = (collection: string, id: string, work: () => void) => {
     try { work(); } catch (error) { add('invalid_record', collection, id, { message: error instanceof Error ? error.message : 'بيانات غير صالحة.' }); }
   };
+  inspect('accounting_periods','periods',()=>validatePeriods(data.accounting_periods||[]));
   const indexes = Object.fromEntries(financialCollections.map(name => [name, new Map<string, Document>()])) as Record<FinancialCollection, Map<string, Document>>;
   for (const name of financialCollections) for (const row of data[name] || []) {
     const id = name === 'accounts' ? row.code : row.id;

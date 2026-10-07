@@ -10,8 +10,8 @@
   "lease": {
     "worker": "accounting-v2-20261007-c11-2042",
     "acquired_at": "2026-10-07T20:42:00Z",
-    "updated_at": "2026-10-07T20:42:00Z",
-    "expires_at": "2026-10-07T21:27:00Z"
+    "updated_at": "2026-10-07T20:46:00Z",
+    "expires_at": "2026-10-07T21:31:00Z"
   },
   "milestones": [
     {
@@ -298,7 +298,8 @@
           ],
           "pr": 22
         }
-      ]
+      ],
+      "integration_note": "PR20 merged to main; PR21/22 merged into preceding branches after PR20. Main still lacks purchase/docs until user integrates the final B3 branch."
     },
     {
       "id": "C",
@@ -314,8 +315,23 @@
             {
               "id": "C1.1",
               "scope": "Tenant period lifecycle, backend posting guard and recent-owner reauthentication contract",
-              "status": "in_progress",
-              "branch": "codex/accounting-v2-c1-period-guards"
+              "status": "implemented_ci_pending",
+              "branch": "codex/accounting-v2-c1-period-guards",
+              "checks": {
+                "unit_api": 186,
+                "new_unit_api": 9,
+                "types": "passed",
+                "build": "passed",
+                "rules_status": "pending_ci",
+                "full_ui_status": "pending_ci"
+              },
+              "completed_parts": [
+                "tenant nonoverlapping period lifecycle and revision concurrency guards",
+                "all protected posting dates including cached retries, soft adjustment-only and hard deny",
+                "real-owner recent auth_time reopening and legacy lock release audit",
+                "zero-finding close gate with latest matched cash/bank evidence and dual-book journal hash",
+                "period backup counts, tenant remap and closure source/hash verification"
+              ]
             },
             {
               "id": "C1.2",
@@ -363,12 +379,12 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B3_3_DOCUMENTS_ACCEPTANCE.md",
+  "last_report": "REPORT_C1_1_PERIOD_GUARDS.md",
   "next_steps": [
     "Complete and verify C1.1 backend lifecycle and posting guards",
     "Continue C1.2 period/checklist UI and reauthentication, then remaining C, D, E and Excel1-4"
   ],
-  "updated_at": "2026-10-07T20:42:00Z",
+  "updated_at": "2026-10-07T20:46:00Z",
   "deferred_requirements": [
     {
       "prd": "50",

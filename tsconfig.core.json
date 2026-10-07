@@ -29,6 +29,8 @@
     "tests/returnSources.test.ts",
     "tests/salesCorrectionState.test.ts",
     "tests/salesCorrections.test.ts",
-    "tests/purchaseCorrections.test.ts"
+    "tests/purchaseCorrections.test.ts",
+    "tests/correctionDocuments.test.ts",
+    "tests/accountingPeriods.test.ts"
   ]
 }

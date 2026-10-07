@@ -246,3 +246,27 @@ test('B3 Firestore independent document exports and restored audit archives reta
     const first=restored.collections.audit_archives[0];await store.transaction(async tx=>tx.set(`${root}/audit_archives/${first.id}`,{...first,source_event:{...first.source_event,action:'forged'}}));await assert.rejects(ops.snapshot(target.id,restorer,true),/بصمة أرشيف/);
   } finally {await deleteApp(app);}
 });
+
+test('C1 real Firestore serializes period close against a posting, protects SDK access and preserves closed periods across restore',async()=>{
+  const app=initializeApp({projectId:project},'period-guard-admin'),db=getFirestore(app),store=new FirestoreStore(db),rules=await readFile('firestore.rules','utf8'),now=new Date('2026-10-07T12:00:00Z'),actor={uid:'period-rules-owner',email:'period@example.com',emailVerified:true,authTime:now.getTime()/1000};
+  try {
+    assert.ok(process.env.FIRESTORE_EMULATOR_HOST);
+    const org=await new Organizations(store).create(actor,'فترات حقيقية',INITIAL_SETTINGS,'period-rules-org',true),root=`organizations/${org.id}`;
+    await store.transaction(async tx=>tx.set(root,{...await tx.get(root),planId:'Enterprise',subscriptionEnd:'2027-01-01',subscriptionEndMillis:Date.parse('2027-01-01')}));
+    const ops=new Operations(store,()=>now,saved=>saved as any,async()=>verifyAccountingRulesSource([{content:rules}])),run=(action:string,data:Record<string,unknown>,operationId:string)=>ops.execute(org.id,actor,{action,data,operationId});
+    await run('accounting.activate',{reason:'تفعيل الفترات'},'period-activate');
+    await run('account.create',{code:'1500',name_ar:'أصل المراجعة',type:'ASSET',nature:'DEBIT',reporting_group:'fixed_assets',is_active:true},'period-asset');
+    await run('period.create',{id:'2026-10',start_date:'2026-10-01',end_date:'2026-10-07',reason:'الفترة الحالية'},'create-period');
+    await run('period.softClose',{id:'2026-10',expected_revision:1,reason:'مراجعة'},'soft-period');
+    const posting={reference_type:'manual',date:'2026-10-07',description:'تسوية متزامنة',adjusting:true,reason:'تسوية أثناء المراجعة',lines:[{account_code:'1500',debit_sdg:100,credit_sdg:0,debit_usd:.05,credit_usd:0},{account_code:'3100',debit_sdg:0,credit_sdg:100,debit_usd:0,credit_usd:.05}]};
+    const raced=await Promise.allSettled([run('period.close',{id:'2026-10',expected_revision:2,reason:'إغلاق مع السباق',fx_review_completed:true},'close-period'),run('journal.create',posting,'raced-period-post')]);
+    assert.equal(raced[0].status,'fulfilled');const snapshot=await ops.snapshot(org.id,actor,true),closed=snapshot.collections.accounting_periods[0];assert.equal(closed.status,'CLOSED');assert.equal(closed.close_evidence.ledger_hash,await (await import('../src/domain/periodContracts')).periodLedgerHash(snapshot.collections.journal_entries,'2026-10-07'));
+    const postingSaved=snapshot.collections.journal_entries.some(row=>row.id==='jv-raced-period-post');assert.equal(postingSaved,raced[1].status==='fulfilled');
+    await assert.rejects(run('journal.create',posting,'raced-period-post'),/نهائياً/);
+    const client=env.authenticatedContext(actor.uid,{email:actor.email,email_verified:true}).firestore();await assertFails(getDocs(collection(client,`${root}/accounting_periods`)));await assertFails(setDoc(doc(client,`${root}/accounting_periods/2026-10`),{status:'REOPENED'},{merge:true}));
+    await assert.rejects(ops.execute(org.id,{...actor,authTime:actor.authTime-301},{action:'period.reopen',data:{id:'2026-10',expected_revision:3,reason:'تجاوز'},operationId:'old-period-login'}),/التحقق/);
+    const targetOwner={...actor,uid:'period-restorer',email:'restore-period@example.com'},target=await new Organizations(store).create(targetOwner,'فترات مستعادة',INITIAL_SETTINGS,'period-restore-org',true),targetRoot=`organizations/${target.id}`;await store.transaction(async tx=>tx.set(targetRoot,{...await tx.get(targetRoot),planId:'Enterprise',subscriptionEnd:'2027-01-01',subscriptionEndMillis:Date.parse('2027-01-01')}));
+    await ops.execute(target.id,targetOwner,{action:'backup.restore',data:{backup:snapshot},operationId:'restore-period-rules'});const restored=await ops.snapshot(target.id,targetOwner,true);assert.equal(restored.collections.accounting_periods[0].close_evidence.ledger_hash,closed.close_evidence.ledger_hash);assert.equal(restored.org.owner_uid,targetOwner.uid);
+    await run('period.reopen',{id:'2026-10',expected_revision:3,reason:'إعادة فتح موثقة'},'fresh-period-reopen');const audit=(await db.doc(`${root}/audit_logs/audit-fresh-period-reopen`).get()).data()!;assert.equal(audit.previous_state[`${root}/accounting_periods/2026-10`].status,'CLOSED');assert.equal(audit.new_state[`${root}/accounting_periods/2026-10`].status,'REOPENED');
+  }finally{await deleteApp(app);}
+});

@@ -62,3 +62,20 @@ test('B3 quotes reject over-credit, over-return, mixed request fields, nonfinite
   for (const request of [input('price_credit', 1001), input('price_credit', 0), input('price_credit', .01), input('price_credit', Infinity), input('sales_return', 3), input('sales_return', 0), input('sales_return', .0000001), { ...input('sales_return', 1), amount: 1 }, { ...input('price_credit', 1), quantity: 1 }]) assert.throws(() => run(basis, [], request));
   for (const events of [[null], [{ id: 'bad', sequence: NaN }], [{ id: 'bad', sequence: 1.5 }]]) assert.throws(() => run(basis, events as SalesCorrectionEvent[], input('price_credit', 1)));
 });
+
+test('B3 mixed fractional returns and multiple pricing checkpoints conserve every source component at minor-unit boundaries', () => {
+  for (const currency of ['SDG', 'USD'] as const) for (let seed = 1; seed <= 24; seed++) {
+    const source: ReturnBasis = { source_id: `boundary-${seed}`, quantity: .3, components: { revenue: { sdg: seed * 7 % 11 + 1, usd: (seed % 7 + 1) / 100 }, tax: { sdg: seed % 3, usd: (seed % 3) / 100 }, cost: { sdg: seed % 5, usd: (seed % 5) / 100 } } };
+    const events: SalesCorrectionEvent[] = [], nativeBook = currency === 'SDG' ? 'sdg' : 'usd', unit = currency === 'SDG' ? 1 : .01;
+    let available = new BigNumber(source.components.revenue[nativeBook]).plus(source.components.tax[nativeBook]).toNumber();
+    const priceIfAvailable = () => {
+      if (new BigNumber(available).gte(new BigNumber(unit).times(2))) {
+        const quote = run(source, events, input('price_credit', unit), currency); assert.equal(quote.total_credit[nativeBook], unit); events.push(record(quote, `event-${events.length}`)); available = new BigNumber(quote.remaining_value.revenue[nativeBook]).plus(quote.remaining_value.tax[nativeBook]).toNumber();
+      }
+    };
+    priceIfAvailable(); const partial = run(source, events, input('sales_return', .1), currency); events.push(record(partial, `event-${events.length}`)); available = new BigNumber(partial.remaining_value.revenue[nativeBook]).plus(partial.remaining_value.tax[nativeBook]).toNumber(); priceIfAvailable();
+    const final = run(source, events, input('sales_return', .2), currency); events.push(record(final, `event-${events.length}`)); assert.equal(final.remaining_quantity, 0);
+    for (const component of ['revenue', 'tax', 'cost']) for (const book of ['sdg', 'usd'] as const) assert.equal(totals(events, component, book), source.components[component][book], `${currency}/${seed}/${component}/${book}`);
+    assert.deepEqual(final.remaining_value, { revenue: { sdg: 0, usd: 0 }, tax: { sdg: 0, usd: 0 } });
+  }
+});

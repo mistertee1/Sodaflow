@@ -10,8 +10,8 @@
   "lease": {
     "worker": "accounting-v2-20261007-b32b-1538",
     "acquired_at": "2026-10-07T15:38:00Z",
-    "updated_at": "2026-10-07T15:38:00Z",
-    "expires_at": "2026-10-07T16:23:00Z"
+    "updated_at": "2026-10-07T15:47:00Z",
+    "expires_at": "2026-10-07T16:32:00Z"
   },
   "milestones": [
     {
@@ -223,8 +223,23 @@
                     {
                       "id": "B3.2b-purchases",
                       "scope": "Atomic purchase returns, explicit WAC variance, supplier reimbursements, AP/report/reconciliation/backup and protected API/UI",
-                      "status": "in_progress",
-                      "branch": "codex/accounting-v2-b3-purchase-return-transactions"
+                      "status": "implemented_ci_pending",
+                      "branch": "codex/accounting-v2-b3-purchase-return-transactions",
+                      "checks": {
+                        "unit_api": 172,
+                        "new_unit_api": 14,
+                        "types": "passed",
+                        "build": "passed",
+                        "local_new_ui": "passed",
+                        "rules_status": "pending_ci",
+                        "full_ui_status": "pending_ci"
+                      },
+                      "completed_parts": [
+                        "atomic original-value purchase returns and current-WAC inventory issue with separate signed variance",
+                        "historical supplier-advance reimbursements and payment FX, source sequence and cache proof",
+                        "dated AP/aging/statement and CSV/PDF report exports; reconciliation and strict restore",
+                        "backend live permission/subscription/period/idempotency gates and protected Arabic mobile UI"
+                      ]
                     }
                   ]
                 }
@@ -279,12 +294,12 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B3_2B_SALES.md",
+  "last_report": "REPORT_B3_2B_PURCHASES.md",
   "next_steps": [
-    "Implement B3.2b-purchases atomic purchase returns and supplier reimbursements with AP/report/backup/UI",
-    "Complete standalone correction/refund document PDFs and B3 full-flow acceptance before C, D, E and Excel1-4"
+    "Confirm purchase checkpoint full CI and leave dependent review PR targeting sales PR #20",
+    "Complete standalone correction/refund PDFs and B3 integrated acceptance, then C, D, E and Excel1-4"
   ],
-  "updated_at": "2026-10-07T15:38:00.000Z",
+  "updated_at": "2026-10-07T15:47:00Z",
   "deferred_requirements": [
     {
       "prd": "50",

@@ -39,6 +39,10 @@ interface AppContextType {
   suppliers: Supplier[];
   purchaseBills: PurchaseBill[];
   supplierPayments: SupplierPayment[];
+  purchaseReturns: Document[];
+  supplierRefunds: Document[];
+  returnPurchase: (data: Document) => Promise<Document>;
+  refundSupplier: (data: Document) => Promise<Document>;
   saveSupplier: (data: Document, id?: string) => Promise<Supplier>;
   createPurchase: (data: Document) => Promise<PurchaseBill>;
   paySupplier: (data: Document) => Promise<SupplierPayment>;
@@ -379,7 +383,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
     creditNotes: rows<Document>('credit_notes'), customerRefunds: rows<Document>('customer_refunds'),
     createCreditNote: data => run('creditNote.create', data), refundCustomer: data => run('customerRefund.create', data),
-    suppliers: rows<Supplier>('suppliers'), purchaseBills: rows<PurchaseBill>('purchase_bills'), supplierPayments: rows<SupplierPayment>('supplier_payments'),
+    suppliers: rows<Supplier>('suppliers'), purchaseBills: rows<PurchaseBill>('purchase_bills'), supplierPayments: rows<SupplierPayment>('supplier_payments'), purchaseReturns: rows<Document>('purchase_returns'), supplierRefunds: rows<Document>('supplier_refunds'), returnPurchase: data => run<Document>('purchaseReturn.create',data), refundSupplier: data => run<Document>('supplierRefund.create',data),
     saveSupplier: (data, id) => run<Supplier>(id ? 'supplier.update' : 'supplier.create', id ? { id, updates: data } : data),
     createPurchase: data => run<PurchaseBill>('purchase.create', data), paySupplier: data => run<SupplierPayment>('supplierPayment.create', data),
     loadPayablesReport: async (period, exporting = false) => {

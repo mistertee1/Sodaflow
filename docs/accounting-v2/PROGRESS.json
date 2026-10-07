@@ -2,16 +2,16 @@
   "schema_version": 1,
   "source_sha256": "a6ef84e96568ee751ede2a5a932e30c17140f914bcb61df5f38727f390ee4a45",
   "repository": "mistertee1/Sodaflow",
-  "base_main_sha": "45fca522e5f8cf0488b4cbf09ce84d95cd673a6f",
+  "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "B3",
   "active_branch": "codex/accounting-v2-b3-sales-credit-transactions",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "accounting-v2-20261007-b32b",
-    "acquired_at": "2026-10-07T04:28:02.826Z",
-    "updated_at": "2026-10-07T04:28:02.826Z",
-    "expires_at": "2026-10-07T05:13:02.826Z"
+    "worker": "accounting-v2-20261007-b32b-0954",
+    "acquired_at": "2026-10-07T09:54:59.748Z",
+    "updated_at": "2026-10-07T09:54:59.749Z",
+    "expires_at": "2026-10-07T10:39:59.749Z"
   },
   "milestones": [
     {
@@ -118,12 +118,12 @@
           "id": "B3",
           "scope": "Credit notes, sales/purchase returns and refunds",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-b3-correction-state",
+          "branch": "codex/accounting-v2-b3-sales-credit-transactions",
           "substeps": [
             {
               "id": "B3.1",
               "scope": "Source return allocation, original-cost restock, purchase WAC variance and refund carrying-value contracts",
-              "status": "implemented_ci_passed",
+              "status": "merged_ci_passed",
               "checks": {
                 "unit_quotes": 18,
                 "unit_api": 135,
@@ -153,12 +153,12 @@
               "id": "B3.2",
               "scope": "Atomic source-linked credit notes, sales/purchase returns and refunds; reports, reconciliation, backup and UI",
               "status": "in_progress",
-              "branch": "codex/accounting-v2-b3-correction-state",
+              "branch": "codex/accounting-v2-b3-sales-credit-transactions",
               "substeps": [
                 {
                   "id": "B3.2a",
                   "scope": "Replay shared sales price-credit/physical return quantity and value entitlements",
-                  "status": "implemented_ci_passed",
+                  "status": "merged_ci_passed",
                   "checks": {
                     "unit_api": 143,
                     "new_unit_tests": 8,
@@ -179,7 +179,7 @@
                 {
                   "id": "B3.2b",
                   "scope": "Atomic credit notes, sales/purchase returns/refunds, source caches, AR/AP reports, reconciliation, backup, protected API and UI",
-                  "status": "pending"
+                  "status": "in_progress"
                 }
               ],
               "pr": 19
@@ -239,7 +239,7 @@
     "Run transaction/RBAC/expired plan/closed period/concurrency/direct SDK/restore/UI acceptance before completing B3",
     "Then C, D, E and Excel1-4; PRD50 import remains deferred"
   ],
-  "updated_at": "2026-10-07T04:28:02.826Z",
+  "updated_at": "2026-10-07T09:54:59.749Z",
   "deferred_requirements": [
     {
       "prd": "50",

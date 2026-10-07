@@ -5,7 +5,7 @@
   "base_main_sha": "45fca522e5f8cf0488b4cbf09ce84d95cd673a6f",
   "user_merges_only": true,
   "active_milestone": "B3",
-  "active_branch": "codex/accounting-v2-b3-return-foundation",
+  "active_branch": "codex/accounting-v2-b3-correction-state",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -113,7 +113,7 @@
           "id": "B3",
           "scope": "Credit notes, sales/purchase returns and refunds",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-b3-return-foundation",
+          "branch": "codex/accounting-v2-b3-correction-state",
           "substeps": [
             {
               "id": "B3.1",
@@ -140,15 +140,47 @@
                 "rules": 22,
                 "ui": 35,
                 "production_audit_vulnerabilities": 0
-              }
+              },
+              "branch": "codex/accounting-v2-b3-return-foundation",
+              "pr": 18
             },
             {
               "id": "B3.2",
               "scope": "Atomic source-linked credit notes, sales/purchase returns and refunds; reports, reconciliation, backup and UI",
-              "status": "pending"
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-b3-correction-state",
+              "substeps": [
+                {
+                  "id": "B3.2a",
+                  "scope": "Replay shared sales price-credit/physical return quantity and value entitlements",
+                  "status": "implemented_ci_passed",
+                  "checks": {
+                    "unit_api": 143,
+                    "new_unit_tests": 8,
+                    "types": "passed",
+                    "build": "passed",
+                    "boundary_sequences": 48
+                  },
+                  "ci": {
+                    "conclusion": "success",
+                    "run_id": 37570773104,
+                    "commit_sha": "a31e2cbb05e77002557c2bac72da3fc79a9fa82c",
+                    "unit_api": 143,
+                    "rules": 22,
+                    "ui": 35,
+                    "production_audit_vulnerabilities": 0
+                  }
+                },
+                {
+                  "id": "B3.2b",
+                  "scope": "Atomic credit notes, sales/purchase returns/refunds, source caches, AR/AP reports, reconciliation, backup, protected API and UI",
+                  "status": "pending"
+                }
+              ],
+              "pr": 19
             }
           ],
-          "pr": 18
+          "pr": 19
         }
       ]
     },
@@ -195,13 +227,14 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B3.md",
+  "last_report": "REPORT_B3_2A.md",
   "next_steps": [
-    "B3.2a is continued in codex/accounting-v2-b3-correction-state / PR19",
-    "B3.2b transactional source documents, reports/reconciliation/backup and UI remain pending",
-    "Then C, D, E and Excel1-4"
+    "Implement B3.2b atomic immutable credit notes, sales/purchase returns and customer/supplier refunds",
+    "Integrate signed AR/AP and customer credit caches, dated reports, inventory/cash source reconciliation, backup and protected API/UI",
+    "Run transaction/RBAC/expired plan/closed period/concurrency/direct SDK/restore/UI acceptance before completing B3",
+    "Then C, D, E and Excel1-4; PRD50 import remains deferred"
   ],
-  "updated_at": "2026-10-07T04:22:32.409Z",
+  "updated_at": "2026-10-07T04:22:37.872Z",
   "deferred_requirements": [
     {
       "prd": "50",
@@ -213,5 +246,5 @@
       "status": "pending"
     }
   ],
-  "next_progress_branch": "codex/accounting-v2-b3-correction-state"
+  "active_substep": "B3.2b"
 }

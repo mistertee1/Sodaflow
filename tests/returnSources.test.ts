@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import BigNumber from 'bignumber.js';
 import type { Invoice, MerchantSettings } from '../src/types';
 import { invoiceFinancials, journal, journalLine } from '../src/domain/financial';
-import { buildSalesReturnBases, buildPurchaseReturnBases } from '../src/domain/returnSources';
+import { buildSalesReturnBases, buildPurchaseReturnBases, returnSourceId } from '../src/domain/returnSources';
 import type { PurchaseBill } from '../src/domain/payables';
 import { quoteReturnAllocation, salesCreditLines } from '../src/domain/returnQuotes';
 import { validateJournal } from '../src/domain/validation';
@@ -34,7 +34,7 @@ test('B3 original issue rounding and global discount are proven from frozen sour
     }
     const reversed = result.bases.flatMap(basis => { const full = quoteReturnAllocation(basis, [], basis.quantity); return salesCreditLines(full.components.revenue, full.components.tax, full.components.cost); });
     const total = validateJournal(reversed); assert.equal(total.total_debit_sdg, entry.total_debit_sdg); assert.equal(total.total_debit_usd, entry.total_debit_usd);
-    assert.deepEqual({ invoice, entry }, before); assert.equal(result.bases[0].source_id, 'inv-source.line-1');
+    assert.deepEqual({ invoice, entry }, before); assert.equal(result.bases[0].source_id, returnSourceId(invoice.id, invoice.items[0].id));
   }
 });
 
@@ -59,7 +59,7 @@ test('B3 original monetary source can retain explicitly unknown cost but does no
   const { invoice, entry } = source();
   invoice.items[0].cost_status = 'unknown'; delete invoice.items[0].total_cost_sdg; delete invoice.items[0].total_cost_usd; invoice.cogs_sdg = 0; invoice.cogs_usd = 0;
   entry.lines = entry.lines.filter(line => !['1300', '5100'].includes(line.account_code)); Object.assign(entry, validateJournal(entry.lines));
-  const result = buildSalesReturnBases(invoice, [entry], 'tenant'); assert.equal(result.cost_statuses['inv-source.line-1'], 'unknown'); assert.equal('cost' in result.bases[0].components, false);
+  const result = buildSalesReturnBases(invoice, [entry], 'tenant'); assert.equal(result.cost_statuses[returnSourceId(invoice.id, invoice.items[0].id)], 'unknown'); assert.equal('cost' in result.bases[0].components, false);
   assert.throws(() => buildSalesReturnBases({ ...invoice, items: invoice.items.map(item => ({ ...item, cost_status: undefined })) }, [entry], 'tenant'));
 });
 
@@ -72,9 +72,15 @@ function purchase(settlement: 'credit' | 'cash' = 'credit') {
 test('B3 purchase return basis remains at original acquisition value after cash settlement and credit bill payment', () => {
   for (const settlement of ['cash', 'credit'] as const) {
     const { bill, entry } = purchase(settlement), before = structuredClone({ bill, entry }), result = buildPurchaseReturnBases(bill, [entry], 'tenant');
-    assert.deepEqual(result.bases[0], { source_id: 'bill-source.line-1', quantity: 3, components: { supplier_credit: { sdg: 12000, usd: 6 } } });
+    assert.deepEqual(result.bases[0], { source_id: returnSourceId(bill.id, bill.items[0].id), quantity: 3, components: { supplier_credit: { sdg: 12000, usd: 6 } } });
     assert.deepEqual(buildPurchaseReturnBases({ ...bill, remaining_sdg: 99999, paid_amount_sdg: 0 }, [entry], 'tenant').bases, result.bases);assert.deepEqual({ bill, entry }, before);
   }
+});
+
+test('B3 source keys distinguish dotted source/line pairs and preserve the existing identifier boundary', () => {
+  assert.notEqual(returnSourceId('a.b', 'c'), returnSourceId('a', 'b.c'));
+  assert.equal(returnSourceId('invoice', 'line'), returnSourceId('invoice', 'line'));
+  assert.throws(() => returnSourceId('cross/tenant', 'line')); assert.throws(() => returnSourceId('a'.repeat(128), 'line'));
 });
 
 test('B3 purchase source proof rejects changed acquisition, paid-account mapping, journals, tenant and duplicate lines', () => {

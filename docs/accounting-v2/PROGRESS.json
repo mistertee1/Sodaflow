@@ -7,12 +7,7 @@
   "active_milestone": "B3",
   "active_branch": "codex/accounting-v2-b3-return-foundation",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "root-accounting-v2-20261007-b3",
-    "started_at": "2026-10-07T03:55:55.000Z",
-    "updated_at": "2026-10-07T04:10:36.000Z",
-    "expires_at": "2026-10-07T04:55:36.000Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -125,8 +120,8 @@
               "scope": "Source return allocation, original-cost restock, purchase WAC variance and refund carrying-value contracts",
               "status": "implemented_ci_pending",
               "checks": {
-                "unit_quotes": 17,
-                "unit_api": 134,
+                "unit_quotes": 18,
+                "unit_api": 135,
                 "types": "passed",
                 "build": "passed"
               },
@@ -139,9 +134,15 @@
               ],
               "ci": {
                 "conclusion": "pending",
-                "previous_run_id": 37569700068,
-                "previous_conclusion": "failure",
-                "reason": "Two inherited B2 UI tests set historical end before the runtime default start; explicit fixture start dates added. Unit/API, build, audit and 22 rules passed."
+                "previous_success": {
+                  "run_id": 37570202622,
+                  "commit_sha": "532c91ac02592228a5f3b33d40b4aeb23b3d424d",
+                  "unit_api": 134,
+                  "rules": 22,
+                  "ui": 35,
+                  "production_audit_vulnerabilities": 0
+                },
+                "scope": "original-source keys strengthened; final CI pending"
               }
             },
             {
@@ -204,7 +205,7 @@
     "Integrate dated AR/AP and customer credits, reconciliation/backup, API permission/idempotency/period tests and UI",
     "Then C, D, E and Excel1-4 with deferred PRD50 import"
   ],
-  "updated_at": "2026-10-07T04:10:36.000Z",
+  "updated_at": "2026-10-07T04:16:58.636Z",
   "deferred_requirements": [
     {
       "prd": "50",

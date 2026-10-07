@@ -11,6 +11,12 @@ const books = ['sdg', 'usd'] as const;
 const fields = ['subtotal_sdg', 'subtotal_usd', 'discount_total_sdg', 'discount_total_usd', 'tax_total_sdg', 'tax_total_usd', 'grand_total_sdg', 'grand_total_usd'] as const;
 const rules = ['round', 'ceil', 'floor'] as const;
 
+/** Length prefix prevents valid dotted document/line IDs from producing the same source key. */
+export function returnSourceId(documentId: string, lineId: string) {
+  identifier(documentId); identifier(lineId);
+  const id = `${documentId.length}.${documentId}.${lineId}`; identifier(id); return id;
+}
+
 /** Recover only a source-proven original rounding policy; today's settings are never an input. */
 export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[], expectedOrgId: string) {
   identifier(expectedOrgId); identifier(invoice.id);
@@ -74,7 +80,7 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
         const entitlement = (value: BigNumber) => total ? value.eq(total) ? new BigNumber(posted) : new BigNumber(posted).times(value).div(total).decimalPlaces(book === 'sdg' ? 0 : 2, BigNumber.ROUND_HALF_UP) : new BigNumber(0);
         revenue[book] = entitlement(after).minus(entitlement(before)).toNumber(); cumulative[book] = after.toNumber();
       }
-      const sourceId = `${invoice.id}.${item.id}`; identifier(sourceId);
+      const sourceId = returnSourceId(invoice.id, item.id);
       return { source_id: sourceId, quantity: item.quantity, components: { revenue, tax: components[index].tax, ...(item.cost_status === 'valued' ? { cost: { sdg: item.total_cost_sdg!, usd: item.total_cost_usd! } } : {}) } };
     });
     for (const book of books) {
@@ -87,7 +93,7 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
   }
   ensure(candidates.length > 0, 'سياسة التقريب الأصلية لا تطابق الفاتورة والقيد؛ يلزم مراجعة المصدر.', 409);
   ensure(candidates.every(candidate => JSON.stringify(candidate.bases) === JSON.stringify(candidates[0].bases)), 'سياسة التقريب الأصلية ملتبسة لبنود المردود؛ يلزم أساس موثق.', 409);
-  return { invoice_id: invoice.id, journal_id: original.id, issue_date: issueDate, org_id: expectedOrgId, rounding_rule: candidates[0].rule, bases: candidates[0].bases, cost_statuses: Object.fromEntries(invoice.items.map(item => [`${invoice.id}.${item.id}`, item.cost_status])) };
+  return { invoice_id: invoice.id, journal_id: original.id, issue_date: issueDate, org_id: expectedOrgId, rounding_rule: candidates[0].rule, bases: candidates[0].bases, cost_statuses: Object.fromEntries(invoice.items.map(item => [returnSourceId(invoice.id, item.id), item.cost_status])) };
 }
 
 /** Purchase returns use original net acquisition values even after payment or stock WAC changes. */
@@ -106,7 +112,7 @@ export function buildPurchaseReturnBases(bill: PurchaseBill & { payment_account_
     identifier(item.id); identifier(item.product_id); ensure(!ids.has(item.id), 'معرف بند الشراء الأصلي مكرر.'); ids.add(item.id);
     const value = acquisitionCost(item.quantity, { cost_currency: bill.currency, unit_cost: item.unit_cost, exchange_rate_used: bill.exchange_rate_used, zero_cost_reason: item.zero_cost_reason });
     ensure(new BigNumber(value.sdg).eq(item.value_sdg) && new BigNumber(value.usd).eq(item.value_usd), 'قيمة بند الشراء لا تطابق تكلفة الاستلام الأصلية.', 409);
-    const sourceId = `${bill.id}.${item.id}`; identifier(sourceId);
+    const sourceId = returnSourceId(bill.id, item.id);
     return { source_id: sourceId, quantity: item.quantity, components: { supplier_credit: value } };
   });
   const total: BookAmount = { sdg: 0, usd: 0 };

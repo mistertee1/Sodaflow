@@ -402,8 +402,22 @@
             {
               "id": "C2.1",
               "scope": "Read-only opening source/dual-book quote and validation contract",
-              "status": "in_progress",
-              "branch": "codex/accounting-v2-c2-opening-quotes"
+              "status": "implemented_ci_pending",
+              "branch": "codex/accounting-v2-c2-opening-quotes",
+              "checks": {
+                "unit_api": 199,
+                "new_unit_api": 8,
+                "types": "passed",
+                "build": "passed",
+                "rules_status": "pending_ci",
+                "full_ui_status": "pending_ci"
+              },
+              "completed_parts": [
+                "read-only native-source and dual-book opening quote",
+                "explicit capital and signed opening equity review without invented FX or revenue",
+                "new-tenant/source/control/precision/overflow/duplication contracts",
+                "omitted existing balance rejection and 97-source/100-line bound"
+              ]
             },
             {
               "id": "C2.2",
@@ -456,10 +470,11 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_C1_2_PERIOD_UI.md",
+  "last_report": "REPORT_C2_1_OPENING_QUOTES.md",
   "next_steps": [
-    "Continue C2.1 opening-balance quote/source/precision contract",
-    "Integrate C2.2 atomic opening batches and protected wizard, C2.3 owner capital/drawings; remaining C, D, E and Excel1-4"
+    "Verify C2.1 full CI",
+    "Implement C2.2 atomic opening batches/source reconciliation and protected wizard, C2.3 capital/drawings",
+    "Continue remaining C, D, E, Excel1-4 and deferred bank imports"
   ],
   "updated_at": "2026-10-07T21:16:14Z",
   "deferred_requirements": [

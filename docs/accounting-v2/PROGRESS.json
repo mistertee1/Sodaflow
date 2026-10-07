@@ -8,10 +8,10 @@
   "active_branch": "codex/accounting-v2-c1-period-guards",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "accounting-v2-20261007-c11-1607",
-    "acquired_at": "2026-10-07T16:07:00Z",
-    "updated_at": "2026-10-07T16:07:00Z",
-    "expires_at": "2026-10-07T16:52:00Z"
+    "worker": "accounting-v2-20261007-c11-2042",
+    "acquired_at": "2026-10-07T20:42:00Z",
+    "updated_at": "2026-10-07T20:42:00Z",
+    "expires_at": "2026-10-07T21:27:00Z"
   },
   "milestones": [
     {
@@ -365,10 +365,10 @@
   ],
   "last_report": "REPORT_B3_3_DOCUMENTS_ACCEPTANCE.md",
   "next_steps": [
-    "Begin C1 accounting periods, soft/hard close and controlled reopen in a dependent branch targeting #22",
-    "Continue remaining C, D, E and Excel1-4; bank import PRD50 remains deferred to Excel staging/import"
+    "Complete and verify C1.1 backend lifecycle and posting guards",
+    "Continue C1.2 period/checklist UI and reauthentication, then remaining C, D, E and Excel1-4"
   ],
-  "updated_at": "2026-10-07T16:07:00Z",
+  "updated_at": "2026-10-07T20:42:00Z",
   "deferred_requirements": [
     {
       "prd": "50",
@@ -380,5 +380,6 @@
       "status": "pending"
     }
   ],
-  "active_substep": "C1.1"
+  "active_substep": "C1.1",
+  "observed_main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31"
 }

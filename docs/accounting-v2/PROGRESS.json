@@ -7,12 +7,7 @@
   "active_milestone": "B3",
   "active_branch": "codex/accounting-v2-b3-purchase-return-transactions",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "accounting-v2-20261007-b32b-1538",
-    "acquired_at": "2026-10-07T15:38:00Z",
-    "updated_at": "2026-10-07T15:47:00Z",
-    "expires_at": "2026-10-07T16:32:00Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -180,7 +175,7 @@
                 {
                   "id": "B3.2b",
                   "scope": "Atomic credit notes, sales/purchase returns/refunds, source caches, AR/AP reports, reconciliation, backup, protected API and UI",
-                  "status": "in_progress",
+                  "status": "implemented_ci_passed",
                   "branch": "codex/accounting-v2-b3-purchase-return-transactions",
                   "substeps": [
                     {
@@ -223,7 +218,7 @@
                     {
                       "id": "B3.2b-purchases",
                       "scope": "Atomic purchase returns, explicit WAC variance, supplier reimbursements, AP/report/reconciliation/backup and protected API/UI",
-                      "status": "implemented_ci_pending",
+                      "status": "implemented_ci_passed",
                       "branch": "codex/accounting-v2-b3-purchase-return-transactions",
                       "checks": {
                         "unit_api": 172,
@@ -231,23 +226,37 @@
                         "types": "passed",
                         "build": "passed",
                         "local_new_ui": "passed",
-                        "rules_status": "pending_ci",
-                        "full_ui_status": "pending_ci"
+                        "rules_status": "passed",
+                        "full_ui_status": "passed",
+                        "rules": 24,
+                        "full_ui": 37,
+                        "production_audit_vulnerabilities": 0
                       },
                       "completed_parts": [
                         "atomic original-value purchase returns and current-WAC inventory issue with separate signed variance",
                         "historical supplier-advance reimbursements and payment FX, source sequence and cache proof",
                         "dated AP/aging/statement and CSV/PDF report exports; reconciliation and strict restore",
                         "backend live permission/subscription/period/idempotency gates and protected Arabic mobile UI"
-                      ]
+                      ],
+                      "pr": 21,
+                      "ci": {
+                        "conclusion": "success",
+                        "run_id": 37645759706,
+                        "commit_sha": "cb4f33a8294443982bd8a9f899cdf171690d0e70",
+                        "unit_api": 172,
+                        "rules": 24,
+                        "ui": 37,
+                        "production_audit_vulnerabilities": 0
+                      }
                     }
-                  ]
+                  ],
+                  "pr": 21
                 }
               ],
               "pr": 20
             }
           ],
-          "pr": 20
+          "pr": 21
         }
       ]
     },
@@ -296,10 +305,10 @@
   ],
   "last_report": "REPORT_B3_2B_PURCHASES.md",
   "next_steps": [
-    "Confirm purchase checkpoint full CI and leave dependent review PR targeting sales PR #20",
-    "Complete standalone correction/refund PDFs and B3 integrated acceptance, then C, D, E and Excel1-4"
+    "Complete standalone correction/refund PDFs and B3 integrated acceptance on a dependent branch",
+    "Then C, D, E and Excel1-4 according to prerequisites"
   ],
-  "updated_at": "2026-10-07T15:47:00Z",
+  "updated_at": "2026-10-07T15:46:00Z",
   "deferred_requirements": [
     {
       "prd": "50",

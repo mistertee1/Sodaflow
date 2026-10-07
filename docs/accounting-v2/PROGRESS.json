@@ -5,9 +5,14 @@
   "base_main_sha": "45fca522e5f8cf0488b4cbf09ce84d95cd673a6f",
   "user_merges_only": true,
   "active_milestone": "B3",
-  "active_branch": "codex/accounting-v2-b3-correction-state",
+  "active_branch": "codex/accounting-v2-b3-sales-credit-transactions",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "accounting-v2-20261007-b32b",
+    "acquired_at": "2026-10-07T04:28:02.826Z",
+    "updated_at": "2026-10-07T04:28:02.826Z",
+    "expires_at": "2026-10-07T05:13:02.826Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -234,7 +239,7 @@
     "Run transaction/RBAC/expired plan/closed period/concurrency/direct SDK/restore/UI acceptance before completing B3",
     "Then C, D, E and Excel1-4; PRD50 import remains deferred"
   ],
-  "updated_at": "2026-10-07T04:22:37.872Z",
+  "updated_at": "2026-10-07T04:28:02.826Z",
   "deferred_requirements": [
     {
       "prd": "50",

@@ -10,8 +10,8 @@
   "lease": {
     "worker": "root-accounting-v2-20261007-b3",
     "started_at": "2026-10-07T03:55:55.000Z",
-    "updated_at": "2026-10-07T03:55:55.000Z",
-    "expires_at": "2026-10-07T04:40:55.000Z"
+    "updated_at": "2026-10-07T03:59:28.000Z",
+    "expires_at": "2026-10-07T04:44:28.000Z"
   },
   "milestones": [
     {
@@ -123,7 +123,13 @@
             {
               "id": "B3.1",
               "scope": "Source return allocation, original-cost restock, purchase WAC variance and refund carrying-value contracts",
-              "status": "in_progress"
+              "status": "implemented_local_checks_passed",
+              "checks": {
+                "unit_quotes": 11,
+                "unit_api": 128,
+                "types": "passed",
+                "build": "passed"
+              }
             },
             {
               "id": "B3.2",
@@ -177,12 +183,14 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B2.md",
+  "last_report": "REPORT_B3.md",
   "next_steps": [
-    "Finish/test B3.1 source calculation contracts, then integrate B3.2 immutable transactional workflows",
+    "Confirm B3.1 CI and review source calculation contracts",
+    "B3.2: load original posting evidence, allocate frozen revenue/tax per line, and post immutable credit notes/physical returns/refunds atomically",
+    "Integrate dated AR/AP and customer credits, reconciliation/backup, API permission/idempotency/period tests and UI",
     "Then C, D, E and Excel1-4 with deferred PRD50 import"
   ],
-  "updated_at": "2026-10-07T03:55:55.000Z",
+  "updated_at": "2026-10-07T03:59:28.000Z",
   "deferred_requirements": [
     {
       "prd": "50",

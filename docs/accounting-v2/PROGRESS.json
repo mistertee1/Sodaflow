@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "B3",
-  "active_branch": "codex/accounting-v2-b3-purchase-return-transactions",
+  "active_branch": "codex/accounting-v2-b3-documents-acceptance",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -42,9 +42,9 @@
     },
     {
       "id": "B",
-      "status": "in_progress",
-      "branch": "codex/accounting-v2-b1-supplier-purchases",
-      "pr": 15,
+      "status": "implemented_ci_passed",
+      "branch": "codex/accounting-v2-b3-documents-acceptance",
+      "pr": 22,
       "steps": [
         {
           "id": "B1",
@@ -112,8 +112,8 @@
         {
           "id": "B3",
           "scope": "Credit notes, sales/purchase returns and refunds",
-          "status": "in_progress",
-          "branch": "codex/accounting-v2-b3-purchase-return-transactions",
+          "status": "implemented_ci_passed",
+          "branch": "codex/accounting-v2-b3-documents-acceptance",
           "substeps": [
             {
               "id": "B3.1",
@@ -147,7 +147,7 @@
             {
               "id": "B3.2",
               "scope": "Atomic source-linked credit notes, sales/purchase returns and refunds; reports, reconciliation, backup and UI",
-              "status": "in_progress",
+              "status": "implemented_ci_passed",
               "branch": "codex/accounting-v2-b3-purchase-return-transactions",
               "substeps": [
                 {
@@ -254,9 +254,44 @@
                 }
               ],
               "pr": 20
+            },
+            {
+              "id": "B3.3",
+              "scope": "Protected standalone correction/refund PDFs and integrated B3 operational acceptance",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-b3-documents-acceptance",
+              "checks": {
+                "unit_api": 177,
+                "new_unit_api": 5,
+                "types": "passed",
+                "build": "passed",
+                "local_new_ui": "passed",
+                "rules_status": "passed",
+                "full_ui_status": "passed",
+                "rules": 25,
+                "full_ui": 39,
+                "production_audit_vulnerabilities": 0,
+                "pdf_visual_status": "passed_5_single_page_and_all_10_long_document_pages"
+              },
+              "completed_parts": [
+                "fresh authorized immutable correction/refund PDF exports and source-specific audit metadata",
+                "safe Arabic A4 repeated header/table rows, separate books, original tax/cost and refund FX evidence",
+                "integrated B3 cycle with partial/final customer and supplier payments, bank expense/transfer, bank/cash reconciliation and two restores with zero differences",
+                "bounded restored audit provenance archives, canonical hashes, source IDs and dropped-event/archive detection"
+              ],
+              "pr": 22,
+              "ci": {
+                "conclusion": "success",
+                "run_id": 37648654132,
+                "commit_sha": "43773ea49a07ff7f63205e8838e1a6436cd20ba4",
+                "unit_api": 177,
+                "rules": 25,
+                "ui": 39,
+                "production_audit_vulnerabilities": 0
+              }
             }
           ],
-          "pr": 21
+          "pr": 22
         }
       ]
     },
@@ -303,12 +338,12 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B3_2B_PURCHASES.md",
+  "last_report": "REPORT_B3_3_DOCUMENTS_ACCEPTANCE.md",
   "next_steps": [
-    "Complete standalone correction/refund PDFs and B3 integrated acceptance on a dependent branch",
-    "Then C, D, E and Excel1-4 according to prerequisites"
+    "Begin C1 accounting periods, soft/hard close and controlled reopen in a dependent branch targeting #22",
+    "Continue remaining C, D, E and Excel1-4; bank import PRD50 remains deferred to Excel staging/import"
   ],
-  "updated_at": "2026-10-07T15:46:00Z",
+  "updated_at": "2026-10-07T16:06:00Z",
   "deferred_requirements": [
     {
       "prd": "50",
@@ -320,5 +355,5 @@
       "status": "pending"
     }
   ],
-  "active_substep": "B3.2b-purchases"
+  "active_substep": "B3.3"
 }

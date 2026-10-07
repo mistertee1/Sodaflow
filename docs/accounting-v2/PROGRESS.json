@@ -2,16 +2,16 @@
   "schema_version": 1,
   "source_sha256": "a6ef84e96568ee751ede2a5a932e30c17140f914bcb61df5f38727f390ee4a45",
   "repository": "mistertee1/Sodaflow",
-  "base_main_sha": "51a6df857bc099d8167fe7564b502047b8522574",
+  "base_main_sha": "45fca522e5f8cf0488b4cbf09ce84d95cd673a6f",
   "user_merges_only": true,
   "active_milestone": "B3",
   "active_branch": "codex/accounting-v2-b3-return-foundation",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "root-accounting-v2-20261005-1612",
-    "started_at": "2026-10-05T16:34:19.935Z",
-    "updated_at": "2026-10-05T16:34:19.935Z",
-    "expires_at": "2026-10-05T17:19:19.935Z"
+    "worker": "root-accounting-v2-20261007-b3",
+    "started_at": "2026-10-07T03:55:55.000Z",
+    "updated_at": "2026-10-07T03:55:55.000Z",
+    "expires_at": "2026-10-07T04:40:55.000Z"
   },
   "milestones": [
     {
@@ -75,7 +75,7 @@
         {
           "id": "B2",
           "scope": "AR statements/aging, GL, cash/bank, internal transfers, bank/cash reconciliation",
-          "status": "implemented_ci_passed",
+          "status": "merged_ci_passed",
           "branch": "codex/accounting-v2-b2-cash-reconciliation",
           "completed_parts": [
             "GL date/opening/source-line reports and native-book projection",
@@ -177,12 +177,12 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B3.md",
+  "last_report": "REPORT_B2.md",
   "next_steps": [
     "Finish/test B3.1 source calculation contracts, then integrate B3.2 immutable transactional workflows",
     "Then C, D, E and Excel1-4 with deferred PRD50 import"
   ],
-  "updated_at": "2026-10-05T16:34:19.935Z",
+  "updated_at": "2026-10-07T03:55:55.000Z",
   "deferred_requirements": [
     {
       "prd": "50",

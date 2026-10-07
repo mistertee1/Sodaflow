@@ -24,6 +24,9 @@
     "tests/platformFirestore.test.ts",
     "tests/operationalReports.test.ts",
     "tests/cashManagement.test.ts",
-    "tests/cashReconciliation.test.ts"
+    "tests/cashReconciliation.test.ts",
+    "tests/returnQuotes.test.ts",
+    "tests/returnSources.test.ts",
+    "tests/salesCorrectionState.test.ts"
   ]
 }

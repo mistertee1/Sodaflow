@@ -2,10 +2,10 @@
   "schema_version": 1,
   "source_sha256": "a6ef84e96568ee751ede2a5a932e30c17140f914bcb61df5f38727f390ee4a45",
   "repository": "mistertee1/Sodaflow",
-  "base_main_sha": "51a6df857bc099d8167fe7564b502047b8522574",
+  "base_main_sha": "45fca522e5f8cf0488b4cbf09ce84d95cd673a6f",
   "user_merges_only": true,
-  "active_milestone": "B2",
-  "active_branch": "codex/accounting-v2-b2-cash-reconciliation",
+  "active_milestone": "B3",
+  "active_branch": "codex/accounting-v2-b3-correction-state",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -70,7 +70,7 @@
         {
           "id": "B2",
           "scope": "AR statements/aging, GL, cash/bank, internal transfers, bank/cash reconciliation",
-          "status": "implemented_ci_passed",
+          "status": "merged_ci_passed",
           "branch": "codex/accounting-v2-b2-cash-reconciliation",
           "completed_parts": [
             "GL date/opening/source-line reports and native-book projection",
@@ -112,7 +112,75 @@
         {
           "id": "B3",
           "scope": "Credit notes, sales/purchase returns and refunds",
-          "status": "pending"
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-b3-correction-state",
+          "substeps": [
+            {
+              "id": "B3.1",
+              "scope": "Source return allocation, original-cost restock, purchase WAC variance and refund carrying-value contracts",
+              "status": "implemented_ci_passed",
+              "checks": {
+                "unit_quotes": 18,
+                "unit_api": 135,
+                "types": "passed",
+                "build": "passed"
+              },
+              "completed_parts": [
+                "cumulative original-value allocation with history checks",
+                "original sales cost and purchase WAC variance",
+                "historical credit refund and balanced dual-book posting quotes",
+                "tenant/original journal proof and frozen invoice discount/rounding allocation",
+                "purchase original acquisition and posting proof"
+              ],
+              "ci": {
+                "conclusion": "success",
+                "run_id": 37570762173,
+                "commit_sha": "fc8a976902c3dd2a55c51b26aafda3677625a42c",
+                "unit_api": 135,
+                "rules": 22,
+                "ui": 35,
+                "production_audit_vulnerabilities": 0
+              },
+              "branch": "codex/accounting-v2-b3-return-foundation",
+              "pr": 18
+            },
+            {
+              "id": "B3.2",
+              "scope": "Atomic source-linked credit notes, sales/purchase returns and refunds; reports, reconciliation, backup and UI",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-b3-correction-state",
+              "substeps": [
+                {
+                  "id": "B3.2a",
+                  "scope": "Replay shared sales price-credit/physical return quantity and value entitlements",
+                  "status": "implemented_ci_passed",
+                  "checks": {
+                    "unit_api": 143,
+                    "new_unit_tests": 8,
+                    "types": "passed",
+                    "build": "passed",
+                    "boundary_sequences": 48
+                  },
+                  "ci": {
+                    "conclusion": "success",
+                    "run_id": 37570773104,
+                    "commit_sha": "a31e2cbb05e77002557c2bac72da3fc79a9fa82c",
+                    "unit_api": 143,
+                    "rules": 22,
+                    "ui": 35,
+                    "production_audit_vulnerabilities": 0
+                  }
+                },
+                {
+                  "id": "B3.2b",
+                  "scope": "Atomic credit notes, sales/purchase returns/refunds, source caches, AR/AP reports, reconciliation, backup, protected API and UI",
+                  "status": "pending"
+                }
+              ],
+              "pr": 19
+            }
+          ],
+          "pr": 19
         }
       ]
     },
@@ -159,13 +227,14 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B2.md",
+  "last_report": "REPORT_B3_2A.md",
   "next_steps": [
-    "Start B3 immutable credit-note/return/refund source contracts and workflows",
-    "Then C, D, E and Excel1-4, including deferred PRD50 bank statement import",
-    "User reviews and merges; no main writes, deployment or production data"
+    "Implement B3.2b atomic immutable credit notes, sales/purchase returns and customer/supplier refunds",
+    "Integrate signed AR/AP and customer credit caches, dated reports, inventory/cash source reconciliation, backup and protected API/UI",
+    "Run transaction/RBAC/expired plan/closed period/concurrency/direct SDK/restore/UI acceptance before completing B3",
+    "Then C, D, E and Excel1-4; PRD50 import remains deferred"
   ],
-  "updated_at": "2026-10-05T16:32:45.042Z",
+  "updated_at": "2026-10-07T04:22:37.872Z",
   "deferred_requirements": [
     {
       "prd": "50",
@@ -176,5 +245,6 @@
       ],
       "status": "pending"
     }
-  ]
+  ],
+  "active_substep": "B3.2b"
 }

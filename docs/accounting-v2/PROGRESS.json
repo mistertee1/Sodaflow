@@ -4,10 +4,15 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "B3",
-  "active_branch": "codex/accounting-v2-b3-documents-acceptance",
+  "active_milestone": "C",
+  "active_branch": "codex/accounting-v2-c1-period-guards",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "accounting-v2-20261007-c11-1607",
+    "acquired_at": "2026-10-07T16:07:00Z",
+    "updated_at": "2026-10-07T16:07:00Z",
+    "expires_at": "2026-10-07T16:52:00Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -297,9 +302,29 @@
     },
     {
       "id": "C",
-      "status": "pending",
-      "branch": null,
-      "pr": null
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-c1-period-guards",
+      "pr": null,
+      "steps": [
+        {
+          "id": "C1",
+          "scope": "Accounting periods, close/reopen and month-end checklist",
+          "status": "in_progress",
+          "substeps": [
+            {
+              "id": "C1.1",
+              "scope": "Tenant period lifecycle, backend posting guard and recent-owner reauthentication contract",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-c1-period-guards"
+            },
+            {
+              "id": "C1.2",
+              "scope": "Month-end checklist/closing evidence and controlled period UI/re-authentication",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "D",
@@ -343,7 +368,7 @@
     "Begin C1 accounting periods, soft/hard close and controlled reopen in a dependent branch targeting #22",
     "Continue remaining C, D, E and Excel1-4; bank import PRD50 remains deferred to Excel staging/import"
   ],
-  "updated_at": "2026-10-07T16:06:00Z",
+  "updated_at": "2026-10-07T16:07:00Z",
   "deferred_requirements": [
     {
       "prd": "50",
@@ -355,5 +380,5 @@
       "status": "pending"
     }
   ],
-  "active_substep": "B3.3"
+  "active_substep": "C1.1"
 }

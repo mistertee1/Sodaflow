@@ -118,7 +118,7 @@
             {
               "id": "B3.1",
               "scope": "Source return allocation, original-cost restock, purchase WAC variance and refund carrying-value contracts",
-              "status": "implemented_ci_pending",
+              "status": "implemented_ci_passed",
               "checks": {
                 "unit_quotes": 18,
                 "unit_api": 135,
@@ -133,16 +133,13 @@
                 "purchase original acquisition and posting proof"
               ],
               "ci": {
-                "conclusion": "pending",
-                "previous_success": {
-                  "run_id": 37570202622,
-                  "commit_sha": "532c91ac02592228a5f3b33d40b4aeb23b3d424d",
-                  "unit_api": 134,
-                  "rules": 22,
-                  "ui": 35,
-                  "production_audit_vulnerabilities": 0
-                },
-                "scope": "original-source keys strengthened; final CI pending"
+                "conclusion": "success",
+                "run_id": 37570762173,
+                "commit_sha": "fc8a976902c3dd2a55c51b26aafda3677625a42c",
+                "unit_api": 135,
+                "rules": 22,
+                "ui": 35,
+                "production_audit_vulnerabilities": 0
               }
             },
             {
@@ -200,12 +197,11 @@
   ],
   "last_report": "REPORT_B3.md",
   "next_steps": [
-    "Confirm B3.1 CI and review source calculation contracts",
-    "B3.2: load original posting evidence, allocate frozen revenue/tax per line, and post immutable credit notes/physical returns/refunds atomically",
-    "Integrate dated AR/AP and customer credits, reconciliation/backup, API permission/idempotency/period tests and UI",
-    "Then C, D, E and Excel1-4 with deferred PRD50 import"
+    "B3.2a is continued in codex/accounting-v2-b3-correction-state / PR19",
+    "B3.2b transactional source documents, reports/reconciliation/backup and UI remain pending",
+    "Then C, D, E and Excel1-4"
   ],
-  "updated_at": "2026-10-07T04:16:58.636Z",
+  "updated_at": "2026-10-07T04:22:32.409Z",
   "deferred_requirements": [
     {
       "prd": "50",
@@ -216,5 +212,6 @@
       ],
       "status": "pending"
     }
-  ]
+  ],
+  "next_progress_branch": "codex/accounting-v2-b3-correction-state"
 }

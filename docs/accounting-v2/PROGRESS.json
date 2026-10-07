@@ -10,8 +10,8 @@
   "lease": {
     "worker": "accounting-v2-20261007-c11-2042",
     "acquired_at": "2026-10-07T20:42:00Z",
-    "updated_at": "2026-10-07T20:46:00Z",
-    "expires_at": "2026-10-07T21:31:00Z"
+    "updated_at": "2026-10-07T20:57:00Z",
+    "expires_at": "2026-10-07T21:42:00Z"
   },
   "milestones": [
     {
@@ -305,7 +305,7 @@
       "id": "C",
       "status": "in_progress",
       "branch": "codex/accounting-v2-c1-period-guards",
-      "pr": null,
+      "pr": 23,
       "steps": [
         {
           "id": "C1",
@@ -318,12 +318,15 @@
               "status": "implemented_ci_pending",
               "branch": "codex/accounting-v2-c1-period-guards",
               "checks": {
-                "unit_api": 186,
-                "new_unit_api": 9,
+                "unit_api": 187,
+                "new_unit_api": 10,
                 "types": "passed",
                 "build": "passed",
-                "rules_status": "pending_ci",
-                "full_ui_status": "pending_ci"
+                "rules_status": "passed_previous_ci",
+                "full_ui_status": "passed_previous_ci",
+                "rules": 26,
+                "full_ui": 39,
+                "production_audit_vulnerabilities": 0
               },
               "completed_parts": [
                 "tenant nonoverlapping period lifecycle and revision concurrency guards",
@@ -331,7 +334,17 @@
                 "real-owner recent auth_time reopening and legacy lock release audit",
                 "zero-finding close gate with latest matched cash/bank evidence and dual-book journal hash",
                 "period backup counts, tenant remap and closure source/hash verification"
-              ]
+              ],
+              "pr": 23,
+              "previous_ci": {
+                "run_id": 37684782970,
+                "commit_sha": "6e9eac7f63dfadabfa275966cafcb1a2a0f603b7",
+                "conclusion": "success",
+                "unit_api": 186,
+                "rules": 26,
+                "ui": 39,
+                "production_audit_vulnerabilities": 0
+              }
             },
             {
               "id": "C1.2",
@@ -384,7 +397,7 @@
     "Complete and verify C1.1 backend lifecycle and posting guards",
     "Continue C1.2 period/checklist UI and reauthentication, then remaining C, D, E and Excel1-4"
   ],
-  "updated_at": "2026-10-07T20:46:00Z",
+  "updated_at": "2026-10-07T20:57:00Z",
   "deferred_requirements": [
     {
       "prd": "50",

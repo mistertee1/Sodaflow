@@ -93,3 +93,14 @@ test('C1 real HTTP uses trusted actor auth_time and protected reports, rejecting
     const send=(token:string,data:Record<string,unknown>)=>fetch(base+'/operations',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify({action:'period.reopen',data,operationId:crypto.randomUUID(),authTime:owner.authTime})});const data={id:'2026-10',expected_revision:2,reason:'فتح موثق'};assert.equal((await send('stale',data)).status,401);assert.equal((await send('fresh',{...data,authTime:owner.authTime})).status,400);assert.equal((await send('fresh',data)).status,200);
   } finally {await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));}
 });
+
+test('C1 funded closed cash restores the exact period and matching source; stripped or substituted reconciliation proof is rejected',async()=>{
+  const f=await fixture();await f.create();const cash=(await f.run('financialAccount.create',{name:'صندوق محفوظ',account_code:'1110',currency:'SDG',kind:'cash'})).result;
+  await f.run('journal.create',f.manual());await f.run('cashCount.create',{financial_account_id:cash.id,date:'2026-10-07',actual_count:100,difference_reason:''},'cash-proof');await f.run('period.softClose',{id:'2026-10',expected_revision:1,reason:'مراجعة'});await f.run('period.close',{id:'2026-10',expected_revision:2,reason:'إغلاق مطابق',fx_review_completed:true});
+  const backup=await f.ops.snapshot(f.org.id,owner,true),targetOwner={...owner,uid:'cash-period-restorer'},target=await f.organizations.create(targetOwner,'نقدية مقفلة',INITIAL_SETTINGS,'cash-period-target');await f.store.transaction(async tx=>tx.set(`organizations/${target.id}/meta/subscription`,{...createDefaultSubscription(target.id),...getPlanConfig('Enterprise'),org_id:target.id,plan:'Enterprise'}));
+  for(const proofs of [[],backup.collections.accounting_periods[0].close_evidence.reconciliations.map((row:any)=>({...row,id:'foreign-proof'})),backup.collections.accounting_periods[0].close_evidence.reconciliations.map((row:any)=>({...row,ledger_hash:'0'.repeat(64)}))]) {
+    const broken={...backup,collections:{...backup.collections,accounting_periods:backup.collections.accounting_periods.map(row=>({...row,close_evidence:{...row.close_evidence,reconciliations:proofs}}))}},before=f.store.dump();
+    await assert.rejects(f.ops.execute(target.id,targetOwner,{action:'backup.restore',data:{backup:broken},operationId:crypto.randomUUID()}),/إثبات|مصدر/);assert.deepEqual(f.store.dump(),before);
+  }
+  await f.ops.execute(target.id,targetOwner,{action:'backup.restore',data:{backup},operationId:'cash-period-restore'});const copied=await f.ops.snapshot(target.id,targetOwner,true);assert.equal(copied.collections.accounting_periods[0].close_evidence.reconciliations[0].id,'cr-cash-proof');assert.equal(copied.collections.cash_reconciliations[0].actual_count,100);assert.equal(copied.org.owner_uid,targetOwner.uid);
+});

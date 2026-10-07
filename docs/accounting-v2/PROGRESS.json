@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "B3",
-  "active_branch": "codex/accounting-v2-b3-sales-credit-transactions",
+  "active_branch": "codex/accounting-v2-b3-purchase-return-transactions",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -113,7 +113,7 @@
           "id": "B3",
           "scope": "Credit notes, sales/purchase returns and refunds",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-b3-sales-credit-transactions",
+          "branch": "codex/accounting-v2-b3-purchase-return-transactions",
           "substeps": [
             {
               "id": "B3.1",
@@ -148,7 +148,7 @@
               "id": "B3.2",
               "scope": "Atomic source-linked credit notes, sales/purchase returns and refunds; reports, reconciliation, backup and UI",
               "status": "in_progress",
-              "branch": "codex/accounting-v2-b3-sales-credit-transactions",
+              "branch": "codex/accounting-v2-b3-purchase-return-transactions",
               "substeps": [
                 {
                   "id": "B3.2a",
@@ -175,8 +175,8 @@
                 {
                   "id": "B3.2b",
                   "scope": "Atomic credit notes, sales/purchase returns/refunds, source caches, AR/AP reports, reconciliation, backup, protected API and UI",
-                  "status": "in_progress",
-                  "branch": "codex/accounting-v2-b3-sales-credit-transactions",
+                  "status": "implemented_ci_passed",
+                  "branch": "codex/accounting-v2-b3-purchase-return-transactions",
                   "substeps": [
                     {
                       "id": "B3.2b-sales",
@@ -218,15 +218,45 @@
                     {
                       "id": "B3.2b-purchases",
                       "scope": "Atomic purchase returns, explicit WAC variance, supplier reimbursements, AP/report/reconciliation/backup and protected API/UI",
-                      "status": "pending"
+                      "status": "implemented_ci_passed",
+                      "branch": "codex/accounting-v2-b3-purchase-return-transactions",
+                      "checks": {
+                        "unit_api": 172,
+                        "new_unit_api": 14,
+                        "types": "passed",
+                        "build": "passed",
+                        "local_new_ui": "passed",
+                        "rules_status": "passed",
+                        "full_ui_status": "passed",
+                        "rules": 24,
+                        "full_ui": 37,
+                        "production_audit_vulnerabilities": 0
+                      },
+                      "completed_parts": [
+                        "atomic original-value purchase returns and current-WAC inventory issue with separate signed variance",
+                        "historical supplier-advance reimbursements and payment FX, source sequence and cache proof",
+                        "dated AP/aging/statement and CSV/PDF report exports; reconciliation and strict restore",
+                        "backend live permission/subscription/period/idempotency gates and protected Arabic mobile UI"
+                      ],
+                      "pr": 21,
+                      "ci": {
+                        "conclusion": "success",
+                        "run_id": 37645759706,
+                        "commit_sha": "cb4f33a8294443982bd8a9f899cdf171690d0e70",
+                        "unit_api": 172,
+                        "rules": 24,
+                        "ui": 37,
+                        "production_audit_vulnerabilities": 0
+                      }
                     }
-                  ]
+                  ],
+                  "pr": 21
                 }
               ],
               "pr": 20
             }
           ],
-          "pr": 20
+          "pr": 21
         }
       ]
     },
@@ -273,12 +303,12 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B3_2B_SALES.md",
+  "last_report": "REPORT_B3_2B_PURCHASES.md",
   "next_steps": [
-    "Implement B3.2b-purchases atomic purchase returns and supplier reimbursements with AP/report/backup/UI",
-    "Complete standalone correction/refund document PDFs and B3 full-flow acceptance before C, D, E and Excel1-4"
+    "Complete standalone correction/refund PDFs and B3 integrated acceptance on a dependent branch",
+    "Then C, D, E and Excel1-4 according to prerequisites"
   ],
-  "updated_at": "2026-10-07T10:23:07.693744+00:00",
+  "updated_at": "2026-10-07T15:46:00Z",
   "deferred_requirements": [
     {
       "prd": "50",

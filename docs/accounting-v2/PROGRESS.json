@@ -5,9 +5,14 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "B3",
-  "active_branch": "codex/accounting-v2-b3-purchase-return-transactions",
+  "active_branch": "codex/accounting-v2-b3-documents-acceptance",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "accounting-v2-20261007-b33-1546",
+    "acquired_at": "2026-10-07T15:46:00Z",
+    "updated_at": "2026-10-07T15:46:00Z",
+    "expires_at": "2026-10-07T16:31:00Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -113,7 +118,7 @@
           "id": "B3",
           "scope": "Credit notes, sales/purchase returns and refunds",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-b3-purchase-return-transactions",
+          "branch": "codex/accounting-v2-b3-documents-acceptance",
           "substeps": [
             {
               "id": "B3.1",
@@ -254,6 +259,12 @@
                 }
               ],
               "pr": 20
+            },
+            {
+              "id": "B3.3",
+              "scope": "Protected standalone correction/refund PDFs and integrated B3 operational acceptance",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-b3-documents-acceptance"
             }
           ],
           "pr": 21
@@ -320,5 +331,5 @@
       "status": "pending"
     }
   ],
-  "active_substep": "B3.2b-purchases"
+  "active_substep": "B3.3"
 }

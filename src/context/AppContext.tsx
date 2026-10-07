@@ -1,3 +1,4 @@
+import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { Customer, Product, Invoice, Supplier, PurchaseBill, SupplierPayment, Payment, Expense, MerchantSettings, Currency, InventoryMovement, Organization, OrgMember, OrgRole, Account, JournalEntry, OrganizationCounters, OrgSubscription } from '../types';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
@@ -20,6 +21,7 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  exportCorrectionDocument: (kind: CorrectionDocumentKind, id: string) => Promise<CorrectionDocument>;
   currentUser: User | null;
   authLoading: boolean;
   syncError: string | null;
@@ -378,6 +380,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
   const nothing = async () => {};
   const value: AppContextType = {
+    exportCorrectionDocument: (kind, id) => run<CorrectionDocument>('correctionDocument.export', { kind, id }),
     currentUser, authLoading, syncStatus, syncError, dismissSyncError: () => setSyncError(null), lastSyncedAt,
     currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.exported_at ? state.member?.status || (state.role === 'Owner' ? 'active' : 'unknown') : 'unknown', orgMembers: rows<OrgMember>('members'),
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,

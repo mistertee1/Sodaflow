@@ -42,6 +42,8 @@ export interface OrgInvitation {
 }
 
 export interface OrganizationCounters {
+  audit_archive_count?: number;
+  audit_event_count?: number;
   credit_note_count?: number;
   customer_refund_count?: number;
   purchase_return_count?: number;
@@ -61,6 +63,7 @@ export interface OrganizationCounters {
 }
 
 export const DEFAULT_ORGANIZATION_COUNTERS: OrganizationCounters = {
+  audit_archive_count: 0,
   invoice_count: 0,
   customer_count: 0,
   product_count: 0,

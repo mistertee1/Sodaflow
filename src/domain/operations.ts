@@ -1,3 +1,5 @@
+import { restoreAuditArchives, verifyAuditArchives } from './auditArchives';
+import { correctionDocumentKind, readCorrectionDocument } from './correctionDocuments';
 import type { Product, Account, Invoice, JournalEntry, MerchantSettings, Organization, OrgRole, OrgSubscription, Payment } from '../types';
 import BigNumber from 'bignumber.js';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
@@ -27,7 +29,7 @@ const actions: Record<string, ActionType> = {
   'purchaseReturn.create': 'payables:write', 'supplierRefund.create': 'payables:write', 'creditNote.create': 'journal:create', 'customerRefund.create': 'journal:create',
   'bankReconciliation.create': 'journal:create', 'cashCount.create': 'journal:create',
   'financialAccount.create': 'accounts:create', 'financialAccount.update': 'accounts:update', 'cashTransfer.create': 'journal:create',
-  'operational.export': 'backup:export', 'payables.export': 'backup:export', 'supplier.create': 'payables:write', 'supplier.update': 'payables:write', 'purchase.create': 'payables:write', 'supplierPayment.create': 'payables:write',
+  'correctionDocument.export': 'backup:export', 'operational.export': 'backup:export', 'payables.export': 'backup:export', 'supplier.create': 'payables:write', 'supplier.update': 'payables:write', 'purchase.create': 'payables:write', 'supplierPayment.create': 'payables:write',
   'customer.create': 'customers:create', 'customer.update': 'customers:update', 'customer.delete': 'customers:delete',
   'product.create': 'products:create', 'product.update': 'products:update', 'product.delete': 'products:delete', 'product.stock': 'products:stock_adjustment',
   'accounting.activate': 'org:update_settings', 'product.cost.establish': 'products:stock_adjustment', 'inventory.receive': 'products:stock_adjustment',
@@ -38,7 +40,7 @@ const actions: Record<string, ActionType> = {
   'member.update': 'members:update_role', 'member.remove': 'members:remove',
   'invitation.create': 'members:invite', 'invitation.revoke': 'members:invite', 'backup.restore': 'backup:restore',
 };
-export const readPermissions: Record<string, ActionType> = { purchase_returns: 'payables:read', supplier_refunds: 'payables:read', credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
+export const readPermissions: Record<string, ActionType> = { audit_archives: 'audit_logs:view', purchase_returns: 'payables:read', supplier_refunds: 'payables:read', credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
@@ -109,17 +111,19 @@ export class Operations {
       if (backup) { ensure(org.status === 'active', 'المؤسسة متوقفة؛ التصدير المحمي غير متاح.', 403); assertSubscriptionActive(subscription); }
       const collections: Record<string, Document[]> = {};
       for (const [name, permission] of Object.entries(readPermissions)) {
-        const feature = name === 'audit_logs' ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections].includes(name) ? 'accounting' : null;
+        const feature = ['audit_logs','audit_archives'].includes(name) ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections].includes(name) ? 'accounting' : null;
         const activeSubscription = ['active', 'trial'].includes(subscription.effective_status || subscription.status) && org.status === 'active';
         collections[name] = hasPermission(role, permission) && (backup || !feature || activeSubscription && subscription.features[feature] === true) ? await tx.list(`${root}/${name}`) : [];
       }
+      if (backup) await verifyAuditArchives(collections.audit_archives);
       const counters = { ...DEFAULT_ORGANIZATION_COUNTERS, ...await tx.get(`${root}/meta/counters`) };
+      if (backup) { ensure((counters.audit_archive_count || 0) === collections.audit_archives.length, 'عدد أرشيف التدقيق لا يطابق السجل المحفوظ.', 409); counters.audit_event_count = collections.audit_logs.length; }
       const currentMonth = monthKey(this.now(), org.settings.timezone || 'Africa/Khartoum');
       counters.invoice_month = currentMonth;
       counters.monthly_invoice_count = (collections.invoices || []).filter(i => Number.isFinite(new Date(i.created_at).getTime()) && monthKey(new Date(i.created_at), org.settings.timezone || 'Africa/Khartoum') === currentMonth).length;
       const usage = await tx.get(`${root}/meta/usage`);
       counters.lifetime_invoice_count = Math.max(usage?.lifetimeInvoiceCount || 0, counters.invoice_count || 0, collections.invoices.length);
-      return { schema_version: 3, org, role, member, settings: { ...INITIAL_SETTINGS, ...org.settings }, collections, counters, subscription, exported_at: this.now().toISOString() };
+      return { schema_version: 3, ...(backup ? { audit_schema_version: 1 } : {}), org, role, member, settings: { ...INITIAL_SETTINGS, ...org.settings }, collections, counters, subscription, exported_at: this.now().toISOString() };
     });
   }
   async execute(orgId: string, actor: Actor, command: Command): Promise<OperationResult> {
@@ -137,6 +141,13 @@ export class Operations {
         ensure(operationalPermissions(command.data.view).every(permission => hasPermission(role, permission)), 'ليس لديك صلاحية هذا التقرير.', 403);
         const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
         assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
+      }
+      if (command.action === 'correctionDocument.export') {
+        const kind = correctionDocumentKind(command.data.kind);
+        ensure(hasPermission(role, kind === 'credit_note' || kind === 'customer_refund' ? 'journal:read' : 'payables:read'), 'ليس لديك صلاحية مستند التصحيح.', 403);
+        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+        assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
+        ensure(org.accounting_version === 2, 'مستند التصحيح يتطلب محاسبة V2.', 409);
       }
       let securityChecked = false;
       const requireCostAuthority = async () => {
@@ -241,6 +252,12 @@ export class Operations {
       const stamp = { org_id: orgId, created_by: actor.uid, schema_version: 3, created_at: iso };
       let result: Document = {};
       switch (command.action) {
+        case 'correctionDocument.export': {
+          result = await readCorrectionDocument(tx, root, data, settings, iso);
+          ensure(new TextEncoder().encode(JSON.stringify(result)).length <= 650000, 'المستند أكبر من حد التصدير؛ يلزم تصدير مضبوط.', 413);
+          break;
+        }
+
         case 'purchaseReturn.create': case 'supplierRefund.create': {
           result = await purchaseCorrectionCommand(command.action,data,{tx,root,orgId,actor:actor.uid,iso,operationId:command.operationId,settings,set,required,post,counterAdd}); break;
         }
@@ -599,9 +616,10 @@ export class Operations {
         }
         case 'backup.restore': {
           ensure(role === 'Owner', 'استعادة البيانات متاحة للمالك فقط.', 403);
-          const backup = data.backup;
+          const backup = data.backup ? { ...data.backup, collections: { ...data.backup.collections } } : data.backup;
           ensure(backup?.schema_version === 3 && backup.collections && backup.settings, 'صيغة النسخة الاحتياطية غير مدعومة.');
           const names = financialCollections;
+          backup.collections.audit_archives = await restoreAuditArchives(backup,orgId,actor.uid,command.operationId,iso);
           for (const name of [...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections]) if (backup.collections[name] === undefined) backup.collections[name] = [];
           ensure(names.every(n => Array.isArray(backup.collections[n])), 'النسخة ناقصة.');
           ensure(names.reduce((n, key) => n + backup.collections[key].length, 0) + backup.collections.purchase_bills.length + backup.collections.financial_accounts.length <= 440, 'فهرس فواتير المورد يتجاوز حد الاستعادة الذرية.');
@@ -644,6 +662,7 @@ export class Operations {
           ensure(importedMonthly <= subscription.max_invoices_per_month, 'فواتير الشهر في النسخة تتجاوز حصة الباقة.', 403);
           counters.lifetime_invoice_count = priorLifetime + backup.collections.invoices.length;
           set(`${root}/meta/usage`, { ...usage, lifetimeInvoiceCount: counters.lifetime_invoice_count, firstActualUseAt: usage?.firstActualUseAt || (backup.collections.invoices.length ? iso : null), updatedAt: iso });
+          counters.audit_archive_count = backup.collections.audit_archives.length;
           counters.numbering_version = 0; counters.invoice_month = ''; break;
         }
       }
@@ -651,12 +670,12 @@ export class Operations {
       const auditKeys = ['invoice_id', 'lines', 'native_currency', 'source_sequence', 'correction_count', 'credit_sdg', 'credit_usd', 'restored_cost_sdg', 'restored_cost_usd', 'credited_amount_sdg', 'credited_amount_usd', 'refunded_amount_sdg', 'refunded_amount_usd', 'credit_balance_sdg', 'credit_balance_usd', 'receivable_due_sdg', 'receivable_due_usd', 'available_credit_sdg', 'available_credit_usd', 'financial_account_id', 'ledger_snapshot', 'statement_opening', 'statement_closing', 'statement_lines', 'matches', 'actual_count', 'difference', 'opening_difference', 'difference_reason', 'reconciliation_sequence', 'last_reconciliation_id', 'account_code', 'kind', 'from_id', 'to_id', 'from_account_code', 'to_account_code', 'amount_sdg', 'amount_usd', 'source_balance_sdg', 'source_balance_usd', 'revision', 'last_transfer_id', 'date', 'reason', 'id', 'code', 'name', 'type', 'nature', 'reporting_group', 'cash_flow_category', 'normal_balance', 'supplier_id', 'bill_id', 'supplier_reference', 'due_date', 'reference_number', 'payment_terms_days', 'credit_limit', 'default_currency', 'phone', 'email', 'address', 'tax_number', 'notes', 'sequence', 'payment_sequence', 'settled_amount_sdg', 'settled_amount_usd', 'cash_amount_sdg', 'cash_amount_usd', 'stock_quantity', ...costFields, 'status', 'accounting_version', 'grand_total_sdg', 'grand_total_usd', 'remaining_sdg', 'remaining_usd', 'paid_amount_sdg', 'paid_amount_usd', 'amount', 'currency', 'payment_account_code', 'expense_account_code', 'cogs_sdg', 'cogs_usd', 'balance_sdg', 'balance_usd'];
       const previousState = Object.fromEntries(changes.filter(change => beforeValues.has(change.path)).map(change => [change.path, pick(beforeValues.get(change.path)!, auditKeys)]));
       const newState = Object.fromEntries(changes.filter(change => !change.path.includes('/meta/')).map(change => [change.path, change.value ? pick(change.value, auditKeys) : null]));
-      const audit = { ...(command.action === 'operational.export' ? { export_metadata: { report: data.view, period: result.period, account_code: data.query?.accountCode || '', currency: data.query?.currency || 'SDG/USD' } } : {}), ...(command.action === 'payables.export' ? { export_metadata: { report: 'payables', period: result.period } } : {}), actor_role: role, reason: data.reason || '', cost_evidence: costEvidence, previous_state: previousState, new_state: newState, id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
+      const audit = { ...(command.action === 'correctionDocument.export' ? { event_type: 'DATA_EXPORT_CREATED', export_metadata: { format: 'pdf', document_type: result.document_type, document_id: result.document.id, source_id: result.source.id, schema_version: result.schema_version, record_count: 1 } } : {}), ...(command.action === 'operational.export' ? { export_metadata: { report: data.view, period: result.period, account_code: data.query?.accountCode || '', currency: data.query?.currency || 'SDG/USD' } } : {}), ...(command.action === 'payables.export' ? { export_metadata: { report: 'payables', period: result.period } } : {}), actor_role: role, reason: data.reason || '', cost_evidence: costEvidence, previous_state: previousState, new_state: newState, id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
       tx.set(`${root}/audit_logs/${audit.id}`, audit);
       const visible = changes.filter(c => {
         if (c.path === root || c.path.startsWith(`${root}/meta/`)) return true;
         const collection = c.path.split('/')[2];
-        const feature = collection === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections].includes(collection) ? 'accounting' : collection === 'audit_logs' ? 'audit_trail' : null;
+        const feature = collection === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections].includes(collection) ? 'accounting' : ['audit_logs','audit_archives'].includes(collection) ? 'audit_trail' : null;
         return c.path.startsWith(`${root}/`) && hasPermission(role, readPermissions[collection]) && (!feature || subscription.features[feature] === true);
       });
       const response = clean({ result, changes: visible });

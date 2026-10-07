@@ -1,3 +1,4 @@
+import { CorrectionDocumentDownload } from './CorrectionDocumentDownload';
 import { InvoiceStatus } from './InvoiceStatus';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
@@ -138,8 +139,8 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({
 
         {(invoice.correction_count || customerRefunds.some(row => row.invoice_id === invoice.id)) ? <section aria-label="تصحيحات الفاتورة" className="no-print p-4 border-b border-sf-border bg-sf-raised text-sm space-y-2">
           <p>الرصيد الدائن القابل للرد: <bdi dir="ltr">{formatMoney(invoice.credit_balance_sdg || 0, 'SDG', settings)} / {formatMoney(invoice.credit_balance_usd || 0, 'USD', settings)}</bdi></p>
-          {creditNotes.filter(row => row.invoice_id === invoice.id).sort((a,b) => a.source_sequence-b.source_sequence).map(row => <p key={row.id}>{row.kind === 'sales_return' ? 'مردود بضاعة' : 'إشعار تصحيح سعر'} · <bdi dir="ltr">{row.date}</bdi> · <bdi dir="ltr">{formatMoney(row.credit_sdg, 'SDG', settings)} / {formatMoney(row.credit_usd, 'USD', settings)}</bdi> · {row.reason}</p>)}
-          {customerRefunds.filter(row => row.invoice_id === invoice.id).sort((a,b) => a.source_sequence-b.source_sequence).map(row => <p key={row.id}>رد نقدي · <bdi dir="ltr">{row.date}</bdi> · <bdi dir="ltr">{formatMoney(row.amount, row.currency, settings)}</bdi> · {row.reason}</p>)}
+          {creditNotes.filter(row => row.invoice_id === invoice.id).sort((a,b) => a.source_sequence-b.source_sequence).map(row => <p key={row.id}>{row.kind === 'sales_return' ? 'مردود بضاعة' : 'إشعار تصحيح سعر'} · <bdi dir="ltr">{row.date}</bdi> · <bdi dir="ltr">{formatMoney(row.credit_sdg, 'SDG', settings)} / {formatMoney(row.credit_usd, 'USD', settings)}</bdi> · {row.reason} <CorrectionDocumentDownload kind="credit_note" id={row.id} /></p>)}
+          {customerRefunds.filter(row => row.invoice_id === invoice.id).sort((a,b) => a.source_sequence-b.source_sequence).map(row => <p key={row.id}>رد نقدي · <bdi dir="ltr">{row.date}</bdi> · <bdi dir="ltr">{formatMoney(row.amount, row.currency, settings)}</bdi> · {row.reason} <CorrectionDocumentDownload kind="customer_refund" id={row.id} /></p>)}
         </section> : null}
         {/* Printable Invoice Container */}
         <div id="printable-invoice" className="sf-document-paper p-6 sm:p-8 overflow-y-auto space-y-6 flex-1 text-sf-text bg-sf-surface">

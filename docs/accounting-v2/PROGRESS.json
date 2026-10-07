@@ -10,8 +10,8 @@
   "lease": {
     "worker": "accounting-v2-20261007-b33-1546",
     "acquired_at": "2026-10-07T15:46:00Z",
-    "updated_at": "2026-10-07T15:46:00Z",
-    "expires_at": "2026-10-07T16:31:00Z"
+    "updated_at": "2026-10-07T16:00:00Z",
+    "expires_at": "2026-10-07T16:45:00Z"
   },
   "milestones": [
     {
@@ -263,8 +263,23 @@
             {
               "id": "B3.3",
               "scope": "Protected standalone correction/refund PDFs and integrated B3 operational acceptance",
-              "status": "in_progress",
-              "branch": "codex/accounting-v2-b3-documents-acceptance"
+              "status": "implemented_ci_pending",
+              "branch": "codex/accounting-v2-b3-documents-acceptance",
+              "checks": {
+                "unit_api": 177,
+                "new_unit_api": 5,
+                "types": "passed",
+                "build": "passed",
+                "local_new_ui": "passed_before_final_layout_refinement",
+                "rules_status": "pending_ci",
+                "full_ui_status": "pending_ci"
+              },
+              "completed_parts": [
+                "fresh authorized immutable correction/refund PDF exports and source-specific audit metadata",
+                "safe Arabic A4 repeated header/table rows, separate books, original tax/cost and refund FX evidence",
+                "integrated B3 cycle with partial/final customer and supplier payments, bank expense/transfer, bank/cash reconciliation and two restores with zero differences",
+                "bounded restored audit provenance archives, canonical hashes, source IDs and dropped-event/archive detection"
+              ]
             }
           ],
           "pr": 21
@@ -314,12 +329,12 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B3_2B_PURCHASES.md",
+  "last_report": "REPORT_B3_3_DOCUMENTS_ACCEPTANCE.md",
   "next_steps": [
-    "Complete standalone correction/refund PDFs and B3 integrated acceptance on a dependent branch",
-    "Then C, D, E and Excel1-4 according to prerequisites"
+    "Confirm B3.3 full CI and final PDF visual inspection; leave dependent review PR targeting #21",
+    "Begin C1 accounting periods, soft/hard close and controlled reopen; then remaining C, D, E and Excel1-4"
   ],
-  "updated_at": "2026-10-07T15:46:00Z",
+  "updated_at": "2026-10-07T16:00:00Z",
   "deferred_requirements": [
     {
       "prd": "50",

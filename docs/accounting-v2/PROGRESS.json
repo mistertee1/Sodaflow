@@ -10,8 +10,8 @@
   "lease": {
     "worker": "accounting-v2-20261007-b32b-0954",
     "acquired_at": "2026-10-07T09:54:59.748Z",
-    "updated_at": "2026-10-07T10:10:05.265Z",
-    "expires_at": "2026-10-07T10:55:05.265Z"
+    "updated_at": "2026-10-07T10:17:32.922733+00:00",
+    "expires_at": "2026-10-07T11:02:32.922733+00:00"
   },
   "milestones": [
     {
@@ -174,7 +174,8 @@
                     "rules": 22,
                     "ui": 35,
                     "production_audit_vulnerabilities": 0
-                  }
+                  },
+                  "pr": 19
                 },
                 {
                   "id": "B3.2b",
@@ -188,13 +189,23 @@
                       "status": "implemented_ci_pending",
                       "branch": "codex/accounting-v2-b3-sales-credit-transactions",
                       "checks": {
-                        "unit_api": 157,
-                        "new_unit_api": 14,
+                        "unit_api": 158,
+                        "new_unit_api": 15,
                         "types": "passed",
                         "build": "passed",
                         "local_new_ui": "passed",
                         "rules": "ci_pending",
                         "full_ui": "ci_pending"
+                      },
+                      "pr": 20,
+                      "previous_ci": {
+                        "run_id": 37605675145,
+                        "commit_sha": "90d53002d319829103ba9585d55116a71c53d308",
+                        "conclusion": "success",
+                        "unit_api": 157,
+                        "rules": 23,
+                        "ui": 36,
+                        "production_audit_vulnerabilities": 0
                       }
                     },
                     {
@@ -205,10 +216,10 @@
                   ]
                 }
               ],
-              "pr": 19
+              "pr": 20
             }
           ],
-          "pr": 19
+          "pr": 20
         }
       ]
     },
@@ -257,11 +268,11 @@
   ],
   "last_report": "REPORT_B3_2B_SALES.md",
   "next_steps": [
-    "Confirm complete CI for B3.2b-sales (157 unit/API, new real Firestore race/SDK protection and full UI)",
+    "Confirm final B3.2b-sales source movement proof CI (158 unit/API, 23 Firestore, 36 UI)",
     "Implement B3.2b-purchases atomic purchase returns and supplier reimbursements with AP/report/backup/UI",
     "Complete standalone correction/refund document PDFs and B3 full-flow acceptance before C, D, E and Excel1-4"
   ],
-  "updated_at": "2026-10-07T10:10:05.265Z",
+  "updated_at": "2026-10-07T10:17:32.922733+00:00",
   "deferred_requirements": [
     {
       "prd": "50",

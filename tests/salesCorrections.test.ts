@@ -93,6 +93,26 @@ test('B3 strict source/history/tenant/date/line limits reject tampering atomical
   const before = f.store.dump(); await assert.rejects(f.run('creditNote.create', f.note(), 'tampered'), /توزيع/); assert.deepEqual(f.store.dump(), before);
 });
 
+test('B3 original per-product sale quantity, cost and source links must be proven before posting or reporting a correction', async () => {
+  const f = await fixture(), snapshot = await f.books();
+  const movement = snapshot.collections.inventory_movements.find(row => row.type === 'SALE' && row.reference_id === f.invoice.id)!;
+  await f.run('creditNote.create', f.note(), 'seed-credit');
+  const path = `${f.root}/inventory_movements/${movement.id}`;
+  for (const patch of [{ quantity: -2 }, { value_delta_usd: -61 }, { value_delta_sdg: -120001 }, { org_id: 'foreign' }, { journal_id: 'wrong' }, { product_id: 'wrong' }]) {
+    await f.store.transaction(async tx => tx.set(path, { ...movement, ...patch }));
+    const before = f.store.dump();
+    await assert.rejects(f.run('creditNote.create', f.note('sales_return', [{ line_id: 'line-1', quantity: 1 }]), crypto.randomUUID()), /حركة البيع الأصلية/);
+    await assert.rejects(f.ops.operationalReport(f.org.id, owner, 'receivables', { end: '2026-10-07' }), /حركة البيع الأصلية/);
+    assert.deepEqual(f.store.dump(), before);
+  }
+  await f.store.transaction(async tx => { tx.set(path, movement); tx.set(`${f.root}/inventory_movements/duplicate`, { ...movement, id: 'duplicate' }); });
+  const duplicated = f.store.dump(); await assert.rejects(f.run('creditNote.create', f.note(), 'duplicate'), /ناقصة أو مكررة/); assert.deepEqual(f.store.dump(), duplicated);
+  await f.store.transaction(async tx => { tx.delete(`${f.root}/inventory_movements/duplicate`); tx.delete(path); });
+  const missing = f.store.dump(); await assert.rejects(f.run('payment.create', f.pay(280), 'missing'), /ناقصة أو مكررة/); assert.deepEqual(f.store.dump(), missing);
+  await f.store.transaction(async tx => tx.set(path, movement));
+  await f.run('creditNote.create', f.note(), 'valid'); await f.books();
+});
+
 test('B3 cash funds, account state, later cash spending and source chronology protect refunds', async () => {
   const f = await fixture(); await f.run('payment.create', f.pay(), 'pay'); await f.run('creditNote.create', f.note(), 'credit');
   await f.run('expense.create', { title: 'صرف', amount: 290, currency: 'USD', exchange_rate_used: 2000, date: '2026-10-08', payment_method: 'cash' }, 'later');

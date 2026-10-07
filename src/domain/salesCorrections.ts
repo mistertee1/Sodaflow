@@ -32,12 +32,26 @@ function validatePostingAccounts(lines: JournalEntryLine[], accounts: Document[]
 }
 
 /** A bounded transaction history, independently replayed for posting, reconciliation and restore. */
-export function verifySalesSource(invoice: Invoice, entries: JournalEntry[], payments: Document[], notes: Document[], refunds: Document[], financial: Document[], accounts: Document[], checkCaches = true) {
+export function verifySalesSource(invoice: Invoice, entries: JournalEntry[], payments: Document[], notes: Document[], refunds: Document[], financial: Document[], accounts: Document[], checkCaches = true, movements?: Document[]) {
   const orgId = identifier(invoice.org_id);
   const original = entries.filter(entry => entry.reference_type === 'invoice' && entry.reference_id === invoice.id);
   validatePostingAccounts(original.flatMap(entry => entry.lines), accounts, false);
   const source = buildSalesReturnBases(invoice, original, orgId), native = receivableCurrency({ currency_mode: invoice.currency_mode, items: invoice.items });
   ensure(['dual','single_sdg','single_usd'].includes(invoice.currency_mode) && (!invoice.receivable_currency || invoice.receivable_currency === native), 'عملة الذمم الأصلية لا تطابق مصدر الفاتورة.', 409);
+  if (movements) {
+    const quantities = new Map<string, { quantity: BigNumber; sdg: BigNumber; usd: BigNumber }>();
+    for (const item of invoice.items.filter(item => item.cost_status === 'valued')) {
+      const productId = identifier(item.product_id), old = quantities.get(productId) || { quantity: new BigNumber(0), sdg: new BigNumber(0), usd: new BigNumber(0) };
+      quantities.set(productId, { quantity: old.quantity.plus(item.quantity), sdg: old.sdg.plus(item.total_cost_sdg!), usd: old.usd.plus(item.total_cost_usd!) });
+    }
+    const sales = movements.filter(row => row.reference_type === 'invoice' && row.reference_id === invoice.id && row.type === 'SALE' && row.costing_version === 2);
+    ensure(sales.length === quantities.size, 'حركات تكلفة البيع الأصلية ناقصة أو مكررة.', 409);
+    const used = new Set<string>();
+    for (const movement of sales) {
+      const amount = quantities.get(movement.product_id); ensure(amount && !used.has(movement.product_id), 'صنف حركة البيع الأصلية لا يطابق المصدر.', 409); used.add(movement.product_id);
+      ensure(movement.org_id === orgId && movement.journal_id === source.journal_id && amount.quantity.negated().eq(movement.quantity) && amount.sdg.negated().eq(movement.value_delta_sdg) && amount.usd.negated().eq(movement.value_delta_usd), 'كمية/تكلفة حركة البيع الأصلية لا تطابق لقطات البنود.', 409);
+    }
+  }
   ensure(payments.length + notes.length + refunds.length <= 200, 'سجل الفاتورة تجاوز حد المعاملة؛ يلزم إجراء ترحيل خادمي.', 409);
   const legacy = payments.filter(row => row.source_sequence === undefined).sort((a, b) => a.payment_date.localeCompare(b.payment_date) || a.id.localeCompare(b.id));
   const timeline = [...legacy.map((row, i) => ({ row, type: 'payment' as const, sequence: i + 1 })),
@@ -117,11 +131,11 @@ export function verifySalesSource(invoice: Invoice, entries: JournalEntry[], pay
 
 export async function loadSalesSource(tx: Transaction, root: string, invoice: Invoice) {
   ensure(invoice.org_id === root.split('/')[1], 'مصدر الفاتورة يتبع مؤسسة أخرى.', 403);
-  const [entries, payments, notes, refunds, financial, accounts] = await Promise.all([
+  const [entries, payments, notes, refunds, financial, accounts, movements] = await Promise.all([
     tx.list(`${root}/journal_entries`), tx.find(`${root}/payments`, 'invoice_id', invoice.id), tx.find(`${root}/credit_notes`, 'invoice_id', invoice.id),
-    tx.find(`${root}/customer_refunds`, 'invoice_id', invoice.id), tx.list(`${root}/financial_accounts`), tx.list(`${root}/accounts`),
+    tx.find(`${root}/customer_refunds`, 'invoice_id', invoice.id), tx.list(`${root}/financial_accounts`), tx.list(`${root}/accounts`), tx.find(`${root}/inventory_movements`, 'reference_id', invoice.id),
   ]);
-  return { ...verifySalesSource(invoice, entries as JournalEntry[], payments, notes, refunds, financial, accounts), entries: entries as JournalEntry[], accounts: accounts as Account[] };
+  return { ...verifySalesSource(invoice, entries as JournalEntry[], payments, notes, refunds, financial, accounts, true, movements), entries: entries as JournalEntry[], accounts: accounts as Account[] };
 }
 
 export function salesInvoiceCaches(invoice: Invoice, state: { balance: BookAmount; paid: BookAmount; credited: BookAmount; refunded: BookAmount; sequence: number; correctionCount: number }, iso: string) {
@@ -214,7 +228,7 @@ export function reconcileSalesCorrections(data: Record<string, Document[]>) {
   const notes = data.credit_notes || [], refunds = data.customer_refunds || [], invoices = data.invoices || [], entries = data.journal_entries || [];
   const inspect = (collection: string, id: string, work: () => void) => { try { work(); } catch (error) { findings.push({ code: 'invalid_record', collection, id, message: error instanceof Error ? error.message : 'غير صالح' }); } };
   for (const invoice of invoices) if (notes.some(row => row.invoice_id === invoice.id) || refunds.some(row => row.invoice_id === invoice.id) || invoice.source_event_sequence !== undefined) inspect('invoices', invoice.id, () => {
-    verifySalesSource(invoice as Invoice, entries as JournalEntry[], (data.payments || []).filter(row => row.invoice_id === invoice.id), notes.filter(row => row.invoice_id === invoice.id), refunds.filter(row => row.invoice_id === invoice.id), data.financial_accounts || [], data.accounts || []);
+    verifySalesSource(invoice as Invoice, entries as JournalEntry[], (data.payments || []).filter(row => row.invoice_id === invoice.id), notes.filter(row => row.invoice_id === invoice.id), refunds.filter(row => row.invoice_id === invoice.id), data.financial_accounts || [], data.accounts || [], true, data.inventory_movements || []);
   });
   for (const [collection, rows] of [['credit_notes', notes], ['customer_refunds', refunds]] as const) for (const row of rows) inspect(collection, row.id, () => { ensure(invoices.some(invoice => invoice.id === row.invoice_id), 'مصدر الفاتورة مفقود.'); });
   for (const entry of entries) if (['credit_note', 'customer_refund'].includes(entry.reference_type)) inspect('journal_entries', entry.id, () => { ensure((entry.reference_type === 'credit_note' ? notes : refunds).some(row => row.id === entry.reference_id), 'مصدر التصحيح/الرد مفقود.'); });

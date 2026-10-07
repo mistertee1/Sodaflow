@@ -7,12 +7,7 @@
   "active_milestone": "B3",
   "active_branch": "codex/accounting-v2-b3-correction-state",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "root-accounting-v2-20261007-b3",
-    "started_at": "2026-10-07T03:55:55.000Z",
-    "updated_at": "2026-10-07T04:17:31.605Z",
-    "expires_at": "2026-10-07T05:02:31.605Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -123,7 +118,7 @@
             {
               "id": "B3.1",
               "scope": "Source return allocation, original-cost restock, purchase WAC variance and refund carrying-value contracts",
-              "status": "implemented_ci_pending",
+              "status": "implemented_ci_passed",
               "checks": {
                 "unit_quotes": 18,
                 "unit_api": 135,
@@ -138,16 +133,13 @@
                 "purchase original acquisition and posting proof"
               ],
               "ci": {
-                "conclusion": "pending",
-                "previous_success": {
-                  "run_id": 37570202622,
-                  "commit_sha": "532c91ac02592228a5f3b33d40b4aeb23b3d424d",
-                  "unit_api": 134,
-                  "rules": 22,
-                  "ui": 35,
-                  "production_audit_vulnerabilities": 0
-                },
-                "scope": "original-source keys strengthened; final CI pending"
+                "conclusion": "success",
+                "run_id": 37570762173,
+                "commit_sha": "fc8a976902c3dd2a55c51b26aafda3677625a42c",
+                "unit_api": 135,
+                "rules": 22,
+                "ui": 35,
+                "production_audit_vulnerabilities": 0
               },
               "branch": "codex/accounting-v2-b3-return-foundation",
               "pr": 18
@@ -161,13 +153,22 @@
                 {
                   "id": "B3.2a",
                   "scope": "Replay shared sales price-credit/physical return quantity and value entitlements",
-                  "status": "implemented_local_checks_passed",
+                  "status": "implemented_ci_passed",
                   "checks": {
                     "unit_api": 143,
                     "new_unit_tests": 8,
                     "types": "passed",
                     "build": "passed",
                     "boundary_sequences": 48
+                  },
+                  "ci": {
+                    "conclusion": "success",
+                    "run_id": 37570773104,
+                    "commit_sha": "a31e2cbb05e77002557c2bac72da3fc79a9fa82c",
+                    "unit_api": 143,
+                    "rules": 22,
+                    "ui": 35,
+                    "production_audit_vulnerabilities": 0
                   }
                 },
                 {
@@ -228,12 +229,12 @@
   ],
   "last_report": "REPORT_B3_2A.md",
   "next_steps": [
-    "Confirm B3.1 and B3.2a CI; user reviews dependent branches",
-    "Implement B3.2b immutable transactional documents and journal/source integration using proven bases and shared correction state",
-    "Reconcile paid credits/refundable AR/AP, inventory and cash; extend backup/rules/API/UI/dated reports tests",
-    "Then C, D, E and Excel1-4; deferred PRD50 bank import remains pending"
+    "Implement B3.2b atomic immutable credit notes, sales/purchase returns and customer/supplier refunds",
+    "Integrate signed AR/AP and customer credit caches, dated reports, inventory/cash source reconciliation, backup and protected API/UI",
+    "Run transaction/RBAC/expired plan/closed period/concurrency/direct SDK/restore/UI acceptance before completing B3",
+    "Then C, D, E and Excel1-4; PRD50 import remains deferred"
   ],
-  "updated_at": "2026-10-07T04:17:31.605Z",
+  "updated_at": "2026-10-07T04:22:37.872Z",
   "deferred_requirements": [
     {
       "prd": "50",
@@ -245,5 +246,5 @@
       "status": "pending"
     }
   ],
-  "active_substep": "B3.2a"
+  "active_substep": "B3.2b"
 }

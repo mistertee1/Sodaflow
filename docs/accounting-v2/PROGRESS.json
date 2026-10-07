@@ -5,13 +5,13 @@
   "base_main_sha": "45fca522e5f8cf0488b4cbf09ce84d95cd673a6f",
   "user_merges_only": true,
   "active_milestone": "B3",
-  "active_branch": "codex/accounting-v2-b3-return-foundation",
+  "active_branch": "codex/accounting-v2-b3-correction-state",
   "overall_status": "in_progress",
   "lease": {
     "worker": "root-accounting-v2-20261007-b3",
     "started_at": "2026-10-07T03:55:55.000Z",
-    "updated_at": "2026-10-07T04:10:36.000Z",
-    "expires_at": "2026-10-07T04:55:36.000Z"
+    "updated_at": "2026-10-07T04:11:18.000Z",
+    "expires_at": "2026-10-07T04:56:18.000Z"
   },
   "milestones": [
     {
@@ -118,7 +118,7 @@
           "id": "B3",
           "scope": "Credit notes, sales/purchase returns and refunds",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-b3-return-foundation",
+          "branch": "codex/accounting-v2-b3-correction-state",
           "substeps": [
             {
               "id": "B3.1",
@@ -142,15 +142,36 @@
                 "previous_run_id": 37569700068,
                 "previous_conclusion": "failure",
                 "reason": "Two inherited B2 UI tests set historical end before the runtime default start; explicit fixture start dates added. Unit/API, build, audit and 22 rules passed."
-              }
+              },
+              "branch": "codex/accounting-v2-b3-return-foundation",
+              "pr": 18
             },
             {
               "id": "B3.2",
               "scope": "Atomic source-linked credit notes, sales/purchase returns and refunds; reports, reconciliation, backup and UI",
-              "status": "pending"
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-b3-correction-state",
+              "substeps": [
+                {
+                  "id": "B3.2a",
+                  "scope": "Replay shared sales price-credit/physical return quantity and value entitlements",
+                  "status": "implemented_local_checks_passed",
+                  "checks": {
+                    "unit_api": 141,
+                    "new_unit_tests": 7,
+                    "types": "passed",
+                    "build": "passed"
+                  }
+                },
+                {
+                  "id": "B3.2b",
+                  "scope": "Atomic credit notes, sales/purchase returns/refunds, source caches, AR/AP reports, reconciliation, backup, protected API and UI",
+                  "status": "pending"
+                }
+              ]
             }
           ],
-          "pr": 18
+          "pr": null
         }
       ]
     },
@@ -197,14 +218,14 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_B3.md",
+  "last_report": "REPORT_B3_2A.md",
   "next_steps": [
-    "Confirm B3.1 CI and review source calculation contracts",
-    "B3.2: load original posting evidence, allocate frozen revenue/tax per line, and post immutable credit notes/physical returns/refunds atomically",
-    "Integrate dated AR/AP and customer credits, reconciliation/backup, API permission/idempotency/period tests and UI",
-    "Then C, D, E and Excel1-4 with deferred PRD50 import"
+    "Confirm B3.1 and B3.2a CI; user reviews dependent branches",
+    "Implement B3.2b immutable transactional documents and journal/source integration using proven bases and shared correction state",
+    "Reconcile paid credits/refundable AR/AP, inventory and cash; extend backup/rules/API/UI/dated reports tests",
+    "Then C, D, E and Excel1-4; deferred PRD50 bank import remains pending"
   ],
-  "updated_at": "2026-10-07T04:10:36.000Z",
+  "updated_at": "2026-10-07T04:11:18.000Z",
   "deferred_requirements": [
     {
       "prd": "50",
@@ -215,5 +236,6 @@
       ],
       "status": "pending"
     }
-  ]
+  ],
+  "active_substep": "B3.2a"
 }

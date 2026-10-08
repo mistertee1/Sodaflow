@@ -43,7 +43,9 @@ before(async () => {
 after(async () => { await env?.cleanup(); });
 
 async function atomicOpeningSetup(store:FirestoreStore,actor:{uid:string;email:string;emailVerified:boolean;authTime:number},now:Date,suffix:string,rules:string) {
-  const org=await new Organizations(store).create(actor,'افتتاح محمي حقيقي',INITIAL_SETTINGS,`atomic-${suffix}`,true),root=`organizations/${org.id}`,fresh=freshOpeningBooksFixture(org.id,actor.uid),plan={...defaultPlatformPlans(now.toISOString()).find(row=>row.id==='Enterprise')!,id:`atomic-plan-${suffix}`};
+  // Each scenario needs its own tenant. Initial registration intentionally reuses
+  // org-<owner uid>, which would alias the two currency-shortage scenarios.
+  const org=await new Organizations(store).create(actor,'افتتاح محمي حقيقي',INITIAL_SETTINGS,`atomic-${suffix}`,false),root=`organizations/${org.id}`,fresh=freshOpeningBooksFixture(org.id,actor.uid),plan={...defaultPlatformPlans(now.toISOString()).find(row=>row.id==='Enterprise')!,id:`atomic-plan-${suffix}`};
   await store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:plan.id,subscriptionEnd:'2027-01-01',subscriptionEndMillis:Date.parse('2027-01-01')});tx.set(`plans/${plan.id}`,plan);for(const [name,rows] of Object.entries(fresh.data))for(const row of rows)tx.set(`${root}/${name}/${name==='accounts'?row.code:row.id}`,row);for(const row of fresh.data.financial_accounts)tx.set(`${root}/financial_account_mappings/${row.account_code}`,{id:row.id});tx.set(`${root}/meta/counters`,{...await tx.get(`${root}/meta/counters`),customer_count:2,product_count:1});});
   const ops=new Operations(store,()=>now,saved=>saved as any,async()=>verifyAccountingRulesSource([{content:rules}])),run=(action:string,data:Record<string,unknown>,operationId:string)=>ops.execute(org.id,actor,{action,data,operationId});
   await run('period.create',{id:'October',start_date:'2026-10-01',end_date:'2026-10-20',reason:'بدء فترة'},`period-${suffix}`);

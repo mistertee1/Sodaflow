@@ -1,5 +1,8 @@
 import { periodCollections, assertPeriodPosting, assertRecentOwner, validatePeriods, verifyClosedPeriodHashes } from './periodContracts';
 import { periodCommand, closeChecklist } from './accountingPeriods';
+import { readOpeningPreview } from './openingPreview';
+import type { OpeningInput } from './openingBalances';
+import type { OpeningTerms } from './openingSources';
 import { restoreAuditArchives, verifyAuditArchives } from './auditArchives';
 import { correctionDocumentKind, readCorrectionDocument } from './correctionDocuments';
 import type { Product, Account, Invoice, JournalEntry, MerchantSettings, Organization, OrgRole, OrgSubscription, Payment } from '../types';
@@ -67,6 +70,23 @@ function monthKey(now: Date, timeZone: string) {
 }
 export class Operations {
   constructor(public store: Store, private now: () => Date = () => new Date(), private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = (_saved, orgId) => createDefaultSubscription(orgId), private verifyCostingSecurity?: () => Promise<void>) {}
+  async openingPreview(orgId:string,actor:Actor,request:{input:OpeningInput;terms:OpeningTerms[]}) {
+    ensure(request && typeof request==='object' && !Array.isArray(request) && Object.keys(request).every(key=>['input','terms'].includes(key)),'حقول طلب معاينة الأرصدة غير صالحة أو محمية.');
+    ensure(request.input && typeof request.input==='object' && !Array.isArray(request.input) && Array.isArray(request.terms) && request.terms.length<=97,'بيانات الأرصدة والاستحقاقات مطلوبة للمعاينة.');
+    return this.store.transaction(async tx=>{
+      const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'opening:preview'),'معاينة الأرصدة متاحة للمالك والمحاسب فقط.',403);
+      const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');
+      ensure(org.accounting_version===2,'معاينة الأرصدة تتطلب محاسبة V2.',409);
+      if(request.input?.currency_policy==='dual')assertFeature(subscription,'multi_currency');
+      if(request.input?.inventory?.length)assertFeature(subscription,'inventory_tracking');
+      if(this.store.authority==='browser')throw new BusinessError('معاينة الأرصدة المحمية تتطلب خدمة الخادم.',403,'accounting_server_required');
+      if(this.store.authority==='server'){
+        if(!this.verifyCostingSecurity)throw new BusinessError('تعذر تأكيد قواعد حماية V2 المنشورة.',503,'accounting_rules_not_verified');
+        await this.verifyCostingSecurity();
+      }
+      return readOpeningPreview(tx,`organizations/${orgId}`,orgId,org.accounting_version,role,org.settings,now,request);
+    });
+  }
   async advancedReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}) {
     return this.store.transaction(async tx => {
       const { org, role } = await membership(tx, orgId, actor);

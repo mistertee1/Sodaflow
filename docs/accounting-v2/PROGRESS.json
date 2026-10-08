@@ -489,7 +489,9 @@
                         "types": "passed",
                         "build": "passed",
                         "rules_status": "pending_ci",
-                        "full_ui_status": "pending_ci"
+                        "full_ui_status": "pending_ci",
+                        "new_emulator": 1,
+                        "local_emulator": "not_run_java17_missing_emulator_cache_ci_java21_required"
                       },
                       "completed_parts": [
                         "dedicated Owner/Accountant live authorization and current catalog feature gates",

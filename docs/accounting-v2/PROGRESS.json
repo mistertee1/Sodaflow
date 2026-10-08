@@ -7,12 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c2-opening-integration",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "accounting-v2-20261008-c2221-0732",
-    "acquired_at": "2026-10-08T07:31:59Z",
-    "updated_at": "2026-10-08T07:39:00Z",
-    "expires_at": "2026-10-08T08:24:00.000Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -522,7 +517,7 @@
                         {
                           "id": "C2.2b.2.1",
                           "scope": "Opening-source integration in current financial reports, reconciliation, caches and strict backup/restore",
-                          "status": "implemented_ci_pending",
+                          "status": "completed",
                           "branch": "codex/accounting-v2-c2-opening-integration",
                           "checks": {
                             "unit_api": 227,
@@ -531,8 +526,13 @@
                             "build": "passed",
                             "new_emulator": 1,
                             "new_ui": 1,
-                            "rules_status": "pending_ci",
-                            "full_ui_status": "pending_ci"
+                            "rules_status": "passed_ci",
+                            "full_ui_status": "passed_ci",
+                            "rules": 28,
+                            "ui": 45,
+                            "production_vulnerabilities": 0,
+                            "ci_run": 37745317689,
+                            "ci_status": "success"
                           },
                           "completed_parts": [
                             "per-lot and per-control-line historical AR/AP allocation without fabricated invoices",
@@ -540,7 +540,10 @@
                             "full financial source replay and AR/AP/inventory GL reconciliation",
                             "declared opening backup version/counts, original-tenant proof and nested remap with zero-difference destination check",
                             "source-specific mobile labels, PDF/CSV references and retained settled party links"
-                          ]
+                          ],
+                          "pr": 28,
+                          "validated_commit": "5bf46badcc5510c6b72c7e1e6a5613bb328bbf03",
+                          "completed_at": "2026-10-08T07:51:00Z"
                         },
                         {
                           "id": "C2.2b.2.2",
@@ -760,11 +763,11 @@
   ],
   "last_report": "REPORT_C2_2B21_OPENING_INTEGRATION.md",
   "next_steps": [
-    "Implement C2.2b.2 source integration in AR/AP reports, reconciliation, live caches and strict restore before protected atomic opening/settlement commands.",
+    "Implement C2.2b.2.2 protected atomic opening and settlement commands; source/report/cache/restore integration C2.2b.2.1 is validated in PR28.",
     "Implement C2.2b.3 protected wizard and C2.3 capital/drawings.",
     "Continue C3-C6, D, E, Excel1-4 and deferred requirements; full final acceptance remains pending."
   ],
-  "updated_at": "2026-10-08T07:39:00Z",
+  "updated_at": "2026-10-08T07:51:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -804,12 +807,13 @@
     }
   ],
   "last_lease": {
-    "worker": "accounting-v2-20261008-c22-0156",
-    "acquired_at": "2026-10-08T02:24:55Z",
-    "updated_at": "2026-10-08T02:24:55Z",
-    "expires_at": "2026-10-08T03:09:55.000Z",
-    "ended_at": "2026-10-08T07:31:59Z",
-    "status": "expired_resumed_after_remote_review"
+    "worker": "accounting-v2-20261008-c2221-0732",
+    "acquired_at": "2026-10-08T07:31:59Z",
+    "updated_at": "2026-10-08T07:39:00Z",
+    "expires_at": "2026-10-08T08:24:00.000Z",
+    "ended_at": "2026-10-08T07:51:00Z",
+    "status": "completed_checkpoint_handoff",
+    "next_branch": "codex/accounting-v2-c2-opening-transactions"
   },
   "last_remote_review": {
     "main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31",
@@ -817,5 +821,5 @@
     "commit_sha": "674bae31480baa03784265f12ebc1590ccec797a",
     "checked_at": "2026-10-08T07:31:59Z"
   },
-  "next": "Confirm C2.2b.2.1 CI, then implement C2.2b.2.2 protected atomic opening and settlement commands before the wizard."
+  "next": "C2.2b.2.2 protected atomic opening/settlement commands"
 }

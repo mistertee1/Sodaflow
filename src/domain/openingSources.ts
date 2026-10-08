@@ -51,7 +51,7 @@ function identity(value: OpeningIdentity) {
   ensure(value.created_at.includes('T') && Number.isFinite(Date.parse(value.created_at)), 'وقت إنشاء إثبات الأرصدة غير صالح.');
 }
 function frozenSnapshot(snapshot: OpeningSnapshot): OpeningSnapshot {
-  const select=(list:Document[],keys:string[])=>list.map(row=>Object.fromEntries(keys.filter(key=>row[key]!==undefined).map(key=>[key,row[key]])));
+  const select=(list:Document[],keys:string[])=>list.map(row=>Object.fromEntries(keys.filter(key=>row[key]!==undefined).map(key=>[key,row[key]]))).sort((a,b)=>{const left=a.code??a.id,right=b.code??b.id;return left<right?-1:left>right?1:0;});
   return clean({org_id:snapshot.org_id,accounting_version:snapshot.accounting_version,financial_activity_count:snapshot.financial_activity_count,
     accounts:select(snapshot.accounts,['code','org_id','name_ar','name_en','type','nature','subtype','reporting_group','cash_flow_category','normal_balance','is_system','is_active','balance_sdg','balance_usd']),
     financial_accounts:select(snapshot.financial_accounts,['id','org_id','name','account_code','currency','kind','status']),
@@ -69,12 +69,17 @@ function termsFor(input: OpeningInput, terms: OpeningTerms[]) {
     ensure(dateOnly(row.due_date) === row.due_date, 'تاريخ الاستحقاق يجب أن يكون تاريخاً فقط.'); text(row.reference,200,true);
   }
 }
+/** Preview preserves unresolved equity review. It cannot grant posting authorization. */
+export function openingBalancePlan(input: OpeningInput, snapshot: OpeningSnapshot, terms: OpeningTerms[]) {
+  const quote=openingBalanceQuote(input,snapshot); termsFor(input,terms);
+  return clean({input,snapshot:frozenSnapshot(snapshot),terms,quote});
+}
 /** Pure evidence factory. No authentication, period approval, idempotency or storage authority is granted here. */
 export function openingBatchEvidence(input: OpeningInput, snapshot: OpeningSnapshot, terms: OpeningTerms[], actor: OpeningIdentity) {
-  identity(actor); termsFor(input,terms);
-  const quote = openingBalanceQuote(input,snapshot); ensure(quote.equity_review_complete, 'راجع فرق الافتتاح ودوّن سببه قبل إعداد إثبات الترحيل.',409);
+  identity(actor); const plan=openingBalancePlan(input,snapshot,terms),quote=plan.quote;
+  ensure(quote.equity_review_complete, 'راجع فرق الافتتاح ودوّن سببه قبل إعداد إثبات الترحيل.',409);
   const journalId=`jv-open-${input.batch_id}`; identifier(journalId);
-  const batch = clean({schema_version:1,id:input.batch_id,org_id:snapshot.org_id,operation_id:actor.operation_id,created_by:actor.actor_id,created_at:actor.created_at,journal_id:journalId,input,snapshot:frozenSnapshot(snapshot),terms,quote});
+  const batch = clean({schema_version:1,id:input.batch_id,org_id:snapshot.org_id,operation_id:actor.operation_id,created_by:actor.actor_id,created_at:actor.created_at,journal_id:journalId,...plan});
   ensure(new TextEncoder().encode(stable(batch)).length<=650000,'حجم إثبات الأرصدة يتجاوز حد المستند؛ يلزم مسار استيراد مضبوط.',413);
   const stamp={schema_version:1,org_id:snapshot.org_id,batch_id:batch.id,created_by:actor.actor_id,created_at:actor.created_at,operation_id:actor.operation_id};
   const lots:OpeningLot[]=[], movements:Document[]=[];

@@ -34,6 +34,7 @@
     "tests/accountingPeriods.test.ts",
     "tests/ownerReauthentication.test.ts",
     "tests/openingBalances.test.ts",
-    "tests/openingSources.test.ts"
+    "tests/openingSources.test.ts",
+    "tests/openingPreview.test.ts"
   ]
 }

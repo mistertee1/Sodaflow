@@ -10,8 +10,8 @@
   "lease": {
     "worker": "accounting-v2-20261008-c2222-0752",
     "acquired_at": "2026-10-08T07:52:00Z",
-    "updated_at": "2026-10-08T08:05:00Z",
-    "expires_at": "2026-10-08T08:50:00Z"
+    "updated_at": "2026-10-08T08:05:14Z",
+    "expires_at": "2026-10-08T08:50:14.000Z"
   },
   "milestones": [
     {
@@ -553,10 +553,29 @@
                         {
                           "id": "C2.2b.2.2",
                           "scope": "Protected atomic opening and settlement commands with source-integrated acceptance",
-                          "status": "in_progress",
+                          "status": "implemented_ci_pending",
                           "branch": "codex/accounting-v2-c2-opening-transactions",
                           "parent_pr": 28,
-                          "started_at": "2026-10-08T07:52:00Z"
+                          "started_at": "2026-10-08T07:52:00Z",
+                          "checks": {
+                            "unit_api": 240,
+                            "new_unit_api": 13,
+                            "types": "passed",
+                            "build": "passed",
+                            "new_emulator": 3,
+                            "rules_status": "pending_ci",
+                            "full_ui_status": "pending_ci"
+                          },
+                          "completed_parts": [
+                            "actual owner recent-auth startup and live permission/feature/period checks before retries",
+                            "fresh SHA-256 preview comparison and actual zero-history source eligibility",
+                            "atomic immutable batch/lots/journal/WAC and exact current cache/counter/audit writes",
+                            "source-sequence settlement with historical carrying and separate FX",
+                            "both-book cash sufficiency at date and every later daily close",
+                            "explicit complete financial overlay with strict reconciliation before persistence",
+                            "physical document path/index collision checks and cache revision guard for stale retries",
+                            "unit/API buffered-store, rollback, race, SDG-only and ordinary post-opening acceptance"
+                          ]
                         }
                       ]
                     },
@@ -769,13 +788,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_C2_2B21_OPENING_INTEGRATION.md",
+  "last_report": "REPORT_C2_2B22_OPENING_TRANSACTIONS.md",
   "next_steps": [
     "Implement C2.2b.2.2 protected atomic opening and settlement commands; source/report/cache/restore integration C2.2b.2.1 is validated in PR28.",
     "Implement C2.2b.3 protected wizard and C2.3 capital/drawings.",
     "Continue C3-C6, D, E, Excel1-4 and deferred requirements; full final acceptance remains pending."
   ],
-  "updated_at": "2026-10-08T08:05:00Z",
+  "updated_at": "2026-10-08T08:05:14Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -829,5 +848,5 @@
     "commit_sha": "674bae31480baa03784265f12ebc1590ccec797a",
     "checked_at": "2026-10-08T07:31:59Z"
   },
-  "next": "C2.2b.2.2 protected atomic opening/settlement commands"
+  "next": "Confirm C2.2b.2.2 CI and full atomic acceptance, then implement C2.2b.3 protected startup/settlement UI."
 }

@@ -29,3 +29,13 @@ export function settleOpeningBooks(data:Record<string,Document[]>,party:string,a
   const proof=openingSettlementEvidence(lot,state,{id,date,financial_account_id:'usd',currency:'USD',amount,exchange_rate_used:rate,reason:'تسوية اختبار',reference_number:'REF'},data.financial_accounts[1],data.accounts as any,'dual',{operation_id:id,actor_id:actorId,created_at:`${date}T12:00:00Z`});
   data.opening_settlements.push(proof.event);data.journal_entries.push(proof.journal);refresh(data);return proof;
 }
+
+/** Unposted masters/input for protected command tests; no source or journal is seeded. */
+export function freshOpeningBooksFixture(source='source-opening',actorId='opening-owner') {
+  const data=openingBooksFixture(source,actorId),batch=data.opening_batches[0];
+  const input=structuredClone(batch.input) as OpeningInput;input.cash.push({id:'usd',currency:'USD',amount:10,exchange_rate_used:2000});input.capital={sdg:167000,usd:84};
+  for(const name of ['opening_batches','opening_lots','opening_settlements','journal_entries','inventory_movements'])data[name]=[];
+  for(const customer of data.customers)Object.assign(customer,{balance_sdg:0,balance_usd:0,receivable_due_sdg:0,receivable_due_usd:0});
+  for(const supplier of data.suppliers)Object.assign(supplier,{payable_due_sdg:0,payable_due_usd:0});Object.assign(data.products[0],costState(0,0,0,'2026-10-01'));
+  return {data,input,terms:batch.terms as OpeningTerms[]};
+}

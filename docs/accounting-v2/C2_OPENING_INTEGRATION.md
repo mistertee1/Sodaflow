@@ -2,6 +2,8 @@
 
 Status: planned; **none of the writes described here are implemented by PR27**. Use the newest Accounting V2 branch and fresh PROGRESS/lease before starting. Base: protected-preview branch, stacked on PR26/25/C1; user alone integrates the full chain into main.
 
+Update 2026-10-08: C2.2b.2.1 implements opening-source AR/AP allocation, live cache preservation, financial reconciliation, protected backup counts and nested tenant restore, plus source-specific report/export labels. See REPORT_C2_2B21_OPENING_INTEGRATION.md. Atomic opening/settlement write commands, fresh-owner approval, cash/race acceptance and the wizard remain planned below. Test fixtures are not a posting endpoint.
+
 ## Existing contracts
 
 - openingBalances.ts: fresh startup quote, native currencies/rates, explicit capital and reviewed signed residual, 97 sources/100 lines.

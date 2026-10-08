@@ -3,6 +3,9 @@ import { test, expect, type Page } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { purchaseCorrectionGuestFixture } from './helpers/purchaseCorrections';
 import { correctionGuestFixture } from './helpers/salesCorrections';
+import { openingBooksFixture, settleOpeningBooks } from '../fixtures/openingBooks';
+import { INITIAL_SETTINGS } from '../../src/data/initialData';
+import { createDefaultSubscription, getPlanConfig } from '../../src/lib/plans';
 
 async function seedBrandInvoices(page: Page, longInvoice = false) {
   await page.addInitScript(({ longInvoice }) => {
@@ -37,6 +40,17 @@ test.beforeEach(async ({ page }) => {
     localStorage.setItem('hisabuk_guest_v1_customers', JSON.stringify([{ id: 'customer', name: 'عميل الاختبار', phone: '', preferred_currency: 'USD', balance_sdg: 0, balance_usd: 0, created_at: '2026-10-01', updated_at: '2026-10-01' }]));
     localStorage.setItem('hisabuk_guest_v1_products', JSON.stringify([{ id: 'product', name: 'منتج الاختبار', unit: 'قطعة', price_sdg: 2000, price_usd: 1, tax_rate: 0, is_active: true, track_inventory: true, stock_quantity: 100, created_at: '2026-10-01' }]));
   });
+});
+
+test('C2 mobile opening AR/AP show independent sources and export original lots without fake invoices',async({page},testInfo)=>{
+  const orgId='local-guest-org',root=`organizations/${orgId}`,data=openingBooksFixture(orgId,'guest');settleOpeningBooks(data,'a',1);settleOpeningBooks(data,'s',1);
+  const records:Record<string,any>={[root]:{id:orgId,owner_uid:'guest',name:'متجر الاختبار',status:'active',accounting_version:2,settings:{...INITIAL_SETTINGS,business_name:'متجر الاختبار'}},[`${root}/members/guest`]:{uid:'guest',role:'Owner',status:'active'},[`${root}/meta/subscription`]:{...createDefaultSubscription(orgId),...getPlanConfig('Enterprise'),plan:'Enterprise',org_id:orgId}};
+  for(const [name,rows] of Object.entries(data))for(const row of rows)records[`${root}/${name}/${name==='accounts'?row.code:row.id}`]=row;
+  await page.addInitScript(records=>localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records)),records);await page.setViewportSize({width:390,height:844});await page.goto('/');
+  await page.locator('#tab-customers').click();await page.getByRole('button',{name:'كشوف العملاء وأعمار الديون',exact:true}).click();let center=page.getByRole('region',{name:'كشوف العملاء وأعمار الديون',exact:true});await center.getByLabel('نهاية التقرير التشغيلي').fill('2026-10-03');await center.getByLabel('العميل للكشف').selectOption('a');await expect(center.getByText('رصيد افتتاحي: AR-A',{exact:false})).toBeVisible();
+  const arDownload=page.waitForEvent('download');await center.getByRole('button',{name:'تصدير الكشف CSV',exact:true}).click();const arPath=testInfo.outputPath('opening-ar.csv');await (await arDownload).saveAs(arPath);const arCsv=await readFile(arPath,'utf8');expect(arCsv).toContain('AR-A');expect(arCsv).toContain('opening_lot:');expect(arCsv).toContain('opening_settlement:settle-a-1');
+  await page.locator('#tab-accounting').click();await page.getByRole('button',{name:'الموردون والمشتريات',exact:true}).click();center=page.getByRole('region',{name:'مركز الموردين والمشتريات',exact:true});await center.getByLabel('نهاية كشف المورد').fill('2026-10-03');await center.getByLabel('المورد للكشف').selectOption('s');await expect(center.getByText('رصيد افتتاحي: AP-S',{exact:false})).toBeVisible();
+  const apDownload=page.waitForEvent('download');await center.getByRole('button',{name:'تصدير كشف CSV',exact:true}).click();const apPath=testInfo.outputPath('opening-ap.csv');await (await apDownload).saveAs(apPath);const apCsv=await readFile(apPath,'utf8');expect(apCsv).toContain('opening_lot');expect(apCsv).toContain('AP-S');expect(apCsv).toContain('jv-os-settle-s-1');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:testInfo.outputPath('opening-sources-mobile.png'),fullPage:true});
 });
 
 test('B3 mobile credit/physical return/refund forms enforce sources, resist duplicate submission, and preserve both books after reload', async ({ page }) => {

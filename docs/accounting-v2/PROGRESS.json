@@ -10,8 +10,8 @@
   "lease": {
     "worker": "accounting-v2-20261008-c2221-0732",
     "acquired_at": "2026-10-08T07:31:59Z",
-    "updated_at": "2026-10-08T07:31:59Z",
-    "expires_at": "2026-10-08T08:16:59.000Z"
+    "updated_at": "2026-10-08T07:39:00Z",
+    "expires_at": "2026-10-08T08:24:00.000Z"
   },
   "milestones": [
     {
@@ -522,8 +522,25 @@
                         {
                           "id": "C2.2b.2.1",
                           "scope": "Opening-source integration in current financial reports, reconciliation, caches and strict backup/restore",
-                          "status": "in_progress",
-                          "branch": "codex/accounting-v2-c2-opening-integration"
+                          "status": "implemented_ci_pending",
+                          "branch": "codex/accounting-v2-c2-opening-integration",
+                          "checks": {
+                            "unit_api": 227,
+                            "new_unit_api": 8,
+                            "types": "passed",
+                            "build": "passed",
+                            "new_emulator": 1,
+                            "new_ui": 1,
+                            "rules_status": "pending_ci",
+                            "full_ui_status": "pending_ci"
+                          },
+                          "completed_parts": [
+                            "per-lot and per-control-line historical AR/AP allocation without fabricated invoices",
+                            "opening-aware current customer/supplier due and credit caches during ordinary postings/corrections",
+                            "full financial source replay and AR/AP/inventory GL reconciliation",
+                            "declared opening backup version/counts, original-tenant proof and nested remap with zero-difference destination check",
+                            "source-specific mobile labels, PDF/CSV references and retained settled party links"
+                          ]
                         },
                         {
                           "id": "C2.2b.2.2",
@@ -741,13 +758,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_C2_2B1_OPENING_PREVIEW.md",
+  "last_report": "REPORT_C2_2B21_OPENING_INTEGRATION.md",
   "next_steps": [
     "Implement C2.2b.2 source integration in AR/AP reports, reconciliation, live caches and strict restore before protected atomic opening/settlement commands.",
     "Implement C2.2b.3 protected wizard and C2.3 capital/drawings.",
     "Continue C3-C6, D, E, Excel1-4 and deferred requirements; full final acceptance remains pending."
   ],
-  "updated_at": "2026-10-08T07:31:59Z",
+  "updated_at": "2026-10-08T07:39:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -800,5 +817,5 @@
     "commit_sha": "674bae31480baa03784265f12ebc1590ccec797a",
     "checked_at": "2026-10-08T07:31:59Z"
   },
-  "next": "Implement C2.2b.2 source integration in AR/AP reports, reconciliation, live caches and strict restore before protected atomic opening/settlement commands."
+  "next": "Confirm C2.2b.2.1 CI, then implement C2.2b.2.2 protected atomic opening and settlement commands before the wizard."
 }

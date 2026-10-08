@@ -46,6 +46,10 @@ export interface OrganizationCounters {
   audit_event_count?: number;
   /** Derived backup count for accounting-period evidence. */
   accounting_period_count?: number;
+  /** Derived immutable opening-source completeness counts. */
+  opening_batch_count?: number;
+  opening_lot_count?: number;
+  opening_settlement_count?: number;
   credit_note_count?: number;
   customer_refund_count?: number;
   purchase_return_count?: number;

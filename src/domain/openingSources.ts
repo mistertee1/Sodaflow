@@ -9,7 +9,8 @@ import { costState } from './inventoryCost';
 import { journal, journalLine } from './financial';
 import { dateOnly, ensure, identifier, money, text, validateJournal } from './validation';
 
-export const openingCollections = ['opening_batches', 'opening_lots', 'opening_settlements'] as const;
+export { openingCollections } from './openingCollections';
+import { openingCollections } from './openingCollections';
 /** The transaction must read every collection. Missing collections are not evidence of an empty tenant. */
 export const openingActivityCollections = ['journal_entries', 'invoices', 'payments', 'expenses', 'purchase_bills', 'supplier_payments', 'internal_transfers', 'bank_reconciliations', 'cash_reconciliations', 'credit_notes', 'customer_refunds', 'purchase_returns', 'supplier_refunds', 'inventory_movements', ...openingCollections] as const;
 const masters = ['accounts', 'financial_accounts', 'customers', 'suppliers', 'products'] as const;

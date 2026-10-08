@@ -16,6 +16,7 @@ import { INITIAL_SETTINGS } from '../src/data/initialData';
 import { getPlanConfig, createDefaultSubscription, defaultPlatformPlans } from '../src/lib/plans';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../src/types';
 import { getDefaultChartOfAccounts } from '../src/services/accountingService';
+import { openingBooksFixture, settleOpeningBooks } from './fixtures/openingBooks';
 
 let env: RulesTestEnvironment;
 const project = 'demo-sudaflow';
@@ -39,6 +40,27 @@ before(async () => {
   });
 });
 after(async () => { await env?.cleanup(); });
+
+test('C2 real Firestore preserves opening sources through ordinary sale, protected backup and two nested-tenant restores',async()=>{
+  assert.match(process.env.FIRESTORE_EMULATOR_HOST||'',/^(127\.0\.0\.1|localhost):8091$/);
+  const app=initializeApp({projectId:project},'opening-integration-admin'),db=getFirestore(app),store=new FirestoreStore(db),rules=await readFile('firestore.rules','utf8'),now=new Date('2026-10-20T12:00:00Z'),actor={uid:'opening-integration-owner',email:'opening-integration@example.com',emailVerified:true};
+  try {
+    const organizations=new Organizations(store),org=await organizations.create(actor,'دفاتر الافتتاح',INITIAL_SETTINGS,'opening-integration-org',true),root=`organizations/${org.id}`,plan={...defaultPlatformPlans(now.toISOString()).find(row=>row.id==='Enterprise')!,id:'opening-integration-plan'},data=openingBooksFixture(org.id,actor.uid);
+    settleOpeningBooks(data,'a',1);settleOpeningBooks(data,'s',1);
+    await store.transaction(async tx=>{const current=await tx.get(root);tx.set(root,{...current,accounting_version:2,planId:plan.id,subscriptionEnd:'2027-01-01',subscriptionEndMillis:Date.parse('2027-01-01')});tx.set(`plans/${plan.id}`,plan);for(const [name,rows] of Object.entries(data))for(const row of rows)tx.set(`${root}/${name}/${name==='accounts'?row.code:row.id}`,row);});
+    const ops=new Operations(store,()=>now,saved=>saved as any,async()=>verifyAccountingRulesSource([{content:rules}]));
+    await ops.execute(org.id,actor,{action:'invoice.create',operationId:'opening-followup-sale',data:{customer_id:'a',issue_date:'2026-10-10',currency_mode:'single_usd',exchange_rate_used:2000,discount_type:'fixed',discount_value:0,items:[{product_id:'p',description:'صنف',unit:'قطعة',quantity:1,unit_price:5,currency:'USD',tax_rate:0,discount_percent:0}]}});
+    let backup=await ops.snapshot(org.id,actor,true);assert.deepEqual(reconcileFinancialData(backup.collections as FinancialData,backup.settings,{requireCosting:true}),[]);assert.equal(backup.collections.customers.find(row=>row.id==='a')!.balance_usd,7);
+    for(const uid of ['opening-copy-one','opening-copy-two']){
+      const destination={...actor,uid},target=await organizations.create(destination,'نسخة أرصدة',INITIAL_SETTINGS,`${uid}-org`,true),path=`organizations/${target.id}`;
+      await store.transaction(async tx=>{const current=await tx.get(path);tx.set(path,{...current,planId:plan.id,subscriptionEnd:'2027-01-01',subscriptionEndMillis:Date.parse('2027-01-01')});});
+      const bad=structuredClone(backup);bad.collections.opening_settlements=[];await assert.rejects(ops.execute(target.id,destination,{action:'backup.restore',operationId:`${uid}-bad`,data:{backup:bad}}));assert.equal((await db.collection(`${path}/journal_entries`).get()).size,0);assert.equal((await db.collection(`${path}/opening_batches`).get()).size,0);
+      await ops.execute(target.id,destination,{action:'backup.restore',operationId:`${uid}-restore`,data:{backup}});backup=await ops.snapshot(target.id,destination,true);assert.deepEqual(reconcileFinancialData(backup.collections as FinancialData,backup.settings,{requireCosting:true}),[]);assert.equal(backup.org.owner_uid,uid);assert.equal(backup.collections.opening_batches[0].snapshot.org_id,target.id);assert.equal(backup.collections.opening_batches[0].created_by,actor.uid);assert.equal(backup.collections.opening_settlements[0].financial_basis.org_id,target.id);
+      const ar=await ops.operationalReport(target.id,destination,'receivables',{}),ap=await ops.payableReports(target.id,destination,{});assert.equal(ar.total_sdg,20000);assert.equal(ar.total_usd,11);assert.equal(ap.total_sdg,3000);assert.equal(ap.total_usd,2);assert.equal(ar.unallocated_sdg,0);assert.equal(ap.unallocated_usd,0);
+      const client=env.authenticatedContext(uid,{email_verified:true}).firestore();await assertFails(getDocs(collection(client,`${path}/opening_batches`)));await assertFails(setDoc(doc(client,`${path}/opening_lots/forged`),{id:'forged',org_id:target.id}));
+    }
+  }finally{await deleteApp(app);}
+});
 
 test('direct Firestore rules deny tenant writes and protect subscription and role boundaries', async () => {
   const owner = env.authenticatedContext('owner', { email: 'owner@example.com', email_verified: true }).firestore();

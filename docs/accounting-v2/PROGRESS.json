@@ -5,9 +5,14 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c2-opening-preview",
+  "active_branch": "codex/accounting-v2-c2-opening-integration",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "accounting-v2-20261008-c22-0156",
+    "acquired_at": "2026-10-08T02:24:55Z",
+    "updated_at": "2026-10-08T02:24:55Z",
+    "expires_at": "2026-10-08T03:09:55.000Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -299,8 +304,8 @@
     {
       "id": "C",
       "status": "in_progress",
-      "branch": "codex/accounting-v2-c2-opening-preview",
-      "pr": 27,
+      "branch": "codex/accounting-v2-c2-opening-integration",
+      "pr": null,
       "steps": [
         {
           "id": "C1",
@@ -431,7 +436,7 @@
               "id": "C2.2",
               "scope": "Atomic tenant opening batches, AR/AP/inventory source proof and protected preview/commit wizard",
               "status": "in_progress",
-              "branch": "codex/accounting-v2-c2-opening-source-proof",
+              "branch": "codex/accounting-v2-c2-opening-integration",
               "substeps": [
                 {
                   "id": "C2.2a",
@@ -471,7 +476,7 @@
                   "id": "C2.2b",
                   "scope": "Atomic opening/settlement API, reports/reconciliation/restore and protected wizard",
                   "status": "in_progress",
-                  "branch": "codex/accounting-v2-c2-opening-preview",
+                  "branch": "codex/accounting-v2-c2-opening-integration",
                   "substeps": [
                     {
                       "id": "C2.2b.1",
@@ -511,7 +516,21 @@
                     {
                       "id": "C2.2b.2",
                       "scope": "Atomic opening/settlement commands, live reports/reconciliation and strict backup/restore",
-                      "status": "pending"
+                      "status": "in_progress",
+                      "branch": "codex/accounting-v2-c2-opening-integration",
+                      "substeps": [
+                        {
+                          "id": "C2.2b.2.1",
+                          "scope": "Opening-source integration in current financial reports, reconciliation, caches and strict backup/restore",
+                          "status": "in_progress",
+                          "branch": "codex/accounting-v2-c2-opening-integration"
+                        },
+                        {
+                          "id": "C2.2b.2.2",
+                          "scope": "Protected atomic opening and settlement commands with source-integrated acceptance",
+                          "status": "pending"
+                        }
+                      ]
                     },
                     {
                       "id": "C2.2b.3",
@@ -728,7 +747,7 @@
     "Implement C2.2b.3 protected wizard and C2.3 capital/drawings.",
     "Continue C3-C6, D, E, Excel1-4 and deferred requirements; full final acceptance remains pending."
   ],
-  "updated_at": "2026-10-08T02:26:00Z",
+  "updated_at": "2026-10-08T02:24:55Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -753,7 +772,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C2.2b.2",
+  "active_substep": "C2.2b.2.1",
   "observed_main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31",
   "lease_history": [
     {
@@ -780,10 +799,5 @@
     "opening_quote_sha": "23492f1f3c0043d65399316b88ccd18c97acd18a",
     "checked_at": "2026-10-08T01:56:51Z"
   },
-  "next": "Implement C2.2b.2 source integration in AR/AP reports, reconciliation, live caches and strict restore before protected atomic opening/settlement commands.",
-  "handoff": {
-    "next_branch": "codex/accounting-v2-c2-opening-integration",
-    "next_substep": "C2.2b.2",
-    "requires_remote_review": true
-  }
+  "next": "Implement C2.2b.2 source integration in AR/AP reports, reconciliation, live caches and strict restore before protected atomic opening/settlement commands."
 }

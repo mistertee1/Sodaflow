@@ -25,7 +25,23 @@ export async function closeChecklist(tx:Transaction,root:string,period:Document,
   let debit=new BigNumber(0),credit=new BigNumber(0),debitUsd=new BigNumber(0),creditUsd=new BigNumber(0);
   for(const entry of entries.filter(row=>dateOnly(row.date)<=period.end_date)) for(const line of entry.lines){debit=debit.plus(line.debit_sdg);credit=credit.plus(line.credit_sdg);debitUsd=debitUsd.plus(line.debit_usd);creditUsd=creditUsd.plus(line.credit_usd);}
   const balanced=debit.eq(credit)&&debitUsd.eq(creditUsd);
-  return {period_id:period.id,end_date:period.end_date,checked_at:iso,findings_count:findings.length,findings:findings.slice(0,100),missing_reconciliations:missing,reconciliations:proof,balanced,ledger_hash:await periodLedgerHash(entries,period.end_date),can_close:!findings.length&&!missing.length&&balanced};
+  // Summaries use ALL findings, never the 100-row display slice. Unknown cash mappings block both checks.
+  const clean = (...names:string[]) => !findings.some(row=>names.includes(row.collection));
+  const journalClean = clean('journal_entries');
+  const missingKind = (kind:string) => missing.some(code=>{const map=collections.financial_accounts.find(row=>row.account_code===code);return !map || (kind==='cash' ? map.kind==='cash' : map.kind!=='cash');});
+  const checks = {
+    sales_posted: journalClean && clean('invoices','payments','credit_notes','customer_refunds'),
+    expenses_posted: journalClean && clean('expenses'),
+    bank_reconciled: !missingKind('bank') && clean('financial_accounts','bank_reconciliations','internal_transfers'),
+    cash_reconciled: !missingKind('cash') && clean('financial_accounts','cash_reconciliations','internal_transfers'),
+    inventory_reconciled: journalClean && clean('products','inventory_movements'),
+    ar_reconciled: journalClean && clean('customers','invoices','payments','credit_notes','customer_refunds'),
+    ap_reconciled: journalClean && clean('suppliers','purchase_bills','supplier_payments','purchase_returns','supplier_refunds'),
+    journals_balanced: balanced && journalClean,
+    journals_complete: !findings.some(row=>/journal|reversal/.test(row.code)),
+  };
+
+  return {checks,period_id:period.id,end_date:period.end_date,checked_at:iso,findings_count:findings.length,findings:findings.slice(0,100),missing_reconciliations:missing,reconciliations:proof,balanced,ledger_hash:await periodLedgerHash(entries,period.end_date),can_close:!findings.length&&!missing.length&&balanced};
 }
 export async function periodCommand(action:string,data:Document,c:Context):Promise<Document> {
   const reason=text(data.reason,1000,true), rows=validatePeriods(await c.tx.list(`${c.root}/accounting_periods`),c.orgId);

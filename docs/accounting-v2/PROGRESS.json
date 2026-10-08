@@ -10,8 +10,8 @@
   "lease": {
     "worker": "accounting-v2-20261008-c22-0156",
     "acquired_at": "2026-10-08T01:56:51Z",
-    "updated_at": "2026-10-08T02:04:45Z",
-    "expires_at": "2026-10-08T02:49:45.000Z"
+    "updated_at": "2026-10-08T02:11:15Z",
+    "expires_at": "2026-10-08T02:56:15.000Z"
   },
   "milestones": [
     {
@@ -305,7 +305,7 @@
       "id": "C",
       "status": "in_progress",
       "branch": "codex/accounting-v2-c2-opening-source-proof",
-      "pr": null,
+      "pr": 26,
       "steps": [
         {
           "id": "C1",
@@ -441,7 +441,7 @@
                 {
                   "id": "C2.2a",
                   "scope": "Trusted eligibility, immutable opening source proof and settlement replay contracts",
-                  "status": "implemented_ci_pending",
+                  "status": "implemented_ci_passed",
                   "branch": "codex/accounting-v2-c2-opening-source-proof",
                   "checks": {
                     "unit_api": 211,
@@ -449,22 +449,36 @@
                     "types": "passed",
                     "build": "passed",
                     "source_sequences": 72,
-                    "rules_status": "pending_ci",
-                    "full_ui_status": "pending_ci"
+                    "rules_status": "passed",
+                    "full_ui_status": "passed",
+                    "rules": 26,
+                    "full_ui": 44,
+                    "production_audit_vulnerabilities": 0
                   },
                   "completed_parts": [
                     "actual-document eligibility with validated zero initialization exception",
                     "minimal frozen opening proof, explicit dated AR/AP lots and inventory WAC movements",
                     "historical partial/final carrying allocation, payment FX and immutable replay",
                     "dated source-linked opening/movement/closing/aging contracts with full future-history verification"
-                  ]
+                  ],
+                  "pr": 26,
+                  "ci": {
+                    "run_id": 37716137528,
+                    "commit_sha": "4de1194d215c3e003b46049753a5da80aa8f5d12",
+                    "conclusion": "success",
+                    "unit_api": 211,
+                    "rules": 26,
+                    "ui": 44,
+                    "production_audit_vulnerabilities": 0
+                  }
                 },
                 {
                   "id": "C2.2b",
                   "scope": "Atomic opening/settlement API, reports/reconciliation/restore and protected wizard",
                   "status": "pending"
                 }
-              ]
+              ],
+              "pr": 26
             },
             {
               "id": "C2.3",
@@ -518,7 +532,7 @@
     "Implement C2.2 atomic opening batches/source reconciliation and protected wizard, C2.3 capital/drawings",
     "Continue remaining C, D, E, Excel1-4 and deferred bank imports"
   ],
-  "updated_at": "2026-10-08T02:04:45Z",
+  "updated_at": "2026-10-08T02:11:15Z",
   "deferred_requirements": [
     {
       "prd": "50",

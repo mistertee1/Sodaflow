@@ -729,6 +729,7 @@
     "Continue C3-C6, D, E, Excel1-4 and deferred requirements; full final acceptance remains pending."
   ],
   "updated_at": "2026-10-08T02:26:00Z",
+  "updated_at": "2026-10-08T02:20:53Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -774,6 +775,12 @@
     "ended_at": "2026-10-08T02:26:00Z",
     "status": "handed_off",
     "next_branch": "codex/accounting-v2-c2-opening-integration"
+    "updated_at": "2026-10-08T02:11:15Z",
+    "expires_at": "2026-10-08T02:56:15.000Z",
+    "ended_at": "2026-10-08T02:20:53Z",
+    "status": "handed_off",
+    "next_branch": "codex/accounting-v2-c2-opening-preview",
+    "next_pr": 27
   },
   "last_remote_review": {
     "main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31",
@@ -785,5 +792,11 @@
     "next_branch": "codex/accounting-v2-c2-opening-integration",
     "next_substep": "C2.2b.2",
     "requires_remote_review": true
+  "next": "Finish C2.2a immutable source contracts, then integrate C2.2b atomic commands and protected wizard.",
+  "handoff": {
+    "branch": "codex/accounting-v2-c2-opening-preview",
+    "pr": 27,
+    "worker": "accounting-v2-20261008-c22-0156",
+    "at": "2026-10-08T02:20:53Z"
   }
 }

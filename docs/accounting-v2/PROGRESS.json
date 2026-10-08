@@ -8,10 +8,10 @@
   "active_branch": "codex/accounting-v2-c2-opening-integration",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "accounting-v2-20261008-c22-0156",
-    "acquired_at": "2026-10-08T02:24:55Z",
-    "updated_at": "2026-10-08T02:24:55Z",
-    "expires_at": "2026-10-08T03:09:55.000Z"
+    "worker": "accounting-v2-20261008-c2221-0732",
+    "acquired_at": "2026-10-08T07:31:59Z",
+    "updated_at": "2026-10-08T07:31:59Z",
+    "expires_at": "2026-10-08T08:16:59.000Z"
   },
   "milestones": [
     {
@@ -747,7 +747,7 @@
     "Implement C2.2b.3 protected wizard and C2.3 capital/drawings.",
     "Continue C3-C6, D, E, Excel1-4 and deferred requirements; full final acceptance remains pending."
   ],
-  "updated_at": "2026-10-08T02:24:55Z",
+  "updated_at": "2026-10-08T07:31:59Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -788,16 +788,17 @@
   ],
   "last_lease": {
     "worker": "accounting-v2-20261008-c22-0156",
-    "acquired_at": "2026-10-08T01:56:51Z",
-    "updated_at": "2026-10-08T02:12:39Z",
-    "ended_at": "2026-10-08T02:26:00Z",
-    "status": "handed_off",
-    "next_branch": "codex/accounting-v2-c2-opening-integration"
+    "acquired_at": "2026-10-08T02:24:55Z",
+    "updated_at": "2026-10-08T02:24:55Z",
+    "expires_at": "2026-10-08T03:09:55.000Z",
+    "ended_at": "2026-10-08T07:31:59Z",
+    "status": "expired_resumed_after_remote_review"
   },
   "last_remote_review": {
     "main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31",
-    "opening_quote_sha": "23492f1f3c0043d65399316b88ccd18c97acd18a",
-    "checked_at": "2026-10-08T01:56:51Z"
+    "branch": "codex/accounting-v2-c2-opening-integration",
+    "commit_sha": "674bae31480baa03784265f12ebc1590ccec797a",
+    "checked_at": "2026-10-08T07:31:59Z"
   },
   "next": "Implement C2.2b.2 source integration in AR/AP reports, reconciliation, live caches and strict restore before protected atomic opening/settlement commands."
 }

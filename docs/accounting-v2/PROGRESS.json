@@ -7,12 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c2-opening-transactions",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "accounting-v2-20261008-c2222-1326",
-    "acquired_at": "2026-10-08T13:27:04Z",
-    "updated_at": "2026-10-08T13:27:04Z",
-    "expires_at": "2026-10-08T14:12:04.000Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -516,8 +511,8 @@
                     {
                       "id": "C2.2b.2",
                       "scope": "Atomic opening/settlement commands, live reports/reconciliation and strict backup/restore",
-                      "status": "in_progress",
-                      "branch": "codex/accounting-v2-c2-opening-integration",
+                      "status": "implemented_ci_passed",
+                      "branch": "codex/accounting-v2-c2-opening-transactions",
                       "substeps": [
                         {
                           "id": "C2.2b.2.1",
@@ -553,7 +548,7 @@
                         {
                           "id": "C2.2b.2.2",
                           "scope": "Protected atomic opening and settlement commands with source-integrated acceptance",
-                          "status": "implemented_ci_pending",
+                          "status": "implemented_ci_passed",
                           "branch": "codex/accounting-v2-c2-opening-transactions",
                           "parent_pr": 28,
                           "started_at": "2026-10-08T07:52:00Z",
@@ -563,8 +558,11 @@
                             "types": "passed",
                             "build": "passed",
                             "new_emulator": 3,
-                            "rules_status": "pending_ci",
-                            "full_ui_status": "pending_ci"
+                            "rules_status": "passed_ci",
+                            "full_ui_status": "passed_ci",
+                            "rules": 31,
+                            "ui": 45,
+                            "production_audit_vulnerabilities": 0
                           },
                           "completed_parts": [
                             "actual owner recent-auth startup and live permission/feature/period checks before retries",
@@ -575,9 +573,22 @@
                             "explicit complete financial overlay with strict reconciliation before persistence",
                             "physical document path/index collision checks and cache revision guard for stale retries",
                             "unit/API buffered-store, rollback, race, SDG-only and ordinary post-opening acceptance"
-                          ]
+                          ],
+                          "pr": 29,
+                          "validated_commit": "d7138df463c358d39c9ee04075f96627d7ad6879",
+                          "completed_at": "2026-10-08T13:39:25Z",
+                          "ci": {
+                            "conclusion": "success",
+                            "run_id": 37785190899,
+                            "commit_sha": "d7138df463c358d39c9ee04075f96627d7ad6879",
+                            "unit_api": 240,
+                            "rules": 31,
+                            "ui": 45,
+                            "production_audit_vulnerabilities": 0
+                          }
                         }
-                      ]
+                      ],
+                      "pr": 29
                     },
                     {
                       "id": "C2.2b.3",
@@ -790,11 +801,11 @@
   ],
   "last_report": "REPORT_C2_2B22_OPENING_TRANSACTIONS.md",
   "next_steps": [
-    "Correct isolated Firestore fixture tenant IDs in C2.2b.2.2 and confirm CI; production command tests already pass.",
+    "C2.2b.2.2 validated in PR29 (240 unit/API, 31 Firestore, 45 UI); implement C2.2b.3 protected wizard in next stacked branch.",
     "Implement C2.2b.3 protected wizard and C2.3 capital/drawings.",
     "Continue C3-C6, D, E, Excel1-4 and deferred requirements; full final acceptance remains pending."
   ],
-  "updated_at": "2026-10-08T13:27:04Z",
+  "updated_at": "2026-10-08T13:39:25Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -834,12 +845,13 @@
     }
   ],
   "last_lease": {
-    "worker": "accounting-v2-20261008-c2222-0752",
-    "acquired_at": "2026-10-08T07:52:00Z",
-    "updated_at": "2026-10-08T08:05:14Z",
-    "expires_at": "2026-10-08T08:50:14.000Z",
-    "ended_at": "2026-10-08T13:27:04Z",
-    "status": "expired_interrupted_ci_resume"
+    "worker": "accounting-v2-20261008-c2222-1326",
+    "acquired_at": "2026-10-08T13:27:04Z",
+    "updated_at": "2026-10-08T13:27:04Z",
+    "expires_at": "2026-10-08T14:12:04.000Z",
+    "ended_at": "2026-10-08T13:39:25Z",
+    "status": "completed_checkpoint_handoff",
+    "next_branch": "codex/accounting-v2-c2-opening-ui"
   },
   "last_remote_review": {
     "main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31",
@@ -855,7 +867,7 @@
       28
     ]
   },
-  "next": "Confirm C2.2b.2.2 CI and full atomic acceptance, then implement C2.2b.3 protected startup/settlement UI.",
+  "next": "C2.2b.3 protected startup/settlement wizard, then C2.3 capital/drawings",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -873,5 +885,10 @@
         "next_branch": "codex/accounting-v2-c2-opening-integration"
       }
     ]
+  },
+  "handoff": {
+    "next_branch": "codex/accounting-v2-c2-opening-ui",
+    "next_substep": "C2.2b.3",
+    "requires_remote_review": true
   }
 }

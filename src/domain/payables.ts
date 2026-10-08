@@ -1,4 +1,5 @@
 import BigNumber from 'bignumber.js';
+import { openingBalancesByParty, openingLineAllocations, readOpeningData } from './openingIntegration';
 import type { Account, Invoice, JournalEntry, MerchantSettings, Product } from '../types';
 import type { Document, Transaction } from './store';
 import { acquisitionCost, receiveCost, validateCostState } from './inventoryCost';
@@ -112,29 +113,34 @@ export async function payableCommand(action: string, data: Document, c: PayableC
 export async function readPayableReport(tx: Transaction, root: string, period: { start?: string; end?: string }, asOf: string) {
   const names = ['suppliers','purchase_bills','supplier_payments','journal_entries','purchase_returns','supplier_refunds','inventory_movements','accounts','financial_accounts'];
   const rows = await Promise.all(names.map(name => tx.list(`${root}/${name}`))), data = Object.fromEntries(names.map((name,i) => [name,rows[i]]));
-  return payableReports(data.suppliers,data.purchase_bills,data.supplier_payments,data.journal_entries,period,asOf,data);
+  return payableReports(data.suppliers,data.purchase_bills,data.supplier_payments,data.journal_entries,period,asOf,{...data,...await readOpeningData(tx,root)});
 }
 export function payableReports(suppliers: Document[], bills: Document[], payments: Document[], entries: Document[], period: { start?: string; end?: string }, asOf: string, corrections: Record<string,Document[]> = {}) {
   const end = dateOnly(period.end || asOf), start = period.start ? dateOnly(period.start) : undefined; ensure(!start || start <= end, 'بداية الكشف بعد نهايته.');
   const returns = corrections.purchase_returns || [], refunds = corrections.supplier_refunds || [];
+  const openingData:Record<string,Document[]>={...corrections,journal_entries:entries};const openingLines=openingLineAllocations(openingData,'payable'),openingLots=new Map((openingData.opening_lots||[]).map(row=>[row.id,row]));
   for (const bill of bills) if (returns.some(row=>row.bill_id===bill.id) || refunds.some(row=>row.bill_id===bill.id)) verifyPurchaseSource(bill,{ ...corrections, journal_entries:entries, supplier_payments:payments },false);
   const sourceFor = (entry: Document) => entry.reference_type === 'purchase_bill' ? bills.find(b=>b.id===entry.reference_id) : bills.find(b=>b.id===(entry.reference_type==='supplier_payment'?payments:entry.reference_type==='purchase_return'?returns:entry.reference_type==='supplier_refund'?refunds:[]).find(row=>row.id===entry.reference_id)?.bill_id);
-  const sequence = (entry: Document) => entry.reference_type==='purchase_bill'?0:(entry.reference_type==='supplier_payment'?payments:entry.reference_type==='purchase_return'?returns:refunds).find(row=>row.id===entry.reference_id)?.source_sequence ?? payments.find(row=>row.id===entry.reference_id)?.sequence ?? Number.MAX_SAFE_INTEGER;
+  const sequence = (entry: Document) => entry.reference_type==='opening_batch'?0:entry.reference_type==='opening_settlement'?(openingData.opening_settlements||[]).find(row=>row.id===entry.reference_id)?.sequence ?? Number.MAX_SAFE_INTEGER:entry.reference_type==='purchase_bill'?0:(entry.reference_type==='supplier_payment'?payments:entry.reference_type==='purchase_return'?returns:refunds).find(row=>row.id===entry.reference_id)?.source_sequence ?? payments.find(row=>row.id===entry.reference_id)?.sequence ?? Number.MAX_SAFE_INTEGER;
   const balances = new Map<string,BookBalances>(), supplierBalances = new Map<string,BookBalances>(), openings = new Map<string,BookBalances>(), statementRows = new Map<string,Document[]>();
   let ledger = pair(), allocated = pair();
   const seen = new Set<string>();
   for (const entry of entries) { identifier(entry.id); ensure(!seen.has(entry.id),'معرّف قيد مورد مكرر.'); seen.add(entry.id); validateJournal(entry.lines); }
   const dated = entries.filter(entry=>dateOnly(entry.date)<=end).sort((a,b)=>dateOnly(a.date).localeCompare(dateOnly(b.date)) || String(sourceFor(a)?.id||'').localeCompare(String(sourceFor(b)?.id||'')) || sequence(a)-sequence(b) || a.id.localeCompare(b.id));
   for (const entry of dated) {
-    const lines = entry.lines.filter((line:Document)=>line.account_code==='2110'); if(!lines.length) continue;
-    const movement={ sdg:lines.reduce((sum:BigNumber,line:Document)=>sum.plus(line.credit_sdg).minus(line.debit_sdg),new BigNumber(0)).toNumber(), usd:lines.reduce((sum:BigNumber,line:Document)=>sum.plus(line.credit_usd).minus(line.debit_usd),new BigNumber(0)).toNumber() };
-    ledger=pairAdd(ledger,movement); const bill=sourceFor(entry); if(!bill) continue;
-    ensure(suppliers.some(s=>s.id===bill.supplier_id) && dateOnly(entry.date)>=dateOnly(bill.issue_date),'مرجع/تاريخ قيد المورد غير صالح.');
-    allocated=pairAdd(allocated,movement); balances.set(bill.id,pairAdd(balances.get(bill.id)||pair(),movement)); const balance=pairAdd(supplierBalances.get(bill.supplier_id)||pair(),movement); supplierBalances.set(bill.supplier_id,balance);
-    if(start && dateOnly(entry.date)<start) openings.set(bill.supplier_id,balance);
-    else statementRows.set(bill.supplier_id,[...statementRows.get(bill.supplier_id)||[],{ date:dateOnly(entry.date),reference_type:entry.reference_type,reference_id:entry.reference_id,journal_id:entry.id,description:entry.description,movement_sdg:movement.sdg,movement_usd:movement.usd,balance_sdg:balance.sdg,balance_usd:balance.usd }]);
+    const bill=sourceFor(entry);
+    for(const [index,line] of entry.lines.entries()) {
+      if(line.account_code!=='2110')continue;
+      const movement={sdg:new BigNumber(line.credit_sdg).minus(line.debit_sdg).toNumber(),usd:new BigNumber(line.credit_usd).minus(line.debit_usd).toNumber()};
+      ledger=pairAdd(ledger,movement);const lot=openingLines.get(`${entry.id}:${index}`);if(!bill&&!lot)continue;
+      const partyId=lot?lot.party_id:bill!.supplier_id,sourceKey=lot?`opening_lot:${lot.id}`:`purchase_bill:${bill!.id}`;
+      ensure(suppliers.some(s=>s.id===partyId) && dateOnly(entry.date)>=dateOnly(lot?lot.date:bill!.issue_date),'مرجع/تاريخ قيد المورد غير صالح.');
+      allocated=pairAdd(allocated,movement);balances.set(sourceKey,pairAdd(balances.get(sourceKey)||pair(),movement));const balance=pairAdd(supplierBalances.get(partyId)||pair(),movement);supplierBalances.set(partyId,balance);
+      if(start && dateOnly(entry.date)<start)openings.set(partyId,balance);
+      else statementRows.set(partyId,[...statementRows.get(partyId)||[],{source_key:sourceKey,source_type:lot?'opening_lot':'purchase_bill',source_id:lot?.id||bill!.id,source_reference:lot?.reference||bill!.supplier_reference,opening_lot_id:lot?.id||'',bill_id:lot?'':bill!.id,date:dateOnly(entry.date),reference_type:entry.reference_type,reference_id:entry.reference_id,journal_id:entry.id,line_index:index,description:entry.description,movement_sdg:movement.sdg,movement_usd:movement.usd,balance_sdg:balance.sdg,balance_usd:balance.usd}]);
+    }
   }
-  const aging=[...balances].map(([id,balance])=>{ const bill=bills.find(b=>b.id===id)!,days=Math.floor((Date.parse(`${end}T00:00:00Z`)-Date.parse(`${dateOnly(bill.due_date)}T00:00:00Z`))/86400000);return {bill_id:id,supplier_id:bill.supplier_id,supplier_name:bill.supplier_name,reference:bill.supplier_reference,due_date:bill.due_date,overdue_days:Math.max(0,days),bucket:days<=0?'Current':days<=30?'1-30':days<=60?'31-60':days<=90?'61-90':'90+',remaining_sdg:Math.max(0,balance.sdg),remaining_usd:Math.max(0,balance.usd),advance_sdg:Math.max(0,-balance.sdg),advance_usd:Math.max(0,-balance.usd)}; }).filter(row=>row.remaining_sdg||row.remaining_usd||row.advance_sdg||row.advance_usd);
+  const aging=[...balances].map(([sourceKey,balance])=>{const lot=sourceKey.startsWith('opening_lot:')?openingLots.get(sourceKey.slice(12)):undefined,bill=lot?undefined:bills.find(b=>b.id===sourceKey.slice(14))!,partyId=lot?lot.party_id:bill!.supplier_id,dueDate=lot?lot.due_date:bill!.due_date,days=Math.floor((Date.parse(`${end}T00:00:00Z`)-Date.parse(`${dateOnly(dueDate)}T00:00:00Z`))/86400000);return {source_key:sourceKey,source_type:lot?'opening_lot':'purchase_bill',source_id:lot?.id||bill!.id,opening_lot_id:lot?.id||'',bill_id:lot?'':bill!.id,supplier_id:partyId,supplier_name:lot?suppliers.find(s=>s.id===partyId)!.name:bill!.supplier_name,reference:lot?.reference||bill!.supplier_reference,due_date:dueDate,overdue_days:Math.max(0,days),bucket:days<=0?'Current':days<=30?'1-30':days<=60?'31-60':days<=90?'61-90':'90+',remaining_sdg:Math.max(0,balance.sdg),remaining_usd:Math.max(0,balance.usd),advance_sdg:Math.max(0,-balance.sdg),advance_usd:Math.max(0,-balance.usd)};}).filter(row=>row.remaining_sdg||row.remaining_usd||row.advance_sdg||row.advance_usd);
   const statements=suppliers.map(supplier=>{const opening=openings.get(supplier.id)||pair(),closing=supplierBalances.get(supplier.id)||pair();return {supplier_id:supplier.id,supplier_name:supplier.name,opening_sdg:opening.sdg,opening_usd:opening.usd,closing_sdg:closing.sdg,closing_usd:closing.usd,rows:statementRows.get(supplier.id)||[]};});
   return {period:{start:start||'',end},aging,statements,total_sdg:allocated.sdg,total_usd:allocated.usd,ledger_sdg:ledger.sdg,ledger_usd:ledger.usd,unallocated_sdg:new BigNumber(ledger.sdg).minus(allocated.sdg).toNumber(),unallocated_usd:new BigNumber(ledger.usd).minus(allocated.usd).toNumber()};
 }
@@ -150,9 +156,11 @@ export function reconcilePayables(data: Record<string, Document[]>) {
   const inspect = (collection: string, id: string, work: () => void) => { try { work(); } catch (error) { findings.push({ code: 'invalid_record', collection, id, message: error instanceof Error ? error.message : 'غير صالح' }); } };
   const source = (type: string, id: string) => entries.filter(e => e.reference_type === type && e.reference_id === id);
   const amount = (rows: Document[], code: string, currency: string, credit = true) => rows.flatMap(e => e.lines || []).filter(l => l.account_code === code).reduce((n: BigNumber, l: Document) => credit ? n.plus(l[`credit_${currency}`]).minus(l[`debit_${currency}`]) : n.plus(l[`debit_${currency}`]).minus(l[`credit_${currency}`]), new BigNumber(0)).toNumber();
+  let opening=new Map<string,BookBalances>();
+  inspect('opening_batches','AP-sources',()=>{opening=openingBalancesByParty(data,'payable');});
   for (const supplier of suppliers) inspect('suppliers', supplier.id, () => {
     validateSupplier(supplier);
-    for (const book of ['sdg','usd']) for (const prefix of ['payable_due','advance_balance']) if (supplier[`${prefix}_${book}`] !== undefined) { money(supplier[`${prefix}_${book}`], book === 'sdg' ? 0 : 2); compare('suppliers', supplier.id, `${prefix}_${book}`, bills.filter(row => row.supplier_id === supplier.id).reduce((sum,row) => sum.plus(row[`${prefix === 'payable_due' ? 'remaining' : prefix}_${book}`] || 0), new BigNumber(0)).toNumber(), supplier[`${prefix}_${book}`]); }
+    for (const book of ['sdg','usd'] as const) for (const prefix of ['payable_due','advance_balance']) if (supplier[`${prefix}_${book}`] !== undefined) { money(supplier[`${prefix}_${book}`], book === 'sdg' ? 0 : 2); compare('suppliers', supplier.id, `${prefix}_${book}`, bills.filter(row => row.supplier_id === supplier.id).reduce((sum,row) => sum.plus(row[`${prefix === 'payable_due' ? 'remaining' : prefix}_${book}`] || 0), new BigNumber(prefix==='payable_due'?opening.get(supplier.id)?.[book]||0:0)).toNumber(), supplier[`${prefix}_${book}`]); }
   });
   for (const bill of bills) inspect('purchase_bills', bill.id, () => {
     ensure(suppliers.some(s => s.id === bill.supplier_id), 'مرجع المورد ناقص.');
@@ -227,7 +235,7 @@ export function reconcilePayables(data: Record<string, Document[]>) {
   const expenseIds = new Set((data.expenses || []).map(e => e.id));
   const legacy = entries.filter(e => ['expense', 'void'].includes(e.reference_type) && expenseIds.has(e.reference_id));
   for (const currency of ['sdg', 'usd']) {
-    const remaining = bills.reduce((n, b) => n.plus(billSignedBalance(b)[currency as 'sdg' | 'usd']), new BigNumber(0)).plus(amount(legacy, '2110', currency)).toNumber();
+    const remaining = bills.reduce((n, b) => n.plus(billSignedBalance(b)[currency as 'sdg' | 'usd']), new BigNumber(0)).plus([...opening.values()].reduce((n,pair)=>n.plus(pair[currency as 'sdg'|'usd']),new BigNumber(0))).plus(amount(legacy, '2110', currency)).toNumber();
     compare('journal_entries', 'AP-control', `outstanding_${currency}`, remaining, amount(entries, '2110', currency));
   }
   return findings;

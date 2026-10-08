@@ -14,8 +14,11 @@ import { purchaseCorrectionCollections, reconcilePurchaseCorrections } from './p
 import { payableCollections, reconcilePayables } from './payables';
 import { salesCorrectionCollections, reconcileSalesCorrections, invoiceSignedBalance } from './salesCorrections';
 import { dateOnly, identifier, money, validateJournal } from './validation';
+import { verifyOpeningSources } from './openingSources';
+import { openingCollections } from './openingCollections';
+import { hasOpeningSources, openingOrganization } from './openingIntegration';
 
-export const financialCollections = [...periodCollections, 'audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
+export const financialCollections = [...periodCollections, ...openingCollections, 'audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
 export type FinancialCollection = typeof financialCollections[number];
 export type FinancialData = Record<FinancialCollection, Document[]>;
 export interface Finding {
@@ -74,8 +77,18 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
     }
   }
   const customerTotals = new Map<string, { sdg: BigNumber; usd: BigNumber }>();
+  const openingCustomerTotals = new Map<string,{sdg:BigNumber;usd:BigNumber}>();
   const invoiceNumbers = new Set<string>();
   let remainingSdg = new BigNumber(0), remainingUsd = new BigNumber(0);
+  if(hasOpeningSources(data))inspect('opening_batches','sources',()=>{
+    const verified=verifyOpeningSources(data,openingOrganization(data));
+    for(const lot of verified.lots.filter(row=>row.kind==='receivable')) {
+      const state=verified.states.get(lot.id)!,total=openingCustomerTotals.get(lot.party_id)||{sdg:new BigNumber(0),usd:new BigNumber(0)};
+      openingCustomerTotals.set(lot.party_id,{sdg:total.sdg.plus(state.sdg),usd:total.usd.plus(state.usd)});
+      remainingSdg=remainingSdg.plus(state.sdg);remainingUsd=remainingUsd.plus(state.usd);
+    }
+    for(const [id,total] of openingCustomerTotals)customerTotals.set(id,total);
+  });
   for (const invoice of data.invoices) {
     if (!indexes.customers.has(invoice.customer_id)) add('missing_customer', 'invoices', invoice.id);
     if (invoiceNumbers.has(invoice.invoice_number)) add('duplicate_invoice_number', 'invoices', invoice.id);
@@ -107,7 +120,7 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
     const total = customerTotals.get(customer.id);
     compare('customers', customer.id, 'balance_sdg', total?.sdg.toNumber() || 0, customer.balance_sdg);
     compare('customers', customer.id, 'balance_usd', total?.usd.toNumber() || 0, customer.balance_usd);
-    for (const book of ['sdg','usd']) for (const prefix of ['receivable_due','credit_balance']) if (customer[`${prefix}_${book}`] !== undefined) compare('customers', customer.id, `${prefix}_${book}`, data.invoices.filter(invoice => invoice.customer_id === customer.id && !['void','cancelled','draft'].includes(invoice.status)).reduce((n, invoice) => n.plus(invoice[`${prefix === 'receivable_due' ? 'remaining' : prefix}_${book}`] || 0), new BigNumber(0)).toNumber(), customer[`${prefix}_${book}`]);
+    for (const book of ['sdg','usd'] as const) for (const prefix of ['receivable_due','credit_balance']) if (customer[`${prefix}_${book}`] !== undefined) compare('customers', customer.id, `${prefix}_${book}`, data.invoices.filter(invoice => invoice.customer_id === customer.id && !['void','cancelled','draft'].includes(invoice.status)).reduce((n, invoice) => n.plus(invoice[`${prefix === 'receivable_due' ? 'remaining' : prefix}_${book}`] || 0), prefix==='receivable_due'?openingCustomerTotals.get(customer.id)?.[book]||new BigNumber(0):new BigNumber(0)).toNumber(), customer[`${prefix}_${book}`]);
   }
   compare('journal_entries', 'AR-control', 'outstanding_sdg', remainingSdg.toNumber(), arSdg.toNumber());
   compare('journal_entries', 'AR-control', 'outstanding_usd', remainingUsd.toNumber(), arUsd.toNumber());

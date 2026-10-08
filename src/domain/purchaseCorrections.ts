@@ -1,4 +1,5 @@
 import BigNumber from 'bignumber.js';
+import { openingBalancesForParty, readOpeningData } from './openingIntegration';
 import type { Account, Invoice, JournalEntry, JournalEntryLine, Product } from '../types';
 import type { Document, Transaction } from './store';
 import type { PayableContext, PurchaseBill } from './payables';
@@ -116,8 +117,9 @@ export function purchaseCaches(bill: Document, state: ReturnType<typeof verifyPu
 }
 export async function savePurchaseSupplier(c: PayableContext, supplier: Document, updated: Document) {
   const existing = (await c.tx.list(`${c.root}/purchase_bills`)).filter(row => row.supplier_id === supplier.id);
-  for (const book of books) for (const prefix of ['payable_due','advance_balance']) if (supplier[`${prefix}_${book}`] !== undefined) ensure(existing.reduce((sum,row) => sum.plus(row[`${prefix === 'payable_due' ? 'remaining' : prefix}_${book}`] || 0), new BigNumber(0)).eq(supplier[`${prefix}_${book}`]), 'رصيد المورد المفصل لا يطابق مصادره.', 409);
-  const bills = [...existing.filter(row => row.id !== updated.id), updated]; const due = bills.reduce<BookAmount>((sum,row) => add(sum,value(row,'remaining')), zero()), advance = bills.reduce<BookAmount>((sum,row) => add(sum,value(row,'advance_balance')), zero());
+  const opening=openingBalancesForParty(await readOpeningData(c.tx,c.root),'payable',supplier.id);
+  for (const book of books) for (const prefix of ['payable_due','advance_balance']) if (supplier[`${prefix}_${book}`] !== undefined) ensure(existing.reduce((sum,row) => sum.plus(row[`${prefix === 'payable_due' ? 'remaining' : prefix}_${book}`] || 0), new BigNumber(prefix==='payable_due'?opening[book]:0)).eq(supplier[`${prefix}_${book}`]), 'رصيد المورد المفصل لا يطابق مصادره.', 409);
+  const bills = [...existing.filter(row => row.id !== updated.id), updated]; const due = bills.reduce<BookAmount>((sum,row) => add(sum,value(row,'remaining')), opening), advance = bills.reduce<BookAmount>((sum,row) => add(sum,value(row,'advance_balance')), zero());
   c.set(`${c.root}/suppliers/${supplier.id}`, { ...supplier, payable_due_sdg: due.sdg, payable_due_usd: due.usd, advance_balance_sdg: advance.sdg, advance_balance_usd: advance.usd, updated_at: c.iso });
 }
 export async function purchaseCorrectionCommand(action: string, data: Document, c: PayableContext) {

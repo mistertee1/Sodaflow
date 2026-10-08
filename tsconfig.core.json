@@ -35,6 +35,7 @@
     "tests/ownerReauthentication.test.ts",
     "tests/openingBalances.test.ts",
     "tests/openingSources.test.ts",
-    "tests/openingPreview.test.ts"
+    "tests/openingPreview.test.ts",
+    "tests/openingIntegration.test.ts"
   ]
 }

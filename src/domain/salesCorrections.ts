@@ -1,4 +1,5 @@
 import BigNumber from 'bignumber.js';
+import { openingBalancesForParty, readOpeningData } from './openingIntegration';
 import type { Account, Invoice, JournalEntry, JournalEntryLine, Product } from '../types';
 import type { Document, Transaction } from './store';
 import type { PayableContext } from './payables';
@@ -147,12 +148,13 @@ export function salesInvoiceCaches(invoice: Invoice, state: { balance: BookAmoun
 /** Customer balance stays signed; due and credit pools remain separately visible. */
 export async function saveSalesCustomer(c: PayableContext, customer: Document, updated: Invoice) {
   const existing = (await c.tx.list(`${c.root}/invoices`)).filter(row => row.customer_id === customer.id && !['void', 'cancelled', 'draft'].includes(row.status));
-  const previous = existing.reduce<BookAmount>((total, row) => add(total, invoiceSignedBalance(row)), zero());
+  const opening=openingBalancesForParty(await readOpeningData(c.tx,c.root),'receivable',customer.id);
+  const previous = existing.reduce<BookAmount>((total, row) => add(total, invoiceSignedBalance(row)), opening);
   ensure(same(previous, value(customer, 'balance')), 'رصيد العميل لا يطابق مصادره؛ راجع المطابقة.', 409);
-  for (const book of books) for (const prefix of ['receivable_due', 'credit_balance']) if (customer[`${prefix}_${book}`] !== undefined) ensure(existing.reduce((n, invoice) => n.plus(invoice[`${prefix === 'receivable_due' ? 'remaining' : prefix}_${book}`] ?? 0), new BigNumber(0)).eq(customer[`${prefix}_${book}`]), 'رصيد العميل المفصل لا يطابق مصادره.', 409);
+  for (const book of books) for (const prefix of ['receivable_due', 'credit_balance']) if (customer[`${prefix}_${book}`] !== undefined) ensure(existing.reduce((n, invoice) => n.plus(invoice[`${prefix === 'receivable_due' ? 'remaining' : prefix}_${book}`] ?? 0), new BigNumber(prefix==='receivable_due'?opening[book]:0)).eq(customer[`${prefix}_${book}`]), 'رصيد العميل المفصل لا يطابق مصادره.', 409);
   const invoices = [...existing.filter(row => row.id !== updated.id), ...(!['void', 'cancelled', 'draft'].includes(updated.status) ? [updated] : [])];
-  const balance = invoices.reduce<BookAmount>((total, row) => add(total, invoiceSignedBalance(row)), zero());
-  const due = invoices.reduce<BookAmount>((total, row) => add(total, value(row, 'remaining')), zero()), credit = invoices.reduce<BookAmount>((total, row) => add(total, value(row, 'credit_balance')), zero());
+  const balance = invoices.reduce<BookAmount>((total, row) => add(total, invoiceSignedBalance(row)), opening);
+  const due = invoices.reduce<BookAmount>((total, row) => add(total, value(row, 'remaining')), opening), credit = invoices.reduce<BookAmount>((total, row) => add(total, value(row, 'credit_balance')), zero());
   c.set(`${c.root}/customers/${customer.id}`, { ...customer, balance_sdg: balance.sdg, balance_usd: balance.usd, receivable_due_sdg: due.sdg, receivable_due_usd: due.usd, credit_balance_sdg: credit.sdg, credit_balance_usd: credit.usd, updated_at: c.iso });
 }
 

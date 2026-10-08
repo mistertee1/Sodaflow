@@ -7,12 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c2-opening-quotes",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "accounting-v2-20261008-c22-0156",
-    "acquired_at": "2026-10-08T01:56:51Z",
-    "updated_at": "2026-10-08T01:56:51Z",
-    "expires_at": "2026-10-08T02:41:51.000Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -489,7 +484,7 @@
     "Implement C2.2 atomic opening batches/source reconciliation and protected wizard, C2.3 capital/drawings",
     "Continue remaining C, D, E, Excel1-4 and deferred bank imports"
   ],
-  "updated_at": "2026-10-08T01:56:51Z",
+  "updated_at": "2026-10-08T02:20:53Z",
   "deferred_requirements": [
     {
       "prd": "50",
@@ -516,16 +511,24 @@
     }
   ],
   "last_lease": {
-    "worker": "accounting-v2-20261007-c21-2116",
-    "acquired_at": "2026-10-07T21:16:14Z",
-    "updated_at": "2026-10-07T21:16:14Z",
-    "expires_at": "2026-10-07T22:01:14.000Z",
-    "ended_at": "2026-10-08T01:56:51Z",
-    "status": "expired_resumed_after_remote_review"
+    "worker": "accounting-v2-20261008-c22-0156",
+    "acquired_at": "2026-10-08T01:56:51Z",
+    "updated_at": "2026-10-08T01:56:51Z",
+    "expires_at": "2026-10-08T02:41:51.000Z",
+    "ended_at": "2026-10-08T02:20:53Z",
+    "status": "handed_off",
+    "next_branch": "codex/accounting-v2-c2-opening-preview",
+    "next_pr": 27
   },
   "last_remote_review": {
     "main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31",
     "opening_quote_sha": "23492f1f3c0043d65399316b88ccd18c97acd18a",
     "checked_at": "2026-10-08T01:56:51Z"
+  },
+  "handoff": {
+    "branch": "codex/accounting-v2-c2-opening-preview",
+    "pr": 27,
+    "worker": "accounting-v2-20261008-c22-0156",
+    "at": "2026-10-08T02:20:53Z"
   }
 }

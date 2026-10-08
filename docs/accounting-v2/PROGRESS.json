@@ -10,8 +10,8 @@
   "lease": {
     "worker": "accounting-v2-20261008-c2222-0752",
     "acquired_at": "2026-10-08T07:52:00Z",
-    "updated_at": "2026-10-08T07:52:00Z",
-    "expires_at": "2026-10-08T08:37:00Z"
+    "updated_at": "2026-10-08T08:05:00Z",
+    "expires_at": "2026-10-08T08:50:00Z"
   },
   "milestones": [
     {
@@ -775,7 +775,7 @@
     "Implement C2.2b.3 protected wizard and C2.3 capital/drawings.",
     "Continue C3-C6, D, E, Excel1-4 and deferred requirements; full final acceptance remains pending."
   ],
-  "updated_at": "2026-10-08T07:52:00Z",
+  "updated_at": "2026-10-08T08:05:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [

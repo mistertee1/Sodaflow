@@ -25,7 +25,7 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   const platform = () => new PlatformBilling(service().store, options ? undefined : adminServices().db);
   const verify: Verify = options?.verify || (async token => {
     const claims = await adminServices().auth.verifyIdToken(token, true);
-    return { uid: claims.uid, email: claims.email || '', emailVerified: claims.email_verified === true, name: claims.name, superAdmin: claims.superAdmin === true };
+    return { uid: claims.uid, email: claims.email || '', emailVerified: claims.email_verified === true, name: claims.name, superAdmin: claims.superAdmin === true, authTime: claims.auth_time };
   });
   router.get('/health', (_req, res) => res.json({ status: 'ok', app: 'SudaFlow', version: '3.0.0', release: '2026-10-05-central-sync-recovery' }));
   router.get('/health/ready', async (_req, res) => {
@@ -84,6 +84,7 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
     ensure(typeof req.body.initial === 'boolean', 'نوع إنشاء المؤسسة مطلوب.');
     return new Organizations(service().store).create(actor, req.body.name, req.body.settings || {}, identifier(req.body.operationId), req.body.initial);
   }));
+  router.get('/organizations/:orgId/accounting-periods', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route((req,actor)=>{ensure(Object.keys(req.query).every(key=>key==='periodId')&&(!('periodId' in req.query)||typeof req.query.periodId==='string'&&!!req.query.periodId),'مرشحات الفترات غير صالحة.');return service().periodReports(req.params.orgId,actor,req.query.periodId as string|undefined);}));
   router.get('/organizations/:orgId/revision', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, route(async (req, actor) => organizationRevision(service().store, req.params.orgId, actor)));
   router.get('/organizations/:orgId/snapshot', route(async (req, actor) => service().snapshot(req.params.orgId, actor)));
   router.get('/organizations/:orgId/backup', route(async (req, actor) => service().snapshot(req.params.orgId, actor, true)));

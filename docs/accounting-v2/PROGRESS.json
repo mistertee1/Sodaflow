@@ -855,5 +855,23 @@
       28
     ]
   },
-  "next": "Confirm C2.2b.2.2 CI and full atomic acceptance, then implement C2.2b.3 protected startup/settlement UI."
+  "next": "Confirm C2.2b.2.2 CI and full atomic acceptance, then implement C2.2b.3 protected startup/settlement UI.",
+  "integration_tracking_resolution": {
+    "base_branch": "codex/accounting-v2-c2-opening-integration",
+    "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
+    "scope": "Only PROGRESS.json differed after user updates to predecessor branches; invalid duplicated tracking keys resolved using latest valid descendant checkpoint. No code overwritten and no PR/main merge.",
+    "historical_handoffs": [
+      {
+        "worker": "accounting-v2-20261008-c22-0156",
+        "ended_at": "2026-10-08T02:20:53Z",
+        "next_branch": "codex/accounting-v2-c2-opening-preview",
+        "next_pr": 27
+      },
+      {
+        "worker": "accounting-v2-20261008-c22-0156",
+        "ended_at": "2026-10-08T02:26:00Z",
+        "next_branch": "codex/accounting-v2-c2-opening-integration"
+      }
+    ]
+  }
 }

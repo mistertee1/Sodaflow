@@ -10,8 +10,8 @@
   "lease": {
     "worker": "accounting-v2-20261008-c22-0156",
     "acquired_at": "2026-10-08T01:56:51Z",
-    "updated_at": "2026-10-08T01:56:51Z",
-    "expires_at": "2026-10-08T02:41:51.000Z"
+    "updated_at": "2026-10-08T02:04:45Z",
+    "expires_at": "2026-10-08T02:49:45.000Z"
   },
   "milestones": [
     {
@@ -441,8 +441,23 @@
                 {
                   "id": "C2.2a",
                   "scope": "Trusted eligibility, immutable opening source proof and settlement replay contracts",
-                  "status": "in_progress",
-                  "branch": "codex/accounting-v2-c2-opening-source-proof"
+                  "status": "implemented_ci_pending",
+                  "branch": "codex/accounting-v2-c2-opening-source-proof",
+                  "checks": {
+                    "unit_api": 211,
+                    "new_unit_api": 12,
+                    "types": "passed",
+                    "build": "passed",
+                    "source_sequences": 72,
+                    "rules_status": "pending_ci",
+                    "full_ui_status": "pending_ci"
+                  },
+                  "completed_parts": [
+                    "actual-document eligibility with validated zero initialization exception",
+                    "minimal frozen opening proof, explicit dated AR/AP lots and inventory WAC movements",
+                    "historical partial/final carrying allocation, payment FX and immutable replay",
+                    "dated source-linked opening/movement/closing/aging contracts with full future-history verification"
+                  ]
                 },
                 {
                   "id": "C2.2b",
@@ -497,13 +512,13 @@
       "pr": null
     }
   ],
-  "last_report": "REPORT_C2_1_OPENING_QUOTES.md",
+  "last_report": "REPORT_C2_2A_OPENING_SOURCES.md",
   "next_steps": [
     "Verify C2.1 full CI",
     "Implement C2.2 atomic opening batches/source reconciliation and protected wizard, C2.3 capital/drawings",
     "Continue remaining C, D, E, Excel1-4 and deferred bank imports"
   ],
-  "updated_at": "2026-10-08T01:56:51Z",
+  "updated_at": "2026-10-08T02:04:45Z",
   "deferred_requirements": [
     {
       "prd": "50",

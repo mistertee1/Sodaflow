@@ -394,6 +394,9 @@ export interface MerchantSettings {
   logo_url?: string; // شعار أو لوقو المتجر (يظهر في الفواتير وسندات القبض)
   bank_details?: string; // مثلاً: حساب بنكك: 1234567 باسم أحمد محمد
   default_exchange_rate: number; // سعر الصرف المعتمد (0 إذا لم يتم تحديده بعد)
+  manual_exchange_rate?: number; // سعر صرف يدوي مخصص (0 إذا غير مفعل أو غير محدد)
+  freeze_exchange_rate?: boolean; // تفعيل خيار تجميد سعر الصرف للفواتير لحماية العمليات المحاسبية
+  freeze_invoice_exchange_rate?: boolean; // مرادف متوافق لخيار تجميد سعر الصرف للفواتير
   primary_currency: Currency;
   secondary_currency: Currency;
   currencies_configured?: boolean; // يحدد ما إذا كانت المنشأة قد قامت بتهيئة عملاتها وتأكيدها صراحة

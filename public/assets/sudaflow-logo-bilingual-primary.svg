@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" fill="none">
+  <g text-anchor="end" font-family="'IBM Plex Sans Arabic', 'Segoe UI', system-ui, -apple-system, sans-serif">
+    <text x="200" y="44" font-size="38" font-weight="700" fill="#142C35" letter-spacing="-0.5">سودافلو</text>
+    <text x="200" y="78" font-size="24" font-weight="600" fill="#142C35" letter-spacing="0">SudaFlow</text>
+  </g>
+  <g transform="translate(215, 6) scale(0.85)">
+    <path
+      d="M 28 23 H 72 A 14 14 0 0 1 86 37 A 14 14 0 0 1 72 51 H 28 A 14 14 0 0 0 14 65 A 14 14 0 0 0 28 79 H 72"
+      stroke="#087F75"
+      stroke-width="14"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+</svg>

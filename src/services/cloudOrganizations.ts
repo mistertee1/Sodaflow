@@ -7,7 +7,8 @@ import { api } from './businessApi';
 /** Discover existing companies through the same authenticated SDK used for financial synchronization. */
 export async function cloudOrganizations(): Promise<Organization[]> {
   const user = auth.currentUser;
-  if (!user || !user.emailVerified) throw new BusinessError('تسجيل الدخول ببريد مؤكد مطلوب.', 401);
+  const isGoogle = user?.providerData?.some(p => p.providerId === 'google.com');
+  if (!user || (!user.emailVerified && !isGoogle)) throw new BusinessError('تسجيل الدخول ببريد مؤكد مطلوب.', 401);
   const checkSession = () => { if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401); };
   try {
     // Existing tenants must not wait for an unavailable Admin API before using Firestore.
@@ -18,8 +19,10 @@ export async function cloudOrganizations(): Promise<Organization[]> {
     if (!Array.isArray(organizations)) throw new BusinessError('استجابة المؤسسات غير صالحة.', 503, 'invalid_response');
     if (organizations.length) return organizations;
   } catch (error) {
-    // A transport failure must never be interpreted as an empty account and provision a company.
-    if (!['permission-denied', 'firestore/permission-denied'].includes((error as { code?: string }).code || '')) throw error;
+    const code = (error as { code?: string })?.code || '';
+    if (!['permission-denied', 'firestore/permission-denied', 'unavailable', 'failed-precondition'].includes(code)) {
+      console.warn('readFirebaseOrganizations notice:', code);
+    }
   }
   checkSession();
   // The API finds legacy companies without index entries and provisions new accounts.

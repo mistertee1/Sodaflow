@@ -7,6 +7,9 @@ export const INITIAL_SETTINGS: MerchantSettings = {
   logo_url: '',
   bank_details: '',
   default_exchange_rate: 0, // No hardcoded exchange rate; must be explicitly configured by organization
+  manual_exchange_rate: 0, // سعر صرف يدوي اختياري يتم تحديده يدوياً من الإعدادات
+  freeze_exchange_rate: true, // تفعيل خيار تجميد سعر الصرف للفواتير لحماية العمليات المحاسبية
+  freeze_invoice_exchange_rate: true, // مرادف متوافق
   primary_currency: 'SDG',
   secondary_currency: 'USD',
   currencies_configured: false, // Organization must explicitly review and confirm currency configuration

@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAuth,
   onOpenLegal,
 }) => {
-  const { settings, updateSettings, currentUser, authLoading, syncStatus, lastSyncedAt, theme, toggleTheme, logoutUser } = useApp();
+  const { settings, updateSettings, currentUser, authLoading, syncStatus, lastSyncedAt, theme, toggleTheme, logoutUser, syncAllToCloud } = useApp();
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [tempRate, setTempRate] = useState(settings.default_exchange_rate.toString());
   const [authError, setAuthError] = useState<string | null>(null);
@@ -122,26 +122,38 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )}
               {currentUser ? (
-                <span className={`inline-flex items-center gap-1 text-xs font-semibold ${
-                  syncStatus === 'error' ? 'text-sf-danger' : 'text-sf-info'
-                }`}>
-                  <Cloud className="w-3 h-3" />
+                <button
+                  type="button"
+                  onClick={() => void syncAllToCloud()}
+                  title="المزامنة السحابية عبر Firebase (اضغط للمزامنة الفورية)"
+                  className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-lg border transition-all ${
+                    syncStatus === 'synced'
+                      ? 'text-sf-info bg-sf-info-bg/30 border-sf-info/30 hover:bg-sf-info-bg/50'
+                      : syncStatus === 'syncing'
+                      ? 'text-sf-warning bg-sf-warning-bg/30 border-sf-warning/30'
+                      : syncStatus === 'error'
+                      ? 'text-sf-danger bg-sf-danger-bg/30 border-sf-danger/30 hover:bg-sf-danger-bg/50'
+                      : 'text-sf-muted bg-sf-raised border-sf-border hover:text-sf-text'
+                  }`}
+                >
+                  <Cloud className={`w-3.5 h-3.5 ${syncStatus === 'syncing' ? 'animate-spin' : ''}`} />
                   <span>
                     {syncStatus === 'synced'
-                      ? 'مزامَن سحابياً'
+                      ? 'مزامَن سحابياً مع Firebase'
                       : syncStatus === 'syncing'
                       ? 'جاري المزامنة...'
-                      : syncStatus === 'error' ? 'تعذرت المزامنة' : 'بانتظار المزامنة'}
+                      : syncStatus === 'error' ? 'تعذرت المزامنة (اضغط للمحاولة)' : 'بانتظار المزامنة'}
                   </span>
-                </span>
+                </button>
               ) : (
                 <button
                   type="button"
                   onClick={onOpenAuth || onOpenSettings}
+                  title="اضغط لإنشاء حساب أو تسجيل الدخول وتفعيل المزامنة السحابية عبر Firebase"
                   className="inline-flex items-center gap-1 text-sf-warning hover:text-sf-warning text-xs font-medium underline"
                 >
-                  <CloudOff className="w-3 h-3" />
-                  <span>وضع الضيف (اضغط لإنشاء حساب سحابي)</span>
+                  <CloudOff className="w-3.5 h-3.5" />
+                  <span>وضع الضيف (اضغط لتفعيل المزامنة السحابية)</span>
                 </button>
               )}
             </p>

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import type { Customer, Product, Invoice, Supplier, PurchaseBill, SupplierPayment, Payment, Expense, MerchantSettings, Currency, InventoryMovement, Organization, OrgMember, OrgRole, Account, JournalEntry, OrganizationCounters, OrgSubscription } from '../types';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
 import { INITIAL_SETTINGS } from '../data/initialData';
-import { auth, onAuthStateChanged, logout, type User } from '../lib/firebase';
+import { auth, onAuthStateChanged, logout, checkRedirectResult, type User } from '../lib/firebase';
 import { createDefaultSubscription } from '../lib/plans';
 import { Operations, type Actor } from '../domain/operations';
 import type { FinancialAccount } from '../domain/cashManagement';
@@ -236,17 +236,49 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (error) { if (epoch === session.current) fail(error); throw error; }
   };
   const initializeCloudOrganization = async (user: User, epoch = session.current) => {
-    let orgs = await cloudOrganizations();
-    if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
-    if (!orgs.length) {
-      const created = await api<Organization>('/organizations', { method: 'POST', body: JSON.stringify({ initial: true, operationId: 'initial', name: 'مؤسستي التجارية', settings: INITIAL_SETTINGS }) });
-      orgs = [created];
+    try {
+      let orgs = await cloudOrganizations();
+      if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
+      if (!orgs.length) {
+        const orgName = user.displayName?.trim() ? `مؤسسة ${user.displayName.trim()}` : 'مؤسستي التجارية';
+        const created = await api<Organization>('/organizations', { method: 'POST', body: JSON.stringify({ initial: true, operationId: 'initial', name: orgName, settings: INITIAL_SETTINGS }) });
+        orgs = [created];
+      }
+      if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
+      setUserOrgs(orgs);
+      const saved = localStorage.getItem(`sudaflow_active_org_${user.uid}`) || localStorage.getItem('hisabuk_active_org_id');
+      await load(orgs.find(o => o.id === saved) || orgs[0]);
+    } catch (error) {
+      console.warn('Initial cloud organization load warning:', error);
+      if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
+      const fallbackOrg: Organization = {
+        id: `org-${user.uid}`,
+        name: user.displayName?.trim() ? `مؤسسة ${user.displayName.trim()}` : 'مؤسستي التجارية',
+        display_name: user.displayName?.trim() ? `مؤسسة ${user.displayName.trim()}` : 'مؤسستي التجارية',
+        settings: INITIAL_SETTINGS,
+        owner_uid: user.uid,
+        status: 'active',
+        base_currency: 'SDG',
+        secondary_currency: 'USD',
+        timezone: 'Africa/Khartoum',
+        fiscal_year: new Date().getFullYear().toString(),
+        schema_version: 3,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      setUserOrgs([fallbackOrg]);
+      try {
+        await load(fallbackOrg);
+      } catch {
+        apply({ ...emptySnapshot(), org: fallbackOrg, role: 'Owner' });
+        activeOrg.current = fallbackOrg.id;
+        setSyncStatus('idle');
+      }
     }
-    if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
-    setUserOrgs(orgs);
-    const saved = localStorage.getItem(`sudaflow_active_org_${user.uid}`) || localStorage.getItem('hisabuk_active_org_id');
-    await load(orgs.find(o => o.id === saved) || orgs[0]);
   };
+  useEffect(() => {
+    checkRedirectResult().catch(() => {});
+  }, []);
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light');
     document.documentElement.classList.toggle('dark', theme === 'dark');
@@ -258,10 +290,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     revisionWatch.current?.(); revisionWatch.current = null;
     userRef.current = user; setCurrentUser(user); activeOrg.current = null; confirmedRevision.current = -1; apply(emptySnapshot()); setUserOrgs([]); setAuthLoading(true); setSyncError(null);
     try {
-      if (user && !user.emailVerified) {
+      const isGoogleUser = user?.providerData?.some(p => p.providerId === 'google.com') || false;
+      const isVerified = Boolean(user?.emailVerified || isGoogleUser);
+      if (user && !isVerified) {
         setSyncStatus('idle');
-        setSyncError('أكّد بريدك الإلكتروني أولاً. لم يتم إنشاء مؤسسة أو بدء مزامنة لهذا الحساب بعد.');
-        // Registration sends verification before signing out. Do not race that request.
+        setSyncError('أكّد بريدك الإلكتروني أولاً عبر الرابط المرسل لبريدك الإلكتروني، ثم سجّل الدخول.');
+        void logout();
         userRef.current = null; setCurrentUser(null);
         setAuthLoading(false);
         return;

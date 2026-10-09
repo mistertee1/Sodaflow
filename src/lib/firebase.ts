@@ -1,8 +1,11 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAnalytics, isSupported, type Analytics } from 'firebase/analytics';
 import {
   getAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -15,7 +18,25 @@ import {
 import { getFirestore, initializeFirestore, type Firestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export { firebaseConfig };
+
+// Initialize Firebase App
+export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+// Initialize Analytics (supported in browser environments)
+export let analytics: Analytics | undefined;
+if (typeof window !== 'undefined') {
+  isSupported()
+    .then((supported) => {
+      if (supported) {
+        analytics = getAnalytics(app);
+      }
+    })
+    .catch(() => {
+      // Analytics not supported in this runtime
+    });
+}
+export { getAnalytics };
 
 export const auth = getAuth(app);
 const databaseId = firebaseConfig.firestoreDatabaseId || '(default)';
@@ -30,6 +51,8 @@ try {
 }
 export const db = firestore;
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.addScope('email');
+googleProvider.addScope('profile');
 googleProvider.setCustomParameters({
   prompt: 'select_account',
 });
@@ -53,17 +76,43 @@ export const signInWithGoogle = async () => {
   } catch (error: any) {
     const code = error?.code || 'unknown';
     console.warn('Google sign-in popup notice:', code, error?.message);
-    // Attach user-friendly descriptive message
-    if (code === 'auth/network-request-failed') {
-      error.friendlyMessage = 'تعذر الاتصال بخدمة Google عبر النافذة المنبثقة داخل إطار المعاينة (بسبب قيود المتصفح لملفات تعريف الارتباط للطرف الثالث). يمكنك فتح التطبيق في نافذة مستقلة، أو تسجيل الدخول بالبريد الإلكتروني، أو المتابعة كضيف.';
+    const host = typeof window !== 'undefined' ? window.location.hostname : 'النطاق الحالي';
+    if (code === 'auth/operation-not-allowed') {
+      error.friendlyMessage = 'تسجيل الدخول عبر Google غير مفعّل في لوحة تحكم مشروعك Firebase (sodaflow). يرجى فتح Firebase Console > Authentication > Sign-in method والضغط على Google ثم تفعيله (Enable) وتحديد بريد دعم المشروع.';
+    } else if (code === 'auth/unauthorized-domain') {
+      error.friendlyMessage = `النطاق الحالي (${host}) غير مصرح به في Firebase. يرجى إضافته في Firebase Console > Authentication > Settings > Authorized domains.`;
+    } else if (code === 'auth/network-request-failed') {
+      error.friendlyMessage = 'تعذر فتح نافذة Google للمصادقة من داخل إطار المعاينة المضمن (بسبب قيود المتصفح على ملفات تعريف الارتباط للطرف الثالث). يمكنك فتح التطبيق في نافذة مستقلة، أو تسجيل الدخول بالبريد الإلكتروني، أو المتابعة كضيف.';
     } else if (code === 'auth/popup-blocked') {
-      error.friendlyMessage = 'تم حظر النافذة المنبثقة بواسطة المتصفح. يرجى السماح بالنوافذ المنبثقة ثم المحاولة مجدداً.';
+      error.friendlyMessage = 'تم حظر النافذة المنبثقة بواسطة المتصفح. يرجى السماح بالنوافذ المنبثقة للموقع أو فتح التطبيق في نافذة مستقلة.';
     } else if (code === 'auth/popup-closed-by-user') {
       error.friendlyMessage = 'تم إغلاق نافذة تسجيل الدخول قبل استكمال المصادقة.';
     } else if (code === 'auth/cancelled-popup-request') {
-      error.friendlyMessage = 'تم إلغاء طلب تسجيل الدخول لوجود عملية أخرى قيد التنفيذ.';
+      error.friendlyMessage = 'تم إلغاء طلب تسجيل الدخول لوجود عملية مصادقة أخرى قيد التنفيذ.';
+    } else if (code === 'auth/account-exists-with-different-credential') {
+      error.friendlyMessage = 'هذا البريد الإلكتروني مسجل مسبقاً بوسيلة دخول أخرى (مثل كلمة المرور). يرجى تسجيل الدخول بالبريد أولاً.';
+    } else if (code === 'auth/internal-error') {
+      error.friendlyMessage = 'حدث خطأ داخلي في مزود Google. تأكد من تفعيل Google في Firebase Console واختيار بريد دعم المشروع.';
+    } else if (code === 'auth/configuration-not-found') {
+      error.friendlyMessage = 'إعدادات مزود Google غير مكتملة في مشروع Firebase. يرجى تفعيل مزود Google في Firebase Console.';
+    } else {
+      error.friendlyMessage = error.friendlyMessage || `تعذر إكمال تسجيل الدخول بحساب Google (${code}). يمكنك الدخول بالبريد أو المتابعة كضيف.`;
     }
     throw error;
+  }
+};
+
+export const signInWithGoogleRedirect = async () => {
+  return signInWithRedirect(auth, googleProvider);
+};
+
+export const checkRedirectResult = async () => {
+  try {
+    const result = await getRedirectResult(auth);
+    return result?.user || null;
+  } catch (err: any) {
+    console.warn('Redirect sign-in notice:', err?.code);
+    return null;
   }
 };
 

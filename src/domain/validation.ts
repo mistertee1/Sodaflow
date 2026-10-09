@@ -56,6 +56,15 @@ export function validateSettings(settings: MerchantSettings): MerchantSettings {
   ensure(settings.sdg_decimals === 0 && settings.usd_decimals === 2, 'دقة الدفاتر: الجنيه بدون كسور والدولار بدقتين عشريتين.');
   ensure(['round', 'ceil', 'floor'].includes(settings.rounding_rule), 'قاعدة التقريب غير صالحة.');
   money(settings.default_exchange_rate, 8);
+  if (settings.manual_exchange_rate !== undefined && settings.manual_exchange_rate !== null) {
+    money(settings.manual_exchange_rate, 8);
+  }
+  if (settings.freeze_exchange_rate !== undefined && settings.freeze_exchange_rate !== null) {
+    ensure(typeof settings.freeze_exchange_rate === 'boolean', 'خيار تجميد سعر الصرف يجب أن يكون قيمة منطقية.');
+  }
+  if (settings.freeze_invoice_exchange_rate !== undefined && settings.freeze_invoice_exchange_rate !== null) {
+    ensure(typeof settings.freeze_invoice_exchange_rate === 'boolean', 'خيار تجميد سعر الصرف للفواتير يجب أن يكون قيمة منطقية.');
+  }
   if (settings.period_lock_date) dateOnly(settings.period_lock_date);
   try { new Intl.DateTimeFormat('en', { timeZone: settings.timezone || 'Africa/Khartoum' }); } catch { throw new BusinessError('المنطقة الزمنية غير صالحة.'); }
   for (const [key, value] of Object.entries(settings)) {

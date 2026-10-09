@@ -593,7 +593,7 @@
                     {
                       "id": "C2.2b.3",
                       "scope": "Protected opening and settlement wizard with Owner reauthentication",
-                      "status": "implemented_acceptance_pending",
+                      "status": "implemented_ci_passed_render_acceptance_pending",
                       "branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
                       "parent_pr": 29,
                       "started_at": "2026-10-08T13:39:51Z",
@@ -603,10 +603,25 @@
                         "types": "passed",
                         "core": "passed",
                         "build": "passed",
-                        "ui": "pending",
-                        "rules": "pending_ci_java21"
+                        "ui": 48,
+                        "new_ui": 3,
+                        "ui_status": "passed_local_and_ci",
+                        "rules": 31,
+                        "rules_status": "passed_ci",
+                        "render_acceptance": "pending_connection_and_staging_service"
                       },
-                      "updated_at": "2026-10-09T23:38:35.883345+00:00"
+                      "updated_at": "2026-10-09T23:46:40.066389+00:00",
+                      "pr": 31,
+                      "validated_local_commit": "2bfde4630b6ecec292873c56c3729287e316d7b4",
+                      "ci": {
+                        "conclusion": "success",
+                        "run_id": 38005624098,
+                        "commit_sha": "2bfde4630b6ecec292873c56c3729287e316d7b4",
+                        "unit_api": 240,
+                        "rules": 31,
+                        "ui": 48,
+                        "production_audit_vulnerabilities": 0
+                      }
                     }
                   ],
                   "pr": 27
@@ -814,11 +829,11 @@
   ],
   "last_report": "REPORT_C2_2B3_OPENING_UI.md",
   "next_steps": [
-    "Verify C2.2b.3 UI and CI acceptance; retain as draft until successful.",
-    "Review/integrate current main ResilientStore and branding changes before final main merge.",
-    "Continue C2.3 capital/drawings, C3-C6, D, E, Excel1-4 and final zero-difference acceptance."
+    "Run Render staging acceptance after connection/service identification; do not equate CI with Render deployment.",
+    "Continue independent C2.3 capital/drawings, C3-C6, D, E, Excel1-4 with separate review branches.",
+    "Preserve current main ResilientStore and branding changes during user-led final integration."
   ],
-  "updated_at": "2026-10-09T23:38:35.883345+00:00",
+  "updated_at": "2026-10-09T23:46:40.066389+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -899,5 +914,19 @@
       }
     ]
   },
-  "automation_id": "6ac979a221608191aee2f5a17a2b0a8e"
+  "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
+  "last_run": {
+    "worker": "accounting-v2-20261010-opening-ui",
+    "ended_at": "2026-10-09T23:46:40.066389+00:00",
+    "branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
+    "pr": 31,
+    "code_commit": "2bfde4630b6ecec292873c56c3729287e316d7b4",
+    "status": "ci_passed_render_acceptance_pending"
+  },
+  "acceptance_environment": {
+    "provider": "Render",
+    "requested_at": "2026-10-09T23:46:40.066389+00:00",
+    "status": "pending_connection_and_service_identification",
+    "production_writes_for_testing": false
+  }
 }

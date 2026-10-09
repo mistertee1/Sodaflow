@@ -5,14 +5,9 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c2-opening-ui",
+  "active_branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "accounting-v2-20261008-c223-1341",
-    "acquired_at": "2026-10-08T13:39:51Z",
-    "updated_at": "2026-10-08T13:39:51Z",
-    "expires_at": "2026-10-08T14:24:51.000Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -598,10 +593,20 @@
                     {
                       "id": "C2.2b.3",
                       "scope": "Protected opening and settlement wizard with Owner reauthentication",
-                      "status": "in_progress",
-                      "branch": "codex/accounting-v2-c2-opening-ui",
+                      "status": "implemented_acceptance_pending",
+                      "branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
                       "parent_pr": 29,
-                      "started_at": "2026-10-08T13:39:51Z"
+                      "started_at": "2026-10-08T13:39:51Z",
+                      "report": "REPORT_C2_2B3_OPENING_UI.md",
+                      "checks": {
+                        "unit_api": 240,
+                        "types": "passed",
+                        "core": "passed",
+                        "build": "passed",
+                        "ui": "pending",
+                        "rules": "pending_ci_java21"
+                      },
+                      "updated_at": "2026-10-09T23:38:35.883345+00:00"
                     }
                   ],
                   "pr": 27
@@ -807,13 +812,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_C2_2B22_OPENING_TRANSACTIONS.md",
+  "last_report": "REPORT_C2_2B3_OPENING_UI.md",
   "next_steps": [
-    "C2.2b.2.2 validated in PR29 (240 unit/API, 31 Firestore, 45 UI); implement C2.2b.3 protected wizard in next stacked branch.",
-    "Implement C2.2b.3 protected wizard and C2.3 capital/drawings.",
-    "Continue C3-C6, D, E, Excel1-4 and deferred requirements; full final acceptance remains pending."
+    "Verify C2.2b.3 UI and CI acceptance; retain as draft until successful.",
+    "Review/integrate current main ResilientStore and branding changes before final main merge.",
+    "Continue C2.3 capital/drawings, C3-C6, D, E, Excel1-4 and final zero-difference acceptance."
   ],
-  "updated_at": "2026-10-08T13:39:51Z",
+  "updated_at": "2026-10-09T23:38:35.883345+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -839,7 +844,7 @@
     }
   ],
   "active_substep": "C2.2b.3",
-  "observed_main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31",
+  "observed_main_sha": "2f0ac961a755ca1ddddb17fbbbf5dffc2085e0ab",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",
@@ -893,5 +898,6 @@
         "next_branch": "codex/accounting-v2-c2-opening-integration"
       }
     ]
-  }
+  },
+  "automation_id": "6ac979a221608191aee2f5a17a2b0a8e"
 }

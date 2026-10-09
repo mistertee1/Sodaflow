@@ -44,9 +44,9 @@ export function assertPeriodPosting(rows: AccountingPeriod[], value: unknown, ro
   }
 }
 /** auth_time comes from a verified Firebase token, never request data or token issue time. */
-export function assertRecentOwner(role: OrgRole, authTime: unknown, now: Date) {
-  ensure(role==='Owner' && hasPermission(role,'periods:reopen'),'إعادة الفتح متاحة للمالك الفعلي فقط.',403);
-  ensure(typeof authTime==='number' && Number.isSafeInteger(authTime) && authTime>0 && now.getTime()/1000-authTime>=-30 && now.getTime()/1000-authTime<=300,'أعد التحقق من الدخول خلال آخر خمس دقائق لتنفيذ إعادة الفتح.',401);
+export function assertRecentOwner(role: OrgRole, authTime: unknown, now: Date, operation = 'إعادة الفتح') {
+  ensure(role==='Owner' && hasPermission(role,'periods:reopen'),`${operation} متاحة للمالك الفعلي فقط.`,403);
+  ensure(typeof authTime==='number' && Number.isSafeInteger(authTime) && authTime>0 && now.getTime()/1000-authTime>=-30 && now.getTime()/1000-authTime<=300,`أعد التحقق من الدخول خلال آخر خمس دقائق لتنفيذ ${operation}.`,401);
 }
 export async function periodLedgerHash(entries: Document[], end: string) {
   const stable=(value: unknown): string => Array.isArray(value)?`[${value.map(stable).join(',')}]`:value && typeof value==='object'?`{${Object.entries(value).filter(([,v])=>v!==undefined).sort(([a],[b])=>a<b?-1:a>b?1:0).map(([k,v])=>`${JSON.stringify(k)}:${stable(v)}`).join(',')}}`:JSON.stringify(value)??'null';

@@ -16,7 +16,8 @@ import { INITIAL_SETTINGS } from '../src/data/initialData';
 import { getPlanConfig, createDefaultSubscription, defaultPlatformPlans } from '../src/lib/plans';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../src/types';
 import { getDefaultChartOfAccounts } from '../src/services/accountingService';
-import { openingBooksFixture, settleOpeningBooks } from './fixtures/openingBooks';
+import { openingBooksFixture, settleOpeningBooks, freshOpeningBooksFixture } from './fixtures/openingBooks';
+import { journal, journalLine } from '../src/domain/financial';
 
 let env: RulesTestEnvironment;
 const project = 'demo-sudaflow';
@@ -40,6 +41,47 @@ before(async () => {
   });
 });
 after(async () => { await env?.cleanup(); });
+
+async function atomicOpeningSetup(store:FirestoreStore,actor:{uid:string;email:string;emailVerified:boolean;authTime:number},now:Date,suffix:string,rules:string) {
+  // Each scenario needs its own tenant. Initial registration intentionally reuses
+  // org-<owner uid>, which would alias the two currency-shortage scenarios.
+  const org=await new Organizations(store).create(actor,'افتتاح محمي حقيقي',INITIAL_SETTINGS,`atomic-${suffix}`,false),root=`organizations/${org.id}`,fresh=freshOpeningBooksFixture(org.id,actor.uid),plan={...defaultPlatformPlans(now.toISOString()).find(row=>row.id==='Enterprise')!,id:`atomic-plan-${suffix}`};
+  await store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:plan.id,subscriptionEnd:'2027-01-01',subscriptionEndMillis:Date.parse('2027-01-01')});tx.set(`plans/${plan.id}`,plan);for(const [name,rows] of Object.entries(fresh.data))for(const row of rows)tx.set(`${root}/${name}/${name==='accounts'?row.code:row.id}`,row);for(const row of fresh.data.financial_accounts)tx.set(`${root}/financial_account_mappings/${row.account_code}`,{id:row.id});tx.set(`${root}/meta/counters`,{...await tx.get(`${root}/meta/counters`),customer_count:2,product_count:1});});
+  const ops=new Operations(store,()=>now,saved=>saved as any,async()=>verifyAccountingRulesSource([{content:rules}])),run=(action:string,data:Record<string,unknown>,operationId:string)=>ops.execute(org.id,actor,{action,data,operationId});
+  await run('period.create',{id:'October',start_date:'2026-10-01',end_date:'2026-10-20',reason:'بدء فترة'},`period-${suffix}`);
+  const request={input:fresh.input,terms:fresh.terms},preview=await ops.openingPreview(org.id,actor,request),commit={...request,expected_preview_hash:preview.preview_hash};
+  const settle=(lot_id:string,amount:number,expected_sequence=0,date='2026-10-02',rate=2500)=>({lot_id,amount,expected_sequence,date,financial_account_id:'usd',currency:'USD',exchange_rate_used:rate,reason:'تسوية ذرية',reference_number:'REF'});
+  return {org,root,ops,run,commit,settle};
+}
+test('C2 real Firestore serializes raced startup and overpayment, closes AR/AP carrying values and denies all opening SDK access',async()=>{
+  assert.match(process.env.FIRESTORE_EMULATOR_HOST||'',/^(127\.0\.0\.1|localhost):8091$/);
+  const app=initializeApp({projectId:project},'atomic-opening-admin'),db=getFirestore(app),store=new FirestoreStore(db),rules=await readFile('firestore.rules','utf8'),now=new Date('2026-10-20T12:00:00Z'),actor={uid:'atomic-firestore-owner',email:'atomic-firestore@example.com',emailVerified:true,authTime:now.getTime()/1000};
+  try {
+    const f=await atomicOpeningSetup(store,actor,now,'race',rules),start=await Promise.allSettled([f.run('opening.commit',f.commit,'atomic-start-one'),f.run('opening.commit',f.commit,'atomic-start-two')]);assert.equal(start.filter(row=>row.status==='fulfilled').length,1);let snapshot=await f.ops.snapshot(f.org.id,actor,true);assert.equal(snapshot.collections.opening_batches.length,1);assert.equal(snapshot.collections.invoices.length+snapshot.collections.purchase_bills.length,0);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
+    const ar=snapshot.collections.opening_lots.find(row=>row.party_id==='a')!,ap=snapshot.collections.opening_lots.find(row=>row.party_id==='s')!,raced=await Promise.allSettled([f.run('openingSettlement.create',f.settle(ar.id,2),'atomic-ar-one'),f.run('openingSettlement.create',f.settle(ar.id,2),'atomic-ar-two')]);assert.equal(raced.filter(row=>row.status==='fulfilled').length,1);
+    await f.run('openingSettlement.create',f.settle(ap.id,1),'atomic-ap-part');await f.run('openingSettlement.create',f.settle(ap.id,1,1,'2026-10-03',1000),'atomic-ap-final');const final=f.settle(ar.id,1,1,'2026-10-03',1500),result=await f.run('openingSettlement.create',final,'atomic-ar-final');assert.deepEqual(await f.run('openingSettlement.create',final,'atomic-ar-final'),result);
+    snapshot=await f.ops.snapshot(f.org.id,actor,true);assert.equal(snapshot.collections.opening_settlements.length,4);assert.equal(snapshot.counters.opening_settlement_count,4);assert.equal(snapshot.collections.customers.find(row=>row.id==='a')!.balance_usd,0);assert.equal(snapshot.collections.suppliers.find(row=>row.id==='s')!.payable_due_sdg,0);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
+    for(const uid of [actor.uid,'foreign-atomic-user']){const client=env.authenticatedContext(uid,{email_verified:true}).firestore();for(const name of ['opening_batches','opening_lots','opening_settlements']){await assertFails(getDocs(collection(client,`${f.root}/${name}`)));await assertFails(setDoc(doc(client,`${f.root}/${name}/forged`),{id:'forged',org_id:f.org.id}));}}
+    await f.run('period.softClose',{id:'October',expected_revision:1,reason:'وقف التسوية'},'atomic-soft');await assert.rejects(f.run('openingSettlement.create',final,'atomic-ar-final'),/مبدئياً/);
+  }finally{await deleteApp(app);}
+});
+test('C2 real Firestore rejects backdated cash shortage in either book without partial settlement, counter, audit or rate writes',async()=>{
+  assert.match(process.env.FIRESTORE_EMULATOR_HOST||'',/^(127\.0\.0\.1|localhost):8091$/);
+  const app=initializeApp({projectId:project},'atomic-cash-admin'),db=getFirestore(app),store=new FirestoreStore(db),rules=await readFile('firestore.rules','utf8'),now=new Date('2026-10-20T12:00:00Z'),actor={uid:'atomic-cash-owner',email:'atomic-cash@example.com',emailVerified:true,authTime:now.getTime()/1000};
+  try {
+    for(const [suffix,sdg,usd] of [['usd',0,9],['sdg',19999,0]] as const){const f=await atomicOpeningSetup(store,actor,now,`cash-${suffix}`,rules);await f.run('opening.commit',f.commit,`cash-start-${suffix}`);await store.transaction(async tx=>tx.set(`${f.root}/journal_entries/future-spend`,journal('future-spend',f.org.id,actor.uid,'2026-10-10','manual','future-spend','صرف لاحق',[journalLine('5200','صرف',sdg,0,usd,0),journalLine('1120','نقد',0,sdg,0,usd)])));
+      const snapshot=await f.ops.snapshot(f.org.id,actor,true),lot=snapshot.collections.opening_lots.find(row=>row.party_id==='s')!,beforeCounters=(await db.doc(`${f.root}/meta/counters`).get()).data(),beforeRate=(await db.doc(`${f.root}/rate_limits/${actor.uid}`).get()).data(),beforeAudit=(await db.collection(`${f.root}/audit_logs`).get()).size;
+      await assert.rejects(f.run('openingSettlement.create',f.settle(lot.id,2),`cash-short-${suffix}`),/النقدية/);assert.equal((await db.collection(`${f.root}/opening_settlements`).get()).size,0);assert.equal((await db.collection(`${f.root}/journal_entries`).get()).size,2);assert.deepEqual((await db.doc(`${f.root}/meta/counters`).get()).data(),beforeCounters);assert.deepEqual((await db.doc(`${f.root}/rate_limits/${actor.uid}`).get()).data(),beforeRate);assert.equal((await db.collection(`${f.root}/audit_logs`).get()).size,beforeAudit);assert.equal((await db.doc(`${f.root}/idempotency/cash-short-${suffix}`).get()).exists,false);assert.equal((await db.doc(`${f.root}/suppliers/s`).get()).data()!.payable_due_usd,2);
+    }
+  }finally{await deleteApp(app);}
+});
+test('C2 real Firestore race-close versus startup has one valid serial outcome and cannot alter a closed ledger',async()=>{
+  assert.match(process.env.FIRESTORE_EMULATOR_HOST||'',/^(127\.0\.0\.1|localhost):8091$/);
+  const app=initializeApp({projectId:project},'atomic-period-admin'),db=getFirestore(app),store=new FirestoreStore(db),rules=await readFile('firestore.rules','utf8'),now=new Date('2026-10-20T12:00:00Z'),actor={uid:'atomic-period-owner',email:'atomic-period@example.com',emailVerified:true,authTime:now.getTime()/1000};
+  try {
+    const f=await atomicOpeningSetup(store,actor,now,'close',rules),raced=await Promise.allSettled([f.run('period.close',{id:'October',expected_revision:1,reason:'إغلاق متزامن',fx_review_completed:true},'atomic-period-close'),f.run('opening.commit',f.commit,'atomic-period-start')]);assert.equal(raced.filter(row=>row.status==='fulfilled').length,1);const snapshot=await f.ops.snapshot(f.org.id,actor,true),closed=snapshot.collections.accounting_periods[0].status==='CLOSED';assert.equal(closed,raced[0].status==='fulfilled');assert.equal(snapshot.collections.opening_batches.length,closed?0:1);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);if(closed)await assert.rejects(f.run('opening.commit',f.commit,'atomic-period-start'),/نهائياً/);
+  }finally{await deleteApp(app);}
+});
 
 test('C2 real Firestore preserves opening sources through ordinary sale, protected backup and two nested-tenant restores',async()=>{
   assert.match(process.env.FIRESTORE_EMULATOR_HOST||'',/^(127\.0\.0\.1|localhost):8091$/);
@@ -304,7 +346,7 @@ test('C2 protected opening preview reads real Firestore zero initialization with
     const cash=(await run('financialAccount.create',{name:'صندوق الافتتاح',account_code:'1110',currency:'SDG',kind:'cash'},'opening-cash')).result,product=(await run('product.create',{name:'صنف صفري',unit:'قطعة',price_sdg:2000,price_usd:1,is_active:true,track_inventory:true,stock_quantity:0},'opening-product')).result;
     const request={input:{batch_id:'startup',date:'2026-10-01',reason:'معاينة دون ترحيل',currency_policy:'dual' as const,cash:[{id:cash.id,currency:'SDG' as const,amount:1000,exchange_rate_used:2000}],receivables:[],payables:[],inventory:[{id:product.id,currency:'USD' as const,quantity:2,unit_cost:3,exchange_rate_used:2000}],capital:{sdg:13000,usd:6.5}},terms:[]};
     const before=(await db.doc(`${root}/meta/counters`).get()).data(),sourceBefore=(await db.collection(`${root}/inventory_movements`).get()).docs.map(row=>row.data());
-    const preview=await ops.openingPreview(org.id,actor,request),again=await ops.openingPreview(org.id,{...actor,uid:'opening-rules-accountant'},request);assert.equal(preview.preview_hash,again.preview_hash);assert.equal(preview.source_count,2);assert.equal(preview.quote.total_debit_sdg,13000);assert.equal(preview.quote.is_balanced,true);assert.equal(preview.posting_available,false);
+    const preview=await ops.openingPreview(org.id,actor,request),again=await ops.openingPreview(org.id,{...actor,uid:'opening-rules-accountant'},request);assert.equal(preview.preview_hash,again.preview_hash);assert.equal(preview.source_count,2);assert.equal(preview.quote.total_debit_sdg,13000);assert.equal(preview.quote.is_balanced,true);assert.equal(preview.posting_available,true);assert.equal(again.posting_available,false);
     assert.deepEqual((await db.doc(`${root}/meta/counters`).get()).data(),before);assert.deepEqual((await db.collection(`${root}/inventory_movements`).get()).docs.map(row=>row.data()),sourceBefore);for(const name of ['journal_entries','opening_batches','opening_lots','opening_settlements'])assert.equal((await db.collection(`${root}/${name}`).get()).size,0);
     for(const uid of [actor.uid,'foreign-opening-user']){const client=env.authenticatedContext(uid,{email_verified:true}).firestore();for(const name of ['opening_batches','opening_lots','opening_settlements']){await assertFails(getDocs(collection(client,`${root}/${name}`)));await assertFails(setDoc(doc(client,`${root}/${name}/forged`),{id:'forged',org_id:org.id}));}}
     await store.transaction(async tx=>tx.set(`plans/${plan.id}`,{...plan,features:{...plan.features,multi_currency:false}}));await assert.rejects(ops.openingPreview(org.id,actor,request),/ميزة/);assert.deepEqual((await db.doc(`${root}/meta/counters`).get()).data(),before);

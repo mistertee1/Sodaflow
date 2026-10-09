@@ -34,6 +34,7 @@ import { InventoryAuditModal } from './InventoryAuditModal';
 import { AdBanner } from './AdBanner';
 import { ErrorBoundary } from './ErrorBoundary';
 import { InvoiceShareDialog } from './InvoiceShareDialog';
+import { OperationsAttentionPanel } from './OperationsAttentionPanel';
 
 interface DashboardViewProps {
   onOpenNewInvoice: () => void;
@@ -166,6 +167,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </p>
         </div>
       </div>
+
+      <OperationsAttentionPanel onNavigate={handleNavigate} onViewInvoice={onViewInvoice} />
 
       {/* Manual Exchange Rate Control Widget (Requirement: تعديل سعر الصرف يدوياً) */}
       <div className="bg-sf-surface border border-sf-border rounded-xl p-4 sm:p-6 shadow-sm space-y-3">

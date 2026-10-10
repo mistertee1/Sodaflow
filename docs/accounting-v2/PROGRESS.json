@@ -7,11 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c2-capital-quotes-20261010",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "accounting-v2-20261010-capital-quotes-0048",
-    "acquired_at": "2026-10-10T00:47:42.324Z",
-    "expires_at": "2026-10-10T01:27:42.324Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -636,7 +632,34 @@
             {
               "id": "C2.3",
               "scope": "Owner capital/drawings source-backed operations and UI",
-              "status": "pending"
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
+              "substeps": [
+                {
+                  "id": "C2.3.1",
+                  "scope": "Pure owner equity contribution/drawing posting quote contracts",
+                  "status": "implemented_local_checks_passed_ci_pending",
+                  "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
+                  "checks": {
+                    "unit_api": 248,
+                    "new_tests": 8,
+                    "types": "passed",
+                    "core": "passed",
+                    "build": "passed"
+                  },
+                  "render_acceptance": "not_exposed_pending_atomic_commands_and_ui"
+                },
+                {
+                  "id": "C2.3.2",
+                  "scope": "Protected atomic source-backed commands, reconciliation and backup",
+                  "status": "pending"
+                },
+                {
+                  "id": "C2.3.3",
+                  "scope": "Owner UI, role/regression and Render staging acceptance",
+                  "status": "pending"
+                }
+              ]
             }
           ]
         },
@@ -831,13 +854,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_C2_2B3_OPENING_UI.md",
+  "last_report": "REPORT_C2_3_1_OWNER_EQUITY_QUOTES.md",
   "next_steps": [
-    "Run Render staging acceptance after connection/service identification; do not equate CI with Render deployment.",
-    "Continue independent C2.3 capital/drawings, C3-C6, D, E, Excel1-4 with separate review branches.",
-    "Preserve current main ResilientStore and branding changes during user-led final integration."
+    "C2.3.2 protected atomic source-backed equity commands, reconciliation and backup; then UI/Render",
+    "Confirm Render workspace and identify synthetic staging before acceptance.",
+    "Preserve main branding/ResilientStore during user-led integration."
   ],
-  "updated_at": "2026-10-09T23:46:40.066389+00:00",
+  "updated_at": "2026-10-10T00:53:20.457726+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -899,7 +922,7 @@
       28
     ]
   },
-  "next": "C2.3.1 pure capital/drawings quote contracts; then protected atomic commands and UI",
+  "next": "C2.3.2 protected atomic source-backed equity commands, reconciliation and backup; then UI/Render",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -920,17 +943,17 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "accounting-v2-20261010-opening-ui",
-    "ended_at": "2026-10-09T23:46:40.066389+00:00",
-    "branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
-    "pr": 31,
-    "code_commit": "2bfde4630b6ecec292873c56c3729287e316d7b4",
-    "status": "ci_passed_render_acceptance_pending"
+    "worker": "accounting-v2-20261010-capital-quotes-0048",
+    "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
+    "status": "quote_contract_local_passed_ci_pending",
+    "base_commit": "f246ba2e14ff850e8c95f5e7f3d490329e36a111",
+    "ended_at": "2026-10-10T00:53:20.457726+00:00"
   },
   "acceptance_environment": {
     "provider": "Render",
     "requested_at": "2026-10-09T23:46:40.066389+00:00",
-    "status": "pending_connection_and_service_identification",
-    "production_writes_for_testing": false
+    "status": "render_connected_workspace_confirmation_pending",
+    "production_writes_for_testing": false,
+    "note": "Read workspace inventory succeeded; no confirmed workspace/service or staging commit. Do not claim Render acceptance."
   }
 }

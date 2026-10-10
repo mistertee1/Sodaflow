@@ -1,6 +1,7 @@
 import { OrgRole } from '../types';
 
 export type ActionType =
+  | 'equity:write'
   | 'opening:write'
   | 'opening:settle'
   | 'opening:preview'
@@ -49,6 +50,7 @@ export type ActionType =
 
 const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
   Owner: new Set<ActionType>([
+    'equity:write',
     'opening:preview', 'opening:write', 'opening:settle',
     'periods:read', 'periods:manage', 'periods:adjust', 'periods:reopen',
     'payables:read', 'payables:write',

@@ -46,8 +46,8 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 40 | Reopen Period | A-E / release gate |
 | 41 | Month-End Close Assistant | A-E / release gate |
 | 42 | Opening Balances Wizard | C2.2b.3 — protected preview, equity review, Owner reauthentication and atomic startup/settlement UI; PR31; CI passed: 240 unit/API, 31 rules and 48 UI; Render acceptance pending |
-| 43 | Owner Capital | C2.3.1 pure quote contract; REPORT_C2_3_1_OWNER_EQUITY_QUOTES.md; atomic commands/UI/Render pending |
-| 44 | Owner Drawings | C2.3.1 carrying-basis quote; REPORT_C2_3_1_OWNER_EQUITY_QUOTES.md; atomic commands/UI/Render pending |
+| 43 | Owner Capital | C2.3.2 protected atomic source commands; REPORT_C2_3_2_OWNER_EQUITY_TRANSACTIONS.md; CI passed (260 unit/API, 33 rules, 48 UI regression); Owner UI/Render acceptance pending |
+| 44 | Owner Drawings | C2.3.2 historical carrying atomic drawings; REPORT_C2_3_2_OWNER_EQUITY_TRANSACTIONS.md; CI passed (260 unit/API, 33 rules, 48 UI regression); Owner UI/Render acceptance pending |
 | 45 | Credit Notes | A-E / release gate |
 | 46 | Sales Returns | A-E / release gate |
 | 47 | Purchase Returns | A-E / release gate |

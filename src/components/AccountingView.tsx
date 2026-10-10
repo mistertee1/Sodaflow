@@ -1,3 +1,4 @@
+import { OpeningBalancesCenter } from './accounting/OpeningBalancesCenter';
 import { AccountingPeriodsCenter } from './accounting/AccountingPeriodsCenter';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { api } from '../services/businessApi';
@@ -66,7 +67,7 @@ export const AccountingView: React.FC = () => {
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<
-    'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
+    'opening' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
   >('coa');
   const [reportStart, setReportStart] = useState('');
   const [reportEnd, setReportEnd] = useState('');
@@ -397,6 +398,7 @@ export const AccountingView: React.FC = () => {
         {/* Sub-Navigation Tabs */}
         <div className="flex items-center gap-2 border-t border-sf-border mt-6 pt-4 overflow-x-auto pb-1 [&>button]:shrink-0">
           {(['ledger', 'receivables', 'cash'] as const).map(view => <button key={view} onClick={() => setActiveSubTab(view)} aria-pressed={activeSubTab === view} className="sf-secondary shrink-0 whitespace-nowrap">{{ ledger: 'دفتر الأستاذ', receivables: 'كشوف العملاء', cash: 'النقدية والبنوك' }[view]}</button>)}
+          {isActionAllowed('opening:preview') && <button onClick={() => setActiveSubTab('opening')} aria-pressed={activeSubTab === 'opening'} className="sf-secondary shrink-0 whitespace-nowrap">الأرصدة الافتتاحية والسداد</button>}
           {isActionAllowed('payables:read') && <button onClick={() => setActiveSubTab('payables')} aria-pressed={activeSubTab === 'payables'} className="sf-secondary shrink-0 whitespace-nowrap">الموردون والمشتريات</button>}
           <button
             onClick={() => setActiveSubTab('coa')}
@@ -880,6 +882,7 @@ export const AccountingView: React.FC = () => {
 
       {/* SUB-TAB 7: ACCOUNTING PERIOD LOCK (إقفال الفترات المحاسبية) */}
       {(['ledger', 'receivables', 'cash'] as const).map(view => activeSubTab === view && <OperationalCenter key={view} view={view} />)}
+      {activeSubTab === 'opening' && <OpeningBalancesCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'payables' && <PayablesCenter />}
 
       {activeSubTab === 'period_lock' && <AccountingPeriodsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}

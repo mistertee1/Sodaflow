@@ -1,3 +1,5 @@
+import type { OpeningInput } from '../domain/openingBalances';
+import type { OpeningTerms } from '../domain/openingSources';
 import type { AccountingPeriod } from '../domain/periodContracts';
 import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
 import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
@@ -23,6 +25,11 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  openingBatches: Document[];
+  openingLots: Document[];
+  openingSettlements: Document[];
+  previewOpening: (request: {input: OpeningInput; terms: OpeningTerms[]}, expectedOrgId: string) => Promise<Awaited<ReturnType<Operations['openingPreview']>>>;
+  saveOpening: (action: 'opening.commit' | 'openingSettlement.create', data: Document, expectedOrgId: string, requestId: string) => Promise<Document>;
   accountingPeriods: AccountingPeriod[];
   loadAccountingPeriods: (periodId?: string) => Promise<Awaited<ReturnType<Operations['periodReports']>>>;
   saveAccountingPeriod: (action: 'period.create' | 'period.softClose' | 'period.close' | 'period.reopen', data: Document, expectedOrgId: string) => Promise<AccountingPeriod>;
@@ -350,7 +357,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const sensitive = ['payables:read', 'audit_logs:view', 'journal:read', 'accounts:read', 'periods:read'];
     const readOnly = action.endsWith(':read') || action === 'members:view';
     if (!active && (!readOnly || sensitive.includes(action))) return false;
-    const features: Partial<Record<ActionType, string>> = { 'periods:read': 'accounting', 'periods:manage': 'accounting', 'periods:adjust': 'accounting', 'periods:reopen': 'accounting', 'payables:read': 'accounting', 'payables:write': 'accounting', 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
+    const features: Partial<Record<ActionType, string>> = { 'opening:preview': 'accounting', 'opening:write': 'accounting', 'opening:settle': 'accounting', 'periods:read': 'accounting', 'periods:manage': 'accounting', 'periods:adjust': 'accounting', 'periods:reopen': 'accounting', 'payables:read': 'accounting', 'payables:write': 'accounting', 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
     if (features[action] && state.subscription.features[features[action]!] !== true) return false;
     if (action === 'invoices:create' && invoiceQuotaReached(state.subscription, state.counters.lifetime_invoice_count || state.counters.invoice_count, state.counters.monthly_invoice_count || 0)) return false;
     return true;
@@ -387,6 +394,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
   const nothing = async () => {};
   const value: AppContextType = {
+    openingBatches: rows<Document>('opening_batches'), openingLots: rows<Document>('opening_lots'), openingSettlements: rows<Document>('opening_settlements'),
+    previewOpening: async (request, expectedOrgId) => {
+      const id = activeOrg.current, epoch = session.current;
+      if (!id || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409);
+      const preview = id === guestId && !userRef.current ? await getGuest().openingPreview(id, guestActor, request) : await api<Awaited<ReturnType<Operations['openingPreview']>>>(`/organizations/${encodeURIComponent(id)}/opening-balances/preview`, {method: 'POST', body: JSON.stringify(request)});
+      if (id !== activeOrg.current || epoch !== session.current) throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد المعاينة.', 409);
+      return preview;
+    },
+    saveOpening: (action, data, expectedOrgId, requestId) => {
+      if (activeOrg.current !== expectedOrgId) return Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409));
+      return run(action, data, requestId);
+    },
     accountingPeriods: rows<AccountingPeriod>('accounting_periods'),
     loadAccountingPeriods: async periodId => {
       const id = activeOrg.current, epoch = session.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');

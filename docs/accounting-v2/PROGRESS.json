@@ -5,14 +5,9 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c2-opening-ui",
+  "active_branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "accounting-v2-20261008-c223-1341",
-    "acquired_at": "2026-10-08T13:39:51Z",
-    "updated_at": "2026-10-08T13:39:51Z",
-    "expires_at": "2026-10-08T14:24:51.000Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -598,10 +593,35 @@
                     {
                       "id": "C2.2b.3",
                       "scope": "Protected opening and settlement wizard with Owner reauthentication",
-                      "status": "in_progress",
-                      "branch": "codex/accounting-v2-c2-opening-ui",
+                      "status": "implemented_ci_passed_render_acceptance_pending",
+                      "branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
                       "parent_pr": 29,
-                      "started_at": "2026-10-08T13:39:51Z"
+                      "started_at": "2026-10-08T13:39:51Z",
+                      "report": "REPORT_C2_2B3_OPENING_UI.md",
+                      "checks": {
+                        "unit_api": 240,
+                        "types": "passed",
+                        "core": "passed",
+                        "build": "passed",
+                        "ui": 48,
+                        "new_ui": 3,
+                        "ui_status": "passed_local_and_ci",
+                        "rules": 31,
+                        "rules_status": "passed_ci",
+                        "render_acceptance": "pending_connection_and_staging_service"
+                      },
+                      "updated_at": "2026-10-09T23:46:40.066389+00:00",
+                      "pr": 31,
+                      "validated_local_commit": "2bfde4630b6ecec292873c56c3729287e316d7b4",
+                      "ci": {
+                        "conclusion": "success",
+                        "run_id": 38005624098,
+                        "commit_sha": "2bfde4630b6ecec292873c56c3729287e316d7b4",
+                        "unit_api": 240,
+                        "rules": 31,
+                        "ui": 48,
+                        "production_audit_vulnerabilities": 0
+                      }
                     }
                   ],
                   "pr": 27
@@ -807,13 +827,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_C2_2B22_OPENING_TRANSACTIONS.md",
+  "last_report": "REPORT_C2_2B3_OPENING_UI.md",
   "next_steps": [
-    "C2.2b.2.2 validated in PR29 (240 unit/API, 31 Firestore, 45 UI); implement C2.2b.3 protected wizard in next stacked branch.",
-    "Implement C2.2b.3 protected wizard and C2.3 capital/drawings.",
-    "Continue C3-C6, D, E, Excel1-4 and deferred requirements; full final acceptance remains pending."
+    "Run Render staging acceptance after connection/service identification; do not equate CI with Render deployment.",
+    "Continue independent C2.3 capital/drawings, C3-C6, D, E, Excel1-4 with separate review branches.",
+    "Preserve current main ResilientStore and branding changes during user-led final integration."
   ],
-  "updated_at": "2026-10-08T13:39:51Z",
+  "updated_at": "2026-10-09T23:46:40.066389+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -839,7 +859,7 @@
     }
   ],
   "active_substep": "C2.2b.3",
-  "observed_main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31",
+  "observed_main_sha": "2f0ac961a755ca1ddddb17fbbbf5dffc2085e0ab",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",
@@ -893,5 +913,20 @@
         "next_branch": "codex/accounting-v2-c2-opening-integration"
       }
     ]
+  },
+  "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
+  "last_run": {
+    "worker": "accounting-v2-20261010-opening-ui",
+    "ended_at": "2026-10-09T23:46:40.066389+00:00",
+    "branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
+    "pr": 31,
+    "code_commit": "2bfde4630b6ecec292873c56c3729287e316d7b4",
+    "status": "ci_passed_render_acceptance_pending"
+  },
+  "acceptance_environment": {
+    "provider": "Render",
+    "requested_at": "2026-10-09T23:46:40.066389+00:00",
+    "status": "pending_connection_and_service_identification",
+    "production_writes_for_testing": false
   }
 }

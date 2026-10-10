@@ -7,7 +7,11 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c3-native-exposure-20261010",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "c3-source-adapters-20261010",
+    "acquired_at": "2026-10-10T15:49:30.392Z",
+    "expires_at": "2026-10-10T16:24:30.393Z"
+  },
   "milestones": [
     {
       "id": "A1",

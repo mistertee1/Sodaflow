@@ -7,11 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c3-native-exposure-20261010",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "c3-source-adapters-20261010",
-    "acquired_at": "2026-10-10T15:49:30.392Z",
-    "expires_at": "2026-10-10T16:24:30.393Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -754,6 +750,29 @@
               "safety_findings": [
                 "GL USD is a reporting book, not proof of native USD exposure. Mixed SDG/USD AR/AP pools must be split by source currency; SDG-native cash must not be revalued as USD. No posting command may use account-level quote until this is resolved."
               ]
+            },
+            {
+              "id": "C3.1c",
+              "scope": "Trusted server-derived native-currency adapters for cash, AR/AP, corrections and opening sources",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c3-native-exposure-20261010",
+              "pr": 40,
+              "report": "REPORT_C3_1C_TRUSTED_SOURCE_ADAPTERS.md",
+              "checks": {
+                "unit_api": 276,
+                "new_tests": 3,
+                "types": "passed",
+                "core": "passed",
+                "emulator": 33,
+                "ui": 50,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38065501675,
+                "commit_sha": "e0f151ef9443fe47f101d85e61bb92bc68e58b7a",
+                "conclusion": "success"
+              },
+              "render_acceptance": "not_exposed_no_command_or_UI"
             }
           ]
         },
@@ -941,11 +960,11 @@
       ]
     }
   ],
-  "last_report": "REPORT_C3_1_NATIVE_EXPOSURE.md",
+  "last_report": "REPORT_C3_1C_TRUSTED_SOURCE_ADAPTERS.md",
   "next_steps": [
-    "C3.1c trusted server source adapters for invoices/payments/purchases/opening/cash before C3.2 posting"
+    "C3.2 protected atomic FX revaluation posting, reconciliation and backup"
   ],
-  "updated_at": "2026-10-10T14:40:48.819Z",
+  "updated_at": "2026-10-10T16:00:08.894Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -970,7 +989,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C3.1b",
+  "active_substep": "C3.1c",
   "observed_main_sha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
   "lease_history": [
     {
@@ -1003,6 +1022,13 @@
       "released_at": "2026-10-10T13:11:42.622Z",
       "branch": "codex/accounting-v2-c3-native-exposure-20261010",
       "code_commit": "8c835848b2fade385b17588d292e332fe584ef56"
+    },
+    {
+      "worker": "c3-source-adapters-20261010",
+      "released_at": "2026-10-10T16:00:08.894Z",
+      "branch": "codex/accounting-v2-c3-native-exposure-20261010",
+      "pr": 40,
+      "code_commit": "e0f151ef9443fe47f101d85e61bb92bc68e58b7a"
     }
   ],
   "last_lease": {
@@ -1026,7 +1052,7 @@
     ],
     "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
   },
-  "next": "C3.1c trusted server source adapters for invoices/payments/purchases/opening/cash before C3.2 posting",
+  "next": "C3.2 protected atomic FX revaluation posting, reconciliation and backup",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1047,22 +1073,22 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c3-native-exposure-ci-20261010",
+    "worker": "c3-source-adapters-20261010",
     "branch": "codex/accounting-v2-c3-native-exposure-20261010",
     "pr": 40,
-    "code_commit": "8c835848b2fade385b17588d292e332fe584ef56",
+    "code_commit": "e0f151ef9443fe47f101d85e61bb92bc68e58b7a",
     "ci": {
-      "run_id": 38054790708,
-      "commit_sha": "59a784415b3c1aec5c9391ebae2245841d428642",
+      "run_id": 38065501675,
+      "commit_sha": "e0f151ef9443fe47f101d85e61bb92bc68e58b7a",
       "conclusion": "success",
-      "unit_api": 273,
+      "unit_api": 276,
       "emulator": 33,
       "ui": 50,
       "production_audit_vulnerabilities": 0
     },
-    "status": "C3_1b_native_exposure_ci_passed_server_adapters_pending",
-    "ended_at": "2026-10-10T14:40:48.819Z",
-    "next": "C3.1c trusted server source adapters for invoices/payments/purchases/opening/cash before C3.2 posting"
+    "status": "C3_1c_trusted_source_adapters_ci_passed",
+    "ended_at": "2026-10-10T16:00:08.894Z",
+    "next": "C3.2 protected atomic FX revaluation posting, reconciliation and backup"
   },
   "acceptance_environment": {
     "provider": "Render",

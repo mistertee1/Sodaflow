@@ -233,6 +233,7 @@ export const getDefaultChartOfAccounts = (orgId: string): Account[] => {
       description: 'أي إيرادات إضافية أو خصومات ممنوحة من الموردين',
       created_at: now,
     },
+    { code: '4210', name_ar: 'أرباح إعادة تقييم العملة غير المحققة', name_en: 'Unrealized FX Gain', type: 'REVENUE', nature: 'CREDIT', is_system: true, is_active: true, balance_sdg: 0, balance_usd: 0, org_id: orgId, description: 'فروق إعادة تقييم الأرصدة النقدية الأجنبية بسعر إقفال معتمد', created_at: now },
 
     // 5000s: المصروفات (EXPENSES)
     {
@@ -319,6 +320,7 @@ export const getDefaultChartOfAccounts = (orgId: string): Account[] => {
       description: 'رسوم التحويلات عبر تطبيق بنكك وفوري وعمولات السحب',
       created_at: now,
     },
+    { code: '5510', name_ar: 'خسائر إعادة تقييم العملة غير المحققة', name_en: 'Unrealized FX Loss', type: 'EXPENSE', nature: 'DEBIT', is_system: true, is_active: true, balance_sdg: 0, balance_usd: 0, org_id: orgId, description: 'فروق إعادة تقييم الأرصدة النقدية الأجنبية بسعر إقفال معتمد', created_at: now },
     {
       code: '5700',
       name_ar: 'فواتير الكهرباء والمياه والإنترنت',

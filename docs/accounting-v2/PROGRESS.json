@@ -5,9 +5,13 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c3-fx-transactions-20261010",
+  "active_branch": "codex/accounting-v2-c3-fx-ui-20261010",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "c3-fx-ui-20261010",
+    "acquired_at": "2026-10-10T18:02:00.000Z",
+    "expires_at": "2026-10-10T18:37:00.000Z"
+  },
   "milestones": [
     {
       "id": "A1",

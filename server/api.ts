@@ -13,7 +13,9 @@ import { INITIAL_SETTINGS } from '../src/data/initialData';
 import { hasPermission } from '../src/services/rbacService';
 import { Organizations } from './organizations';
 import { adminServices } from './admin';
+import config from '../firebase-applet-config.json';
 import { FirestoreStore } from './firestoreStore';
+import { ResilientStore } from './resilientStore';
 import { resolveSubscription } from './subscriptions';
 import { PlatformBilling } from './platformBilling';
 import { loadSubscription, assertSubscriptionActive } from '../src/domain/subscriptions';
@@ -21,7 +23,7 @@ import { loadSubscription, assertSubscriptionActive } from '../src/domain/subscr
 type Verify = (token: string) => Promise<Actor>;
 export function createApi(options?: { operations: Operations; verify: Verify }) {
   const router = express.Router();
-  const service = () => options?.operations || new Engine(new FirestoreStore(adminServices().db), undefined, resolveSubscription, verifyDeployedAccountingRules);
+  const service = () => options?.operations || new Engine(new ResilientStore(adminServices().db), undefined, resolveSubscription, verifyDeployedAccountingRules);
   const platform = () => new PlatformBilling(service().store, options ? undefined : adminServices().db);
   const verify: Verify = options?.verify || (async token => {
     const claims = await adminServices().auth.verifyIdToken(token, true);

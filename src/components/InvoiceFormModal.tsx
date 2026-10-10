@@ -65,7 +65,11 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('dual');
-  const [exchangeRate, setExchangeRate] = useState<number>(settings.default_exchange_rate > 0 ? settings.default_exchange_rate : 0);
+  const [exchangeRate, setExchangeRate] = useState<number>(() => {
+    return (settings.manual_exchange_rate && settings.manual_exchange_rate > 0)
+      ? settings.manual_exchange_rate
+      : (settings.default_exchange_rate > 0 ? settings.default_exchange_rate : 0);
+  });
   const [discountType, setDiscountType] = useState<'fixed' | 'percent'>('fixed');
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [notes, setNotes] = useState(settings.default_invoice_notes || '');
@@ -98,7 +102,10 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
       setInvoiceNumber(getNextInvoiceNumber());
       setIssueDate(new Date().toISOString().split('T')[0]);
       setDueDate(new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]);
-      setExchangeRate(settings.default_exchange_rate > 0 ? settings.default_exchange_rate : 0);
+      const activeRate = (settings.manual_exchange_rate && settings.manual_exchange_rate > 0)
+        ? settings.manual_exchange_rate
+        : (settings.default_exchange_rate > 0 ? settings.default_exchange_rate : 0);
+      setExchangeRate(activeRate);
       setCurrencyMode('dual');
       setDiscountType('fixed');
       setDiscountValue(0);
@@ -503,9 +510,23 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
 
               {/* Frozen Exchange Rate Input */}
               <div>
-                <label className="block font-semibold text-sf-text text-xs mb-1">
-                  سعر الصرف المجمّد (1 دولار أمريكي = كم جنيه سوداني؟)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block font-semibold text-sf-text text-xs">
+                    {settings.freeze_exchange_rate !== false
+                      ? 'سعر الصرف المجمّد (1 دولار أمريكي = كم جنيه سوداني؟)'
+                      : 'سعر الصرف للفاتورة (1 دولار أمريكي = كم جنيه سوداني؟)'}
+                  </label>
+                  {settings.freeze_exchange_rate !== false ? (
+                    <span className="text-[10px] text-sf-action bg-sf-selected border border-sf-action/30 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" />
+                      تجميد السعر مفعّل
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-sf-muted bg-sf-raised border border-sf-border px-1.5 py-0.5 rounded font-medium">
+                      تجميد السعر غير مفعّل
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <input
                     type="number"
@@ -520,6 +541,11 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                     ج.س / $
                   </span>
                 </div>
+                {settings.manual_exchange_rate && settings.manual_exchange_rate > 0 ? (
+                  <p className="text-[10px] text-sf-action mt-1">
+                    * مطبق من سعر الصرف اليدوي المخصص بالإعدادات ({settings.manual_exchange_rate.toLocaleString()} ج.س)
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>

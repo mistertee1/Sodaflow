@@ -12,7 +12,11 @@ import type { Document } from '../src/domain/store';
 import type { OrgSubscription } from '../src/types';
 
 export class Organizations {
-  constructor(private store: Store, private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = resolveSubscription) {}
+  constructor(
+    private store: Store,
+    private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = resolveSubscription,
+    private now: () => Date = () => new Date()
+  ) {}
   list(actor: Actor) {
     ensure(actor.emailVerified === true && actor.email, 'أكّد بريدك الإلكتروني قبل الوصول إلى المؤسسات.', 403);
     return this.store.transaction(async tx => {
@@ -62,8 +66,11 @@ export class Organizations {
       const root = `organizations/${orgId}`, org = await tx.get(root), invite = await tx.get(`${root}/invitations/${invitationId}`), old = await tx.get(`${root}/members/${actor.uid}`);
       ensure(org?.status === 'active' && invite, 'الدعوة غير متاحة.', 404);
       ensure((invite.recipient_email || invite.email).toLowerCase() === actor.email.toLowerCase(), 'الدعوة مخصصة لبريد آخر.', 403);
-      if (invite.status === 'accepted' && invite.accepted_by === actor.uid && old?.status === 'active') return old;
-      ensure(invite.status === 'pending' && new Date(invite.expires_at).getTime() > Date.now(), 'الدعوة مستخدمة أو منتهية الصلاحية.', 409);
+      if (invite.status === 'accepted' && (invite.accepted_by === actor.uid || old?.status === 'active')) {
+        const member = old || await tx.get(`${root}/members/${actor.uid}`);
+        if (member) return member;
+      }
+      ensure(invite.status === 'pending' && new Date(invite.expires_at).getTime() > this.now().getTime(), 'الدعوة مستخدمة أو منتهية الصلاحية.', 409);
       ensure(!old, 'العضوية موجودة؛ يُعدّل دورها عبر الإدارة.', 409);
       const subscription = await loadSubscription(tx, orgId, org as any, new Date(), this.subscriptionPolicy);
       assertSubscriptionActive(subscription);

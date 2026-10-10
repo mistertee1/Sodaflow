@@ -49,6 +49,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .sf-nav-item:hover { color:var(--sf-text); background:var(--sf-surface-raised); }
 .sf-nav-item[aria-current="page"]:hover { color:var(--sf-selected-text); background:var(--sf-selected-background); }
 .sf-nav-caption { display:none; }
+.sf-nav-group { display:contents; }
+.sf-nav-group-label { display:none; }
+.sf-nav-primary-action { display:none; }
+.sf-nav-desktop-label { display:none; }
+.sf-nav-mobile-label { display:inline; }
 .sf-card { background:var(--sf-surface); border:1px solid var(--sf-border); border-radius:12px; }
 .sf-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
 .sf-span-4 { grid-column:span 4; }
@@ -98,6 +103,13 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .sf-nav { inset-inline-start:0; inset-inline-end:auto; top:0; bottom:0; width:var(--sf-sidebar-width); padding:24px; border-top:0; border-inline-end:1px solid var(--sf-border); display:flex; flex-direction:column; }
   .sf-nav-brand { display:flex; align-items:center; justify-content:center; margin-block-end:24px; }
   .sf-nav-items { display:flex; flex-direction:column; gap:8px; width:100%; }
+  .sf-nav-primary-action { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; min-height:44px; margin-block-end:20px; padding:8px 12px; color:var(--sf-on-action); background:var(--sf-action); border:1px solid var(--sf-action); border-radius:8px; font-weight:600; }
+  .sf-nav-primary-action:hover { background:var(--sf-action-hover); }
+  .sf-nav-group { display:flex; flex-direction:column; gap:4px; width:100%; }
+  .sf-nav-group + .sf-nav-group { margin-block-start:12px; padding-block-start:12px; border-top:1px solid var(--sf-border); }
+  .sf-nav-group-label { display:block; padding-inline:12px; margin-block-end:2px; color:var(--sf-text-muted); font-size:12px; line-height:20px; font-weight:500; }
+  .sf-nav-desktop-label { display:inline; }
+  .sf-nav-mobile-label { display:none; }
   .sf-nav-item { flex-direction:row; justify-content:flex-start; gap:12px; min-height:44px; padding:8px 12px; font-size:14px; line-height:22px; }
   .sf-nav-caption { display:block; margin-block-start:auto; color:var(--sf-text-muted); font-size:12px; line-height:20px; padding-block-start:24px; }
 }

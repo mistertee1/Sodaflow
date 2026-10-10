@@ -12,6 +12,7 @@ const ExpensesView = lazy(() => import('./components/ExpensesView').then(module 
 const AccountingView = lazy(() => import('./components/AccountingView').then(module => ({ default: module.AccountingView })));
 const InvoiceFormModal = lazy(() => import('./components/InvoiceFormModal').then(module => ({ default: module.InvoiceFormModal })));
 const InvoiceDetailModal = lazy(() => import('./components/InvoiceDetailModal').then(module => ({ default: module.InvoiceDetailModal })));
+const InvoiceWorkspaceView = lazy(() => import('./components/InvoiceWorkspaceView').then(module => ({ default: module.InvoiceWorkspaceView })));
 const InvoiceShareDialog = lazy(() => import('./components/InvoiceShareDialog').then(module => ({ default: module.InvoiceShareDialog })));
 import { PaymentModal } from './components/PaymentModal';
 const PaymentReceiptModal = lazy(() => import('./components/PaymentReceiptModal').then(module => ({ default: module.PaymentReceiptModal })));
@@ -30,6 +31,7 @@ function MainLayout() {
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
   const [prefilledCustomer, setPrefilledCustomer] = useState<Customer | null>(null);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+  const [previewingInvoice, setPreviewingInvoice] = useState<Invoice | null>(null);
   const [payingInvoice, setPayingInvoice] = useState<Invoice | null>(null);
   const [viewingReceipt, setViewingReceipt] = useState<Payment | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -40,13 +42,17 @@ function MainLayout() {
   const [pendingShareId, setPendingShareId] = useState(() => new URL(window.location.href).searchParams.get('share-invoice'));
 
   useEffect(() => {
-    setViewingInvoice(null); setPayingInvoice(null); setViewingReceipt(null); setIsNewInvoiceOpen(false); setPrefilledCustomer(null); setStandaloneShareInvoice(null);
+    setViewingInvoice(null); setPreviewingInvoice(null); setPayingInvoice(null); setViewingReceipt(null); setIsNewInvoiceOpen(false); setPrefilledCustomer(null); setStandaloneShareInvoice(null);
   }, [currentOrg?.id, currentUser?.uid]);
 
   // Track virtual page views for SPA navigation in Google Analytics
   useEffect(() => {
+    if (viewingInvoice) {
+      trackPageView(`/invoices/${viewingInvoice.id}`, `فاتورة - ${viewingInvoice.invoice_number}`);
+      return;
+    }
     trackPageView(`/${activeTab}`, `محاسبة وفواتير - ${activeTab}`);
-  }, [activeTab]);
+  }, [activeTab, viewingInvoice?.id, viewingInvoice?.invoice_number]);
 
   const [guestMode, setGuestMode] = useState<boolean>(() => {
     return localStorage.getItem('mohasbasd_guest_session') === 'true';
@@ -118,6 +124,16 @@ function MainLayout() {
     setIsNewInvoiceOpen(true);
   };
 
+  const handleNavigate = (tab: string) => {
+    setViewingInvoice(null);
+    setActiveTab(tab);
+  };
+
+  const handleOpenInvoice = (invoice: Invoice) => {
+    setActiveTab('invoices');
+    setViewingInvoice(invoice);
+  };
+
   const handlePaymentRecorded = (payment: Payment) => {
     // Open receipt modal right after payment is recorded
     setViewingReceipt(payment);
@@ -162,36 +178,48 @@ function MainLayout() {
 
       {/* Main Content Area */}
       <main className="sf-content sf-main flex-1">
-<Suspense fallback={<div role="status" className="p-6 text-sf-muted">جاري التحميل…</div>}>
-        {activeTab === 'dashboard' && (
-          <DashboardView
-            onNavigate={(tab) => setActiveTab(tab)}
-            onOpenNewInvoice={() => handleOpenNewInvoice()}
-            onViewInvoice={(inv) => setViewingInvoice(inv)}
-          />
-        )}
+        <Suspense fallback={<div role="status" className="p-6 text-sf-muted">جاري التحميل…</div>}>
+          {viewingInvoice ? (
+            <InvoiceWorkspaceView
+              invoice={invoices.find(item => item.id === viewingInvoice.id) || viewingInvoice}
+              onBack={() => setViewingInvoice(null)}
+              onOpenDocument={(invoice) => setPreviewingInvoice(invoice)}
+              onOpenRecordPayment={(invoice) => setPayingInvoice(invoice)}
+            />
+          ) : (
+            <>
+              {activeTab === 'dashboard' && (
+                <DashboardView
+                  onNavigate={handleNavigate}
+                  onOpenNewInvoice={() => handleOpenNewInvoice()}
+                  onViewInvoice={handleOpenInvoice}
+                />
+              )}
 
-        {activeTab === 'invoices' && (
-          <InvoicesView
-            onOpenNewInvoice={() => handleOpenNewInvoice()}
-            onViewInvoice={(inv) => setViewingInvoice(inv)}
-            onOpenRecordPayment={(inv) => setPayingInvoice(inv)}
-          />
-        )}
+              {activeTab === 'invoices' && (
+                <InvoicesView
+                  onOpenNewInvoice={() => handleOpenNewInvoice()}
+                  onViewInvoice={handleOpenInvoice}
+                  onOpenRecordPayment={(inv) => setPayingInvoice(inv)}
+                />
+              )}
 
-        {activeTab === 'customers' && (
-          <CustomersView
-            onOpenNewInvoiceForCustomer={(cust) => handleOpenNewInvoice(cust)}
-            onViewInvoice={(inv) => setViewingInvoice(inv)}
-          />
-        )}
+              {activeTab === 'customers' && (
+                <CustomersView
+                  onOpenNewInvoiceForCustomer={(cust) => handleOpenNewInvoice(cust)}
+                  onViewInvoice={handleOpenInvoice}
+                />
+              )}
 
-        {activeTab === 'products' && <ProductsView />}
+              {activeTab === 'products' && <ProductsView />}
 
-        {activeTab === 'expenses' && isActionAllowed('expenses:read') && <ExpensesView />}
+              {activeTab === 'expenses' && isActionAllowed('expenses:read') && <ExpensesView />}
 
-        {activeTab === 'accounting' && isActionAllowed('journal:read') && <AccountingView />}
-      </Suspense></main>
+              {activeTab === 'accounting' && isActionAllowed('journal:read') && <AccountingView />}
+            </>
+          )}
+        </Suspense>
+      </main>
 
       {/* Structured Footer with Legal Pages */}
       <Footer onOpenLegal={(tab) => setLegalModalTab(tab)} />
@@ -199,7 +227,7 @@ function MainLayout() {
       {/* Mobile Bottom Navigation */}
       <BottomNav
         activeTab={activeTab}
-        onChangeTab={(tab) => setActiveTab(tab)}
+        onChangeTab={handleNavigate}
         onOpenNewInvoice={() => handleOpenNewInvoice()}
       />
 
@@ -213,16 +241,16 @@ function MainLayout() {
           setPrefilledCustomer(null);
         }}
         onInvoiceCreated={(invoice) => {
-          setViewingInvoice(invoice);
+          handleOpenInvoice(invoice);
           setIsNewInvoiceOpen(false);
           setPrefilledCustomer(null);
         }}
         prefilledCustomer={prefilledCustomer}
       /> )}
 
-      {viewingInvoice && (<InvoiceDetailModal
-        invoice={invoices.find(i => i.id === viewingInvoice?.id) || viewingInvoice}
-        onClose={() => setViewingInvoice(null)}
+      {previewingInvoice && (<InvoiceDetailModal
+        invoice={invoices.find(i => i.id === previewingInvoice?.id) || previewingInvoice}
+        onClose={() => setPreviewingInvoice(null)}
         onOpenRecordPayment={(inv) => setPayingInvoice(inv)}
       /> )}
 

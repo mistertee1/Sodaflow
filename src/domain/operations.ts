@@ -685,7 +685,7 @@ export class Operations {
         }
         case 'settings.update': {
           ensure(data.updates && typeof data.updates === 'object' && !Array.isArray(data.updates), 'بيانات الإعدادات غير صالحة.');
-          const updated = validateSettings({ ...settings, ...pick(data.updates, Object.keys(INITIAL_SETTINGS).concat(['period_lock_date', 'timezone', 'fiscal_year', 'commercial_registration', 'tax_number', 'business_activity'])) });
+          const updated = validateSettings({ ...settings, ...pick(data.updates, Object.keys(INITIAL_SETTINGS).concat(['period_lock_date', 'timezone', 'fiscal_year', 'commercial_registration', 'tax_number', 'business_activity', 'manual_exchange_rate', 'freeze_exchange_rate', 'freeze_invoice_exchange_rate'])) });
           if (settings.period_lock_date && (updated.period_lock_date || '') < settings.period_lock_date) ensure(role === 'Owner', 'إعادة فتح فترة مقفلة متاحة للمالك فقط.', 403);
           result = { ...org, settings: updated, name: updated.business_name || org.name, display_name: updated.business_name || org.display_name, base_currency: updated.primary_currency, secondary_currency: updated.secondary_currency, timezone: updated.timezone || org.timezone, fiscal_year: updated.fiscal_year || org.fiscal_year, updated_at: iso };
           result.searchName = result.name.normalize('NFKC').trim().toLowerCase();

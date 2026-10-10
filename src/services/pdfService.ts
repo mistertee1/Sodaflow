@@ -466,3 +466,132 @@ export const downloadReceiptPdf = async (
     document.body.removeChild(container);
   }
 };
+
+/**
+ * Compact URL-safe Base64 encoder for invoice snapshot
+ */
+export function generateInvoicePublicUrl(
+  invoice: Invoice,
+  settings: MerchantSettings,
+  payments: Payment[] = []
+): string {
+  try {
+    const payload = {
+      i: invoice,
+      s: {
+        business_name: settings.business_name,
+        phone: settings.phone,
+        address: settings.address,
+        bank_details: settings.bank_details,
+        primary_currency: settings.primary_currency,
+        secondary_currency: settings.secondary_currency,
+        default_exchange_rate: settings.default_exchange_rate,
+      },
+      p: payments,
+    };
+    const jsonStr = JSON.stringify(payload);
+    const bytes = new TextEncoder().encode(jsonStr);
+    let binStr = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binStr += String.fromCharCode(bytes[i]);
+    }
+    const b64 = btoa(binStr)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/?inv_view=${b64}`;
+  } catch (err) {
+    console.error('Failed to generate public invoice URL:', err);
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/?inv=${encodeURIComponent(invoice.id)}`;
+  }
+}
+
+/**
+ * Parses self-contained invoice snapshot from URL parameter
+ */
+export function parseInvoicePublicUrlParam(
+  param: string
+): { invoice: Invoice; settings: MerchantSettings; payments: Payment[] } | null {
+  if (!param) return null;
+  try {
+    let b64 = param.replace(/-/g, '+').replace(/_/g, '/');
+    while (b64.length % 4) {
+      b64 += '=';
+    }
+    const binStr = atob(b64);
+    const bytes = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) {
+      bytes[i] = binStr.charCodeAt(i);
+    }
+    const jsonStr = new TextDecoder().decode(bytes);
+    const data = JSON.parse(jsonStr);
+    if (data && data.i) {
+      return {
+        invoice: data.i,
+        settings: data.s,
+        payments: data.p || [],
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Builds a structured, complete WhatsApp message for the invoice
+ */
+export function buildInvoiceWhatsAppMessage(
+  invoice: Invoice,
+  settings: MerchantSettings,
+  _payments: Payment[] = [],
+  publicUrl?: string
+): string {
+  const customerName = invoice.customer_name || 'العميل المحترم';
+  const issueDate = (invoice.issue_date || invoice.created_at || '').split('T')[0];
+  const totalSdg = formatMoney(invoice.grand_total_sdg, 'SDG', settings);
+  const totalUsd = formatMoney(invoice.grand_total_usd, 'USD', settings);
+  const remainingSdg = invoice.remaining_sdg ?? 0;
+  const remainingUsd = invoice.remaining_usd ?? 0;
+
+  const lines: string[] = [];
+  lines.push(`📄 *فاتورة مبيعات معتمدة*`);
+  lines.push(`🏢 *${settings.business_name || 'سودافلو'}*`);
+  lines.push(`────────────────────`);
+  lines.push(`👤 العميل: *${customerName}*`);
+  lines.push(`🔢 رقم الفاتورة: *${invoice.invoice_number}*`);
+  lines.push(`📅 التاريخ: *${issueDate}*`);
+  lines.push(`────────────────────`);
+  lines.push(`📋 *بنود الفاتورة:*`);
+  (invoice.items || []).forEach((item, idx) => {
+    const itemTotal = formatMoney(item.line_total, item.currency || 'SDG', settings);
+    lines.push(`${idx + 1}. ${item.description} × ${item.quantity} = ${itemTotal}`);
+  });
+  lines.push(`────────────────────`);
+  lines.push(`💰 *الإجمالي:* *${totalSdg}* (${totalUsd})`);
+
+  if (remainingSdg > 0 || remainingUsd > 0) {
+    if (invoice.paid_amount_sdg > 0 || invoice.paid_amount_usd > 0) {
+      lines.push(`💳 المدفوع: *${formatMoney(invoice.paid_amount_sdg, 'SDG', settings)}*`);
+    }
+    lines.push(`⚠️ المتبقي: *${formatMoney(remainingSdg, 'SDG', settings)}* (${formatMoney(remainingUsd, 'USD', settings)})`);
+  } else {
+    lines.push(`✅ حالة الدفع: *مدفوعة بالكامل*`);
+  }
+
+  if (invoice.payment_instructions || settings.bank_details) {
+    lines.push(`🏦 الحساب البنكي: ${invoice.payment_instructions || settings.bank_details}`);
+  }
+
+  if (publicUrl) {
+    lines.push(`────────────────────`);
+    lines.push(`📎 *عرض وتحميل الفاتورة الأصلية (PDF):*`);
+    lines.push(publicUrl);
+  }
+  return lines.join('\n');
+}
+
+export const generateInvoicePdfFile = createInvoicePdfFile;
+

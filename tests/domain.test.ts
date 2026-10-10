@@ -52,10 +52,10 @@ test('invoice HTML escapes stored customer and merchant content and rejects exec
 
 export const owner: Actor = { uid: 'owner', email: 'owner@example.com', emailVerified: true };
 export async function fixture(options: { stock?: number; free?: boolean; persist?: () => void } = {}) {
-  const store = new MemoryStore({}, options.persist), orgs = new Organizations(store, saved => saved as any);
+  let clock = new Date('2026-10-01T12:00:00Z');
+  const store = new MemoryStore({}, options.persist), orgs = new Organizations(store, saved => saved as any, () => clock);
   const org = await orgs.create(owner, 'متجر الاختبار', { ...INITIAL_SETTINGS, invoice_prefix: 'INV-', default_exchange_rate: 2000 }, 'setup', true);
   await store.transaction(async tx => { const plan = getPlanConfig(options.free ? 'Free' : 'Enterprise'); tx.set(`organizations/${org.id}/meta/subscription`, { ...createDefaultSubscription(org.id), ...plan, plan: plan.name }); const path = `organizations/${org.id}`; tx.set(path, { ...await tx.get(path), planId: plan.name, subscriptionStatus: 'active', subscriptionEnd: options.free ? null : '2027-01-01T00:00:00Z' }); });
-  let clock = new Date('2026-10-01T12:00:00Z');
   const ops = new Operations(store, () => clock, saved => saved as any);
   const run = (action: string, data: Record<string, unknown>, operationId: string = crypto.randomUUID(), actor = owner) => ops.execute(org.id, actor, { action, data, operationId });
   const customer = (await run('customer.create', { name: 'عميل', phone: '', preferred_currency: 'USD', balance_sdg: 0, balance_usd: 0 }, 'customer')).result;
@@ -191,4 +191,36 @@ test('historical client-written subscriptions confer no paid rights; only signed
     const tier = getPlanConfig('Professional'), signed = signSubscription({ ...createDefaultSubscription(f.org.id), ...tier, plan: tier.name, updated_at: '2026-10-01' }, process.env.BILLING_SIGNING_SECRET);
     assert.equal(resolveSubscription(signed, f.org.id).plan, 'Professional'); assert.equal(resolveSubscription({ ...signed, plan: 'Enterprise' }, f.org.id).plan, 'Free'); assert.equal(resolveSubscription(signed, 'another-org').plan, 'Free');
   } finally { if (before === undefined) delete process.env.BILLING_SIGNING_SECRET; else process.env.BILLING_SIGNING_SECRET = before; }
+});
+
+test('organization settings persist manual exchange rate and freeze exchange rate option', async () => {
+  const f = await fixture();
+  await f.run('settings.update', {
+    updates: {
+      default_exchange_rate: 2750,
+      manual_exchange_rate: 2850,
+      freeze_exchange_rate: true,
+      freeze_invoice_exchange_rate: true,
+    }
+  }, 'update-fx-settings');
+
+  const s = await f.ops.snapshot(f.org.id, owner);
+  assert.equal(s.settings.default_exchange_rate, 2750);
+  assert.equal(s.settings.manual_exchange_rate, 2850);
+  assert.equal(s.settings.freeze_exchange_rate, true);
+  assert.equal(s.settings.freeze_invoice_exchange_rate, true);
+
+  // Test toggling freeze option off and updating manual rate
+  await f.run('settings.update', {
+    updates: {
+      manual_exchange_rate: 2900,
+      freeze_exchange_rate: false,
+      freeze_invoice_exchange_rate: false,
+    }
+  }, 'toggle-freeze-off');
+
+  const s2 = await f.ops.snapshot(f.org.id, owner);
+  assert.equal(s2.settings.manual_exchange_rate, 2900);
+  assert.equal(s2.settings.freeze_exchange_rate, false);
+  assert.equal(s2.settings.freeze_invoice_exchange_rate, false);
 });

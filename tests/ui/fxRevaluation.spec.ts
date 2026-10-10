@@ -1,12 +1,12 @@
 import{test,expect,type Page}from'@playwright/test';
-import{getDefaultChartOfAccounts}from'../../src/services/accountingService';
 import{INITIAL_SETTINGS}from'../../src/data/initialData';
 import{createDefaultSubscription,getPlanConfig}from'../../src/lib/plans';
 import{journal,journalLine}from'../../src/domain/financial';
+import{freshOpeningBooksFixture}from'../fixtures/openingBooks';
 
 async function seed(page:Page,role='Owner'){
- const org='local-guest-org',root=`organizations/${org}`,records:Record<string,any>={[root]:{id:org,owner_uid:role==='Owner'?'guest':'owner',name:'اختبار فروق العملة',status:'active',accounting_version:2,settings:INITIAL_SETTINGS},[`${root}/members/guest`]:{uid:'guest',role,status:'active'},[`${root}/meta/subscription`]:{...createDefaultSubscription(org),...getPlanConfig('Enterprise'),plan:'Enterprise',org_id:org},[`${root}/accounting_periods/oct`]:{schema_version:1,operation_id:'period',id:'oct',org_id:org,start_date:'2026-10-01',end_date:'2026-10-31',status:'SOFT_CLOSED',revision:2,reason:'مراجعة',created_by:'guest',created_at:'2026-10-01',updated_at:'2026-10-30'},[`${root}/invoices/i`]:{id:'i',org_id:org,receivable_currency:'USD'}};
- for(const a of getDefaultChartOfAccounts(org))records[`${root}/accounts/${a.code}`]=a;
+ const org='local-guest-org',root=`organizations/${org}`,{data}=freshOpeningBooksFixture(org,'guest'),records:Record<string,any>={[root]:{id:org,owner_uid:role==='Owner'?'guest':'owner',name:'اختبار فروق العملة',status:'active',accounting_version:2,settings:INITIAL_SETTINGS},[`${root}/members/guest`]:{uid:'guest',role,status:'active'},[`${root}/meta/subscription`]:{...createDefaultSubscription(org),...getPlanConfig('Enterprise'),plan:'Enterprise',org_id:org},[`${root}/accounting_periods/oct`]:{schema_version:1,operation_id:'period',id:'oct',org_id:org,start_date:'2026-10-01',end_date:'2026-10-31',status:'SOFT_CLOSED',revision:2,reason:'مراجعة',created_by:'guest',created_at:'2026-10-01T00:00:00Z',updated_at:'2026-10-30T00:00:00Z'},[`${root}/invoices/i`]:{id:'i',org_id:org,receivable_currency:'USD'}};
+ for(const[name,rows]of Object.entries(data))for(const row of rows)records[`${root}/${name}/${name==='accounts'?row.code:row.id}`]=row;records[`${root}/invoices/i`]={id:'i',org_id:org,receivable_currency:'USD'};
  const entry=journal('ar',org,'guest','2026-10-01','invoice','i','فاتورة دولار',[journalLine('1200','عملاء',2000,0,1,0),journalLine('4100','مبيعات',0,2000,0,1)]);records[`${root}/journal_entries/${entry.id}`]=entry;
  await page.addInitScript(records=>{localStorage.setItem('mohasbasd_guest_session','true');localStorage.setItem('sudanese_merchant_has_seen_tour_v2','true');localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records))},records);await page.goto('/');await page.locator('#tab-accounting').click();await page.getByRole('button',{name:'إعادة تقييم العملات',exact:true}).click();
 }

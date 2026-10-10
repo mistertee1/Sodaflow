@@ -1,6 +1,5 @@
 import express from 'express';
 import test from 'node:test';
-import './fxRevaluation.test';
 import assert from 'node:assert/strict';
 import { MemoryStore, type Store, type Transaction, type Document } from '../src/domain/store';
 import { Operations } from '../src/domain/operations';

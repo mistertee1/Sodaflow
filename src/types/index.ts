@@ -47,6 +47,7 @@ export interface OrganizationCounters {
   /** Derived backup count for accounting-period evidence. */
   accounting_period_count?: number;
   /** Derived immutable opening-source completeness counts. */
+  owner_equity_event_count?: number;
   opening_batch_count?: number;
   opening_lot_count?: number;
   opening_settlement_count?: number;

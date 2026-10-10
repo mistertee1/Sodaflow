@@ -5,9 +5,13 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
+  "active_branch": "codex/accounting-v2-c3-fx-quotes-20261010",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "fx-proof-ci-20261010-0630",
+    "acquired_at": "2026-10-10T06:30:56.311Z",
+    "expires_at": "2026-10-10T06:50:56.311Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -632,16 +636,126 @@
             {
               "id": "C2.3",
               "scope": "Owner capital/drawings source-backed operations and UI",
-              "status": "pending"
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-c2-capital-transactions-20261010",
+              "substeps": [
+                {
+                  "id": "C2.3.1",
+                  "scope": "Pure owner equity contribution/drawing posting quote contracts",
+                  "status": "implemented_ci_passed",
+                  "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
+                  "checks": {
+                    "unit_api": 248,
+                    "new_tests": 8,
+                    "types": "passed",
+                    "core": "passed",
+                    "build": "passed",
+                    "rules": 31,
+                    "rules_status": "passed_ci",
+                    "ui": 48,
+                    "ui_status": "passed_ci",
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "render_acceptance": "not_exposed_pending_atomic_commands_and_ui",
+                  "pr": 32,
+                  "ci": {
+                    "run_id": 38010999361,
+                    "commit_sha": "9ccd558cb7f112d519713343daa1ebe9020e5475",
+                    "conclusion": "success",
+                    "unit_api": 248,
+                    "rules": 31,
+                    "ui": 48,
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "report": "REPORT_C2_3_1_OWNER_EQUITY_QUOTES.md"
+                },
+                {
+                  "id": "C2.3.2",
+                  "scope": "Protected atomic source-backed commands, reconciliation and backup",
+                  "status": "implemented_ci_passed",
+                  "branch": "codex/accounting-v2-c2-capital-transactions-20261010",
+                  "report": "REPORT_C2_3_2_OWNER_EQUITY_TRANSACTIONS.md",
+                  "checks": {
+                    "unit_api": 260,
+                    "new_unit_api": 12,
+                    "types": "passed",
+                    "core": "passed",
+                    "build": "passed",
+                    "new_emulator": 2,
+                    "emulator": "passed_ci_java21",
+                    "ui": 48,
+                    "rules": 33,
+                    "ui_status": "passed_ci_regression",
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "render_acceptance": "pending_workspace_service_and_UI",
+                  "pr": 33,
+                  "ci": {
+                    "run_id": 38013814001,
+                    "commit_sha": "7d5131a3be5ecaa5a53875c02bee1ab4cef47642",
+                    "conclusion": "success",
+                    "unit_api": 260,
+                    "rules": 33,
+                    "ui": 48,
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "completed_at": "2026-10-10T01:42:17.675698+00:00"
+                },
+                {
+                  "id": "C2.3.3",
+                  "scope": "Owner UI, role/regression and Render staging acceptance",
+                  "status": "implemented_ci_passed_render_acceptance_pending",
+                  "branch": "codex/accounting-v2-c2-capital-ui-20261010",
+                  "pr": 34,
+                  "report": "REPORT_C2_3_3_OWNER_EQUITY_UI.md",
+                  "checks": {
+                    "unit_api": 260,
+                    "rules": 33,
+                    "ui": 50,
+                    "new_ui": 2,
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "ci": {
+                    "run_id": 38019982868,
+                    "commit_sha": "4f61429672418f800633e3ae23522b76d9498d15",
+                    "conclusion": "success"
+                  },
+                  "render_acceptance": "pending_confirmed_workspace_staging_service_and_matching_deploy"
+                }
+              ],
+              "pr": 33
             }
           ]
         },
         {
           "id": "C3",
           "scope": "Period-end source-linked FX revaluation with explicit closing rates and reviewed posting",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-c3-fx-quotes-20261010",
+          "pr": 35,
+          "substeps": [
+            {
+              "id": "C3.1",
+              "scope": "Pure reviewed period-end foreign monetary balance revaluation quote",
+              "status": "ci_passed_source_currency_review_required",
+              "report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
+              "checks": {
+                "unit_api": 267,
+                "new_tests": 7,
+                "types": "passed",
+                "unit_api_status": "passed_ci"
+              },
+              "render_acceptance": "not_exposed_no_command_or_UI",
+              "ci": {
+                "run_id": 38026913049,
+                "commit_sha": "6019daa215a6e55f680ad4ec35bdce7071c8561a",
+                "conclusion": "success"
+              },
+              "safety_findings": [
+                "GL USD is a reporting book, not proof of native USD exposure. Mixed SDG/USD AR/AP pools must be split by source currency; SDG-native cash must not be revalued as USD. No posting command may use account-level quote until this is resolved."
+              ]
+            }
+          ]
         },
         {
           "id": "C4",
@@ -827,13 +941,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_C2_2B3_OPENING_UI.md",
+  "last_report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
   "next_steps": [
-    "Run Render staging acceptance after connection/service identification; do not equate CI with Render deployment.",
-    "Continue independent C2.3 capital/drawings, C3-C6, D, E, Excel1-4 with separate review branches.",
-    "Preserve current main ResilientStore and branding changes during user-led final integration."
+    "C3.1 source-native currency exposure proof and mixed-currency regression before C3.2 posting",
+    "Preserve main branding/ResilientStore during user-led final integration."
   ],
-  "updated_at": "2026-10-09T23:46:40.066389+00:00",
+  "updated_at": "2026-10-10T05:46:05.757Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -858,7 +971,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C2.2b.3",
+  "active_substep": "C3.1",
   "observed_main_sha": "2f0ac961a755ca1ddddb17fbbbf5dffc2085e0ab",
   "lease_history": [
     {
@@ -870,6 +983,21 @@
       "worker": "accounting-v2-20261007-c12-2104",
       "released_at": "2026-10-07T21:16:00Z",
       "next_branch": "codex/accounting-v2-c2-opening-quotes"
+    },
+    {
+      "worker": "accounting-v2-20261010-capital-quotes-0048",
+      "released_at": "2026-10-10T00:58:21.522526+00:00",
+      "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
+      "pr": 32,
+      "code_commit": "9ccd558cb7f112d519713343daa1ebe9020e5475"
+    },
+    {
+      "worker": "accounting-v2-20261010-equity-0128",
+      "acquired_at": "2026-10-10T01:35:16.899383+00:00",
+      "released_at": "2026-10-10T01:42:17.675698+00:00",
+      "branch": "codex/accounting-v2-c2-capital-transactions-20261010",
+      "pr": 33,
+      "code_commit": "7d5131a3be5ecaa5a53875c02bee1ab4cef47642"
     }
   ],
   "last_lease": {
@@ -895,7 +1023,7 @@
       28
     ]
   },
-  "next": "C2.2b.3 protected startup/settlement wizard, then C2.3 capital/drawings",
+  "next": "C3.1 source-native currency exposure proof and mixed-currency regression before C3.2 posting",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -916,17 +1044,24 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "accounting-v2-20261010-opening-ui",
-    "ended_at": "2026-10-09T23:46:40.066389+00:00",
-    "branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
-    "pr": 31,
-    "code_commit": "2bfde4630b6ecec292873c56c3729287e316d7b4",
-    "status": "ci_passed_render_acceptance_pending"
+    "worker": "fx-source-review-20261010",
+    "branch": "codex/accounting-v2-c3-fx-quotes-20261010",
+    "pr": 35,
+    "code_commit": "6019daa215a6e55f680ad4ec35bdce7071c8561a",
+    "ci": {
+      "run_id": 38026913049,
+      "commit_sha": "6019daa215a6e55f680ad4ec35bdce7071c8561a",
+      "conclusion": "success"
+    },
+    "status": "ci_passed_source_currency_review_required",
+    "ended_at": "2026-10-10T05:46:05.757Z",
+    "next": "C3.1 source-native currency exposure proof and mixed-currency regression before C3.2 posting"
   },
   "acceptance_environment": {
     "provider": "Render",
     "requested_at": "2026-10-09T23:46:40.066389+00:00",
-    "status": "pending_connection_and_service_identification",
-    "production_writes_for_testing": false
+    "status": "render_connected_workspace_confirmation_pending",
+    "production_writes_for_testing": false,
+    "note": "Read workspace inventory succeeded; no confirmed workspace/service or staging commit. Do not claim Render acceptance."
   }
 }

@@ -234,8 +234,9 @@ export function reconcilePayables(data: Record<string, Document[]>) {
   });
   const expenseIds = new Set((data.expenses || []).map(e => e.id));
   const legacy = entries.filter(e => ['expense', 'void'].includes(e.reference_type) && expenseIds.has(e.reference_id));
+  const fx=entries.filter(e=>e.reference_type==='fx_revaluation');
   for (const currency of ['sdg', 'usd']) {
-    const remaining = bills.reduce((n, b) => n.plus(billSignedBalance(b)[currency as 'sdg' | 'usd']), new BigNumber(0)).plus([...opening.values()].reduce((n,pair)=>n.plus(pair[currency as 'sdg'|'usd']),new BigNumber(0))).plus(amount(legacy, '2110', currency)).toNumber();
+    const remaining = bills.reduce((n, b) => n.plus(billSignedBalance(b)[currency as 'sdg' | 'usd']), new BigNumber(0)).plus([...opening.values()].reduce((n,pair)=>n.plus(pair[currency as 'sdg'|'usd']),new BigNumber(0))).plus(amount(legacy, '2110', currency)).plus(amount(fx,'2110',currency)).toNumber();
     compare('journal_entries', 'AP-control', `outstanding_${currency}`, remaining, amount(entries, '2110', currency));
   }
   return findings;

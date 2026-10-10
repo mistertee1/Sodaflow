@@ -42,6 +42,7 @@ export interface OrgInvitation {
 }
 
 export interface OrganizationCounters {
+  fx_revaluation_count?: number;
   audit_archive_count?: number;
   audit_event_count?: number;
   /** Derived backup count for accounting-period evidence. */

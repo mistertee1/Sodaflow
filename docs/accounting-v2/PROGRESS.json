@@ -5,9 +5,13 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c2-capital-quotes-20261010",
+  "active_branch": "codex/accounting-v2-c2-capital-transactions-20261010",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "accounting-v2-20261010-equity-0128",
+    "acquired_at": "2026-10-10T01:28:08.679Z",
+    "expires_at": "2026-10-10T02:13:08.679Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -902,7 +906,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C2.3.1",
+  "active_substep": "C2.3.2",
   "observed_main_sha": "2f0ac961a755ca1ddddb17fbbbf5dffc2085e0ab",
   "lease_history": [
     {

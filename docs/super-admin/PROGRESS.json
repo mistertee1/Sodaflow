@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-10T07:23:00Z",
+  "updatedAt": "2026-10-10T07:29:00Z",
   "activeRunId": "super-admin-render-authority-20261010-0723",
   "leaseUntil": "2026-10-10T08:53:00Z",
   "automationId": "6ac35722234c819194e0535527c23124",
@@ -126,7 +126,7 @@
       "substeps": [
         {
           "id": "5a",
-          "status": "in_progress",
+          "status": "implemented_acceptance_pending",
           "scope": "Canonical Firestore authority and isolated Render acceptance"
         },
         {
@@ -143,7 +143,7 @@
   "lastSourceCommit": "2a92aa74e3a218b1b33db1fad22966c09c611449",
   "sourceStagesComplete": true,
   "status": "in_progress",
-  "resumeFrom": "render_authority_acceptance",
+  "resumeFrom": "render_acceptance_pending",
   "lastReport": "docs/super-admin/REPORT.md",
   "productionReadiness": {
     "checkedAt": "2026-10-10T07:13:12Z",
@@ -186,5 +186,14 @@
       "failed": 6
     },
     "note": "Existing invoice workspace and auth UI regressions; Super Admin UI passes. Do not modify accounting/UI tests or claim full regression green."
+  },
+  "acceptance": {
+    "provider": "Render",
+    "service": "pending_creation",
+    "projectId": "demo-sudaflow",
+    "productionCredentials": false,
+    "productionWrites": 0,
+    "runtime": "report_only",
+    "tests": "pending"
   }
 }

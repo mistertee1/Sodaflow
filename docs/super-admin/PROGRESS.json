@@ -2,13 +2,21 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-05T13:34:56.000Z",
-  "activeRunId": null,
-  "leaseUntil": null,
+  "updatedAt": "2026-10-10T07:41:00Z",
+  "activeRunId": "super-admin-render-authority-20261010-0723",
+  "leaseUntil": "2026-10-10T08:53:00Z",
   "automationId": "6ac35722234c819194e0535527c23124",
   "currentStage": 5,
-  "workBranch": null,
-  "ownedPaths": [],
+  "workBranch": "codex/super-admin-render-authority-20261010",
+  "ownedPaths": [
+    "server/resilientStore.ts",
+    "tests/serverAuthority.test.ts",
+    "tests/serverAuthorityFirestore.test.ts",
+    "ops/render-super-admin/**",
+    "docs/super-admin/**",
+    "package.json",
+    "tsconfig.core.json"
+  ],
   "stages": [
     {
       "id": 0,
@@ -114,34 +122,124 @@
     },
     {
       "id": 5,
-      "status": "blocked",
-      "blockers": [
-        "Live API readiness reports firestore_database_missing; default Firestore database does not exist in sodaflow",
-        "Connected Netlify project lookup does not expose sodaflow; live API remains 3.0.3-netlify",
-        "Explicit verified platform-admin UID not supplied"
+      "status": "in_progress",
+      "substeps": [
+        {
+          "id": "5a",
+          "status": "in_progress",
+          "scope": "Canonical Firestore authority and isolated Render acceptance"
+        },
+        {
+          "id": "5b",
+          "status": "blocked",
+          "scope": "Production activation with reviewed branch, correct Firebase credentials/data and explicit verified admin UID"
+        }
       ]
     }
   ],
   "productionValidated": false,
   "lastCompletedStage": 4,
-  "unmergedWorkBranch": null,
+  "unmergedWorkBranch": "codex/super-admin-render-authority-20261010",
   "lastSourceCommit": "2a92aa74e3a218b1b33db1fad22966c09c611449",
   "sourceStagesComplete": true,
-  "status": "blocked_external",
-  "resumeFrom": "production_activation",
+  "status": "in_progress",
+  "resumeFrom": "render_authority_acceptance",
   "lastReport": "docs/super-admin/REPORT.md",
   "productionReadiness": {
-    "checkedAt": "2026-10-05T13:28:33.000Z",
-    "projectId": "sodaflow",
-    "databaseId": "(default)",
-    "liveVersion": "3.0.3-netlify",
-    "liveReadinessHttp": 503,
-    "firestoreCode": "firestore_database_missing",
-    "directFirestoreHttp": 404,
-    "directFirestoreDatabaseMissing": true,
-    "netlifyTargetAvailable": false,
+    "checkedAt": "2026-10-10T07:13:12Z",
+    "provider": "Render",
+    "workspaceId": "tea-db20pccs728c73ald730",
+    "serviceId": "srv-db4lfrvavr4c73fn1hl0",
+    "url": "https://sudaflow.onrender.com",
+    "deployedBranch": "codex/wafer-ux-phase1",
+    "deployedCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0",
+    "readinessHttp": 503,
+    "firebaseCode": "service_unavailable",
+    "firebaseProjectId": "sodaflow",
+    "firestoreDatabaseId": "(default)",
+    "firestoreStatus": "unverified_after_firebase_credential_probe_failed",
     "verifiedPlatformAdminUidProvided": false,
-    "storageCode": "storage_bucket_missing",
-    "productionWrites": 0
+    "productionWrites": 0,
+    "diagnostic": "Render app log reports Google metadata lookup ETIMEDOUT/ENOTFOUND; server defaults to applicationDefault when no explicit service-account JSON. No env secret values read.",
+    "previousNetlifyDiagnosis": {
+      "checkedAt": "2026-10-05T13:28:33Z",
+      "firestoreCode": "firestore_database_missing",
+      "note": "Historical evidence only. Netlify is no longer the requested deployment target."
+    }
+  },
+  "observedMainSha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
+  "workBaseSha": "deb7a2a38bac09ac64b623e4ec86ce43429555f5",
+  "userMergesOnly": true,
+  "dependencies": [
+    {
+      "pr": 38,
+      "branch": "codex/accounting-v2-ci-lock-repair-20261010",
+      "sha": "deb7a2a38bac09ac64b623e4ec86ce43429555f5",
+      "reason": "Restore npm lock unchanged; required for npm ci. User reviews and merges."
+    }
+  ],
+  "baselineRegression": {
+    "runId": 38032227589,
+    "sha": "deb7a2a38bac09ac64b623e4ec86ce43429555f5",
+    "ui": {
+      "passed": 44,
+      "failed": 6
+    },
+    "note": "Existing invoice workspace and auth UI regressions; Super Admin UI passes. Do not modify accounting/UI tests or claim full regression green."
+  },
+  "acceptance": {
+    "provider": "Render",
+    "workspaceId": "tea-db20pccs728c73ald730",
+    "serviceId": "srv-db4ui5h42hec73f2cdcg",
+    "deployId": "dep-db4ui6142hec73f2ce8g",
+    "url": "https://sudaflow-super-admin-acceptance.onrender.com",
+    "sourceCommit": "40232c46998eebf38eadcd00b532a6730f693d64",
+    "autoDeploy": false,
+    "projectId": "demo-sudaflow",
+    "productionCredentials": false,
+    "productionWrites": 0,
+    "runtime": "report_only",
+    "status": "render_retry_after_build_environment_fix",
+    "evidence": {
+      "baseline": {
+        "tests": 12,
+        "passed": 3,
+        "failed": 9
+      },
+      "unitApi": 283,
+      "firestoreEmulator": 37,
+      "authorityUnit": 12,
+      "authorityEmulator": 4,
+      "types": "passed",
+      "build": "passed",
+      "auditReportedVulnerabilities": 0,
+      "ui": "in_progress"
+    },
+    "githubChecks": {
+      "id": 38034521896,
+      "jobId": 114162091308,
+      "status": "completed",
+      "conclusion": "failure",
+      "sha": "40232c46998eebf38eadcd00b532a6730f693d64",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38034521896",
+      "note": "All type/unit/build/emulator/audit checks passed; complete UI remains blocked by existing invoice/auth regressions."
+    },
+    "attempts": [
+      {
+        "sourceCommit": "40232c46998eebf38eadcd00b532a6730f693d64",
+        "deployId": "dep-db4ui6142hec73f2ce8g",
+        "status": "build_failed",
+        "unitApi": 283,
+        "firestoreEmulator": 37,
+        "ui": {
+          "passed": 42,
+          "failed": 8,
+          "superAdminPassed": 8,
+          "superAdminFailed": 1
+        },
+        "note": "First acceptance image inherited NODE_ENV=test into Vite compilation; likely development StrictMode race. Correct build environment and rerun without changing UI assertions or product code.",
+        "finishedAt": "2026-10-10T07:37:53Z"
+      }
+    ]
   }
 }

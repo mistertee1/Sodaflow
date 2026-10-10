@@ -5,9 +5,13 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c3-native-exposure-20261010",
+  "active_branch": "codex/accounting-v2-c3-fx-transactions-20261010",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "c3-fx-transactions-20261010",
+    "acquired_at": "2026-10-10T16:14:31.310Z",
+    "expires_at": "2026-10-10T16:49:31.310Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -964,7 +968,7 @@
   "next_steps": [
     "C3.2 protected atomic FX revaluation posting, reconciliation and backup"
   ],
-  "updated_at": "2026-10-10T16:00:08.894Z",
+  "updated_at": "2026-10-10T16:14:31.310Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -989,7 +993,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C3.1c",
+  "active_substep": "C3.2",
   "observed_main_sha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
   "lease_history": [
     {

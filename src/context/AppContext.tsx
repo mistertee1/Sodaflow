@@ -274,29 +274,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch (error) {
       console.warn('Initial cloud organization load warning:', error);
       if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
-      const fallbackOrg: Organization = {
-        id: `org-${user.uid}`,
-        name: user.displayName?.trim() ? `مؤسسة ${user.displayName.trim()}` : 'مؤسستي التجارية',
-        display_name: user.displayName?.trim() ? `مؤسسة ${user.displayName.trim()}` : 'مؤسستي التجارية',
-        settings: INITIAL_SETTINGS,
-        owner_uid: user.uid,
-        status: 'active',
-        base_currency: 'SDG',
-        secondary_currency: 'USD',
-        timezone: 'Africa/Khartoum',
-        fiscal_year: new Date().getFullYear().toString(),
-        schema_version: 3,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      setUserOrgs([fallbackOrg]);
-      try {
-        await load(fallbackOrg);
-      } catch {
-        apply({ ...emptySnapshot(), org: fallbackOrg, role: 'Owner' });
-        activeOrg.current = fallbackOrg.id;
-        setSyncStatus('idle');
-      }
+      // Organization discovery is an authority boundary. Never invent a tenant ID when
+      // the server is unavailable: keep the authenticated shell visible, surface the
+      // original failure, and let the existing online/focus/interval reconciler retry.
+      activeOrg.current = null;
+      setUserOrgs([]);
+      fail(error);
     }
   };
   useEffect(() => {

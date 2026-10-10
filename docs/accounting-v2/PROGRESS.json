@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c2-capital-ui-20261010",
+  "active_branch": "codex/accounting-v2-c3-fx-quotes-20261010",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -726,9 +726,17 @@
         {
           "id": "C3",
           "scope": "Period-end source-linked FX revaluation with explicit closing rates and reviewed posting",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-c3-fx-quotes-20261010",
+          "pr": null,
+          "substeps": [{
+            "id": "C3.1",
+            "scope": "Pure reviewed period-end foreign monetary balance revaluation quote",
+            "status": "implemented_local_checks_passed_ci_pending",
+            "report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
+            "checks": {"unit_api":266,"new_tests":6,"types":"passed"},
+            "render_acceptance": "not_exposed_no_command_or_UI"
+          }]
         },
         {
           "id": "C4",
@@ -914,12 +922,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_C2_3_3_OWNER_EQUITY_UI.md",
+  "last_report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
   "next_steps": [
-    "C3 period-end source-linked FX revaluation foundation with explicit reviewed closing rates",
+    "C3.2 protected atomic FX revaluation/reversal sources, reconciliation and backup",
     "Preserve main branding/ResilientStore during user-led final integration."
   ],
-  "updated_at": "2026-10-10T04:13:00.000Z",
+  "updated_at": "2026-10-10T04:22:00.000Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -996,7 +1004,7 @@
       28
     ]
   },
-  "next": "C3 period-end source-linked FX revaluation foundation with explicit reviewed closing rates",
+  "next": "C3.2 protected atomic FX revaluation/reversal sources, reconciliation and backup",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",

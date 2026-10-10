@@ -939,9 +939,9 @@
   ],
   "last_report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
   "next_steps": [
-    "Verify CI38050018443 UI 50/50; if successful update PR38 report, then resume C3 native-source adapters"
+    "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch"
   ],
-  "updated_at": "2026-10-10T11:55:36.373Z",
+  "updated_at": "2026-10-10T12:12:58.200Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1016,7 +1016,7 @@
     ],
     "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
   },
-  "next": "Verify CI38050018443 UI 50/50; if successful update PR38 report, then resume C3 native-source adapters",
+  "next": "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1042,15 +1042,17 @@
     "pr": 38,
     "code_commit": "35067c0aa3ef3e9883bb5980f48606803ba851d4",
     "ci": {
-      "run_id": 38050018443,
-      "status": "in_progress",
-      "check": "passed",
-      "production_audit": "passed",
-      "emulator": "in_progress"
+      "run_id": 38050129713,
+      "commit_sha": "41839330a7ed14bd97cc5bf5c65b6a3c734e715e",
+      "conclusion": "success",
+      "unit_api": 271,
+      "emulator": 33,
+      "ui": 50,
+      "production_audit_vulnerabilities": 0
     },
-    "status": "six_integration_UI_regressions_fixed_ci_in_progress",
-    "ended_at": "2026-10-10T11:55:36.373Z",
-    "next": "Verify CI38050018443 UI 50/50; if successful update PR38 report, then resume C3 native-source adapters"
+    "status": "integration_repair_ci_passed_ready_for_user_review",
+    "ended_at": "2026-10-10T12:12:58.200Z",
+    "next": "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch"
   },
   "acceptance_environment": {
     "provider": "Render",
@@ -1065,8 +1067,9 @@
     "note": "Live deployment and HTTP200 verified; demo Firebase config only, no authenticated cloud acceptance. No auto deploy."
   },
   "integration_regressions": {
-    "invoice_workspace": "Four document/correction tests now explicitly enter معاينة المستند from the intentional invoice workspace before asserting correction/PDF behavior.",
-    "initial_cloud_outage": "Removed invented org-${uid} fallback on failed authoritative organization discovery. The authenticated shell now surfaces the original error and online/focus/30s reconciliation retries discovery; Firebase-discovered organizations remain supported.",
-    "local_validation": "lint:core and production build passed. Local Playwright execution unavailable because browser CDN returned truncated archives; actual GitHub CI is running."
+    "status": "resolved_ci_passed",
+    "invoice_workspace": "Four document/correction tests explicitly enter معاينة المستند from invoice workspace; full UI suite passed.",
+    "initial_cloud_outage": "Authoritative organization discovery no longer invents a tenant on outage; errors remain visible and retry through online/focus/30s reconciliation. Two recovery tests passed.",
+    "evidence": "GitHub Actions run 38050129713: 271 unit/API, 33 Firestore Emulator, 50 UI, zero production vulnerabilities."
   }
 }

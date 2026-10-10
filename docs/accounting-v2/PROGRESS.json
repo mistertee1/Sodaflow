@@ -5,13 +5,9 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c3-fx-quotes-20261010",
+  "active_branch": "codex/accounting-v2-ci-lock-repair-20261010",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "fx-proof-ci-20261010-0630",
-    "acquired_at": "2026-10-10T06:30:56.311Z",
-    "expires_at": "2026-10-10T06:50:56.311Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -943,10 +939,9 @@
   ],
   "last_report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
   "next_steps": [
-    "C3.1 source-native currency exposure proof and mixed-currency regression before C3.2 posting",
-    "Preserve main branding/ResilientStore during user-led final integration."
+    "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch"
   ],
-  "updated_at": "2026-10-10T05:46:05.757Z",
+  "updated_at": "2026-10-10T12:12:58.200Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -972,7 +967,7 @@
     }
   ],
   "active_substep": "C3.1",
-  "observed_main_sha": "2f0ac961a755ca1ddddb17fbbbf5dffc2085e0ab",
+  "observed_main_sha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",
@@ -1010,20 +1005,18 @@
     "next_branch": "codex/accounting-v2-c2-opening-ui"
   },
   "last_remote_review": {
-    "main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31",
-    "checked_at": "2026-10-08T13:27:04Z",
-    "branch": "codex/accounting-v2-c2-opening-transactions",
-    "commit_sha": "6aa787a0af0f58a1dfb46ee94d2b41c6512d0947",
+    "checked_at": "2026-10-10T06:48:42.580Z",
+    "main_sha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
     "user_merged_prs": [
-      23,
-      24,
-      25,
-      26,
-      27,
-      28
-    ]
+      33,
+      34,
+      35,
+      36,
+      37
+    ],
+    "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
   },
-  "next": "C3.1 source-native currency exposure proof and mixed-currency regression before C3.2 posting",
+  "next": "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1044,24 +1037,39 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "fx-source-review-20261010",
-    "branch": "codex/accounting-v2-c3-fx-quotes-20261010",
-    "pr": 35,
-    "code_commit": "6019daa215a6e55f680ad4ec35bdce7071c8561a",
+    "worker": "integration-ui-repair-20261010",
+    "branch": "codex/accounting-v2-ci-lock-repair-20261010",
+    "pr": 38,
+    "code_commit": "35067c0aa3ef3e9883bb5980f48606803ba851d4",
     "ci": {
-      "run_id": 38026913049,
-      "commit_sha": "6019daa215a6e55f680ad4ec35bdce7071c8561a",
-      "conclusion": "success"
+      "run_id": 38050129713,
+      "commit_sha": "41839330a7ed14bd97cc5bf5c65b6a3c734e715e",
+      "conclusion": "success",
+      "unit_api": 271,
+      "emulator": 33,
+      "ui": 50,
+      "production_audit_vulnerabilities": 0
     },
-    "status": "ci_passed_source_currency_review_required",
-    "ended_at": "2026-10-10T05:46:05.757Z",
-    "next": "C3.1 source-native currency exposure proof and mixed-currency regression before C3.2 posting"
+    "status": "integration_repair_ci_passed_ready_for_user_review",
+    "ended_at": "2026-10-10T12:12:58.200Z",
+    "next": "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch"
   },
   "acceptance_environment": {
     "provider": "Render",
-    "requested_at": "2026-10-09T23:46:40.066389+00:00",
-    "status": "render_connected_workspace_confirmation_pending",
+    "status": "staging_live_cloud_acceptance_pending",
+    "workspace_id": "tea-db20pccs728c73ald730",
+    "service_id": "srv-db4tlkl9fdbs73ascas0",
+    "deploy_id": "dep-db4tll59fdbs73ascc9g",
+    "deploy_commit": "6ba17ecd8e606c9991f7d6795dd5c5e161c13ef8",
+    "url": "https://sudaflow-accounting-staging.onrender.com",
+    "http_smoke": "200",
     "production_writes_for_testing": false,
-    "note": "Read workspace inventory succeeded; no confirmed workspace/service or staging commit. Do not claim Render acceptance."
+    "note": "Live deployment and HTTP200 verified; demo Firebase config only, no authenticated cloud acceptance. No auto deploy."
+  },
+  "integration_regressions": {
+    "status": "resolved_ci_passed",
+    "invoice_workspace": "Four document/correction tests explicitly enter معاينة المستند from invoice workspace; full UI suite passed.",
+    "initial_cloud_outage": "Authoritative organization discovery no longer invents a tenant on outage; errors remain visible and retry through online/focus/30s reconciliation. Two recovery tests passed.",
+    "evidence": "GitHub Actions run 38050129713: 271 unit/API, 33 Firestore Emulator, 50 UI, zero production vulnerabilities."
   }
 }

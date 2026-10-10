@@ -58,6 +58,7 @@ test('B3 mobile credit/physical return/refund forms enforce sources, resist dupl
   await page.addInitScript(records => localStorage.setItem('sudaflow_guest_transactions_v3', JSON.stringify(records)), fixture.records);
   await page.setViewportSize({ width: 390, height: 844 }); await page.goto('/'); await page.locator('#tab-invoices').click();
   await page.getByRole('button', { name: `فتح الفاتورة ${fixture.invoiceNumber}`, exact: true }).click();
+  await page.getByRole('button', { name: 'معاينة المستند', exact: true }).click();
   await page.getByRole('button', { name: 'إشعار دائن / مردود', exact: true }).click();
   let dialog = page.getByRole('dialog', { name: 'إشعار دائن ومردود بيع', exact: true });
   await dialog.getByLabel('تاريخ التصحيح أو الرد', { exact: true }).fill('2026-10-07'); await dialog.getByLabel('مبلغ التصحيح للبند 1').fill('101'); await dialog.getByLabel('سبب التصحيح أو الرد').fill('خصم متفق عليه');
@@ -77,7 +78,7 @@ test('B3 mobile credit/physical return/refund forms enforce sources, resist dupl
   // Remove only the fixture initializer so the reload observes the actual committed guest store.
   const saved = await page.evaluate(() => localStorage.getItem('sudaflow_guest_transactions_v3'));
   await page.addInitScript(saved => localStorage.setItem('sudaflow_guest_transactions_v3', saved!), saved);
-  await page.reload(); await page.locator('#tab-invoices').click(); await page.getByRole('button', { name: `فتح الفاتورة ${fixture.invoiceNumber}`, exact: true }).click(); await expect(page.getByRole('region', { name: 'تصحيحات الفاتورة' })).toContainText('رد نقدي');
+  await page.reload(); await page.locator('#tab-invoices').click(); await page.getByRole('button', { name: `فتح الفاتورة ${fixture.invoiceNumber}`, exact: true }).click(); await page.getByRole('button', { name: 'معاينة المستند', exact: true }).click(); await expect(page.getByRole('region', { name: 'تصحيحات الفاتورة' })).toContainText('رد نقدي');
 });
 test('RTL brand, local assets, both themes and mobile navigation render without overflow', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
@@ -223,6 +224,7 @@ test('long invoice PDF keeps the merchant identity and exports multiple complete
   await seedBrandInvoices(page, true);
   await page.goto('/'); await page.locator('#tab-invoices').click();
   await page.getByRole('button', { name:'فتح الفاتورة INV-0041' }).click();
+  await page.getByRole('button', { name: 'معاينة المستند', exact: true }).click();
   const dialog = page.getByRole('dialog', { name:'معاينة الفاتورة' });
   await expect(dialog.locator('#printable-invoice')).toContainText('متجر الاختبار');
   await expect(dialog).toContainText('فاتورة مبيعات'); await expect(dialog).not.toContainText('فاتورة ضريبية');
@@ -457,7 +459,7 @@ test('B3 mobile purchase returns and supplier reimbursements reject excess, resi
 
 test('B3 saved sales and supplier correction documents download independently, preserve Arabic evidence and audit once under double clicks',async({page},testInfo)=>{
   test.setTimeout(120000);
-  const fixture=await correctionDocumentFixture();await page.addInitScript(records=>{if(window===window.top)localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records));},fixture.records);await page.setViewportSize({width:390,height:844});await page.goto('/');await page.locator('#tab-invoices').click();await page.getByRole('button',{name:`فتح الفاتورة ${fixture.invoiceNumber}`,exact:true}).click();
+  const fixture=await correctionDocumentFixture();await page.addInitScript(records=>{if(window===window.top)localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records));},fixture.records);await page.setViewportSize({width:390,height:844});await page.goto('/');await page.locator('#tab-invoices').click();await page.getByRole('button',{name:`فتح الفاتورة ${fixture.invoiceNumber}`,exact:true}).click();await page.getByRole('button',{name:'معاينة المستند',exact:true}).click();
   const download=async(kind:string,id:string)=>{const button=page.getByRole('button',{name:`تحميل PDF ${id}`,exact:true});const wait=page.waitForEvent('download');await button.evaluate(button=>{(button as HTMLButtonElement).click();(button as HTMLButtonElement).click();});const file=await wait;expect(file.suggestedFilename()).toBe(`${kind}-${id}.pdf`);const path=testInfo.outputPath(`${kind}-${id}.pdf`);await file.saveAs(path);const bytes=await readFile(path);expect(bytes.subarray(0,4).toString()).toBe('%PDF');expect(bytes.length).toBeGreaterThan(20000);await expect(button).toBeEnabled();};
   for(const [kind,id] of fixture.documents.slice(0,3))await download(kind,id);
   await page.getByRole('button',{name:'إغلاق النافذة',exact:true}).click();await page.locator('#tab-accounting').click();await page.getByRole('button',{name:'الموردون والمشتريات',exact:true}).click();await page.getByRole('button',{name:`سجل ${fixture.bill.supplier_reference}`,exact:true}).click();
@@ -467,5 +469,5 @@ test('B3 saved sales and supplier correction documents download independently, p
 });
 test('B3 a 100-line saved credit PDF paginates complete rows with safe source text and repeated A4 evidence',async({page},testInfo)=>{
   test.setTimeout(120000);const f=await correctionDocumentFixture();const invoice=(await f.run('invoice.create',{customer_id:f.invoice.customer_id,issue_date:'2026-10-07',currency_mode:'single_usd',exchange_rate_used:2000,discount_type:'fixed',discount_value:0,items:Array.from({length:100},(_,i)=>({product_id:f.product.id,description:i===0?'<img src=x onerror=window.pdfInjected=true>':`بند مراجعة طويل ${i+1} يحفظ مرجع المصدر والقيمة في الصفحة`,unit:'قطعة',quantity:.01,unit_price:100,currency:'USD',tax_rate:0,discount_percent:0}))},'long-sale')).result;
-  await f.run('creditNote.create',{invoice_id:invoice.id,kind:'price_credit',date:'2026-10-07',reason:'تصحيح مصدر طويل دون إسقاط بنود',lines:Array.from({length:100},(_,i)=>({line_id:`line-${i+1}`,amount:.5}))},'long-credit');await page.addInitScript(records=>{if(window===window.top)localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records));},f.store.dump());await page.goto('/');await page.locator('#tab-invoices').click();await page.getByRole('button',{name:`فتح الفاتورة ${invoice.invoice_number}`,exact:true}).click();const wait=page.waitForEvent('download');await page.getByRole('button',{name:'تحميل PDF cn-long-credit',exact:true}).click();const file=await wait,path=testInfo.outputPath('long-credit.pdf');await file.saveAs(path);const bytes=await readFile(path);expect(bytes.subarray(0,4).toString()).toBe('%PDF');expect((bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length).toBeGreaterThan(3);expect(await page.evaluate(()=>(window as any).pdfInjected)).toBeUndefined();expect(await page.locator('.sf-print-document').count()).toBe(0);
+  await f.run('creditNote.create',{invoice_id:invoice.id,kind:'price_credit',date:'2026-10-07',reason:'تصحيح مصدر طويل دون إسقاط بنود',lines:Array.from({length:100},(_,i)=>({line_id:`line-${i+1}`,amount:.5}))},'long-credit');await page.addInitScript(records=>{if(window===window.top)localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records));},f.store.dump());await page.goto('/');await page.locator('#tab-invoices').click();await page.getByRole('button',{name:`فتح الفاتورة ${invoice.invoice_number}`,exact:true}).click();await page.getByRole('button',{name:'معاينة المستند',exact:true}).click();const wait=page.waitForEvent('download');await page.getByRole('button',{name:'تحميل PDF cn-long-credit',exact:true}).click();const file=await wait,path=testInfo.outputPath('long-credit.pdf');await file.saveAs(path);const bytes=await readFile(path);expect(bytes.subarray(0,4).toString()).toBe('%PDF');expect((bytes.toString('latin1').match(/\/Type\s*\/Page\b/g)||[]).length).toBeGreaterThan(3);expect(await page.evaluate(()=>(window as any).pdfInjected)).toBeUndefined();expect(await page.locator('.sf-print-document').count()).toBe(0);
 });

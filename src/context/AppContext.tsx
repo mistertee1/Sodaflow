@@ -1,6 +1,7 @@
 import type { OpeningInput } from '../domain/openingBalances';
 import type { OpeningTerms } from '../domain/openingSources';
 import type { OwnerEquityInput } from '../domain/ownerEquity';
+import type { FxRevaluationInput } from '../domain/fxRevaluation';
 import type { AccountingPeriod } from '../domain/periodContracts';
 import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
 import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
@@ -33,6 +34,9 @@ interface AppContextType {
   saveOpening: (action: 'opening.commit' | 'openingSettlement.create', data: Document, expectedOrgId: string, requestId: string) => Promise<Document>;
   ownerEquityEvents: Document[];
   saveOwnerEquity: (data: OwnerEquityInput, expectedOrgId: string, requestId: string) => Promise<Document>;
+  fxRevaluations: Document[];
+  previewFxRevaluation: (data: FxRevaluationInput, expectedOrgId: string) => Promise<Awaited<ReturnType<Operations['fxRevaluationPreview']>>>;
+  saveFxRevaluation: (data: FxRevaluationInput & {expected_quote_hash:string}, expectedOrgId: string, requestId: string) => Promise<Document>;
   accountingPeriods: AccountingPeriod[];
   loadAccountingPeriods: (periodId?: string) => Promise<Awaited<ReturnType<Operations['periodReports']>>>;
   saveAccountingPeriod: (action: 'period.create' | 'period.softClose' | 'period.close' | 'period.reopen', data: Document, expectedOrgId: string) => Promise<AccountingPeriod>;
@@ -415,7 +419,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const nothing = async () => {};
   const value: AppContextType = {
     openingBatches: rows<Document>('opening_batches'), openingLots: rows<Document>('opening_lots'), openingSettlements: rows<Document>('opening_settlements'),
-    ownerEquityEvents: rows<Document>('owner_equity_events'),
+    ownerEquityEvents: rows<Document>('owner_equity_events'), fxRevaluations: rows<Document>('fx_revaluations'),
     previewOpening: async (request, expectedOrgId) => {
       const id = activeOrg.current, epoch = session.current;
       if (!id || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409);
@@ -431,6 +435,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (activeOrg.current !== expectedOrgId) return Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409));
       return run('ownerEquity.create', data, requestId);
     },
+    previewFxRevaluation: async(data,expectedOrgId)=>{
+      const id=activeOrg.current,epoch=session.current;if(!id||id!==expectedOrgId)throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.',409);
+      const preview=id===guestId&&!userRef.current?await getGuest().fxRevaluationPreview(id,guestActor,data):await api<Awaited<ReturnType<Operations['fxRevaluationPreview']>>>(`/organizations/${encodeURIComponent(id)}/fx-revaluations/preview`,{method:'POST',body:JSON.stringify(data)});
+      if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد المعاينة.',409);return preview;
+    },
+    saveFxRevaluation:(data,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run('fxRevaluation.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.',409)),
     accountingPeriods: rows<AccountingPeriod>('accounting_periods'),
     loadAccountingPeriods: async periodId => {
       const id = activeOrg.current, epoch = session.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');

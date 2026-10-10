@@ -1,6 +1,9 @@
 import { equityCollections, verifyEquitySources, equityBackupCounts, validateEquityBackup, remapEquityEvents } from './ownerEquitySources';
 import { fxRevaluationCollections, verifyFxRevaluationSources, fxRevaluationBackupCounts, validateFxRevaluationBackup, remapFxRevaluations } from './fxRevaluationSources';
 import { fxRevaluationTransaction } from './fxRevaluationTransactions';
+import { fxQuoteHash } from './fxRevaluationTransactions';
+import { fxRevaluationEvidence } from './fxRevaluationSources';
+import type { FxRevaluationInput, FxRevaluationSnapshot } from './fxRevaluation';
 import { ownerEquityTransaction } from './ownerEquityTransactions';
 import { periodCollections, assertPeriodPosting, assertRecentOwner, validatePeriods, verifyClosedPeriodHashes } from './periodContracts';
 import { periodCommand, closeChecklist } from './accountingPeriods';
@@ -96,6 +99,18 @@ export class Operations {
         await this.verifyCostingSecurity();
       }
       return readOpeningPreview(tx,`organizations/${orgId}`,orgId,org.accounting_version,role,org.settings,now,request);
+    });
+  }
+  async fxRevaluationPreview(orgId:string,actor:Actor,input:FxRevaluationInput) {
+    return this.store.transaction(async tx=>{
+      const {org,role}=await membership(tx,orgId,actor);ensure(['Owner','Accountant'].includes(role),'معاينة إعادة التقييم متاحة للمالك والمحاسب فقط.',403);
+      const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'multi_currency');
+      ensure(org.accounting_version===2,'إعادة التقييم تتطلب محاسبة V2.',409);
+      if(this.store.authority==='browser')throw new BusinessError('معاينة إعادة التقييم المحمية تتطلب خدمة الخادم.',403,'accounting_server_required');
+      if(this.store.authority==='server'){if(!this.verifyCostingSecurity)throw new BusinessError('تعذر تأكيد قواعد حماية V2 المنشورة.',503,'accounting_rules_not_verified');await this.verifyCostingSecurity();}
+      const data=await readOpeningFinancialData(tx,`organizations/${orgId}`,orgId);await assertOpeningFinancialData(data,org.settings);verifyFxRevaluationSources(data,orgId);
+      const evidence=fxRevaluationEvidence(input,{...data,org_id:orgId,accounts:data.accounts as Account[],journal_entries:data.journal_entries as JournalEntry[],settings:org.settings} as unknown as FxRevaluationSnapshot,{operation_id:'preview',created_by:actor.uid,created_at:now.toISOString(),sequence:data.fx_revaluations.length+1});
+      return{organizationId:orgId,quote:evidence.event.quote,quote_hash:await fxQuoteHash(evidence.event.quote)};
     });
   }
   async advancedReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}) {

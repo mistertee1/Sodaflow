@@ -6,7 +6,7 @@ import path from 'node:path';
 for (const key of ['FIREBASE_SERVICE_ACCOUNT_JSON', 'GOOGLE_APPLICATION_CREDENTIALS', 'FIREBASE_TOKEN', 'BILLING_SIGNING_SECRET']) {
   assert.ok(!process.env[key], `Acceptance must not receive ${key}`);
 }
-// This image exclusively builds synthetic UI fixtures. Never rewrite repo config.
+// Rewrite only the isolated build image's configuration, never the GitHub source.
 const config = JSON.parse(fs.readFileSync('firebase-applet-config.json', 'utf8'));
 Object.assign(config, { projectId: 'demo-sudaflow', authDomain: 'demo-sudaflow.firebaseapp.com', apiKey: 'demo-sudaflow-test-key', appId: 'demo-sudaflow', storageBucket: 'demo-sudaflow.appspot.com', messagingSenderId: '000', firestoreDatabaseId: '(default)' });
 fs.writeFileSync('firebase-applet-config.json', JSON.stringify(config, null, 2) + '\n');
@@ -46,12 +46,15 @@ try {
     ['firestore-emulator', ['run', 'test:emulator']],
     ['production-audit', ['audit', '--omit=dev', '--audit-level=high']],
   ]) {
-    const check = await run(name, 'npm', args);
+    const check = await run(name, 'npm', args, name === 'build' ? { NODE_ENV: 'production' } : {});
     assert.equal(check.exitCode, 0, `${name} failed; no acceptance image may be published`);
     if (['unit-api', 'firestore-emulator'].includes(name)) {
       assert.ok(check.counts.tests > 0 && check.counts.pass === check.counts.tests && check.counts.fail === 0, `${name} has no complete behavioral pass evidence`);
     }
   }
+  const mode = await run('browser-build-mode', 'node', ['--input-type=module', '-e', "import assert from 'node:assert/strict'; import {resolveConfig} from 'vite'; const config=await resolveConfig({},'build'); console.log(JSON.stringify({mode:config.mode,isProduction:config.isProduction,nodeEnv:process.env.NODE_ENV})); assert.equal(config.isProduction,true);"], { NODE_ENV: 'production' });
+  assert.equal(mode.exitCode, 0, 'Browser acceptance must match production compilation');
+  summary.browserBuildEnvironment = 'production';
   const uiPath = path.resolve(directory, 'ui.json');
   const ui = await run('ui-regression', 'node', ['--import', 'tsx', 'node_modules/@playwright/test/cli.js', 'test', '--reporter=list,json'], { PLAYWRIGHT_JSON_OUTPUT_NAME: uiPath });
   const result = JSON.parse(fs.readFileSync(uiPath, 'utf8')), cases = [];
@@ -63,11 +66,11 @@ try {
   }
   walk(result.suites);
   const sa = cases.filter(c => c.file?.endsWith('super-admin.spec.ts'));
+  ui.counts = { tests: cases.length, pass: cases.filter(c => c.status === 'expected').length, fail: cases.filter(c => c.status === 'unexpected').length, skipped: cases.filter(c => c.status === 'skipped').length };
+  summary.superAdminUi = { tests: sa.length, passed: sa.filter(c => c.status === 'expected').length, failed: sa.filter(c => c.status === 'unexpected').length, skipped: sa.filter(c => c.status === 'skipped').length };
+  summary.uiFailures = cases.filter(c => c.status !== 'expected');
   assert.equal(sa.length, 9, 'All nine Super Admin UI scenarios must execute');
   assert.ok(sa.every(c => c.status === 'expected'), 'Super Admin UI failed or skipped');
-  ui.counts = { tests: cases.length, pass: cases.filter(c => c.status === 'expected').length, fail: cases.filter(c => c.status === 'unexpected').length, skipped: cases.filter(c => c.status === 'skipped').length };
-  summary.superAdminUi = { passed: 9, failed: 0, skipped: 0 };
-  summary.uiFailures = cases.filter(c => c.status !== 'expected');
   summary.status = ui.exitCode === 0 ? 'scope_passed_regression_passed' : 'scope_passed_regression_blocked';
   // A report-only service may publish incomplete regression evidence, never ERP.
   summary.productionReady = false;

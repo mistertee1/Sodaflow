@@ -81,6 +81,8 @@ test('recovery never resets lifetime 100 invoice quota or imports a local active
   await db.doc(`${f.root}/meta/counters`).update({ lifetime_invoice_count: 100 }); await db.doc(`${f.root}/meta/usage`).update({ lifetimeInvoiceCount: 100 });
   const input = { customer_id: customer.id, issue_date: new Date().toISOString().slice(0, 10), currency_mode: 'single_sdg', exchange_rate_used: 0, discount_type: 'fixed', discount_value: 0, items: [{ product_id: product.id, description: product.name, unit: 'قطعة', quantity: 1, unit_price: 100, currency: 'SDG', tax_rate: 0, discount_percent: 0 }] };
   const command = { action: 'invoice.create', operationId: 'quota-attempt', data: input };
+  fs.mkdirSync(path.dirname(localFile()), { recursive: true });
+  fs.writeFileSync(localFile(), JSON.stringify({ [f.root]: { ...f.org, planId: 'Free', subscriptionStatus: 'active' }, [`${f.root}/meta/usage`]: { lifetimeInvoiceCount: 0 }, [`${f.root}/meta/counters`]: { lifetime_invoice_count: 0 }, [`platformAdmins/${admin.uid}`]: { active: true, role: 'super_admin' } }));
   denied = true; await assert.rejects(ops.execute(f.org.id, f.actor, command), e => e === fault);
   denied = false; await assert.rejects(ops.execute(f.org.id, f.actor, command), /حد.*فاتورة|حد.*فواتير|الباقة/);
   assert.equal((await db.collection(`${f.root}/invoices`).get()).size, 0);

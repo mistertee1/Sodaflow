@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-10T07:29:00Z",
+  "updatedAt": "2026-10-10T07:41:00Z",
   "activeRunId": "super-admin-render-authority-20261010-0723",
   "leaseUntil": "2026-10-10T08:53:00Z",
   "automationId": "6ac35722234c819194e0535527c23124",
@@ -126,7 +126,7 @@
       "substeps": [
         {
           "id": "5a",
-          "status": "implemented_acceptance_pending",
+          "status": "in_progress",
           "scope": "Canonical Firestore authority and isolated Render acceptance"
         },
         {
@@ -143,7 +143,7 @@
   "lastSourceCommit": "2a92aa74e3a218b1b33db1fad22966c09c611449",
   "sourceStagesComplete": true,
   "status": "in_progress",
-  "resumeFrom": "render_acceptance_pending",
+  "resumeFrom": "render_authority_acceptance",
   "lastReport": "docs/super-admin/REPORT.md",
   "productionReadiness": {
     "checkedAt": "2026-10-10T07:13:12Z",
@@ -189,11 +189,57 @@
   },
   "acceptance": {
     "provider": "Render",
-    "service": "pending_creation",
+    "workspaceId": "tea-db20pccs728c73ald730",
+    "serviceId": "srv-db4ui5h42hec73f2cdcg",
+    "deployId": "dep-db4ui6142hec73f2ce8g",
+    "url": "https://sudaflow-super-admin-acceptance.onrender.com",
+    "sourceCommit": "40232c46998eebf38eadcd00b532a6730f693d64",
+    "autoDeploy": false,
     "projectId": "demo-sudaflow",
     "productionCredentials": false,
     "productionWrites": 0,
     "runtime": "report_only",
-    "tests": "pending"
+    "status": "render_retry_after_build_environment_fix",
+    "evidence": {
+      "baseline": {
+        "tests": 12,
+        "passed": 3,
+        "failed": 9
+      },
+      "unitApi": 283,
+      "firestoreEmulator": 37,
+      "authorityUnit": 12,
+      "authorityEmulator": 4,
+      "types": "passed",
+      "build": "passed",
+      "auditReportedVulnerabilities": 0,
+      "ui": "in_progress"
+    },
+    "githubChecks": {
+      "id": 38034521896,
+      "jobId": 114162091308,
+      "status": "completed",
+      "conclusion": "failure",
+      "sha": "40232c46998eebf38eadcd00b532a6730f693d64",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38034521896",
+      "note": "All type/unit/build/emulator/audit checks passed; complete UI remains blocked by existing invoice/auth regressions."
+    },
+    "attempts": [
+      {
+        "sourceCommit": "40232c46998eebf38eadcd00b532a6730f693d64",
+        "deployId": "dep-db4ui6142hec73f2ce8g",
+        "status": "build_failed",
+        "unitApi": 283,
+        "firestoreEmulator": 37,
+        "ui": {
+          "passed": 42,
+          "failed": 8,
+          "superAdminPassed": 8,
+          "superAdminFailed": 1
+        },
+        "note": "First acceptance image inherited NODE_ENV=test into Vite compilation; likely development StrictMode race. Correct build environment and rerun without changing UI assertions or product code.",
+        "finishedAt": "2026-10-10T07:37:53Z"
+      }
+    ]
   }
 }

@@ -36,10 +36,13 @@ export interface JournalEntryLine {
 }
 
 export interface JournalEntry {
+  adjusting?: boolean;
+  adjustment_reason?: string;
+  period_id?: string | null;
   id: string;
   entry_number: string; // e.g. JV-2026-0001
   date: string;
-  reference_type: 'invoice' | 'payment' | 'expense' | 'manual' | 'void' | 'opening_balance' | 'inventory' | 'purchase_bill' | 'supplier_payment' | 'internal_transfer' | 'credit_note' | 'customer_refund';
+  reference_type: 'invoice' | 'payment' | 'expense' | 'manual' | 'void' | 'opening_balance' | 'inventory' | 'purchase_bill' | 'supplier_payment' | 'internal_transfer' | 'credit_note' | 'customer_refund' | 'purchase_return' | 'supplier_refund' | 'opening_batch' | 'opening_settlement';
   reference_id: string;
   description: string;
   lines: JournalEntryLine[];

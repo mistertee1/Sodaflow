@@ -26,32 +26,8 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   const service = () => options?.operations || new Engine(new ResilientStore(adminServices().db), undefined, resolveSubscription, verifyDeployedAccountingRules);
   const platform = () => new PlatformBilling(service().store, options ? undefined : adminServices().db);
   const verify: Verify = options?.verify || (async token => {
-    let claims: any;
-    try {
-      claims = await adminServices().auth.verifyIdToken(token, false);
-    } catch {
-      try {
-        const parts = token.split('.');
-        if (parts.length === 3) {
-          const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
-          const nowSec = Math.floor(Date.now() / 1000);
-          if (payload.exp > nowSec && (payload.aud === config.projectId || payload.iss?.includes(config.projectId))) {
-            claims = payload;
-          }
-        }
-      } catch {
-        // ignore
-      }
-      if (!claims) claims = await adminServices().auth.verifyIdToken(token, false);
-    }
-    const isGoogle = claims?.firebase?.sign_in_provider === 'google.com';
-    return {
-      uid: claims.uid || claims.user_id || claims.sub,
-      email: claims.email || '',
-      emailVerified: claims.email_verified === true || isGoogle,
-      name: claims.name,
-      superAdmin: claims.superAdmin === true
-    };
+    const claims = await adminServices().auth.verifyIdToken(token, true);
+    return { uid: claims.uid, email: claims.email || '', emailVerified: claims.email_verified === true, name: claims.name, superAdmin: claims.superAdmin === true, authTime: claims.auth_time };
   });
   router.get('/health', (_req, res) => res.json({ status: 'ok', app: 'SudaFlow', version: '3.0.0', release: '2026-10-05-central-sync-recovery' }));
   router.get('/health/ready', async (_req, res) => {
@@ -110,6 +86,8 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
     ensure(typeof req.body.initial === 'boolean', 'نوع إنشاء المؤسسة مطلوب.');
     return new Organizations(service().store).create(actor, req.body.name, req.body.settings || {}, identifier(req.body.operationId), req.body.initial);
   }));
+  router.post('/organizations/:orgId/opening-balances/preview', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route((req,actor)=>{ensure(Object.keys(req.query).length===0,'مرشحات معاينة الأرصدة غير صالحة.');return service().openingPreview(req.params.orgId,actor,req.body);}));
+  router.get('/organizations/:orgId/accounting-periods', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route((req,actor)=>{ensure(Object.keys(req.query).every(key=>key==='periodId')&&(!('periodId' in req.query)||typeof req.query.periodId==='string'&&!!req.query.periodId),'مرشحات الفترات غير صالحة.');return service().periodReports(req.params.orgId,actor,req.query.periodId as string|undefined);}));
   router.get('/organizations/:orgId/revision', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, route(async (req, actor) => organizationRevision(service().store, req.params.orgId, actor)));
   router.get('/organizations/:orgId/snapshot', route(async (req, actor) => service().snapshot(req.params.orgId, actor)));
   router.get('/organizations/:orgId/backup', route(async (req, actor) => service().snapshot(req.params.orgId, actor, true)));

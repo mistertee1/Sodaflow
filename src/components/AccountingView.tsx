@@ -1,3 +1,5 @@
+import { OpeningBalancesCenter } from './accounting/OpeningBalancesCenter';
+import { AccountingPeriodsCenter } from './accounting/AccountingPeriodsCenter';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { api } from '../services/businessApi';
 import type { Operations } from '../domain/operations';
@@ -65,7 +67,7 @@ export const AccountingView: React.FC = () => {
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<
-    'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
+    'opening' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
   >('coa');
   const [reportStart, setReportStart] = useState('');
   const [reportEnd, setReportEnd] = useState('');
@@ -89,11 +91,6 @@ export const AccountingView: React.FC = () => {
   const [journalPage, setJournalPage] = useState(1);
   const [journalPageSize, setJournalPageSize] = useState(10);
 
-  // Period Lock State
-  const [lockDateInput, setLockDateInput] = useState(settings.period_lock_date || '');
-  const [lockFeedback, setLockFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [isUpdatingLock, setIsUpdatingLock] = useState(false);
-
   // Modal States
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
   const [newAccCode, setNewAccCode] = useState('');
@@ -108,6 +105,7 @@ export const AccountingView: React.FC = () => {
   // Manual Journal Entry Modal State
   const [isNewEntryOpen, setIsNewEntryOpen] = useState(false);
   const [entryDescription, setEntryDescription] = useState('');
+  const [entryAdjusting, setEntryAdjusting] = useState(false), [entryReason, setEntryReason] = useState('');
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
   const [entryLines, setEntryLines] = useState<
     Array<{
@@ -253,6 +251,7 @@ export const AccountingView: React.FC = () => {
     if (entrySubmitting.current) return;
     setEntryError(null);
 
+    if (entryAdjusting && (!isActionAllowed('periods:adjust') || !entryReason.trim())) { setEntryError('قيد التسوية يتطلب صلاحية وسبباً واضحاً.'); return; }
     if (!entryDescription.trim()) {
       setEntryError('يرجى كتابة شرح أو بيان للقيد المحاسبي');
       return;
@@ -294,6 +293,7 @@ export const AccountingView: React.FC = () => {
       const entryNumber = `JV-${new Date().getFullYear()}-${(journalEntries.length + 1).toString().padStart(4, '0')}`;
 
       await addJournalEntry({
+        ...(entryAdjusting ? { adjusting: true, reason: entryReason.trim() } : {}),
         entry_number: entryNumber,
         date: entryDate,
         description: entryDescription,
@@ -309,7 +309,7 @@ export const AccountingView: React.FC = () => {
       });
 
       setIsNewEntryOpen(false);
-      setEntryDescription('');
+      setEntryDescription(''); setEntryAdjusting(false); setEntryReason('');
       setEntryLines([
         { account_code: '', debit_sdg: 0, credit_sdg: 0, debit_usd: 0, credit_usd: 0 },
         { account_code: '', debit_sdg: 0, credit_sdg: 0, debit_usd: 0, credit_usd: 0 },
@@ -319,56 +319,6 @@ export const AccountingView: React.FC = () => {
     } finally {
       entrySubmitting.current = false;
       setIsSavingEntry(false);
-    }
-  };
-
-  // Period Lock Handlers
-  const handleLockPeriod = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isActionAllowed('org:update_settings')) {
-      setLockFeedback({ type: 'error', text: 'ليس لديك صلاحية لتعديل إعدادات إقفال الفترات المحاسبية' });
-      return;
-    }
-    if (!lockDateInput) {
-      setLockFeedback({ type: 'error', text: 'يرجى تحديد تاريخ إقفال الفترة' });
-      return;
-    }
-    setIsUpdatingLock(true);
-    setLockFeedback(null);
-    try {
-      await updateSettings({ period_lock_date: lockDateInput });
-      setLockFeedback({
-        type: 'success',
-        text: `تم إقفال الفترة المحاسبية بنجاح حتى تاريخ ${lockDateInput}. جميع العمليات حتى هذا التاريخ أصبحت محمية.`,
-      });
-    } catch (err: any) {
-      setLockFeedback({ type: 'error', text: err.message || 'حدث خطأ أثناء إقفال الفترة' });
-    } finally {
-      setIsUpdatingLock(false);
-    }
-  };
-
-  const handleUnlockPeriod = async () => {
-    if (!isActionAllowed('org:update_settings')) {
-      setLockFeedback({ type: 'error', text: 'ليس لديك صلاحية لفك إقفال الفترات المحاسبية' });
-      return;
-    }
-    if (!window.confirm('تحذير: فك إقفال الفترة المحاسبية سيتيح تسجيل عمليات في تواريخ الفترة السابقة. هل أنت متأكد من الاستمرار؟')) {
-      return;
-    }
-    setIsUpdatingLock(true);
-    setLockFeedback(null);
-    try {
-      await updateSettings({ period_lock_date: '' });
-      setLockDateInput('');
-      setLockFeedback({
-        type: 'success',
-        text: 'تم فك إقفال الفترة المحاسبية. يمكنك تسجيل قيود جديدة، وتظل القيود السابقة ثابتة.',
-      });
-    } catch (err: any) {
-      setLockFeedback({ type: 'error', text: err.message || 'حدث خطأ أثناء فك الإقفال' });
-    } finally {
-      setIsUpdatingLock(false);
     }
   };
 
@@ -448,6 +398,7 @@ export const AccountingView: React.FC = () => {
         {/* Sub-Navigation Tabs */}
         <div className="flex items-center gap-2 border-t border-sf-border mt-6 pt-4 overflow-x-auto pb-1 [&>button]:shrink-0">
           {(['ledger', 'receivables', 'cash'] as const).map(view => <button key={view} onClick={() => setActiveSubTab(view)} aria-pressed={activeSubTab === view} className="sf-secondary shrink-0 whitespace-nowrap">{{ ledger: 'دفتر الأستاذ', receivables: 'كشوف العملاء', cash: 'النقدية والبنوك' }[view]}</button>)}
+          {isActionAllowed('opening:preview') && <button onClick={() => setActiveSubTab('opening')} aria-pressed={activeSubTab === 'opening'} className="sf-secondary shrink-0 whitespace-nowrap">الأرصدة الافتتاحية والسداد</button>}
           {isActionAllowed('payables:read') && <button onClick={() => setActiveSubTab('payables')} aria-pressed={activeSubTab === 'payables'} className="sf-secondary shrink-0 whitespace-nowrap">الموردون والمشتريات</button>}
           <button
             onClick={() => setActiveSubTab('coa')}
@@ -931,137 +882,10 @@ export const AccountingView: React.FC = () => {
 
       {/* SUB-TAB 7: ACCOUNTING PERIOD LOCK (إقفال الفترات المحاسبية) */}
       {(['ledger', 'receivables', 'cash'] as const).map(view => activeSubTab === view && <OperationalCenter key={view} view={view} />)}
+      {activeSubTab === 'opening' && <OpeningBalancesCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'payables' && <PayablesCenter />}
 
-      {activeSubTab === 'period_lock' && (
-        <div className="space-y-6">
-          {/* Status Card */}
-          <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    settings.period_lock_date
-                      ? 'bg-sf-warning-bg/10 border border-sf-warning/30 text-sf-warning'
-                      : 'bg-sf-raised/40 border border-sf-border/40 text-sf-muted'
-                  }`}
-                >
-                  {settings.period_lock_date ? (
-                    <Lock className="w-6 h-6" />
-                  ) : (
-                    <Unlock className="w-6 h-6" />
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-base font-semibold text-sf-text">إقفال الفترات المحاسبية</h3>
-                    {settings.period_lock_date ? (
-                      <span className="text-xs px-3 py-1 rounded-full bg-sf-warning-bg/80 text-sf-warning border border-sf-warning/40 font-semibold flex items-center gap-1">
-                        <Lock className="w-3.5 h-3.5" />
-                        الفترة مقفلة حتى: {settings.period_lock_date}
-                      </span>
-                    ) : (
-                      <span className="text-xs px-3 py-1 rounded-full bg-sf-selected/60 text-sf-action border border-sf-action/40 font-semibold flex items-center gap-1">
-                        <Unlock className="w-3.5 h-3.5" />
-                        كافة الفترات المحاسبية مفتوحة
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-sf-muted mt-1">
-                    حماية العمليات والقيود التاريخية من التعديل أو الحذف بعد اعتماد الميزانيات أو الإقرارات الضريبية.
-                  </p>
-                </div>
-              </div>
-
-              {settings.period_lock_date && isActionAllowed('org:update_settings') && (
-                <button
-                  type="button"
-                  onClick={handleUnlockPeriod}
-                  disabled={isUpdatingLock}
-                  className="px-4 py-2 rounded-xl bg-sf-danger-bg/10 hover:bg-sf-danger-bg/20 text-sf-danger border border-sf-danger/30 font-semibold text-xs flex items-center gap-2 transition-all"
-                >
-                  <Unlock className="w-4 h-4" />
-                  <span>فك إقفال الفترة المحاسبية</span>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Feedback message */}
-          {lockFeedback && (
-            <div
-              className={`p-4 rounded-xl border text-xs flex items-center gap-3 ${
-                lockFeedback.type === 'success'
-                  ? 'bg-sf-selected/70 border-sf-action text-sf-action'
-                  : 'bg-sf-danger-bg/70 border-sf-danger text-sf-danger'
-              }`}
-            >
-              {lockFeedback.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-              ) : (
-                <AlertCircle className="w-4 h-4 shrink-0" />
-              )}
-              <span>{lockFeedback.text}</span>
-            </div>
-          )}
-
-          {/* Lock Action Form Card */}
-          <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-6 shadow-sm space-y-4">
-            <h4 className="font-semibold text-sm text-sf-text border-b border-sf-border pb-3 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-sf-warning" />
-              <span>تحديد تاريخ إقفال الفترة المحاسبية</span>
-            </h4>
-
-            <form onSubmit={handleLockPeriod} className="space-y-4 max-w-lg">
-              <div>
-                <label className="block text-xs text-sf-text font-semibold mb-2">
-                  إقفال كافة العمليات والقيود حتى تاريخ (شاملاً هذا التاريخ):
-                </label>
-                <input
-                  type="date"
-                  value={lockDateInput}
-                  onChange={(e) => setLockDateInput(e.target.value)}
-                  className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text focus:outline-none focus:border-sf-warning"
-                  required
-                />
-                <span className="text-xs text-sf-muted mt-1 block">
-                  لن يُسمح بإنشاء أو تعديل أو إبطال أو حذف أي فواتير أو سندات أو مصروفات أو قيود بتاريخ يسبق أو يطابق هذا التاريخ.
-                </span>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isUpdatingLock || !lockDateInput}
-                  className="px-6 py-3 rounded-xl bg-sf-warning-bg hover:bg-sf-warning-bg text-sf-warning font-semibold text-xs flex items-center gap-2 shadow-lg shadow-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  <Lock className="w-4 h-4" />
-                  <span>{settings.period_lock_date ? 'تحديث تاريخ إقفال الفترة' : 'تفعيل إقفال الفترة المحاسبية'}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-
-          {/* Guidelines & Controls Info Card */}
-          <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-6 shadow-sm space-y-3">
-            <h4 className="font-semibold text-xs text-sf-text">قواعد الضبط المحاسبي عند إقفال الفترة:</h4>
-            <ul className="text-xs text-sf-muted space-y-2 list-disc list-inside">
-              <li>
-                <strong className="text-sf-text">الفواتير:</strong> يُمنع إصدار أو تعديل أو إبطال الفواتير المؤرخة في تاريخ مقفل.
-              </li>
-              <li>
-                <strong className="text-sf-text">سندات القبض:</strong> يُمنع تحصيل أو تسجيل سندات في تاريخ واقع ضمن الفترة المقفلة.
-              </li>
-              <li>
-                <strong className="text-sf-text">المصروفات:</strong> تجميد حركة المصروفات التاريخية ومنع حذفها لضمان مطابقة قائمة الدخل المعتمدة.
-              </li>
-              <li>
-                <strong className="text-sf-text">القيود المحاسبية اليدوية:</strong> يُرفض تسجيل أي قيد تسوية بتاريخ يسبق تاريخ الإقفال.
-              </li>
-            </ul>
-          </div>
-        </div>
-      )}
+      {activeSubTab === 'period_lock' && <AccountingPeriodsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {isAddAccountOpen && (
         <Dialog label="إضافة حساب جديد" onClose={() => setIsAddAccountOpen(false)} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-sf-ink/60 backdrop-blur-sm">
           <div className="bg-sf-surface border border-sf-border rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
@@ -1205,7 +1029,7 @@ export const AccountingView: React.FC = () => {
             </div>
 
             {entryError && (
-              <div className="p-3 rounded-xl bg-sf-danger-bg/70 border border-sf-danger text-sf-danger text-xs flex items-center gap-2">
+              <div role="alert" className="p-3 rounded-xl bg-sf-danger-bg/70 border border-sf-danger text-sf-danger text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
                 <span>{entryError}</span>
               </div>
@@ -1217,7 +1041,7 @@ export const AccountingView: React.FC = () => {
                   <label className="block text-sf-text font-semibold mb-1">تاريخ القيد</label>
                   <input
                     type="date"
-                    value={entryDate}
+                    aria-label="تاريخ القيد" value={entryDate}
                     onChange={(e) => setEntryDate(e.target.value)}
                     className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-sf-text font-mono focus:outline-none focus:border-sf-action"
                     required
@@ -1228,7 +1052,7 @@ export const AccountingView: React.FC = () => {
                   <label className="block text-sf-text font-semibold mb-1">البيان العام للقيد</label>
                   <input
                     type="text"
-                    value={entryDescription}
+                    aria-label="البيان العام للقيد" value={entryDescription}
                     onChange={(e) => setEntryDescription(e.target.value)}
                     placeholder="مثال: سداد إيجار المحل أو تمويل رأس مال"
                     className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action"
@@ -1237,6 +1061,7 @@ export const AccountingView: React.FC = () => {
                 </div>
               </div>
 
+              {isActionAllowed('periods:adjust') && <div className="space-y-2"><label className="flex gap-2"><input type="checkbox" checked={entryAdjusting} onChange={e => setEntryAdjusting(e.target.checked)} disabled={isSavingEntry} />قيد تسوية لفترة مقفلة مبدئياً</label>{entryAdjusting && <label className="block">سبب التسوية<input aria-label="سبب التسوية" value={entryReason} onChange={e => setEntryReason(e.target.value)} required maxLength={1000} disabled={isSavingEntry} className="w-full mt-1 p-2 rounded border border-sf-border bg-sf-raised" /></label>}</div>}
               {/* Lines editor */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

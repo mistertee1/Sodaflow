@@ -11,6 +11,7 @@ export const getDefaultChartOfAccounts = (orgId: string): Account[] => {
   const now = new Date().toISOString();
   return [
     { code: '3900', name_ar: 'مقابل الأرصدة الافتتاحية', name_en: 'Opening Balance Equity', type: 'EQUITY', nature: 'CREDIT', is_system: true, is_active: true, balance_sdg: 0, balance_usd: 0, org_id: orgId, created_at: now },
+    { code: '5910', name_ar: 'فرق تكلفة مردود المشتريات', name_en: 'Purchase Return Cost Variance', type: 'EXPENSE', nature: 'DEBIT', reporting_group: 'operating_expense', is_system: true, is_active: true, balance_sdg: 0, balance_usd: 0, org_id: orgId, created_at: now },
     { code: '5900', name_ar: 'فروق تسوية المخزون', name_en: 'Inventory Adjustments', type: 'EXPENSE', nature: 'DEBIT', is_system: true, is_active: true, balance_sdg: 0, balance_usd: 0, org_id: orgId, created_at: now },
     { code: '2130', name_ar: 'ضريبة المبيعات المستحقة', name_en: 'Sales Tax Payable', type: 'LIABILITY', nature: 'CREDIT', is_system: true, is_active: true, balance_sdg: 0, balance_usd: 0, org_id: orgId, created_at: now },
     // 1000s: الأصول (ASSETS)

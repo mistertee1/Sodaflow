@@ -4,8 +4,8 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "B3",
-  "active_branch": "codex/accounting-v2-b3-sales-credit-transactions",
+  "active_milestone": "C",
+  "active_branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -42,9 +42,9 @@
     },
     {
       "id": "B",
-      "status": "in_progress",
-      "branch": "codex/accounting-v2-b1-supplier-purchases",
-      "pr": 15,
+      "status": "implemented_ci_passed",
+      "branch": "codex/accounting-v2-b3-documents-acceptance",
+      "pr": 22,
       "steps": [
         {
           "id": "B1",
@@ -112,8 +112,8 @@
         {
           "id": "B3",
           "scope": "Credit notes, sales/purchase returns and refunds",
-          "status": "in_progress",
-          "branch": "codex/accounting-v2-b3-sales-credit-transactions",
+          "status": "implemented_ci_passed",
+          "branch": "codex/accounting-v2-b3-documents-acceptance",
           "substeps": [
             {
               "id": "B3.1",
@@ -147,8 +147,8 @@
             {
               "id": "B3.2",
               "scope": "Atomic source-linked credit notes, sales/purchase returns and refunds; reports, reconciliation, backup and UI",
-              "status": "in_progress",
-              "branch": "codex/accounting-v2-b3-sales-credit-transactions",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-b3-purchase-return-transactions",
               "substeps": [
                 {
                   "id": "B3.2a",
@@ -175,8 +175,8 @@
                 {
                   "id": "B3.2b",
                   "scope": "Atomic credit notes, sales/purchase returns/refunds, source caches, AR/AP reports, reconciliation, backup, protected API and UI",
-                  "status": "in_progress",
-                  "branch": "codex/accounting-v2-b3-sales-credit-transactions",
+                  "status": "implemented_ci_passed",
+                  "branch": "codex/accounting-v2-b3-purchase-return-transactions",
                   "substeps": [
                     {
                       "id": "B3.2b-sales",
@@ -218,77 +218,715 @@
                     {
                       "id": "B3.2b-purchases",
                       "scope": "Atomic purchase returns, explicit WAC variance, supplier reimbursements, AP/report/reconciliation/backup and protected API/UI",
-                      "status": "pending"
+                      "status": "implemented_ci_passed",
+                      "branch": "codex/accounting-v2-b3-purchase-return-transactions",
+                      "checks": {
+                        "unit_api": 172,
+                        "new_unit_api": 14,
+                        "types": "passed",
+                        "build": "passed",
+                        "local_new_ui": "passed",
+                        "rules_status": "passed",
+                        "full_ui_status": "passed",
+                        "rules": 24,
+                        "full_ui": 37,
+                        "production_audit_vulnerabilities": 0
+                      },
+                      "completed_parts": [
+                        "atomic original-value purchase returns and current-WAC inventory issue with separate signed variance",
+                        "historical supplier-advance reimbursements and payment FX, source sequence and cache proof",
+                        "dated AP/aging/statement and CSV/PDF report exports; reconciliation and strict restore",
+                        "backend live permission/subscription/period/idempotency gates and protected Arabic mobile UI"
+                      ],
+                      "pr": 21,
+                      "ci": {
+                        "conclusion": "success",
+                        "run_id": 37645759706,
+                        "commit_sha": "cb4f33a8294443982bd8a9f899cdf171690d0e70",
+                        "unit_api": 172,
+                        "rules": 24,
+                        "ui": 37,
+                        "production_audit_vulnerabilities": 0
+                      }
                     }
-                  ]
+                  ],
+                  "pr": 21
                 }
               ],
               "pr": 20
+            },
+            {
+              "id": "B3.3",
+              "scope": "Protected standalone correction/refund PDFs and integrated B3 operational acceptance",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-b3-documents-acceptance",
+              "checks": {
+                "unit_api": 177,
+                "new_unit_api": 5,
+                "types": "passed",
+                "build": "passed",
+                "local_new_ui": "passed",
+                "rules_status": "passed",
+                "full_ui_status": "passed",
+                "rules": 25,
+                "full_ui": 39,
+                "production_audit_vulnerabilities": 0,
+                "pdf_visual_status": "passed_5_single_page_and_all_10_long_document_pages"
+              },
+              "completed_parts": [
+                "fresh authorized immutable correction/refund PDF exports and source-specific audit metadata",
+                "safe Arabic A4 repeated header/table rows, separate books, original tax/cost and refund FX evidence",
+                "integrated B3 cycle with partial/final customer and supplier payments, bank expense/transfer, bank/cash reconciliation and two restores with zero differences",
+                "bounded restored audit provenance archives, canonical hashes, source IDs and dropped-event/archive detection"
+              ],
+              "pr": 22,
+              "ci": {
+                "conclusion": "success",
+                "run_id": 37648654132,
+                "commit_sha": "43773ea49a07ff7f63205e8838e1a6436cd20ba4",
+                "unit_api": 177,
+                "rules": 25,
+                "ui": 39,
+                "production_audit_vulnerabilities": 0
+              }
             }
           ],
-          "pr": 20
+          "pr": 22
         }
-      ]
+      ],
+      "integration_note": "PR20 merged to main; PR21/22 merged into preceding branches after PR20. Main still lacks purchase/docs until user integrates the final B3 branch."
     },
     {
       "id": "C",
-      "status": "pending",
-      "branch": null,
-      "pr": null
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-c2-opening-integration",
+      "pr": null,
+      "steps": [
+        {
+          "id": "C1",
+          "scope": "Accounting periods, close/reopen and month-end checklist",
+          "status": "implemented_ci_passed",
+          "substeps": [
+            {
+              "id": "C1.1",
+              "scope": "Tenant period lifecycle, backend posting guard and recent-owner reauthentication contract",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c1-period-guards",
+              "checks": {
+                "unit_api": 187,
+                "new_unit_api": 10,
+                "types": "passed",
+                "build": "passed",
+                "rules_status": "passed",
+                "full_ui_status": "passed",
+                "rules": 26,
+                "full_ui": 39,
+                "production_audit_vulnerabilities": 0
+              },
+              "completed_parts": [
+                "tenant nonoverlapping period lifecycle and revision concurrency guards",
+                "all protected posting dates including cached retries, soft adjustment-only and hard deny",
+                "real-owner recent auth_time reopening and legacy lock release audit",
+                "zero-finding close gate with latest matched cash/bank evidence and dual-book journal hash",
+                "period backup counts, tenant remap and closure source/hash verification"
+              ],
+              "pr": 23,
+              "previous_ci": {
+                "run_id": 37684782970,
+                "commit_sha": "6e9eac7f63dfadabfa275966cafcb1a2a0f603b7",
+                "conclusion": "success",
+                "unit_api": 186,
+                "rules": 26,
+                "ui": 39,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 37685870678,
+                "commit_sha": "5c64692a208dcfd191f0908d083d7f05c5e547da",
+                "conclusion": "success",
+                "unit_api": 187,
+                "rules": 26,
+                "ui": 39,
+                "production_audit_vulnerabilities": 0
+              }
+            },
+            {
+              "id": "C1.2",
+              "scope": "Month-end checklist/closing evidence and controlled period UI/re-authentication",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c1-period-ui",
+              "checks": {
+                "unit_api": 191,
+                "new_unit_api": 4,
+                "types": "passed",
+                "build": "passed",
+                "local_new_ui": 5,
+                "local_new_ui_status": "passed",
+                "rules_status": "passed",
+                "full_ui_status": "passed",
+                "rules": 26,
+                "full_ui": 44,
+                "production_audit_vulnerabilities": 0,
+                "pdf_visual_status": "mobile_period_screens_reviewed"
+              },
+              "completed_parts": [
+                "period lifecycle and closure evidence UI with covered-date guidance",
+                "full-finding month-end summaries including wallets and source references",
+                "linked-current-identity Firebase password/Google reauthentication with organization/session guards",
+                "explicit reasoned manual adjustments and preserved legacy-lock release",
+                "mobile workflow, duplicates, reload persistence and role-specific controls"
+              ],
+              "pr": 24,
+              "ci": {
+                "run_id": 37687099864,
+                "commit_sha": "00962a6c9d8934ea1875d75b2677804b41ee7e0f",
+                "conclusion": "success",
+                "unit_api": 191,
+                "rules": 26,
+                "ui": 44,
+                "production_audit_vulnerabilities": 0
+              }
+            }
+          ]
+        },
+        {
+          "id": "C2",
+          "scope": "Opening balances wizard and Owner capital/drawings",
+          "status": "in_progress",
+          "substeps": [
+            {
+              "id": "C2.1",
+              "scope": "Read-only opening source/dual-book quote and validation contract",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c2-opening-quotes",
+              "checks": {
+                "unit_api": 199,
+                "new_unit_api": 8,
+                "types": "passed",
+                "build": "passed",
+                "rules_status": "passed",
+                "full_ui_status": "passed",
+                "rules": 26,
+                "full_ui": 44,
+                "production_audit_vulnerabilities": 0
+              },
+              "completed_parts": [
+                "read-only native-source and dual-book opening quote",
+                "explicit capital and signed opening equity review without invented FX or revenue",
+                "new-tenant/source/control/precision/overflow/duplication contracts",
+                "omitted existing balance rejection and 97-source/100-line bound"
+              ],
+              "pr": 25,
+              "ci": {
+                "run_id": 37688369294,
+                "commit_sha": "23492f1f3c0043d65399316b88ccd18c97acd18a",
+                "conclusion": "success",
+                "unit_api": 199,
+                "rules": 26,
+                "ui": 44,
+                "production_audit_vulnerabilities": 0
+              }
+            },
+            {
+              "id": "C2.2",
+              "scope": "Atomic tenant opening batches, AR/AP/inventory source proof and protected preview/commit wizard",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-c2-opening-integration",
+              "substeps": [
+                {
+                  "id": "C2.2a",
+                  "scope": "Trusted eligibility, immutable opening source proof and settlement replay contracts",
+                  "status": "implemented_ci_passed",
+                  "branch": "codex/accounting-v2-c2-opening-source-proof",
+                  "checks": {
+                    "unit_api": 211,
+                    "new_unit_api": 12,
+                    "types": "passed",
+                    "build": "passed",
+                    "source_sequences": 72,
+                    "rules_status": "passed",
+                    "full_ui_status": "passed",
+                    "rules": 26,
+                    "full_ui": 44,
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "completed_parts": [
+                    "actual-document eligibility with validated zero initialization exception",
+                    "minimal frozen opening proof, explicit dated AR/AP lots and inventory WAC movements",
+                    "historical partial/final carrying allocation, payment FX and immutable replay",
+                    "dated source-linked opening/movement/closing/aging contracts with full future-history verification"
+                  ],
+                  "pr": 26,
+                  "ci": {
+                    "run_id": 37716137528,
+                    "commit_sha": "4de1194d215c3e003b46049753a5da80aa8f5d12",
+                    "conclusion": "success",
+                    "unit_api": 211,
+                    "rules": 26,
+                    "ui": 44,
+                    "production_audit_vulnerabilities": 0
+                  }
+                },
+                {
+                  "id": "C2.2b",
+                  "scope": "Atomic opening/settlement API, reports/reconciliation/restore and protected wizard",
+                  "status": "in_progress",
+                  "branch": "codex/accounting-v2-c2-opening-integration",
+                  "substeps": [
+                    {
+                      "id": "C2.2b.1",
+                      "scope": "Fresh protected server-only read-only opening preview",
+                      "status": "implemented_ci_passed",
+                      "branch": "codex/accounting-v2-c2-opening-preview",
+                      "checks": {
+                        "unit_api": 219,
+                        "new_unit_api": 8,
+                        "types": "passed",
+                        "build": "passed",
+                        "rules_status": "passed",
+                        "full_ui_status": "passed",
+                        "new_emulator": 1,
+                        "local_emulator": "not_run_java17_missing_emulator_cache_ci_java21_required",
+                        "rules": 27,
+                        "full_ui": 44,
+                        "production_audit_vulnerabilities": 0
+                      },
+                      "completed_parts": [
+                        "dedicated Owner/Accountant live authorization and current catalog feature gates",
+                        "real tenant source reads and open-period/legacy-lock/date checks",
+                        "minimal no-store preview preserving unresolved equity review with freshness digest",
+                        "actual HTTP/read-failure/authority/role/catalog/period/zero-initialization regression tests"
+                      ],
+                      "pr": 27,
+                      "ci": {
+                        "run_id": 37717189627,
+                        "commit_sha": "9b31bdc123400ad6e4486baf7699318c93a02c2f",
+                        "conclusion": "success",
+                        "unit_api": 219,
+                        "rules": 27,
+                        "ui": 44,
+                        "production_audit_vulnerabilities": 0
+                      }
+                    },
+                    {
+                      "id": "C2.2b.2",
+                      "scope": "Atomic opening/settlement commands, live reports/reconciliation and strict backup/restore",
+                      "status": "implemented_ci_passed",
+                      "branch": "codex/accounting-v2-c2-opening-transactions",
+                      "substeps": [
+                        {
+                          "id": "C2.2b.2.1",
+                          "scope": "Opening-source integration in current financial reports, reconciliation, caches and strict backup/restore",
+                          "status": "completed",
+                          "branch": "codex/accounting-v2-c2-opening-integration",
+                          "checks": {
+                            "unit_api": 227,
+                            "new_unit_api": 8,
+                            "types": "passed",
+                            "build": "passed",
+                            "new_emulator": 1,
+                            "new_ui": 1,
+                            "rules_status": "passed_ci",
+                            "full_ui_status": "passed_ci",
+                            "rules": 28,
+                            "ui": 45,
+                            "production_vulnerabilities": 0,
+                            "ci_run": 37745317689,
+                            "ci_status": "success"
+                          },
+                          "completed_parts": [
+                            "per-lot and per-control-line historical AR/AP allocation without fabricated invoices",
+                            "opening-aware current customer/supplier due and credit caches during ordinary postings/corrections",
+                            "full financial source replay and AR/AP/inventory GL reconciliation",
+                            "declared opening backup version/counts, original-tenant proof and nested remap with zero-difference destination check",
+                            "source-specific mobile labels, PDF/CSV references and retained settled party links"
+                          ],
+                          "pr": 28,
+                          "validated_commit": "5bf46badcc5510c6b72c7e1e6a5613bb328bbf03",
+                          "completed_at": "2026-10-08T07:51:00Z"
+                        },
+                        {
+                          "id": "C2.2b.2.2",
+                          "scope": "Protected atomic opening and settlement commands with source-integrated acceptance",
+                          "status": "implemented_ci_passed",
+                          "branch": "codex/accounting-v2-c2-opening-transactions",
+                          "parent_pr": 28,
+                          "started_at": "2026-10-08T07:52:00Z",
+                          "checks": {
+                            "unit_api": 240,
+                            "new_unit_api": 13,
+                            "types": "passed",
+                            "build": "passed",
+                            "new_emulator": 3,
+                            "rules_status": "passed_ci",
+                            "full_ui_status": "passed_ci",
+                            "rules": 31,
+                            "ui": 45,
+                            "production_audit_vulnerabilities": 0
+                          },
+                          "completed_parts": [
+                            "actual owner recent-auth startup and live permission/feature/period checks before retries",
+                            "fresh SHA-256 preview comparison and actual zero-history source eligibility",
+                            "atomic immutable batch/lots/journal/WAC and exact current cache/counter/audit writes",
+                            "source-sequence settlement with historical carrying and separate FX",
+                            "both-book cash sufficiency at date and every later daily close",
+                            "explicit complete financial overlay with strict reconciliation before persistence",
+                            "physical document path/index collision checks and cache revision guard for stale retries",
+                            "unit/API buffered-store, rollback, race, SDG-only and ordinary post-opening acceptance"
+                          ],
+                          "pr": 29,
+                          "validated_commit": "d7138df463c358d39c9ee04075f96627d7ad6879",
+                          "completed_at": "2026-10-08T13:39:25Z",
+                          "ci": {
+                            "conclusion": "success",
+                            "run_id": 37785190899,
+                            "commit_sha": "d7138df463c358d39c9ee04075f96627d7ad6879",
+                            "unit_api": 240,
+                            "rules": 31,
+                            "ui": 45,
+                            "production_audit_vulnerabilities": 0
+                          }
+                        }
+                      ],
+                      "pr": 29
+                    },
+                    {
+                      "id": "C2.2b.3",
+                      "scope": "Protected opening and settlement wizard with Owner reauthentication",
+                      "status": "implemented_ci_passed_render_acceptance_pending",
+                      "branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
+                      "parent_pr": 29,
+                      "started_at": "2026-10-08T13:39:51Z",
+                      "report": "REPORT_C2_2B3_OPENING_UI.md",
+                      "checks": {
+                        "unit_api": 240,
+                        "types": "passed",
+                        "core": "passed",
+                        "build": "passed",
+                        "ui": 48,
+                        "new_ui": 3,
+                        "ui_status": "passed_local_and_ci",
+                        "rules": 31,
+                        "rules_status": "passed_ci",
+                        "render_acceptance": "pending_connection_and_staging_service"
+                      },
+                      "updated_at": "2026-10-09T23:46:40.066389+00:00",
+                      "pr": 31,
+                      "validated_local_commit": "2bfde4630b6ecec292873c56c3729287e316d7b4",
+                      "ci": {
+                        "conclusion": "success",
+                        "run_id": 38005624098,
+                        "commit_sha": "2bfde4630b6ecec292873c56c3729287e316d7b4",
+                        "unit_api": 240,
+                        "rules": 31,
+                        "ui": 48,
+                        "production_audit_vulnerabilities": 0
+                      }
+                    }
+                  ],
+                  "pr": 27
+                }
+              ],
+              "pr": 27
+            },
+            {
+              "id": "C2.3",
+              "scope": "Owner capital/drawings source-backed operations and UI",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "id": "C3",
+          "scope": "Period-end source-linked FX revaluation with explicit closing rates and reviewed posting",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "C4",
+          "scope": "Fixed asset register, straight-line depreciation and source-linked ledger lifecycle",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "C5",
+          "scope": "Configurable tax center, sales/purchase taxes, tax periods and reports",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "C6",
+          "scope": "Comparative statements and period/as-of controls",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        }
+      ]
     },
     {
       "id": "D",
       "status": "pending",
       "branch": null,
-      "pr": null
+      "pr": null,
+      "steps": [
+        {
+          "id": "D1",
+          "scope": "Branch dimensions, cost centers/projects and branch P&L",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "D2",
+          "scope": "Product/customer profitability and source-supported management reports",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "D3",
+          "scope": "Budgets, budget vs actual and cash forecast",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "D4",
+          "scope": "Customer credit limits and configurable discount/expense/refund approval limits",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        }
+      ]
     },
     {
       "id": "E",
       "status": "pending",
       "branch": null,
-      "pr": null
+      "pr": null,
+      "steps": [
+        {
+          "id": "E1",
+          "scope": "Accounting health center and actionable financial alerts",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "E2",
+          "scope": "Reviewable reconciliation/account/close assistance and anomaly rules",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "E3",
+          "scope": "Rule-based Owner financial summary and recurring expense/journal draft reminders",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        }
+      ]
     },
     {
       "id": "Excel1",
       "status": "pending",
       "branch": null,
-      "pr": null
+      "pr": null,
+      "steps": [
+        {
+          "id": "Excel1.1",
+          "scope": "Quick/master exports, numeric integrity and authorized sensitive masking",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "Excel1.2",
+          "scope": "Customer/supplier/product templates, staging, mapping, validation, duplicate detection and preview",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        }
+      ]
     },
     {
       "id": "Excel2",
       "status": "pending",
       "branch": null,
-      "pr": null
+      "pr": null,
+      "steps": [
+        {
+          "id": "Excel2.1",
+          "scope": "Accounting export and reconciled accountant workbook",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "Excel2.2",
+          "scope": "Safe opening inventory/AR/AP/cash/capital imports and post-import reconciliation",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "Excel2.3",
+          "scope": "PRD50 bank statement CSV/Excel staging and manual matching import",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        }
+      ]
     },
     {
       "id": "Excel3",
       "status": "pending",
       "branch": null,
-      "pr": null
+      "pr": null,
+      "steps": [
+        {
+          "id": "Excel3.1",
+          "scope": "Full company export, data portability, saved presets and export/import histories",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "Excel3.2",
+          "scope": "Server-side large export/import jobs, temporary downloads/expiry and failure recovery",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        }
+      ]
     },
     {
       "id": "Excel4",
       "status": "pending",
       "branch": null,
-      "pr": null
+      "pr": null,
+      "steps": [
+        {
+          "id": "Excel4.1",
+          "scope": "Controlled historical invoices/purchases/journals and legacy migration",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        },
+        {
+          "id": "Excel4.2",
+          "scope": "Auditor package and scheduled export permissions/expiry",
+          "status": "pending",
+          "branch": null,
+          "pr": null
+        }
+      ]
     }
   ],
-  "last_report": "REPORT_B3_2B_SALES.md",
+  "last_report": "REPORT_C2_2B3_OPENING_UI.md",
   "next_steps": [
-    "Implement B3.2b-purchases atomic purchase returns and supplier reimbursements with AP/report/backup/UI",
-    "Complete standalone correction/refund document PDFs and B3 full-flow acceptance before C, D, E and Excel1-4"
+    "Run Render staging acceptance after connection/service identification; do not equate CI with Render deployment.",
+    "Continue independent C2.3 capital/drawings, C3-C6, D, E, Excel1-4 with separate review branches.",
+    "Preserve current main ResilientStore and branding changes during user-led final integration."
   ],
-  "updated_at": "2026-10-07T10:23:07.693744+00:00",
+  "updated_at": "2026-10-09T23:46:40.066389+00:00",
   "deferred_requirements": [
     {
-      "prd": "50",
-      "scope": "CSV/Excel bank statement import with matching preview",
-      "depends_on": [
-        "Excel1 staging",
-        "Excel2 controlled import"
+      "prd_sections": [
+        86,
+        87
       ],
-      "status": "pending"
+      "scope": "Source attachments beyond existing expense receipts, reviewed evidence metadata and audit linkage",
+      "status": "pending",
+      "planned_stage": "C/D"
+    },
+    {
+      "prd_sections": [
+        94,
+        95,
+        96,
+        97,
+        179,
+        182
+      ],
+      "scope": "Complete accounting/Excel commercial release candidate with zero differences, repeated restore and user acceptance",
+      "status": "pending",
+      "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "B3.2b-purchases"
+  "active_substep": "C2.2b.3",
+  "observed_main_sha": "2f0ac961a755ca1ddddb17fbbbf5dffc2085e0ab",
+  "lease_history": [
+    {
+      "worker": "accounting-v2-20261007-c11-2042",
+      "released_at": "2026-10-07T21:03:00Z",
+      "next_branch": "codex/accounting-v2-c1-period-ui"
+    },
+    {
+      "worker": "accounting-v2-20261007-c12-2104",
+      "released_at": "2026-10-07T21:16:00Z",
+      "next_branch": "codex/accounting-v2-c2-opening-quotes"
+    }
+  ],
+  "last_lease": {
+    "worker": "accounting-v2-20261008-c2222-1326",
+    "acquired_at": "2026-10-08T13:27:04Z",
+    "updated_at": "2026-10-08T13:27:04Z",
+    "expires_at": "2026-10-08T14:12:04.000Z",
+    "ended_at": "2026-10-08T13:39:25Z",
+    "status": "completed_checkpoint_handoff",
+    "next_branch": "codex/accounting-v2-c2-opening-ui"
+  },
+  "last_remote_review": {
+    "main_sha": "1f2d5b238ed0c0f46a2328768b0b5659719efa31",
+    "checked_at": "2026-10-08T13:27:04Z",
+    "branch": "codex/accounting-v2-c2-opening-transactions",
+    "commit_sha": "6aa787a0af0f58a1dfb46ee94d2b41c6512d0947",
+    "user_merged_prs": [
+      23,
+      24,
+      25,
+      26,
+      27,
+      28
+    ]
+  },
+  "next": "C2.2b.3 protected startup/settlement wizard, then C2.3 capital/drawings",
+  "integration_tracking_resolution": {
+    "base_branch": "codex/accounting-v2-c2-opening-integration",
+    "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
+    "scope": "Only PROGRESS.json differed after user updates to predecessor branches; invalid duplicated tracking keys resolved using latest valid descendant checkpoint. No code overwritten and no PR/main merge.",
+    "historical_handoffs": [
+      {
+        "worker": "accounting-v2-20261008-c22-0156",
+        "ended_at": "2026-10-08T02:20:53Z",
+        "next_branch": "codex/accounting-v2-c2-opening-preview",
+        "next_pr": 27
+      },
+      {
+        "worker": "accounting-v2-20261008-c22-0156",
+        "ended_at": "2026-10-08T02:26:00Z",
+        "next_branch": "codex/accounting-v2-c2-opening-integration"
+      }
+    ]
+  },
+  "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
+  "last_run": {
+    "worker": "accounting-v2-20261010-opening-ui",
+    "ended_at": "2026-10-09T23:46:40.066389+00:00",
+    "branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
+    "pr": 31,
+    "code_commit": "2bfde4630b6ecec292873c56c3729287e316d7b4",
+    "status": "ci_passed_render_acceptance_pending"
+  },
+  "acceptance_environment": {
+    "provider": "Render",
+    "requested_at": "2026-10-09T23:46:40.066389+00:00",
+    "status": "pending_connection_and_service_identification",
+    "production_writes_for_testing": false
+  }
 }

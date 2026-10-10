@@ -3,6 +3,7 @@ import type { Account, JournalEntry, JournalEntryLine } from '../types';
 import type { Document, Transaction } from './store';
 import type { ActionType } from '../services/rbacService';
 import { verifySalesSource } from './salesCorrections';
+import { openingLineAllocations, readOpeningData } from './openingIntegration';
 import { classifyAccount } from './accountClassification';
 import { dateOnly, ensure, identifier, validateJournal } from './validation';
 
@@ -64,10 +65,13 @@ export function accountLedger(accounts: Account[], entries: JournalEntry[], quer
 }
 
 /** Historic AR is read from source-linked control lines, independent of today's invoice status and balance caches. */
-export function receivableReports(customers: Document[], invoices: Document[], payments: Document[], entries: JournalEntry[], periodInput: ReportPeriod, asOf: string, corrections: { notes: Document[]; refunds: Document[]; financial?: Document[]; accounts?: Document[]; movements?: Document[] } = { notes: [], refunds: [] }) {
+export function receivableReports(customers: Document[], invoices: Document[], payments: Document[], entries: JournalEntry[], periodInput: ReportPeriod, asOf: string, corrections: { notes: Document[]; refunds: Document[]; financial?: Document[]; accounts?: Document[]; movements?: Document[]; opening?: Record<string,Document[]> } = { notes: [], refunds: [] }) {
   const period = reportPeriod(periodInput, asOf), dated = datedEntries(entries, period.end);
   const customerIndex = documentIndex(customers, 'العميل'), invoiceIndex = documentIndex(invoices, 'الفاتورة'), paymentIndex = documentIndex(payments, 'السند');
   const noteIndex = documentIndex(corrections.notes, 'الإشعار'), refundIndex = documentIndex(corrections.refunds, 'الرد');
+  const openingData:Record<string,Document[]> = {...corrections.opening,journal_entries:entries};
+  const openingLines = openingLineAllocations(openingData,'receivable');
+  const openingLots = new Map((openingData.opening_lots || []).map(row => [row.id,row]));
   for (const invoice of invoices) if (corrections.notes.some(row => row.invoice_id === invoice.id) || corrections.refunds.some(row => row.invoice_id === invoice.id)) verifySalesSource(invoice as any, entries, payments.filter(row => row.invoice_id === invoice.id), corrections.notes.filter(row => row.invoice_id === invoice.id), corrections.refunds.filter(row => row.invoice_id === invoice.id), corrections.financial || [], corrections.accounts || [], false, corrections.movements);
   const invoiceBalances = new Map<string, Balances>(), customerBalances = new Map<string, Balances>(), openings = new Map<string, Balances>(), movements = new Map<string, Document[]>();
   let control = zero(), allocated = zero();
@@ -86,7 +90,7 @@ export function receivableReports(customers: Document[], invoices: Document[], p
     }
     return undefined;
   };
-  const sequence = (entry: JournalEntry) => entry.reference_type === 'invoice' ? 0 : entry.reference_type === 'credit_note' ? noteIndex.get(entry.reference_id)?.source_sequence : entry.reference_type === 'customer_refund' ? refundIndex.get(entry.reference_id)?.source_sequence : entry.reference_type === 'payment' ? paymentIndex.get(entry.reference_id)?.source_sequence : Number.MAX_SAFE_INTEGER;
+  const sequence = (entry: JournalEntry) => entry.reference_type === 'opening_batch' ? 0 : entry.reference_type === 'opening_settlement' ? (openingData.opening_settlements || []).find(row=>row.id===entry.reference_id)?.sequence : entry.reference_type === 'invoice' ? 0 : entry.reference_type === 'credit_note' ? noteIndex.get(entry.reference_id)?.source_sequence : entry.reference_type === 'customer_refund' ? refundIndex.get(entry.reference_id)?.source_sequence : entry.reference_type === 'payment' ? paymentIndex.get(entry.reference_id)?.source_sequence : Number.MAX_SAFE_INTEGER;
   const ordered = [...dated].sort((a,b) => dateOnly(a.date).localeCompare(dateOnly(b.date)) || String(sourceInvoice(a)?.id || '').localeCompare(String(sourceInvoice(b)?.id || '')) || (sequence(a) || 0) - (sequence(b) || 0) || a.id.localeCompare(b.id));
   for (const entry of ordered) {
     const lines = entry.lines.map((line, index) => ({ line, index })).filter(item => item.line.account_code === '1200');
@@ -95,24 +99,27 @@ export function receivableReports(customers: Document[], invoices: Document[], p
     if (invoice) ensure(customerIndex.has(invoice.customer_id), 'عميل الفاتورة غير موجود؛ راجع المطابقة.', 409);
     for (const { line, index } of lines) {
       const delta = net(line); control = add(control, delta);
-      if (!invoice) continue; // Manual/legacy and orphan-source AR remain explicit control differences.
-      ensure(dateOnly(invoice.issue_date) <= dateOnly(entry.date), 'قيد العميل يسبق إصدار الفاتورة.', 409);
+      const lot = openingLines.get(`${entry.id}:${index}`);
+      if (!invoice && !lot) continue; // Manual/legacy and orphan-source AR remain explicit control differences.
+      const partyId = lot ? lot.party_id : invoice!.customer_id, sourceKey = lot ? `opening_lot:${lot.id}` : `invoice:${invoice!.id}`;
+      ensure(customerIndex.has(partyId),'عميل الرصيد الأصلي غير موجود.',409);
+      ensure(dateOnly(lot ? lot.date : invoice!.issue_date) <= dateOnly(entry.date), 'قيد العميل يسبق إصدار المصدر.', 409);
       allocated = add(allocated, delta);
-      invoiceBalances.set(invoice.id, add(invoiceBalances.get(invoice.id) || zero(), delta));
-      const balance = add(customerBalances.get(invoice.customer_id) || zero(), delta); customerBalances.set(invoice.customer_id, balance);
-      if (period.start && dateOnly(entry.date) < period.start) openings.set(invoice.customer_id, { ...balance });
+      invoiceBalances.set(sourceKey, add(invoiceBalances.get(sourceKey) || zero(), delta));
+      const balance = add(customerBalances.get(partyId) || zero(), delta); customerBalances.set(partyId, balance);
+      if (period.start && dateOnly(entry.date) < period.start) openings.set(partyId, { ...balance });
       else {
-        const rows = movements.get(invoice.customer_id) || [];
-        rows.push({ ...reference(entry, index), invoice_id: invoice.id, invoice_number: invoice.invoice_number, debit_sdg: line.debit_sdg, credit_sdg: line.credit_sdg, debit_usd: line.debit_usd, credit_usd: line.credit_usd, balance_sdg: balance.sdg, balance_usd: balance.usd });
-        movements.set(invoice.customer_id, rows);
+        const rows = movements.get(partyId) || [];
+        rows.push({ ...reference(entry, index), source_key:sourceKey,source_type:lot?'opening_lot':'invoice',source_id:lot?.id || invoice!.id,source_reference:lot?.reference || invoice!.invoice_number,opening_lot_id:lot?.id || '',invoice_id:lot?'':invoice!.id, invoice_number:lot?'':invoice!.invoice_number, debit_sdg: line.debit_sdg, credit_sdg: line.credit_sdg, debit_usd: line.debit_usd, credit_usd: line.credit_usd, balance_sdg: balance.sdg, balance_usd: balance.usd });
+        movements.set(partyId, rows);
       }
     }
   }
-  const aging = [...invoiceBalances].map(([invoiceId, balance]) => {
-    const invoice = invoiceIndex.get(invoiceId)!;
-    const dueDate = dateOnly(invoice.due_date || invoice.issue_date), days = Math.floor((Date.parse(`${period.end}T00:00:00Z`) - Date.parse(`${dueDate}T00:00:00Z`)) / 86400000);
-    return { invoice_id: invoiceId, invoice_number: invoice.invoice_number, customer_id: invoice.customer_id, customer_name: customerIndex.get(invoice.customer_id)!.name, issue_date: dateOnly(invoice.issue_date), due_date: dueDate, overdue_days: Math.max(0, days), bucket: days <= 0 ? 'Current' : days <= 30 ? '1-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+', remaining_sdg: Math.max(0, balance.sdg), remaining_usd: Math.max(0, balance.usd), credit_sdg: Math.max(0, -balance.sdg), credit_usd: Math.max(0, -balance.usd) };
-  }).filter(row => row.remaining_sdg || row.remaining_usd || row.credit_sdg || row.credit_usd).sort((a, b) => b.overdue_days - a.overdue_days || a.invoice_id.localeCompare(b.invoice_id));
+  const aging = [...invoiceBalances].map(([sourceKey, balance]) => {
+    const lot=sourceKey.startsWith('opening_lot:')?openingLots.get(sourceKey.slice(12)):undefined,invoice=lot?undefined:invoiceIndex.get(sourceKey.slice(8))!;
+    const partyId=lot?lot.party_id:invoice!.customer_id,issueDate=dateOnly(lot?lot.date:invoice!.issue_date),dueDate = dateOnly(lot?lot.due_date:invoice!.due_date || invoice!.issue_date), days = Math.floor((Date.parse(`${period.end}T00:00:00Z`) - Date.parse(`${dueDate}T00:00:00Z`)) / 86400000);
+    return {source_key:sourceKey,source_type:lot?'opening_lot':'invoice',source_id:lot?.id || invoice!.id,source_reference:lot?.reference || invoice!.invoice_number,opening_lot_id:lot?.id || '', invoice_id:lot?'':invoice!.id, invoice_number:lot?'':invoice!.invoice_number, customer_id:partyId, customer_name:customerIndex.get(partyId)!.name, issue_date:issueDate, due_date:dueDate, overdue_days:Math.max(0, days), bucket:days <= 0 ? 'Current' : days <= 30 ? '1-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+', remaining_sdg:Math.max(0, balance.sdg), remaining_usd:Math.max(0, balance.usd), credit_sdg:Math.max(0, -balance.sdg), credit_usd:Math.max(0, -balance.usd) };
+  }).filter(row => row.remaining_sdg || row.remaining_usd || row.credit_sdg || row.credit_usd).sort((a, b) => b.overdue_days - a.overdue_days || a.source_key.localeCompare(b.source_key));
   const statements = customers.map(customer => {
     const opening = openings.get(customer.id) || zero(), closing = customerBalances.get(customer.id) || zero();
     return { customer_id: customer.id, customer_name: customer.name, opening_sdg: opening.sdg, opening_usd: opening.usd, closing_sdg: closing.sdg, closing_usd: closing.usd, rows: movements.get(customer.id) || [] };
@@ -176,7 +183,7 @@ export async function readOperationalReport<View extends OperationalView>(tx: Tr
   let report: Document;
   if (view === 'receivables') {
     const [customers, invoices, payments, notes, refunds, financial, accounts, movements] = await Promise.all(['customers', 'invoices', 'payments', 'credit_notes', 'customer_refunds', 'financial_accounts', 'accounts', 'inventory_movements'].map(name => tx.list(`${root}/${name}`)));
-    report = receivableReports(customers, invoices, payments, entries, query, asOf, { notes, refunds, financial, accounts, movements });
+    report = receivableReports(customers, invoices, payments, entries, query, asOf, { notes, refunds, financial, accounts, movements,opening:await readOpeningData(tx,root) });
   } else {
     const accounts = await tx.list(`${root}/accounts`) as Account[];
     report = view === 'ledger' ? accountLedger(accounts, entries, query as LedgerQuery, asOf) : cashBalances(accounts, entries, query, asOf);

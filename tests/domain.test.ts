@@ -122,9 +122,16 @@ test('suspended and foreign actors fail closed; ID prefix does not confer owners
 
 test('invitation requires verified authenticated recipient and atomically consumes invite, membership and index', async () => {
   const f = await fixture(), recipient = { uid: 'recipient', email: 'invitee@example.com', emailVerified: true };
+  // Acceptance uses the real wall clock. Create this invitation on that clock,
+  // rather than the accounting fixture's fixed historical posting date.
+  f.setClock(new Date().toISOString());
   const invite = await f.run('invitation.create', { email: recipient.email, role: 'Cashier' }, 'invitation');
   await assert.rejects(f.orgs.accept({ ...recipient, emailVerified: false }, f.org.id, invite.result.id), /أكّد/);
   await assert.rejects(f.orgs.accept({ ...recipient, email: 'attacker@example.com' }, f.org.id, invite.result.id), /بريد آخر/);
+  const invitePath = `organizations/${f.org.id}/invitations/${invite.result.id}`;
+  await f.store.transaction(async tx => tx.set(invitePath, { ...await tx.get(invitePath), expires_at: '1970-01-01T00:00:00Z' }));
+  await assert.rejects(f.orgs.accept(recipient, f.org.id, invite.result.id), /منتهية الصلاحية/);
+  await f.store.transaction(async tx => tx.set(invitePath, invite.result));
   await Promise.all([f.orgs.accept(recipient, f.org.id, invite.result.id), f.orgs.accept(recipient, f.org.id, invite.result.id)]);
   const dump = f.store.dump(); assert.equal(dump[`organizations/${f.org.id}/invitations/${invite.result.id}`].status, 'accepted'); assert.equal(dump[`user_organizations/${recipient.uid}/orgs/${f.org.id}`].role, 'Cashier');
   await assert.rejects(f.orgs.accept({ ...recipient, uid: 'another' }, f.org.id, invite.result.id), /مستخدمة/);

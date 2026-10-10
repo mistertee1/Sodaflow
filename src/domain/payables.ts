@@ -1,17 +1,19 @@
 import BigNumber from 'bignumber.js';
+import { openingBalancesByParty, openingLineAllocations, readOpeningData } from './openingIntegration';
 import type { Account, Invoice, JournalEntry, MerchantSettings, Product } from '../types';
 import type { Document, Transaction } from './store';
 import { acquisitionCost, receiveCost, validateCostState } from './inventoryCost';
-import { assertOpenPeriod, dateOnly, ensure, identifier, money, text } from './validation';
+import { assertOpenPeriod, dateOnly, ensure, identifier, money, text, validateJournal } from './validation';
 import { journal, journalLine, paymentQuote } from './financial';
 import { getAccountCodeForPaymentMethod, getDefaultChartOfAccounts } from '../services/accountingService';
 import { classifyAccount } from './accountClassification';
 import { safeAdd, safeSub } from '../lib/currency';
+import { billSignedBalance, loadPurchaseSource, purchaseCaches, savePurchaseSupplier, verifyPurchaseSource } from './purchaseCorrections';
 
 export const payableCollections = ['suppliers', 'purchase_bills', 'supplier_payments'] as const;
 export interface PurchaseLine { id: string; product_id: string; product_name: string; quantity: number; unit_cost: number; value_sdg: number; value_usd: number; zero_cost_reason?: string; }
 export interface Supplier { id: string; name: string; phone: string; email: string; address: string; tax_number: string; default_currency: 'SDG' | 'USD'; payment_terms_days: number; credit_limit: number; status: 'active' | 'inactive'; notes: string; org_id: string; created_at: string; updated_at: string; }
-export interface PurchaseBill { id: string; supplier_id: string; supplier_name: string; supplier_reference: string; issue_date: string; due_date: string; currency: 'SDG' | 'USD'; exchange_rate_used: number; items: PurchaseLine[]; grand_total_sdg: number; grand_total_usd: number; remaining_sdg: number; remaining_usd: number; paid_amount_sdg: number; paid_amount_usd: number; settlement: 'credit' | 'cash'; status: 'open' | 'partially_paid' | 'paid'; journal_id: string; org_id: string; created_at: string; }
+export interface PurchaseBill { advance_balance_sdg?: number; advance_balance_usd?: number; returned_amount_sdg?: number; returned_amount_usd?: number; refunded_amount_sdg?: number; refunded_amount_usd?: number; source_event_sequence?: number; correction_count?: number; id: string; supplier_id: string; supplier_name: string; supplier_reference: string; issue_date: string; due_date: string; currency: 'SDG' | 'USD'; exchange_rate_used: number; items: PurchaseLine[]; grand_total_sdg: number; grand_total_usd: number; remaining_sdg: number; remaining_usd: number; paid_amount_sdg: number; paid_amount_usd: number; settlement: 'credit' | 'cash'; status: 'open' | 'partially_paid' | 'paid'; journal_id: string; org_id: string; created_at: string; }
 export interface SupplierPayment { sequence: number; id: string; bill_id: string; supplier_id: string; amount: number; currency: 'SDG' | 'USD'; exchange_rate_used: number; payment_date: string; payment_method: string; payment_account_code: string; reference_number: string; notes: string; settled_amount_sdg: number; settled_amount_usd: number; cash_amount_sdg: number; cash_amount_usd: number; journal_id: string; org_id: string; created_at: string; }
 export interface PayableContext {
   tx: Transaction; root: string; orgId: string; actor: string; iso: string; operationId: string; settings: MerchantSettings;
@@ -84,54 +86,67 @@ export async function payableCommand(action: string, data: Document, c: PayableC
       c.set(`${c.root}/inventory_movements/${movementId}`, { ...stamp, id: movementId, product_id: product.id, product_name: product.name, type: 'PURCHASE', quantity: delta.quantity, previous_stock: product.stock_quantity, resulting_stock: after.stock_quantity, reference_type: 'purchase_bill', reference_id: id, value_delta_sdg: delta.sdg, value_delta_usd: delta.usd, costing_version: 2, journal_id: journalId, reason: result.reason });
       c.counterAdd('inventory_movement_count', 1);
     }
-    c.set(refPath, { id, supplier_id: supplier.id, reference }); c.set(`${c.root}/purchase_bills/${id}`, result); return result;
+    await savePurchaseSupplier(c, supplier, result); c.set(refPath, { id, supplier_id: supplier.id, reference }); c.set(`${c.root}/purchase_bills/${id}`, result); return result;
   }
   ensure(action === 'supplierPayment.create', 'عملية المورد غير معروفة.');
-  const bill = await c.required('purchase_bills', data.bill_id);
+  const bill = await c.required('purchase_bills', data.bill_id), state = await loadPurchaseSource(c.tx, c.root, bill);
+  ensure(state.sequence < 200, 'سجل الشراء تجاوز حد المعاملة؛ يلزم إجراء ترحيل خادمي.', 409);
   ensure(bill.settlement === 'credit' && bill.status !== 'paid', 'فاتورة الشراء مسددة بالفعل.', 409);
-  ensure(dateOnly(data.payment_date) >= bill.issue_date && dateOnly(data.payment_date) >= (bill.last_payment_date || bill.issue_date), 'تاريخ السداد يسبق الفاتورة أو آخر سداد.');
-  await c.required('suppliers', bill.supplier_id); // Inactive suppliers can still receive payment of existing debt.
+  ensure(dateOnly(data.payment_date) >= bill.issue_date && dateOnly(data.payment_date) >= state.lastDate, 'تاريخ السداد يسبق الفاتورة أو آخر سداد.');
+  const supplier = await c.required('suppliers', bill.supplier_id); // Inactive suppliers can still receive payment of existing debt.
   ensure(['SDG', 'USD'].includes(data.currency), 'عملة السداد غير مدعومة.'); money(data.exchange_rate_used || 0, 8);
-  const quote = paymentQuote({ ...bill, receivable_currency: bill.currency } as Invoice, data.amount, data.currency, data.exchange_rate_used || 0);
+  const quote = paymentQuote({ ...bill, receivable_currency: bill.currency, remaining_sdg: state.balance.sdg, remaining_usd: state.balance.usd } as Invoice, data.amount, data.currency, data.exchange_rate_used || 0);
   const code = await cashAccount(c, data), id = `sp-${c.operationId}`, journalId = `jv-supplier-pay-${c.operationId}`;
-  const result = { ...stamp, id, bill_id: bill.id, sequence: (bill.payment_sequence || 0) + 1, supplier_id: bill.supplier_id, amount: data.amount, currency: data.currency, payment_date: dateOnly(data.payment_date), payment_method: data.payment_method, payment_account_code: code, exchange_rate_used: data.exchange_rate_used || 0, reference_number: text(data.reference_number || '', 200), notes: text(data.notes || '', 2000), settled_amount_sdg: quote.settledSdg, settled_amount_usd: quote.settledUsd, cash_amount_sdg: quote.cashSdg, cash_amount_usd: quote.cashUsd, journal_id: journalId };
+  const result = { ...stamp, id, bill_id: bill.id, sequence: state.paymentSequence + 1, source_sequence: state.sequence + 1, supplier_id: bill.supplier_id, amount: data.amount, currency: data.currency, payment_date: dateOnly(data.payment_date), payment_method: data.payment_method, payment_account_code: code, exchange_rate_used: data.exchange_rate_used || 0, reference_number: text(data.reference_number || '', 200), notes: text(data.notes || '', 2000), settled_amount_sdg: quote.settledSdg, settled_amount_usd: quote.settledUsd, cash_amount_sdg: quote.cashSdg, cash_amount_usd: quote.cashUsd, journal_id: journalId };
   const lines = [journalLine('2110', 'ذمم الموردين', quote.settledSdg, 0, quote.settledUsd, 0), journalLine(code, 'النقد والبنوك', 0, quote.cashSdg, 0, quote.cashUsd)];
   const ds = safeSub(quote.cashSdg, quote.settledSdg, 0), du = safeSub(quote.cashUsd, quote.settledUsd, 2);
   if (ds > 0 || du > 0) lines.push(journalLine('5500', 'خسائر فروق العملة', Math.max(ds, 0), 0, Math.max(du, 0), 0));
   if (ds < 0 || du < 0) lines.push(journalLine('4200', 'أرباح فروق العملة', 0, Math.max(-ds, 0), 0, Math.max(-du, 0)));
   await c.post(journal(journalId, c.orgId, c.actor, result.payment_date, 'supplier_payment', id, `سداد المورد ${bill.supplier_name}: ${bill.supplier_reference}`, lines, result.exchange_rate_used));
-  const rs = safeSub(bill.remaining_sdg, quote.settledSdg, 0), ru = safeSub(bill.remaining_usd, quote.settledUsd, 2);
-  c.set(`${c.root}/purchase_bills/${bill.id}`, { ...bill, remaining_sdg: rs, remaining_usd: ru, paid_amount_sdg: safeAdd(bill.paid_amount_sdg, quote.settledSdg, 0), paid_amount_usd: safeAdd(bill.paid_amount_usd, quote.settledUsd, 2), status: rs || ru ? 'partially_paid' : 'paid', last_payment_date: result.payment_date, payment_sequence: result.sequence, updated_at: c.iso });
+  state.balance = { sdg: safeSub(state.balance.sdg, quote.settledSdg, 0), usd: safeSub(state.balance.usd, quote.settledUsd, 2) };
+  state.paid = { sdg: safeAdd(state.paid.sdg, quote.settledSdg, 0), usd: safeAdd(state.paid.usd, quote.settledUsd, 2) }; state.sequence++; state.paymentSequence++;
+  const updated = { ...purchaseCaches(bill, state, c.iso), last_payment_date: result.payment_date };
+  await savePurchaseSupplier(c, supplier, updated); c.set(`${c.root}/purchase_bills/${bill.id}`, updated);
   c.set(`${c.root}/supplier_payments/${id}`, result); return result;
 }
 
-export function payableReports(suppliers: Document[], bills: Document[], payments: Document[], entries: Document[], period: { start?: string; end?: string }, asOf: string) {
-  const end = dateOnly(period.end || asOf), start = period.start ? dateOnly(period.start) : undefined; ensure(!start || start <= end, 'بداية الكشف بعد نهايته.');
-  const aging = bills.filter(b => b.settlement === 'credit' && dateOnly(b.issue_date) <= end).map(b => {
-    const paid = payments.filter(p => p.bill_id === b.id && dateOnly(p.payment_date) <= end);
-    const sdg = paid.reduce((n, p) => n.minus(p.settled_amount_sdg), new BigNumber(b.grand_total_sdg)).toNumber(), usd = paid.reduce((n, p) => n.minus(p.settled_amount_usd), new BigNumber(b.grand_total_usd)).toNumber();
-    ensure(sdg >= 0 && usd >= 0, 'رصيد المورد التاريخي غير صالح؛ راجع المطابقة.', 409);
-    const days = Math.floor((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${dateOnly(b.due_date)}T00:00:00Z`)) / 86400000);
-    return { bill_id: b.id, supplier_id: b.supplier_id, supplier_name: b.supplier_name, reference: b.supplier_reference, due_date: b.due_date, overdue_days: Math.max(0, days), bucket: days <= 0 ? 'Current' : days <= 30 ? '1-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+', remaining_sdg: sdg, remaining_usd: usd };
-  }).filter(b => b.remaining_sdg || b.remaining_usd);
-  const paymentIds = new Map(payments.map(p => [p.id, p.supplier_id])), billIds = new Map(bills.map(b => [b.id, b.supplier_id]));
-  const statements = suppliers.map(supplier => {
-    let sdg = new BigNumber(0), usd = new BigNumber(0), openingSdg = 0, openingUsd = 0;
-    const rows: Document[] = [];
-    const related = entries.filter(e => (e.reference_type === 'purchase_bill' ? billIds.get(e.reference_id) : e.reference_type === 'supplier_payment' ? paymentIds.get(e.reference_id) : undefined) === supplier.id && dateOnly(e.date) <= end).sort((a, b) => dateOnly(a.date).localeCompare(dateOnly(b.date)) || a.id.localeCompare(b.id));
-    for (const entry of related) {
-      const lines = entry.lines.filter((l: Document) => l.account_code === '2110');
-      const ds = lines.reduce((n: BigNumber, l: Document) => n.plus(l.credit_sdg).minus(l.debit_sdg), new BigNumber(0)), du = lines.reduce((n: BigNumber, l: Document) => n.plus(l.credit_usd).minus(l.debit_usd), new BigNumber(0));
-      sdg = sdg.plus(ds); usd = usd.plus(du);
-      if (start && dateOnly(entry.date) < start) { openingSdg = sdg.toNumber(); openingUsd = usd.toNumber(); }
-      else rows.push({ date: dateOnly(entry.date), reference_type: entry.reference_type, reference_id: entry.reference_id, journal_id: entry.id, description: entry.description, movement_sdg: ds.toNumber(), movement_usd: du.toNumber(), balance_sdg: sdg.toNumber(), balance_usd: usd.toNumber() });
-    }
-    return { supplier_id: supplier.id, supplier_name: supplier.name, opening_sdg: openingSdg, opening_usd: openingUsd, closing_sdg: sdg.toNumber(), closing_usd: usd.toNumber(), rows };
-  });
-  const total = (field: string) => aging.reduce((n, b) => n.plus(b[field as 'remaining_sdg' | 'remaining_usd']), new BigNumber(0)).toNumber();
-  const ledger = (currency: string) => entries.filter(e => dateOnly(e.date) <= end).flatMap(e => e.lines).filter(l => l.account_code === '2110').reduce((n: BigNumber, l: Document) => n.plus(l[`credit_${currency}`]).minus(l[`debit_${currency}`]), new BigNumber(0)).toNumber();
-  return { period: { start: start || '', end }, aging, statements, total_sdg: total('remaining_sdg'), total_usd: total('remaining_usd'), ledger_sdg: ledger('sdg'), ledger_usd: ledger('usd'), unallocated_sdg: safeSub(ledger('sdg'), total('remaining_sdg'), 0), unallocated_usd: safeSub(ledger('usd'), total('remaining_usd'), 2) };
+export async function readPayableReport(tx: Transaction, root: string, period: { start?: string; end?: string }, asOf: string) {
+  const names = ['suppliers','purchase_bills','supplier_payments','journal_entries','purchase_returns','supplier_refunds','inventory_movements','accounts','financial_accounts'];
+  const rows = await Promise.all(names.map(name => tx.list(`${root}/${name}`))), data = Object.fromEntries(names.map((name,i) => [name,rows[i]]));
+  return payableReports(data.suppliers,data.purchase_bills,data.supplier_payments,data.journal_entries,period,asOf,{...data,...await readOpeningData(tx,root)});
 }
+export function payableReports(suppliers: Document[], bills: Document[], payments: Document[], entries: Document[], period: { start?: string; end?: string }, asOf: string, corrections: Record<string,Document[]> = {}) {
+  const end = dateOnly(period.end || asOf), start = period.start ? dateOnly(period.start) : undefined; ensure(!start || start <= end, 'بداية الكشف بعد نهايته.');
+  const returns = corrections.purchase_returns || [], refunds = corrections.supplier_refunds || [];
+  const openingData:Record<string,Document[]>={...corrections,journal_entries:entries};const openingLines=openingLineAllocations(openingData,'payable'),openingLots=new Map((openingData.opening_lots||[]).map(row=>[row.id,row]));
+  for (const bill of bills) if (returns.some(row=>row.bill_id===bill.id) || refunds.some(row=>row.bill_id===bill.id)) verifyPurchaseSource(bill,{ ...corrections, journal_entries:entries, supplier_payments:payments },false);
+  const sourceFor = (entry: Document) => entry.reference_type === 'purchase_bill' ? bills.find(b=>b.id===entry.reference_id) : bills.find(b=>b.id===(entry.reference_type==='supplier_payment'?payments:entry.reference_type==='purchase_return'?returns:entry.reference_type==='supplier_refund'?refunds:[]).find(row=>row.id===entry.reference_id)?.bill_id);
+  const sequence = (entry: Document) => entry.reference_type==='opening_batch'?0:entry.reference_type==='opening_settlement'?(openingData.opening_settlements||[]).find(row=>row.id===entry.reference_id)?.sequence ?? Number.MAX_SAFE_INTEGER:entry.reference_type==='purchase_bill'?0:(entry.reference_type==='supplier_payment'?payments:entry.reference_type==='purchase_return'?returns:refunds).find(row=>row.id===entry.reference_id)?.source_sequence ?? payments.find(row=>row.id===entry.reference_id)?.sequence ?? Number.MAX_SAFE_INTEGER;
+  const balances = new Map<string,BookBalances>(), supplierBalances = new Map<string,BookBalances>(), openings = new Map<string,BookBalances>(), statementRows = new Map<string,Document[]>();
+  let ledger = pair(), allocated = pair();
+  const seen = new Set<string>();
+  for (const entry of entries) { identifier(entry.id); ensure(!seen.has(entry.id),'معرّف قيد مورد مكرر.'); seen.add(entry.id); validateJournal(entry.lines); }
+  const dated = entries.filter(entry=>dateOnly(entry.date)<=end).sort((a,b)=>dateOnly(a.date).localeCompare(dateOnly(b.date)) || String(sourceFor(a)?.id||'').localeCompare(String(sourceFor(b)?.id||'')) || sequence(a)-sequence(b) || a.id.localeCompare(b.id));
+  for (const entry of dated) {
+    const bill=sourceFor(entry);
+    for(const [index,line] of entry.lines.entries()) {
+      if(line.account_code!=='2110')continue;
+      const movement={sdg:new BigNumber(line.credit_sdg).minus(line.debit_sdg).toNumber(),usd:new BigNumber(line.credit_usd).minus(line.debit_usd).toNumber()};
+      ledger=pairAdd(ledger,movement);const lot=openingLines.get(`${entry.id}:${index}`);if(!bill&&!lot)continue;
+      const partyId=lot?lot.party_id:bill!.supplier_id,sourceKey=lot?`opening_lot:${lot.id}`:`purchase_bill:${bill!.id}`;
+      ensure(suppliers.some(s=>s.id===partyId) && dateOnly(entry.date)>=dateOnly(lot?lot.date:bill!.issue_date),'مرجع/تاريخ قيد المورد غير صالح.');
+      allocated=pairAdd(allocated,movement);balances.set(sourceKey,pairAdd(balances.get(sourceKey)||pair(),movement));const balance=pairAdd(supplierBalances.get(partyId)||pair(),movement);supplierBalances.set(partyId,balance);
+      if(start && dateOnly(entry.date)<start)openings.set(partyId,balance);
+      else statementRows.set(partyId,[...statementRows.get(partyId)||[],{source_key:sourceKey,source_type:lot?'opening_lot':'purchase_bill',source_id:lot?.id||bill!.id,source_reference:lot?.reference||bill!.supplier_reference,opening_lot_id:lot?.id||'',bill_id:lot?'':bill!.id,date:dateOnly(entry.date),reference_type:entry.reference_type,reference_id:entry.reference_id,journal_id:entry.id,line_index:index,description:entry.description,movement_sdg:movement.sdg,movement_usd:movement.usd,balance_sdg:balance.sdg,balance_usd:balance.usd}]);
+    }
+  }
+  const aging=[...balances].map(([sourceKey,balance])=>{const lot=sourceKey.startsWith('opening_lot:')?openingLots.get(sourceKey.slice(12)):undefined,bill=lot?undefined:bills.find(b=>b.id===sourceKey.slice(14))!,partyId=lot?lot.party_id:bill!.supplier_id,dueDate=lot?lot.due_date:bill!.due_date,days=Math.floor((Date.parse(`${end}T00:00:00Z`)-Date.parse(`${dateOnly(dueDate)}T00:00:00Z`))/86400000);return {source_key:sourceKey,source_type:lot?'opening_lot':'purchase_bill',source_id:lot?.id||bill!.id,opening_lot_id:lot?.id||'',bill_id:lot?'':bill!.id,supplier_id:partyId,supplier_name:lot?suppliers.find(s=>s.id===partyId)!.name:bill!.supplier_name,reference:lot?.reference||bill!.supplier_reference,due_date:dueDate,overdue_days:Math.max(0,days),bucket:days<=0?'Current':days<=30?'1-30':days<=60?'31-60':days<=90?'61-90':'90+',remaining_sdg:Math.max(0,balance.sdg),remaining_usd:Math.max(0,balance.usd),advance_sdg:Math.max(0,-balance.sdg),advance_usd:Math.max(0,-balance.usd)};}).filter(row=>row.remaining_sdg||row.remaining_usd||row.advance_sdg||row.advance_usd);
+  const statements=suppliers.map(supplier=>{const opening=openings.get(supplier.id)||pair(),closing=supplierBalances.get(supplier.id)||pair();return {supplier_id:supplier.id,supplier_name:supplier.name,opening_sdg:opening.sdg,opening_usd:opening.usd,closing_sdg:closing.sdg,closing_usd:closing.usd,rows:statementRows.get(supplier.id)||[]};});
+  return {period:{start:start||'',end},aging,statements,total_sdg:allocated.sdg,total_usd:allocated.usd,ledger_sdg:ledger.sdg,ledger_usd:ledger.usd,unallocated_sdg:new BigNumber(ledger.sdg).minus(allocated.sdg).toNumber(),unallocated_usd:new BigNumber(ledger.usd).minus(allocated.usd).toNumber()};
+}
+type BookBalances = { sdg:number; usd:number };
+const pair = ():BookBalances => ({sdg:0,usd:0});
+const pairAdd = (a:BookBalances,b:BookBalances):BookBalances => ({sdg:new BigNumber(a.sdg).plus(b.sdg).toNumber(),usd:new BigNumber(a.usd).plus(b.usd).toNumber()});
 
 /** Source and control-account checks; legacy expense liabilities stay explicit, never silently migrated. */
 export function reconcilePayables(data: Record<string, Document[]>) {
@@ -141,7 +156,12 @@ export function reconcilePayables(data: Record<string, Document[]>) {
   const inspect = (collection: string, id: string, work: () => void) => { try { work(); } catch (error) { findings.push({ code: 'invalid_record', collection, id, message: error instanceof Error ? error.message : 'غير صالح' }); } };
   const source = (type: string, id: string) => entries.filter(e => e.reference_type === type && e.reference_id === id);
   const amount = (rows: Document[], code: string, currency: string, credit = true) => rows.flatMap(e => e.lines || []).filter(l => l.account_code === code).reduce((n: BigNumber, l: Document) => credit ? n.plus(l[`credit_${currency}`]).minus(l[`debit_${currency}`]) : n.plus(l[`debit_${currency}`]).minus(l[`credit_${currency}`]), new BigNumber(0)).toNumber();
-  for (const supplier of suppliers) inspect('suppliers', supplier.id, () => validateSupplier(supplier));
+  let opening=new Map<string,BookBalances>();
+  inspect('opening_batches','AP-sources',()=>{opening=openingBalancesByParty(data,'payable');});
+  for (const supplier of suppliers) inspect('suppliers', supplier.id, () => {
+    validateSupplier(supplier);
+    for (const book of ['sdg','usd'] as const) for (const prefix of ['payable_due','advance_balance']) if (supplier[`${prefix}_${book}`] !== undefined) { money(supplier[`${prefix}_${book}`], book === 'sdg' ? 0 : 2); compare('suppliers', supplier.id, `${prefix}_${book}`, bills.filter(row => row.supplier_id === supplier.id).reduce((sum,row) => sum.plus(row[`${prefix === 'payable_due' ? 'remaining' : prefix}_${book}`] || 0), new BigNumber(prefix==='payable_due'?opening.get(supplier.id)?.[book]||0:0)).toNumber(), supplier[`${prefix}_${book}`]); }
+  });
   for (const bill of bills) inspect('purchase_bills', bill.id, () => {
     ensure(suppliers.some(s => s.id === bill.supplier_id), 'مرجع المورد ناقص.');
     dateOnly(bill.issue_date); ensure(dateOnly(bill.due_date) >= dateOnly(bill.issue_date), 'تاريخ الاستحقاق غير صالح.');
@@ -164,6 +184,8 @@ export function reconcilePayables(data: Record<string, Document[]>) {
       compare('purchase_bills', bill.id, `${productId}:quantity`, value.q.toNumber(), movements[0].quantity);
       for (const currency of ['sdg', 'usd'] as const) compare('purchase_bills', bill.id, `${productId}:value_${currency}`, value[currency].toNumber(), movements[0][`value_delta_${currency}`]);
     }
+    if ((data.purchase_returns || []).some(row => row.bill_id === bill.id) || (data.supplier_refunds || []).some(row => row.bill_id === bill.id)) verifyPurchaseSource(bill, data);
+    else {
     const relatedPayments = payments.filter(p => p.bill_id === bill.id);
     if (bill.settlement === 'cash') ensure(!relatedPayments.length, 'شراء نقدي مرتبط بسداد إضافي.');
     const state: Document = { ...bill, receivable_currency: bill.currency, remaining_sdg: bill.grand_total_sdg, remaining_usd: bill.grand_total_usd };
@@ -185,6 +207,7 @@ export function reconcilePayables(data: Record<string, Document[]>) {
     }
     ensure((bill.payment_sequence || 0) === sequence && (!sequence || bill.last_payment_date === lastDate), 'آخر سداد لا يطابق سجل السندات.');
     const expectedStatus = bill.remaining_sdg || bill.remaining_usd ? relatedPayments.length ? 'partially_paid' : 'open' : 'paid'; ensure(bill.status === expectedStatus, 'حالة الشراء لا تطابق السداد.');
+    }
   });
   for (const entry of entries) {
     const records = entry.reference_type === 'purchase_bill' ? bills : entry.reference_type === 'supplier_payment' ? payments : undefined;
@@ -212,7 +235,7 @@ export function reconcilePayables(data: Record<string, Document[]>) {
   const expenseIds = new Set((data.expenses || []).map(e => e.id));
   const legacy = entries.filter(e => ['expense', 'void'].includes(e.reference_type) && expenseIds.has(e.reference_id));
   for (const currency of ['sdg', 'usd']) {
-    const remaining = bills.reduce((n, b) => n.plus(b[`remaining_${currency}`]), new BigNumber(0)).plus(amount(legacy, '2110', currency)).toNumber();
+    const remaining = bills.reduce((n, b) => n.plus(billSignedBalance(b)[currency as 'sdg' | 'usd']), new BigNumber(0)).plus([...opening.values()].reduce((n,pair)=>n.plus(pair[currency as 'sdg'|'usd']),new BigNumber(0))).plus(amount(legacy, '2110', currency)).toNumber();
     compare('journal_entries', 'AP-control', `outstanding_${currency}`, remaining, amount(entries, '2110', currency));
   }
   return findings;

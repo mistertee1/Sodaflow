@@ -1,6 +1,13 @@
 import { OrgRole } from '../types';
 
 export type ActionType =
+  | 'opening:write'
+  | 'opening:settle'
+  | 'opening:preview'
+  | 'periods:read'
+  | 'periods:manage'
+  | 'periods:adjust'
+  | 'periods:reopen'
   | 'payables:read'
   | 'payables:write'
   | 'org:read'
@@ -42,6 +49,8 @@ export type ActionType =
 
 const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
   Owner: new Set<ActionType>([
+    'opening:preview', 'opening:write', 'opening:settle',
+    'periods:read', 'periods:manage', 'periods:adjust', 'periods:reopen',
     'payables:read', 'payables:write',
     'org:read',
     'org:update_settings',
@@ -81,6 +90,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'backup:restore',
   ]),
   Admin: new Set<ActionType>([
+    'periods:read',
     'payables:read', 'payables:write',
     'org:read',
     'org:update_settings',
@@ -118,6 +128,8 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'backup:restore',
   ]),
   Accountant: new Set<ActionType>([
+    'opening:preview', 'opening:settle',
+    'periods:read', 'periods:manage', 'periods:adjust',
     'payables:read', 'payables:write',
     'org:read',
     'members:view',
@@ -171,6 +183,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'accounts:read',
   ]),
   Viewer: new Set<ActionType>([
+    'periods:read',
     'payables:read',
     'org:read',
     'members:view',

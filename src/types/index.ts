@@ -11,7 +11,7 @@ export type MovementType =
   | 'PURCHASE'
   | 'ADJUSTMENT'
   | 'VOID_REVERSAL'
-  | 'SALES_RETURN' | 'COST_ESTABLISHMENT'
+  | 'SALES_RETURN' | 'PURCHASE_RETURN' | 'COST_ESTABLISHMENT'
   | 'OPENING_BALANCE'
   | 'RETURN';
 
@@ -42,8 +42,18 @@ export interface OrgInvitation {
 }
 
 export interface OrganizationCounters {
+  audit_archive_count?: number;
+  audit_event_count?: number;
+  /** Derived backup count for accounting-period evidence. */
+  accounting_period_count?: number;
+  /** Derived immutable opening-source completeness counts. */
+  opening_batch_count?: number;
+  opening_lot_count?: number;
+  opening_settlement_count?: number;
   credit_note_count?: number;
   customer_refund_count?: number;
+  purchase_return_count?: number;
+  supplier_refund_count?: number;
   lifetime_invoice_count?: number;
   revision?: number;
   invoice_month?: string;
@@ -59,6 +69,7 @@ export interface OrganizationCounters {
 }
 
 export const DEFAULT_ORGANIZATION_COUNTERS: OrganizationCounters = {
+  audit_archive_count: 0,
   invoice_count: 0,
   customer_count: 0,
   product_count: 0,
@@ -193,7 +204,7 @@ export interface InventoryMovement {
   quantity: number; // positive for addition, negative for deduction
   previous_stock: number;
   resulting_stock: number;
-  reference_type: 'invoice' | 'audit_adjustment' | 'manual' | 'void' | 'purchase_bill' | 'credit_note';
+  reference_type: 'invoice' | 'audit_adjustment' | 'manual' | 'void' | 'purchase_bill' | 'credit_note' | 'purchase_return';
   reference_id: string;
   reason?: string;
   created_at: string;

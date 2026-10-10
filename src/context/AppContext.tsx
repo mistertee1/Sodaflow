@@ -1,3 +1,8 @@
+import type { OpeningInput } from '../domain/openingBalances';
+import type { OpeningTerms } from '../domain/openingSources';
+import type { AccountingPeriod } from '../domain/periodContracts';
+import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
+import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import type { Customer, Product, Invoice, Supplier, PurchaseBill, SupplierPayment, Payment, Expense, MerchantSettings, Currency, InventoryMovement, Organization, OrgMember, OrgRole, Account, JournalEntry, OrganizationCounters, OrgSubscription } from '../types';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
@@ -20,6 +25,16 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  openingBatches: Document[];
+  openingLots: Document[];
+  openingSettlements: Document[];
+  previewOpening: (request: {input: OpeningInput; terms: OpeningTerms[]}, expectedOrgId: string) => Promise<Awaited<ReturnType<Operations['openingPreview']>>>;
+  saveOpening: (action: 'opening.commit' | 'openingSettlement.create', data: Document, expectedOrgId: string, requestId: string) => Promise<Document>;
+  accountingPeriods: AccountingPeriod[];
+  loadAccountingPeriods: (periodId?: string) => Promise<Awaited<ReturnType<Operations['periodReports']>>>;
+  saveAccountingPeriod: (action: 'period.create' | 'period.softClose' | 'period.close' | 'period.reopen', data: Document, expectedOrgId: string) => Promise<AccountingPeriod>;
+  confirmOwnerReauthentication: (method: OwnerAuthMethod | 'local-demo', password?: string) => Promise<string>;
+  exportCorrectionDocument: (kind: CorrectionDocumentKind, id: string) => Promise<CorrectionDocument>;
   currentUser: User | null;
   authLoading: boolean;
   syncError: string | null;
@@ -39,6 +54,10 @@ interface AppContextType {
   suppliers: Supplier[];
   purchaseBills: PurchaseBill[];
   supplierPayments: SupplierPayment[];
+  purchaseReturns: Document[];
+  supplierRefunds: Document[];
+  returnPurchase: (data: Document) => Promise<Document>;
+  refundSupplier: (data: Document) => Promise<Document>;
   saveSupplier: (data: Document, id?: string) => Promise<Supplier>;
   createPurchase: (data: Document) => Promise<PurchaseBill>;
   paySupplier: (data: Document) => Promise<SupplierPayment>;
@@ -70,7 +89,7 @@ interface AppContextType {
   reactivateMember: (memberUid: string) => Promise<void>;
   isActionAllowed: (action: ActionType) => boolean;
   // Actions
-  updateSettings: (newSettings: Partial<MerchantSettings>) => Promise<void>;
+  updateSettings: (newSettings: Partial<MerchantSettings>, reason?: string, expectedOrgId?: string) => Promise<void>;
   addCustomer: (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Promise<Customer>;
   updateCustomer: (id: string, updates: Partial<Customer>) => Promise<void>;
   deleteCustomer: (id: string) => Promise<void>;
@@ -134,7 +153,7 @@ interface AppContextType {
   journalEntries: JournalEntry[];
   addAccount: (account: Omit<Account, 'org_id' | 'created_at'>) => Promise<Account>;
   updateAccount: (code: string, updates: Partial<Account>) => Promise<void>;
-  addJournalEntry: (entry: Omit<JournalEntry, 'id' | 'created_at' | 'org_id'>) => Promise<JournalEntry>;
+  addJournalEntry: (entry: Omit<JournalEntry, 'id' | 'created_at' | 'org_id'> & { reason?: string }) => Promise<JournalEntry>;
   resetChartOfAccounts: () => Promise<void>;
   syncAllToCloud: () => Promise<boolean>;
   getNextInvoiceNumber: () => string;
@@ -157,6 +176,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('hisabuk_theme') === 'dark' ? 'dark' : 'light');
+  const guestOwnerAuthAt = useRef<number | undefined>(undefined);
   const session = useRef(0), snapshot = useRef(state), userRef = useRef<User | null>(null), guest = useRef<Operations | null>(null);
   const activeOrg = useRef<string | null>(null), queue = useRef<Promise<unknown>>(Promise.resolve());
   const pendingRefresh = useRef(false), confirmedRevision = useRef(-1), revisionWatch = useRef<(() => void) | null>(null);
@@ -350,7 +370,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (!id || epoch !== session.current || snapshot.current.role === 'Viewer') throw new BusinessError('المؤسسة لم تُحمّل أو صلاحية الكتابة غير متاحة.', 403);
       setSyncStatus('syncing'); setSyncError(null);
       try {
-        const response = !activeUser && id === guestId ? await getGuest().execute(id, guestActor, { action, operationId: suggestedId || operationId(), data }) : await firebaseCommand(id, action, data, suggestedId);
+        const response = !activeUser && id === guestId ? await getGuest().execute(id, { ...guestActor, authTime: guestOwnerAuthAt.current }, { action, operationId: suggestedId || operationId(), data }) : await firebaseCommand(id, action, data, suggestedId);
         if (epoch !== session.current) throw new BusinessError('تم حفظ العملية في المؤسسة السابقة. تغيّرت الجلسة؛ أعد تحميل المؤسسة لمشاهدتها.', 409);
         applyChanges(response.changes);
         setSyncStatus(id === guestId ? 'idle' : 'synced'); setLastSyncedAt(id === guestId ? null : new Date());
@@ -368,10 +388,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!state.org || !state.exported_at || !hasPermission(state.role, action)) return false;
     const status = state.subscription.effective_status || state.subscription.status;
     const active = state.org.status === 'active' && ['active', 'trial', 'trialing'].includes(status) && (!state.subscription.subscription_end || Date.parse(state.subscription.subscription_end) > Date.now());
-    const sensitive = ['payables:read', 'audit_logs:view', 'journal:read', 'accounts:read'];
+    const sensitive = ['payables:read', 'audit_logs:view', 'journal:read', 'accounts:read', 'periods:read'];
     const readOnly = action.endsWith(':read') || action === 'members:view';
     if (!active && (!readOnly || sensitive.includes(action))) return false;
-    const features: Partial<Record<ActionType, string>> = { 'payables:read': 'accounting', 'payables:write': 'accounting', 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
+    const features: Partial<Record<ActionType, string>> = { 'opening:preview': 'accounting', 'opening:write': 'accounting', 'opening:settle': 'accounting', 'periods:read': 'accounting', 'periods:manage': 'accounting', 'periods:adjust': 'accounting', 'periods:reopen': 'accounting', 'payables:read': 'accounting', 'payables:write': 'accounting', 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
     if (features[action] && state.subscription.features[features[action]!] !== true) return false;
     if (action === 'invoices:create' && invoiceQuotaReached(state.subscription, state.counters.lifetime_invoice_count || state.counters.invoice_count, state.counters.monthly_invoice_count || 0)) return false;
     return true;
@@ -408,12 +428,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
   const nothing = async () => {};
   const value: AppContextType = {
+    openingBatches: rows<Document>('opening_batches'), openingLots: rows<Document>('opening_lots'), openingSettlements: rows<Document>('opening_settlements'),
+    previewOpening: async (request, expectedOrgId) => {
+      const id = activeOrg.current, epoch = session.current;
+      if (!id || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409);
+      const preview = id === guestId && !userRef.current ? await getGuest().openingPreview(id, guestActor, request) : await api<Awaited<ReturnType<Operations['openingPreview']>>>(`/organizations/${encodeURIComponent(id)}/opening-balances/preview`, {method: 'POST', body: JSON.stringify(request)});
+      if (id !== activeOrg.current || epoch !== session.current) throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد المعاينة.', 409);
+      return preview;
+    },
+    saveOpening: (action, data, expectedOrgId, requestId) => {
+      if (activeOrg.current !== expectedOrgId) return Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409));
+      return run(action, data, requestId);
+    },
+    accountingPeriods: rows<AccountingPeriod>('accounting_periods'),
+    loadAccountingPeriods: async periodId => {
+      const id = activeOrg.current, epoch = session.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');
+      const report = id === guestId && !userRef.current ? await getGuest().periodReports(id, guestActor, periodId) : await api<Awaited<ReturnType<Operations['periodReports']>>>(`/organizations/${encodeURIComponent(id)}/accounting-periods${periodId ? '?periodId=' + encodeURIComponent(periodId) : ''}`);
+      if (id !== activeOrg.current || epoch !== session.current) throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدث البيانات.', 409);
+      return report;
+    },
+    saveAccountingPeriod: (action, data, expectedOrgId) => {
+      if (activeOrg.current !== expectedOrgId) return Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409));
+      return run<AccountingPeriod>(action, data);
+    },
+    confirmOwnerReauthentication: async (method, password) => {
+      const id = activeOrg.current, epoch = session.current, uid = userRef.current?.uid;
+      if (!id || snapshot.current.role !== 'Owner' || !isActionAllowed('org:update_settings')) throw new BusinessError('إعادة الفتح متاحة لمالك المؤسسة فقط.', 403);
+      if (!uid && id === guestId && method === 'local-demo') guestOwnerAuthAt.current = Math.floor(Date.now() / 1000);
+      else {
+        if (method === 'local-demo') throw new BusinessError('التأكيد المحلي لا يصلح للحساب السحابي.', 403);
+        await reauthenticateOwner(method, password, uid || '');
+      }
+      if (id !== activeOrg.current || epoch !== session.current || uid !== userRef.current?.uid) throw new BusinessError('تغيرت المؤسسة أو الجلسة أثناء التحقق.', 409);
+      return id;
+    },
+    exportCorrectionDocument: (kind, id) => run<CorrectionDocument>('correctionDocument.export', { kind, id }),
     currentUser, authLoading, syncStatus, syncError, dismissSyncError: () => setSyncError(null), lastSyncedAt,
     currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.exported_at ? state.member?.status || (state.role === 'Owner' ? 'active' : 'unknown') : 'unknown', orgMembers: rows<OrgMember>('members'),
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
     creditNotes: rows<Document>('credit_notes'), customerRefunds: rows<Document>('customer_refunds'),
     createCreditNote: data => run('creditNote.create', data), refundCustomer: data => run('customerRefund.create', data),
-    suppliers: rows<Supplier>('suppliers'), purchaseBills: rows<PurchaseBill>('purchase_bills'), supplierPayments: rows<SupplierPayment>('supplier_payments'),
+    suppliers: rows<Supplier>('suppliers'), purchaseBills: rows<PurchaseBill>('purchase_bills'), supplierPayments: rows<SupplierPayment>('supplier_payments'), purchaseReturns: rows<Document>('purchase_returns'), supplierRefunds: rows<Document>('supplier_refunds'), returnPurchase: data => run<Document>('purchaseReturn.create',data), refundSupplier: data => run<Document>('supplierRefund.create',data),
     saveSupplier: (data, id) => run<Supplier>(id ? 'supplier.update' : 'supplier.create', id ? { id, updates: data } : data),
     createPurchase: data => run<PurchaseBill>('purchase.create', data), paySupplier: data => run<SupplierPayment>('supplierPayment.create', data),
     loadPayablesReport: async (period, exporting = false) => {
@@ -443,7 +498,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     removeMember: async uid => { await run('member.remove', { uid }); },
     suspendMember: async uid => { await run('member.update', { uid, status: 'suspended' }); },
     reactivateMember: async uid => { await run('member.update', { uid, status: 'active' }); },
-    updateSettings: async updates => { await run('settings.update', { updates }); },
+    updateSettings: async (updates, reason, expectedOrgId) => { if (expectedOrgId && activeOrg.current !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409); await run('settings.update', { updates, ...(reason === undefined ? {} : { reason }) }); },
     addCustomer: data => run<Customer>('customer.create', data), updateCustomer: async (id, updates) => { await run('customer.update', { id, updates }); }, deleteCustomer: async id => { await run('customer.delete', { id }); },
     addProduct: data => run<Product>('product.create', data), updateProduct: async (id, updates) => { await run('product.update', { id, updates }); }, deleteProduct: async id => { await run('product.delete', { id }); },
     establishProductCost: async (id, cost, reason) => { await run('product.cost.establish', { id, ...cost, reason }); },

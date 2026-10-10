@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
+  "active_branch": "codex/accounting-v2-c2-capital-quotes-20261010",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -632,7 +632,51 @@
             {
               "id": "C2.3",
               "scope": "Owner capital/drawings source-backed operations and UI",
-              "status": "pending"
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
+              "substeps": [
+                {
+                  "id": "C2.3.1",
+                  "scope": "Pure owner equity contribution/drawing posting quote contracts",
+                  "status": "implemented_ci_passed",
+                  "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
+                  "checks": {
+                    "unit_api": 248,
+                    "new_tests": 8,
+                    "types": "passed",
+                    "core": "passed",
+                    "build": "passed",
+                    "rules": 31,
+                    "rules_status": "passed_ci",
+                    "ui": 48,
+                    "ui_status": "passed_ci",
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "render_acceptance": "not_exposed_pending_atomic_commands_and_ui",
+                  "pr": 32,
+                  "ci": {
+                    "run_id": 38010999361,
+                    "commit_sha": "9ccd558cb7f112d519713343daa1ebe9020e5475",
+                    "conclusion": "success",
+                    "unit_api": 248,
+                    "rules": 31,
+                    "ui": 48,
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "report": "REPORT_C2_3_1_OWNER_EQUITY_QUOTES.md"
+                },
+                {
+                  "id": "C2.3.2",
+                  "scope": "Protected atomic source-backed commands, reconciliation and backup",
+                  "status": "pending"
+                },
+                {
+                  "id": "C2.3.3",
+                  "scope": "Owner UI, role/regression and Render staging acceptance",
+                  "status": "pending"
+                }
+              ],
+              "pr": 32
             }
           ]
         },
@@ -827,13 +871,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_C2_2B3_OPENING_UI.md",
+  "last_report": "REPORT_C2_3_1_OWNER_EQUITY_QUOTES.md",
   "next_steps": [
-    "Run Render staging acceptance after connection/service identification; do not equate CI with Render deployment.",
-    "Continue independent C2.3 capital/drawings, C3-C6, D, E, Excel1-4 with separate review branches.",
-    "Preserve current main ResilientStore and branding changes during user-led final integration."
+    "C2.3.2 protected atomic source-backed equity commands, reconciliation and backup; then UI/Render",
+    "Confirm Render workspace and identify synthetic staging before acceptance.",
+    "Preserve main branding/ResilientStore during user-led integration."
   ],
-  "updated_at": "2026-10-09T23:46:40.066389+00:00",
+  "updated_at": "2026-10-10T00:58:21.522526+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -858,7 +902,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C2.2b.3",
+  "active_substep": "C2.3.1",
   "observed_main_sha": "2f0ac961a755ca1ddddb17fbbbf5dffc2085e0ab",
   "lease_history": [
     {
@@ -870,6 +914,13 @@
       "worker": "accounting-v2-20261007-c12-2104",
       "released_at": "2026-10-07T21:16:00Z",
       "next_branch": "codex/accounting-v2-c2-opening-quotes"
+    },
+    {
+      "worker": "accounting-v2-20261010-capital-quotes-0048",
+      "released_at": "2026-10-10T00:58:21.522526+00:00",
+      "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
+      "pr": 32,
+      "code_commit": "9ccd558cb7f112d519713343daa1ebe9020e5475"
     }
   ],
   "last_lease": {
@@ -895,7 +946,7 @@
       28
     ]
   },
-  "next": "C2.2b.3 protected startup/settlement wizard, then C2.3 capital/drawings",
+  "next": "C2.3.2 protected atomic source-backed equity commands, reconciliation and backup; then UI/Render",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -916,17 +967,28 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "accounting-v2-20261010-opening-ui",
-    "ended_at": "2026-10-09T23:46:40.066389+00:00",
-    "branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
-    "pr": 31,
-    "code_commit": "2bfde4630b6ecec292873c56c3729287e316d7b4",
-    "status": "ci_passed_render_acceptance_pending"
+    "worker": "accounting-v2-20261010-capital-quotes-0048",
+    "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
+    "status": "quote_contract_ci_passed_commands_ui_render_pending",
+    "base_commit": "f246ba2e14ff850e8c95f5e7f3d490329e36a111",
+    "ended_at": "2026-10-10T00:58:21.522526+00:00",
+    "pr": 32,
+    "code_commit": "9ccd558cb7f112d519713343daa1ebe9020e5475",
+    "ci": {
+      "run_id": 38010999361,
+      "commit_sha": "9ccd558cb7f112d519713343daa1ebe9020e5475",
+      "conclusion": "success",
+      "unit_api": 248,
+      "rules": 31,
+      "ui": 48,
+      "production_audit_vulnerabilities": 0
+    }
   },
   "acceptance_environment": {
     "provider": "Render",
     "requested_at": "2026-10-09T23:46:40.066389+00:00",
-    "status": "pending_connection_and_service_identification",
-    "production_writes_for_testing": false
+    "status": "render_connected_workspace_confirmation_pending",
+    "production_writes_for_testing": false,
+    "note": "Read workspace inventory succeeded; no confirmed workspace/service or staging commit. Do not claim Render acceptance."
   }
 }

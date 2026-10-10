@@ -7,11 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c3-fx-ui-20261010",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "c3-fx-ui-20261010",
-    "acquired_at": "2026-10-10T18:02:00.000Z",
-    "expires_at": "2026-10-10T18:37:00.000Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -800,6 +796,32 @@
                 "conclusion": "success"
               },
               "render_acceptance": "not_exposed_no_ui"
+            },
+            {
+              "id": "C3.3",
+              "scope": "Protected FX revaluation preview/posting UI, role guards, synchronization and reload persistence",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c3-fx-ui-20261010",
+              "pr": 43,
+              "report": "REPORT_C3_3_FX_REVALUATION_UI.md",
+              "checks": {
+                "unit_api": 281,
+                "new_unit_api": 1,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 33,
+                "ui": 52,
+                "new_ui": 2,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38090460970,
+                "commit_sha": "cd99f4b783cd9247651a7eb53d629f18a25720a7",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_confirmed_workspace_staging_service_and_matching_deploy",
+              "completed_at": "2026-10-10T22:11:00.000Z"
             }
           ]
         },

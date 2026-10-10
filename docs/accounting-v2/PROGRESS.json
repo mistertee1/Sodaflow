@@ -7,11 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-ci-lock-repair-20261010",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "integration-ui-repair-20261010",
-    "acquired_at": "2026-10-10T11:51:59.090Z",
-    "expires_at": "2026-10-10T12:21:59.090Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -943,9 +939,9 @@
   ],
   "last_report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
   "next_steps": [
-    "Fix/revalidate invoice-workspace navigation in four document/correction tests; investigate two initial cloud-outage fallback regressions without weakening assertions, then source-native C3 adapters"
+    "Verify CI38050018443 UI 50/50; if successful update PR38 report, then resume C3 native-source adapters"
   ],
-  "updated_at": "2026-10-10T10:53:07.866Z",
+  "updated_at": "2026-10-10T11:55:36.373Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1020,7 +1016,7 @@
     ],
     "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
   },
-  "next": "Fix/revalidate invoice-workspace navigation in four document/correction tests; investigate two initial cloud-outage fallback regressions without weakening assertions, then source-native C3 adapters",
+  "next": "Verify CI38050018443 UI 50/50; if successful update PR38 report, then resume C3 native-source adapters",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1041,23 +1037,20 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "integration-ci-review-20261010",
+    "worker": "integration-ui-repair-20261010",
     "branch": "codex/accounting-v2-ci-lock-repair-20261010",
     "pr": 38,
-    "code_commit": "f9efed9f1515cbf4af5e9dad642831dbb6e8bb4e",
+    "code_commit": "35067c0aa3ef3e9883bb5980f48606803ba851d4",
     "ci": {
-      "run_id": 38032227589,
-      "commit_sha": "deb7a2a38bac09ac64b623e4ec86ce43429555f5",
-      "conclusion": "failure",
+      "run_id": 38050018443,
+      "status": "in_progress",
       "check": "passed",
-      "production_audit_vulnerabilities": 0,
-      "emulator": 33,
-      "ui_passed": 44,
-      "ui_failed": 6
+      "production_audit": "passed",
+      "emulator": "in_progress"
     },
-    "status": "lock_repaired_integration_UI_regressions_identified",
-    "ended_at": "2026-10-10T10:53:07.866Z",
-    "next": "Fix/revalidate invoice-workspace navigation in four document/correction tests; investigate two initial cloud-outage fallback regressions without weakening assertions, then source-native C3 adapters"
+    "status": "six_integration_UI_regressions_fixed_ci_in_progress",
+    "ended_at": "2026-10-10T11:55:36.373Z",
+    "next": "Verify CI38050018443 UI 50/50; if successful update PR38 report, then resume C3 native-source adapters"
   },
   "acceptance_environment": {
     "provider": "Render",
@@ -1072,8 +1065,8 @@
     "note": "Live deployment and HTTP200 verified; demo Firebase config only, no authenticated cloud acceptance. No auto deploy."
   },
   "integration_regressions": {
-    "report": "CI38032227589",
-    "invoice_workspace": "Four tests target InvoiceDetailModal immediately after invoice opening; current App routes to InvoiceWorkspaceView with explicit معاينة المستند. Confirm full corrections/download/reload workflows after adapting navigation.",
-    "initial_cloud_outage": "Two tests expect visible outage and reconnect recovery. initializeCloudOrganization currently catches organization failure and tries a generated fallback org, potentially hiding original failure. Requires authority/isolation review before any fix."
+    "invoice_workspace": "Four document/correction tests now explicitly enter معاينة المستند from the intentional invoice workspace before asserting correction/PDF behavior.",
+    "initial_cloud_outage": "Removed invented org-${uid} fallback on failed authoritative organization discovery. The authenticated shell now surfaces the original error and online/focus/30s reconciliation retries discovery; Firebase-discovered organizations remain supported.",
+    "local_validation": "lint:core and production build passed. Local Playwright execution unavailable because browser CDN returned truncated archives; actual GitHub CI is running."
   }
 }

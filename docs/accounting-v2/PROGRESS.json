@@ -7,7 +7,11 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-ci-lock-repair-20261010",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "integration-ui-repair-20261010",
+    "acquired_at": "2026-10-10T11:51:59.090Z",
+    "expires_at": "2026-10-10T12:21:59.090Z"
+  },
   "milestones": [
     {
       "id": "A1",

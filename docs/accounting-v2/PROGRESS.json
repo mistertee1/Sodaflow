@@ -939,9 +939,9 @@
   ],
   "last_report": "REPORT_C3_1_NATIVE_EXPOSURE.md",
   "next_steps": [
-    "Verify PR CI, then C3.1c trusted server source adapters before any C3.2 posting command"
+    "C3.1c trusted server source adapters for invoices/payments/purchases/opening/cash before C3.2 posting"
   ],
-  "updated_at": "2026-10-10T13:11:42.622Z",
+  "updated_at": "2026-10-10T14:40:48.819Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1022,7 +1022,7 @@
     ],
     "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
   },
-  "next": "Verify PR CI, then C3.1c trusted server source adapters before any C3.2 posting command",
+  "next": "C3.1c trusted server source adapters for invoices/payments/purchases/opening/cash before C3.2 posting",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1043,12 +1043,22 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c3-native-exposure-20261010",
+    "worker": "c3-native-exposure-ci-20261010",
     "branch": "codex/accounting-v2-c3-native-exposure-20261010",
+    "pr": 40,
     "code_commit": "8c835848b2fade385b17588d292e332fe584ef56",
-    "status": "native_foreign_exposure_quote_saved_ci_pending",
-    "ended_at": "2026-10-10T13:11:42.622Z",
-    "next": "Verify PR CI, then C3.1c trusted server source adapters before any C3.2 posting command"
+    "ci": {
+      "run_id": 38054790708,
+      "commit_sha": "59a784415b3c1aec5c9391ebae2245841d428642",
+      "conclusion": "success",
+      "unit_api": 273,
+      "emulator": 33,
+      "ui": 50,
+      "production_audit_vulnerabilities": 0
+    },
+    "status": "C3_1b_native_exposure_ci_passed_server_adapters_pending",
+    "ended_at": "2026-10-10T14:40:48.819Z",
+    "next": "C3.1c trusted server source adapters for invoices/payments/purchases/opening/cash before C3.2 posting"
   },
   "acceptance_environment": {
     "provider": "Render",

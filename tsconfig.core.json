@@ -42,5 +42,6 @@
     "tests/ownerEquityTransactions.test.ts",
     "tests/fxRevaluation.test.ts",
     "tests/fxExposure.test.ts"
+    ,"tests/fxSourceAllocations.test.ts"
   ]
 }

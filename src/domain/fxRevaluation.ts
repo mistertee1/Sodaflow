@@ -1,12 +1,13 @@
 import BigNumber from 'bignumber.js';
 import type { Account, JournalEntry, MerchantSettings } from '../types';
 import { classifyAccount } from './accountClassification';
-import { nativeCurrencyExposure, type NativeSourceAllocation } from './fxExposure';
+import { nativeCurrencyExposure } from './fxExposure';
+import { deriveNativeSourceAllocations, type FxSourceSnapshot } from './fxSourceAllocations';
 import { assertPeriodPosting, validatePeriods } from './periodContracts';
 import { assertOpenPeriod, dateOnly, ensure, identifier, money, text, validateJournal } from './validation';
 
 export interface FxRevaluationInput { date:string; closing_rate:number; account_codes:string[]; reason:string; rate_source:string }
-export interface FxRevaluationSnapshot { org_id:string; accounts:Account[]; journal_entries:JournalEntry[]; native_source_allocations:NativeSourceAllocation[]; accounting_periods:Record<string,unknown>[]; settings:Partial<MerchantSettings> }
+export interface FxRevaluationSnapshot extends FxSourceSnapshot { accounting_periods:Record<string,unknown>[]; settings:Partial<MerchantSettings> }
 
 /** Pure reviewed period-end quote. It never fetches a rate, persists, closes a period, or grants authority. */
 export function fxRevaluationQuote(input:FxRevaluationInput,snapshot:FxRevaluationSnapshot) {
@@ -22,6 +23,7 @@ export function fxRevaluationQuote(input:FxRevaluationInput,snapshot:FxRevaluati
   ensure(Array.isArray(input.account_codes)&&input.account_codes.length>0&&input.account_codes.length<=50,'اختر من 1 إلى 50 حساب نقدي لإعادة التقييم.');
   for (const entry of snapshot.journal_entries) ensure(entry.org_id===org,'قيد إعادة التقييم تابع لمؤسسة أخرى.');
   const codes=input.account_codes.map(identifier); ensure(new Set(codes).size===codes.length,'حسابات إعادة التقييم مكررة.');
+  const allocations=deriveNativeSourceAllocations(snapshot,codes,date);
   const chart=new Map<string,Account>(); for(const account of snapshot.accounts){identifier(account.code);ensure(account.org_id===org&&!chart.has(account.code),'دليل الحسابات مكرر أو أجنبي.');chart.set(account.code,account);}
   const gain=chart.get('4210'),loss=chart.get('5510');
   ensure(gain?.is_active&&gain.type==='REVENUE'&&gain.nature==='CREDIT'&&classifyAccount(gain).reporting_group==='fx_gain','حساب أرباح إعادة التقييم 4210 غير صالح.');
@@ -30,7 +32,7 @@ export function fxRevaluationQuote(input:FxRevaluationInput,snapshot:FxRevaluati
   for(const code of codes){
     const account=chart.get(code); ensure(account?.is_active,'حساب إعادة التقييم مفقود أو غير نشط.');
     const group=classifyAccount(account).reporting_group; ensure(['cash_bank','receivables','payables'].includes(group),'إعادة التقييم تقبل النقدية والذمم النقدية فقط.');
-    const exposure=nativeCurrencyExposure(org,date,code,snapshot.journal_entries,snapshot.native_source_allocations);
+    const exposure=nativeCurrencyExposure(org,date,code,snapshot.journal_entries,allocations);
     const current=new BigNumber(exposure.foreign.sdg),usd=new BigNumber(exposure.foreign.usd); ensure(!usd.isZero(),'لا يوجد رصيد أصلي بعملة USD لإعادة تقييم الحساب.');
     const target=usd.times(rate).decimalPlaces(0,BigNumber.ROUND_HALF_UP),adjustment=target.minus(current); ensure(!adjustment.isZero(),'الحساب مقيم فعلياً بسعر الإقفال المحدد.');
     const amount=money(adjustment.abs().toNumber(),0,true);

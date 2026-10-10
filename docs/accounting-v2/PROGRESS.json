@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-ci-lock-repair-20261010",
+  "active_branch": "codex/accounting-v2-c3-native-exposure-20261010",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -750,6 +750,29 @@
               "safety_findings": [
                 "GL USD is a reporting book, not proof of native USD exposure. Mixed SDG/USD AR/AP pools must be split by source currency; SDG-native cash must not be revalued as USD. No posting command may use account-level quote until this is resolved."
               ]
+            },
+            {
+              "id": "C3.1c",
+              "scope": "Trusted server-derived native-currency adapters for cash, AR/AP, corrections and opening sources",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c3-native-exposure-20261010",
+              "pr": 40,
+              "report": "REPORT_C3_1C_TRUSTED_SOURCE_ADAPTERS.md",
+              "checks": {
+                "unit_api": 276,
+                "new_tests": 3,
+                "types": "passed",
+                "core": "passed",
+                "emulator": 33,
+                "ui": 50,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38065501675,
+                "commit_sha": "e0f151ef9443fe47f101d85e61bb92bc68e58b7a",
+                "conclusion": "success"
+              },
+              "render_acceptance": "not_exposed_no_command_or_UI"
             }
           ]
         },
@@ -937,11 +960,11 @@
       ]
     }
   ],
-  "last_report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
+  "last_report": "REPORT_C3_1C_TRUSTED_SOURCE_ADAPTERS.md",
   "next_steps": [
-    "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch"
+    "C3.2 protected atomic FX revaluation posting, reconciliation and backup"
   ],
-  "updated_at": "2026-10-10T12:12:58.200Z",
+  "updated_at": "2026-10-10T16:00:08.894Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -966,7 +989,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C3.1",
+  "active_substep": "C3.1c",
   "observed_main_sha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
   "lease_history": [
     {
@@ -993,6 +1016,19 @@
       "branch": "codex/accounting-v2-c2-capital-transactions-20261010",
       "pr": 33,
       "code_commit": "7d5131a3be5ecaa5a53875c02bee1ab4cef47642"
+    },
+    {
+      "worker": "c3-native-exposure-20261010",
+      "released_at": "2026-10-10T13:11:42.622Z",
+      "branch": "codex/accounting-v2-c3-native-exposure-20261010",
+      "code_commit": "8c835848b2fade385b17588d292e332fe584ef56"
+    },
+    {
+      "worker": "c3-source-adapters-20261010",
+      "released_at": "2026-10-10T16:00:08.894Z",
+      "branch": "codex/accounting-v2-c3-native-exposure-20261010",
+      "pr": 40,
+      "code_commit": "e0f151ef9443fe47f101d85e61bb92bc68e58b7a"
     }
   ],
   "last_lease": {
@@ -1016,7 +1052,7 @@
     ],
     "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
   },
-  "next": "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch",
+  "next": "C3.2 protected atomic FX revaluation posting, reconciliation and backup",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1037,22 +1073,22 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "integration-ui-repair-20261010",
-    "branch": "codex/accounting-v2-ci-lock-repair-20261010",
-    "pr": 38,
-    "code_commit": "35067c0aa3ef3e9883bb5980f48606803ba851d4",
+    "worker": "c3-source-adapters-20261010",
+    "branch": "codex/accounting-v2-c3-native-exposure-20261010",
+    "pr": 40,
+    "code_commit": "e0f151ef9443fe47f101d85e61bb92bc68e58b7a",
     "ci": {
-      "run_id": 38050129713,
-      "commit_sha": "41839330a7ed14bd97cc5bf5c65b6a3c734e715e",
+      "run_id": 38065501675,
+      "commit_sha": "e0f151ef9443fe47f101d85e61bb92bc68e58b7a",
       "conclusion": "success",
-      "unit_api": 271,
+      "unit_api": 276,
       "emulator": 33,
       "ui": 50,
       "production_audit_vulnerabilities": 0
     },
-    "status": "integration_repair_ci_passed_ready_for_user_review",
-    "ended_at": "2026-10-10T12:12:58.200Z",
-    "next": "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch"
+    "status": "C3_1c_trusted_source_adapters_ci_passed",
+    "ended_at": "2026-10-10T16:00:08.894Z",
+    "next": "C3.2 protected atomic FX revaluation posting, reconciliation and backup"
   },
   "acceptance_environment": {
     "provider": "Render",

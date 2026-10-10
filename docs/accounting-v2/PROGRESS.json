@@ -638,16 +638,32 @@
                 {
                   "id": "C2.3.1",
                   "scope": "Pure owner equity contribution/drawing posting quote contracts",
-                  "status": "implemented_local_checks_passed_ci_pending",
+                  "status": "implemented_ci_passed",
                   "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
                   "checks": {
                     "unit_api": 248,
                     "new_tests": 8,
                     "types": "passed",
                     "core": "passed",
-                    "build": "passed"
+                    "build": "passed",
+                    "rules": 31,
+                    "rules_status": "passed_ci",
+                    "ui": 48,
+                    "ui_status": "passed_ci",
+                    "production_audit_vulnerabilities": 0
                   },
-                  "render_acceptance": "not_exposed_pending_atomic_commands_and_ui"
+                  "render_acceptance": "not_exposed_pending_atomic_commands_and_ui",
+                  "pr": 32,
+                  "ci": {
+                    "run_id": 38010999361,
+                    "commit_sha": "9ccd558cb7f112d519713343daa1ebe9020e5475",
+                    "conclusion": "success",
+                    "unit_api": 248,
+                    "rules": 31,
+                    "ui": 48,
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "report": "REPORT_C2_3_1_OWNER_EQUITY_QUOTES.md"
                 },
                 {
                   "id": "C2.3.2",
@@ -659,7 +675,8 @@
                   "scope": "Owner UI, role/regression and Render staging acceptance",
                   "status": "pending"
                 }
-              ]
+              ],
+              "pr": 32
             }
           ]
         },
@@ -860,7 +877,7 @@
     "Confirm Render workspace and identify synthetic staging before acceptance.",
     "Preserve main branding/ResilientStore during user-led integration."
   ],
-  "updated_at": "2026-10-10T00:53:20.457726+00:00",
+  "updated_at": "2026-10-10T00:58:21.522526+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -897,6 +914,13 @@
       "worker": "accounting-v2-20261007-c12-2104",
       "released_at": "2026-10-07T21:16:00Z",
       "next_branch": "codex/accounting-v2-c2-opening-quotes"
+    },
+    {
+      "worker": "accounting-v2-20261010-capital-quotes-0048",
+      "released_at": "2026-10-10T00:58:21.522526+00:00",
+      "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
+      "pr": 32,
+      "code_commit": "9ccd558cb7f112d519713343daa1ebe9020e5475"
     }
   ],
   "last_lease": {
@@ -945,9 +969,20 @@
   "last_run": {
     "worker": "accounting-v2-20261010-capital-quotes-0048",
     "branch": "codex/accounting-v2-c2-capital-quotes-20261010",
-    "status": "quote_contract_local_passed_ci_pending",
+    "status": "quote_contract_ci_passed_commands_ui_render_pending",
     "base_commit": "f246ba2e14ff850e8c95f5e7f3d490329e36a111",
-    "ended_at": "2026-10-10T00:53:20.457726+00:00"
+    "ended_at": "2026-10-10T00:58:21.522526+00:00",
+    "pr": 32,
+    "code_commit": "9ccd558cb7f112d519713343daa1ebe9020e5475",
+    "ci": {
+      "run_id": 38010999361,
+      "commit_sha": "9ccd558cb7f112d519713343daa1ebe9020e5475",
+      "conclusion": "success",
+      "unit_api": 248,
+      "rules": 31,
+      "ui": 48,
+      "production_audit_vulnerabilities": 0
+    }
   },
   "acceptance_environment": {
     "provider": "Render",

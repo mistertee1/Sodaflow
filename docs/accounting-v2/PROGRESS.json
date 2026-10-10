@@ -7,7 +7,11 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c3-fx-quotes-20261010",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "fx-proof-ci-20261010-0630",
+    "acquired_at": "2026-10-10T06:30:56.311Z",
+    "expires_at": "2026-10-10T06:50:56.311Z"
+  },
   "milestones": [
     {
       "id": "A1",

@@ -19,7 +19,8 @@ export function fxRevaluationQuote(input:FxRevaluationInput,snapshot:FxRevaluati
   ensure(period?.end_date===date,'إعادة التقييم تكون في آخر يوم من فترة محاسبية مغطاة.');
   assertOpenPeriod(date,snapshot.settings);
   assertPeriodPosting(periods,date,'Owner',true,reason);
-  ensure(Array.isArray(input.account_codes)&&input.account_codes.length>0&&input.account_codes.length<=100,'اختر من 1 إلى 100 حساب نقدي لإعادة التقييم.');
+  ensure(Array.isArray(input.account_codes)&&input.account_codes.length>0&&input.account_codes.length<=50,'اختر من 1 إلى 50 حساب نقدي لإعادة التقييم.');
+  for (const entry of snapshot.journal_entries) ensure(entry.org_id===org,'قيد إعادة التقييم تابع لمؤسسة أخرى.');
   const codes=input.account_codes.map(identifier); ensure(new Set(codes).size===codes.length,'حسابات إعادة التقييم مكررة.');
   const chart=new Map<string,Account>(); for(const account of snapshot.accounts){identifier(account.code);ensure(account.org_id===org&&!chart.has(account.code),'دليل الحسابات مكرر أو أجنبي.');chart.set(account.code,account);}
   const gain=chart.get('4210'),loss=chart.get('5510');

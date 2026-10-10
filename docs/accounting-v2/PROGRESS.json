@@ -939,9 +939,9 @@
   ],
   "last_report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
   "next_steps": [
-    "Verify PR38 actual CI, then source-native adapters and mixed-currency quote before C3 posting"
+    "Fix/revalidate invoice-workspace navigation in four document/correction tests; investigate two initial cloud-outage fallback regressions without weakening assertions, then source-native C3 adapters"
   ],
-  "updated_at": "2026-10-10T06:48:42.580Z",
+  "updated_at": "2026-10-10T10:53:07.866Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1016,7 +1016,7 @@
     ],
     "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
   },
-  "next": "Verify PR38 actual CI, then source-native adapters and mixed-currency quote before C3 posting",
+  "next": "Fix/revalidate invoice-workspace navigation in four document/correction tests; investigate two initial cloud-outage fallback regressions without weakening assertions, then source-native C3 adapters",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1037,13 +1037,23 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "fx-proof-ci-20261010-0630",
+    "worker": "integration-ci-review-20261010",
     "branch": "codex/accounting-v2-ci-lock-repair-20261010",
     "pr": 38,
     "code_commit": "f9efed9f1515cbf4af5e9dad642831dbb6e8bb4e",
-    "status": "integration_lock_repaired_ci_pending",
-    "ended_at": "2026-10-10T06:48:42.580Z",
-    "next": "Verify PR38 actual CI, then source-native adapters and mixed-currency quote before C3 posting"
+    "ci": {
+      "run_id": 38032227589,
+      "commit_sha": "deb7a2a38bac09ac64b623e4ec86ce43429555f5",
+      "conclusion": "failure",
+      "check": "passed",
+      "production_audit_vulnerabilities": 0,
+      "emulator": 33,
+      "ui_passed": 44,
+      "ui_failed": 6
+    },
+    "status": "lock_repaired_integration_UI_regressions_identified",
+    "ended_at": "2026-10-10T10:53:07.866Z",
+    "next": "Fix/revalidate invoice-workspace navigation in four document/correction tests; investigate two initial cloud-outage fallback regressions without weakening assertions, then source-native C3 adapters"
   },
   "acceptance_environment": {
     "provider": "Render",
@@ -1056,5 +1066,10 @@
     "http_smoke": "200",
     "production_writes_for_testing": false,
     "note": "Live deployment and HTTP200 verified; demo Firebase config only, no authenticated cloud acceptance. No auto deploy."
+  },
+  "integration_regressions": {
+    "report": "CI38032227589",
+    "invoice_workspace": "Four tests target InvoiceDetailModal immediately after invoice opening; current App routes to InvoiceWorkspaceView with explicit معاينة المستند. Confirm full corrections/download/reload workflows after adapting navigation.",
+    "initial_cloud_outage": "Two tests expect visible outage and reconnect recovery. initializeCloudOrganization currently catches organization failure and tries a generated fallback org, potentially hiding original failure. Requires authority/isolation review before any fix."
   }
 }

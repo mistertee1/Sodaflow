@@ -733,20 +733,23 @@
             {
               "id": "C3.1",
               "scope": "Pure reviewed period-end foreign monetary balance revaluation quote",
-              "status": "implemented_local_checks_passed_ci_pending",
+              "status": "ci_passed_source_currency_review_required",
               "report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
               "checks": {
                 "unit_api": 267,
                 "new_tests": 7,
                 "types": "passed",
-                "unit_api_status": "pending_latest_ci"
+                "unit_api_status": "passed_ci"
               },
               "render_acceptance": "not_exposed_no_command_or_UI",
               "ci": {
                 "run_id": 38026913049,
                 "commit_sha": "6019daa215a6e55f680ad4ec35bdce7071c8561a",
-                "conclusion": "pending"
-              }
+                "conclusion": "success"
+              },
+              "safety_findings": [
+                "GL USD is a reporting book, not proof of native USD exposure. Mixed SDG/USD AR/AP pools must be split by source currency; SDG-native cash must not be revalued as USD. No posting command may use account-level quote until this is resolved."
+              ]
             }
           ]
         },
@@ -936,10 +939,10 @@
   ],
   "last_report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
   "next_steps": [
-    "C3.2 protected atomic FX revaluation/reversal sources, reconciliation and backup",
+    "C3.1 source-native currency exposure proof and mixed-currency regression before C3.2 posting",
     "Preserve main branding/ResilientStore during user-led final integration."
   ],
-  "updated_at": "2026-10-10T05:17:22.991Z",
+  "updated_at": "2026-10-10T05:46:05.757Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1016,7 +1019,7 @@
       28
     ]
   },
-  "next": "Verify CI then source-level native-currency exposure proof before C3.2 persistence",
+  "next": "C3.1 source-native currency exposure proof and mixed-currency regression before C3.2 posting",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1037,13 +1040,18 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "accounting-v2-c3-review-20261010-0517",
+    "worker": "fx-source-review-20261010",
     "branch": "codex/accounting-v2-c3-fx-quotes-20261010",
     "pr": 35,
     "code_commit": "6019daa215a6e55f680ad4ec35bdce7071c8561a",
-    "status": "review_fixes_saved_latest_ci_pending",
-    "ended_at": "2026-10-10T05:17:22.991Z",
-    "next": "Verify CI then source-level native-currency exposure proof before C3.2 persistence"
+    "ci": {
+      "run_id": 38026913049,
+      "commit_sha": "6019daa215a6e55f680ad4ec35bdce7071c8561a",
+      "conclusion": "success"
+    },
+    "status": "ci_passed_source_currency_review_required",
+    "ended_at": "2026-10-10T05:46:05.757Z",
+    "next": "C3.1 source-native currency exposure proof and mixed-currency regression before C3.2 posting"
   },
   "acceptance_environment": {
     "provider": "Render",

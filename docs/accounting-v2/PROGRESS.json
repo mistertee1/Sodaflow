@@ -728,15 +728,27 @@
           "scope": "Period-end source-linked FX revaluation with explicit closing rates and reviewed posting",
           "status": "in_progress",
           "branch": "codex/accounting-v2-c3-fx-quotes-20261010",
-          "pr": null,
-          "substeps": [{
-            "id": "C3.1",
-            "scope": "Pure reviewed period-end foreign monetary balance revaluation quote",
-            "status": "implemented_local_checks_passed_ci_pending",
-            "report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
-            "checks": {"unit_api":266,"new_tests":6,"types":"passed"},
-            "render_acceptance": "not_exposed_no_command_or_UI"
-          }]
+          "pr": 35,
+          "substeps": [
+            {
+              "id": "C3.1",
+              "scope": "Pure reviewed period-end foreign monetary balance revaluation quote",
+              "status": "implemented_local_checks_passed_ci_pending",
+              "report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
+              "checks": {
+                "unit_api": 267,
+                "new_tests": 7,
+                "types": "passed",
+                "unit_api_status": "pending_latest_ci"
+              },
+              "render_acceptance": "not_exposed_no_command_or_UI",
+              "ci": {
+                "run_id": 38026913049,
+                "commit_sha": "6019daa215a6e55f680ad4ec35bdce7071c8561a",
+                "conclusion": "pending"
+              }
+            }
+          ]
         },
         {
           "id": "C4",
@@ -927,7 +939,7 @@
     "C3.2 protected atomic FX revaluation/reversal sources, reconciliation and backup",
     "Preserve main branding/ResilientStore during user-led final integration."
   ],
-  "updated_at": "2026-10-10T04:22:00.000Z",
+  "updated_at": "2026-10-10T05:17:22.991Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -952,7 +964,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C2.3.2",
+  "active_substep": "C3.1",
   "observed_main_sha": "2f0ac961a755ca1ddddb17fbbbf5dffc2085e0ab",
   "lease_history": [
     {
@@ -1004,7 +1016,7 @@
       28
     ]
   },
-  "next": "C3.2 protected atomic FX revaluation/reversal sources, reconciliation and backup",
+  "next": "Verify CI then source-level native-currency exposure proof before C3.2 persistence",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1025,22 +1037,13 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "accounting-v2-20261010-equity-ui-0215",
-    "branch": "codex/accounting-v2-c2-capital-ui-20261010",
-    "status": "owner_equity_UI_ci_passed_Render_pending",
-    "base_commit": "927e2b593c43c8f0a9993ab5bb0ac93bd79b5274",
-    "ended_at": "2026-10-10T04:13:00.000Z",
-    "code_commit": "4f61429672418f800633e3ae23522b76d9498d15",
-    "pr": 34,
-    "ci": {
-      "run_id": 38019982868,
-      "commit_sha": "4f61429672418f800633e3ae23522b76d9498d15",
-      "conclusion": "success",
-      "unit_api": 260,
-      "rules": 33,
-      "ui": 50,
-      "production_audit_vulnerabilities": 0
-    }
+    "worker": "accounting-v2-c3-review-20261010-0517",
+    "branch": "codex/accounting-v2-c3-fx-quotes-20261010",
+    "pr": 35,
+    "code_commit": "6019daa215a6e55f680ad4ec35bdce7071c8561a",
+    "status": "review_fixes_saved_latest_ci_pending",
+    "ended_at": "2026-10-10T05:17:22.991Z",
+    "next": "Verify CI then source-level native-currency exposure proof before C3.2 persistence"
   },
   "acceptance_environment": {
     "provider": "Render",

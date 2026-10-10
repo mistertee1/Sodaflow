@@ -353,3 +353,25 @@ test('C2 protected opening preview reads real Firestore zero initialization with
     await store.transaction(async tx=>tx.set(`plans/${plan.id}`,plan));await run('period.softClose',{id:'2026-10',expected_revision:1,reason:'إيقاف المعاينة للفترة'},'opening-soft');await assert.rejects(ops.openingPreview(org.id,actor,request),/مبدئياً/);
   }finally{await deleteApp(app);}
 });
+
+test('C2.3 real Firestore serializes owner drawings, returns one duplicate and denies every owner/foreign direct SDK source read/write',async()=>{
+  const {equityFixture,equityOwner}=await import('./fixtures/ownerEquity');
+  const app=initializeApp({projectId:project},'owner-equity-atomic'),db=getFirestore(app),store=new FirestoreStore(db),rules=await readFile('firestore.rules','utf8');
+  try {
+    const f=await equityFixture(store,equityOwner,async()=>{await verifyAccountingRulesSource([{content:rules}]);});
+    const race=await Promise.allSettled([f.run('ownerEquity.create',f.input('drawing',800),'fs-draw-one'),f.run('ownerEquity.create',f.input('drawing',800),'fs-draw-two')]);assert.equal(race.filter(r=>r.status==='fulfilled').length,1);
+    const data=f.input('drawing',100),dupe=await Promise.all([f.run('ownerEquity.create',data,'fs-same'),f.run('ownerEquity.create',data,'fs-same')]);assert.deepEqual(dupe[0],dupe[1]);
+    const snapshot=await f.snapshot();assert.equal(snapshot.collections.owner_equity_events.length,3);assert.equal(snapshot.counters.owner_equity_event_count,3);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
+    for(const uid of [equityOwner.uid,'foreign-equity-sdk']){const client=env.authenticatedContext(uid,{email_verified:true}).firestore();await assertFails(getDocs(collection(client,`${f.root}/owner_equity_events`)));await assertFails(getDoc(doc(client,`${f.root}/owner_equity_events/oe-equity-funding`)));await assertFails(setDoc(doc(client,`${f.root}/owner_equity_events/forged`),{id:'forged',org_id:f.org.id}));}
+    const beforeCounters=(await db.doc(`${f.root}/meta/counters`).get()).data(),beforeSources=(await db.collection(`${f.root}/owner_equity_events`).get()).size;await assert.rejects(f.run('ownerEquity.create',f.input('drawing',101),'fs-no-funds'));assert.deepEqual((await db.doc(`${f.root}/meta/counters`).get()).data(),beforeCounters);assert.equal((await db.collection(`${f.root}/owner_equity_events`).get()).size,beforeSources);assert.equal((await db.doc(`${f.root}/idempotency/fs-no-funds`).get()).exists,false);
+  }finally{await deleteApp(app);}
+});
+test('C2.3 real Firestore restores original equity sources twice with exact nested tenant and journal proof, rejecting a dropped source first',async()=>{
+  const {equityFixture,equityOwner}=await import('./fixtures/ownerEquity');const app=initializeApp({projectId:project},'owner-equity-restore'),db=getFirestore(app),store=new FirestoreStore(db),rules=await readFile('firestore.rules','utf8');
+  try {
+    const f=await equityFixture(store,{...equityOwner,uid:'equity-fs-backup-owner'},async()=>{await verifyAccountingRulesSource([{content:rules}]);});await f.run('ownerEquity.create',f.input('drawing',250),'fs-backup-draw');let backup=await f.snapshot();
+    for(const uid of ['equity-fs-copy-one','equity-fs-copy-two']){const actor={...equityOwner,uid},org=await new Organizations(store).create(actor,'استعادة رأس المال',INITIAL_SETTINGS,uid,true),root=`organizations/${org.id}`;await store.transaction(async tx=>tx.set(root,{...await tx.get(root),planId:'Enterprise',subscriptionEnd:'2027-01-01'}));const bad=structuredClone(backup);delete (bad.collections as any).owner_equity_events;await assert.rejects(f.ops.execute(org.id,actor,{action:'backup.restore',data:{backup:bad},operationId:uid+'-bad'}));assert.equal((await db.collection(`${root}/journal_entries`).get()).size,0);
+      await f.ops.execute(org.id,actor,{action:'backup.restore',data:{backup},operationId:uid+'-restore'});backup=await f.ops.snapshot(org.id,actor,true);assert.equal(backup.collections.owner_equity_events.length,2);assert.equal(backup.collections.owner_equity_events[0].account_basis[0].org_id,org.id);assert.deepEqual(reconcileFinancialData(backup.collections as FinancialData,backup.settings,{requireCosting:true}),[]);
+    }
+  }finally{await deleteApp(app);}
+});

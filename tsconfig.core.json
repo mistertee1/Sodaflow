@@ -38,6 +38,7 @@
     "tests/openingPreview.test.ts",
     "tests/openingIntegration.test.ts",
     "tests/openingTransactions.test.ts",
-    "tests/ownerEquity.test.ts"
+    "tests/ownerEquity.test.ts",
+    "tests/ownerEquityTransactions.test.ts"
   ]
 }

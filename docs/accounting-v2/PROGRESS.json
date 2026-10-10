@@ -5,9 +5,13 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c2-opening-ui-review-20261010",
+  "active_branch": "codex/accounting-v2-c2-capital-quotes-20261010",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "accounting-v2-20261010-capital-quotes-0048",
+    "acquired_at": "2026-10-10T00:47:42.324Z",
+    "expires_at": "2026-10-10T01:27:42.324Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -858,7 +862,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C2.2b.3",
+  "active_substep": "C2.3.1",
   "observed_main_sha": "2f0ac961a755ca1ddddb17fbbbf5dffc2085e0ab",
   "lease_history": [
     {
@@ -895,7 +899,7 @@
       28
     ]
   },
-  "next": "C2.2b.3 protected startup/settlement wizard, then C2.3 capital/drawings",
+  "next": "C2.3.1 pure capital/drawings quote contracts; then protected atomic commands and UI",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",

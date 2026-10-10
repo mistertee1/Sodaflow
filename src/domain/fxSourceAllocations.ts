@@ -11,7 +11,7 @@ export interface FxSourceSnapshot {
   org_id:string; accounts:Account[]; journal_entries:JournalEntry[]; financial_accounts:FinancialAccount[];
   invoices:Invoice[]; payments:Payment[]; purchase_bills:PurchaseBill[]; supplier_payments:SupplierPayment[];
   credit_notes:Document[]; customer_refunds:Document[]; purchase_returns:Document[]; supplier_refunds:Document[];
-  opening_batches:Document[]; opening_lots:Document[]; opening_settlements:Document[]; inventory_movements:Document[];
+  opening_batches:Document[]; opening_lots:Document[]; opening_settlements:Document[]; inventory_movements:Document[]; fx_revaluations:Document[];
 }
 
 function strictIndex<T extends object>(rows:T[],org:string,label:string){
@@ -29,6 +29,7 @@ export function deriveNativeSourceAllocations(snapshot:FxSourceSnapshot,accountC
   const bills=strictIndex(snapshot.purchase_bills,org,'فواتير الشراء'),supplierPayments=strictIndex(snapshot.supplier_payments,org,'مدفوعات الموردين');
   const creditNotes=strictIndex(snapshot.credit_notes,org,'إشعارات الائتمان'),customerRefunds=strictIndex(snapshot.customer_refunds,org,'رديات العملاء');
   const purchaseReturns=strictIndex(snapshot.purchase_returns,org,'مردودات الشراء'),supplierRefunds=strictIndex(snapshot.supplier_refunds,org,'استردادات الموردين');
+  const revaluations=strictIndex(snapshot.fx_revaluations,org,'إعادات تقييم العملة');
   const openingData={accounts:snapshot.accounts as unknown as Document[],financial_accounts:snapshot.financial_accounts as unknown as Document[],opening_batches:snapshot.opening_batches,opening_lots:snapshot.opening_lots,opening_settlements:snapshot.opening_settlements,journal_entries:snapshot.journal_entries as unknown as Document[],inventory_movements:snapshot.inventory_movements};
   const openingReceivables=openingLineAllocations(openingData,'receivable'),openingPayables=openingLineAllocations(openingData,'payable');
   const invoiceCurrency=(id:string)=>{const invoice=invoices.get(identifier(id));ensure(invoice,'مصدر الفاتورة مفقود.');ensure(['SDG','USD'].includes(invoice.receivable_currency||''),'عملة ذمة الفاتورة غير مثبتة.');return invoice.receivable_currency!;};
@@ -41,6 +42,7 @@ export function deriveNativeSourceAllocations(snapshot:FxSourceSnapshot,accountC
     if(entry.reference_type==='purchase_bill')return billCurrency(ref);
     if(entry.reference_type==='supplier_payment'){const row=supplierPayments.get(ref);ensure(row,'مصدر سداد المورد مفقود.');return billCurrency(row.bill_id);}
     if(entry.reference_type==='purchase_return'||entry.reference_type==='supplier_refund'){const row=(entry.reference_type==='purchase_return'?purchaseReturns:supplierRefunds).get(ref);ensure(row,'مصدر تصحيح المورد مفقود.');return billCurrency(row.bill_id);}
+    if(entry.reference_type==='fx_revaluation'){const row=revaluations.get(ref);ensure(row&&Array.isArray(row.quote?.items)&&row.quote.items.some((item:Document)=>item.account_code===entry.lines[lineIndex].account_code),'مصدر إعادة التقييم مفقود أو لا يطابق الحساب.');return 'USD';}
     ensure(['opening_batch','opening_settlement'].includes(entry.reference_type),'نوع قيد لا يملك موصل عملة مصدر موثوقاً.');
     const lot=(side==='receivable'?openingReceivables:openingPayables).get(`${entry.id}:${lineIndex}`);ensure(lot,'مصدر سطر الافتتاح مفقود.');return lot.currency;
   };

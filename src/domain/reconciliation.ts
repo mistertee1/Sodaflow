@@ -1,4 +1,5 @@
 import { equityCollections, reconcileEquitySources } from './ownerEquitySources';
+import { fxRevaluationCollections, reconcileFxRevaluations } from './fxRevaluationSources';
 import { periodCollections, validatePeriods } from './periodContracts';
 import { reconcileAuditArchives } from './auditArchives';
 import BigNumber from 'bignumber.js';
@@ -19,7 +20,7 @@ import { verifyOpeningSources } from './openingSources';
 import { openingCollections } from './openingCollections';
 import { hasOpeningSources, openingOrganization } from './openingIntegration';
 
-export const financialCollections = [...equityCollections, ...periodCollections, ...openingCollections, 'audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
+export const financialCollections = [...fxRevaluationCollections, ...equityCollections, ...periodCollections, ...openingCollections, 'audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
 export type FinancialCollection = typeof financialCollections[number];
 export type FinancialData = Record<FinancialCollection, Document[]>;
 export interface Finding {
@@ -123,6 +124,8 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
     compare('customers', customer.id, 'balance_usd', total?.usd.toNumber() || 0, customer.balance_usd);
     for (const book of ['sdg','usd'] as const) for (const prefix of ['receivable_due','credit_balance']) if (customer[`${prefix}_${book}`] !== undefined) compare('customers', customer.id, `${prefix}_${book}`, data.invoices.filter(invoice => invoice.customer_id === customer.id && !['void','cancelled','draft'].includes(invoice.status)).reduce((n, invoice) => n.plus(invoice[`${prefix === 'receivable_due' ? 'remaining' : prefix}_${book}`] || 0), prefix==='receivable_due'?openingCustomerTotals.get(customer.id)?.[book]||new BigNumber(0):new BigNumber(0)).toNumber(), customer[`${prefix}_${book}`]);
   }
+  const fxAr=data.journal_entries.filter(entry=>entry.reference_type==='fx_revaluation').flatMap(entry=>entry.lines).filter(line=>line.account_code==='1200');
+  remainingSdg=remainingSdg.plus(fxAr.reduce((sum,line)=>sum.plus(line.debit_sdg).minus(line.credit_sdg),new BigNumber(0)));remainingUsd=remainingUsd.plus(fxAr.reduce((sum,line)=>sum.plus(line.debit_usd).minus(line.credit_usd),new BigNumber(0)));
   compare('journal_entries', 'AR-control', 'outstanding_sdg', remainingSdg.toNumber(), arSdg.toNumber());
   compare('journal_entries', 'AR-control', 'outstanding_usd', remainingUsd.toNumber(), arUsd.toNumber());
   const movementTotals = new Map<string, BigNumber>();
@@ -189,7 +192,7 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
       compare('invoices', invoice.id, `posted_cogs_${currency}`, snapshot.toNumber(), sourceEntries('invoice', invoice.id).flatMap(e => e.lines || []).filter(l => l.account_code === '5100').reduce((sum, l) => sum.plus(l[`debit_${currency}`]).minus(l[`credit_${currency}`]), new BigNumber(0)).toNumber());
     }
   });
-  findings.push(...reconcileEquitySources(data), ...reconcileAuditArchives(data.audit_archives || []), ...reconcilePurchaseCorrections(data), ...reconcileSalesCorrections(data), ...reconcilePayables(data), ...reconcileCashManagement(data), ...reconcileCashSessions(data));
+  findings.push(...reconcileFxRevaluations(data),...reconcileEquitySources(data), ...reconcileAuditArchives(data.audit_archives || []), ...reconcilePurchaseCorrections(data), ...reconcileSalesCorrections(data), ...reconcilePayables(data), ...reconcileCashManagement(data), ...reconcileCashSessions(data));
   return findings;
 }
 

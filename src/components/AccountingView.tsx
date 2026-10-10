@@ -402,7 +402,7 @@ export const AccountingView: React.FC = () => {
           {(['ledger', 'receivables', 'cash'] as const).map(view => <button key={view} onClick={() => setActiveSubTab(view)} aria-pressed={activeSubTab === view} className="sf-secondary shrink-0 whitespace-nowrap">{{ ledger: 'دفتر الأستاذ', receivables: 'كشوف العملاء', cash: 'النقدية والبنوك' }[view]}</button>)}
           {isActionAllowed('opening:preview') && <button onClick={() => setActiveSubTab('opening')} aria-pressed={activeSubTab === 'opening'} className="sf-secondary shrink-0 whitespace-nowrap">الأرصدة الافتتاحية والسداد</button>}
           {isActionAllowed('journal:read') && <button onClick={() => setActiveSubTab('equity')} aria-pressed={activeSubTab === 'equity'} className="sf-secondary shrink-0 whitespace-nowrap">رأس المال والمسحوبات</button>}
-          {isActionAllowed('journal:read') && <button onClick={() => setActiveSubTab('fx')} aria-pressed={activeSubTab === 'fx'} className="sf-secondary shrink-0 whitespace-nowrap">إعادة تقييم العملات</button>}
+          {isActionAllowed('journal:read') && <button data-testid="fx-revaluation-tab" onClick={() => setActiveSubTab('fx')} aria-pressed={activeSubTab === 'fx'} className="sf-secondary shrink-0 whitespace-nowrap">إعادة تقييم العملات</button>}
           {isActionAllowed('payables:read') && <button onClick={() => setActiveSubTab('payables')} aria-pressed={activeSubTab === 'payables'} className="sf-secondary shrink-0 whitespace-nowrap">الموردون والمشتريات</button>}
           <button
             onClick={() => setActiveSubTab('coa')}

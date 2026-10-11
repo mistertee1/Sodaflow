@@ -2,14 +2,15 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-11T06:47:26.837Z",
+  "updatedAt": "2026-10-11T06:55:57.696Z",
   "activeRunId": "super-admin-render-verification-20261011-0647",
   "leaseUntil": "2026-10-11T08:02:26.837Z",
   "automationId": "6ac35722234c819194e0535527c23124",
   "currentStage": 5,
   "workBranch": "codex/super-admin-render-authority-20261010",
   "ownedPaths": [
-    "docs/super-admin/**"
+    "docs/super-admin/**",
+    "tests/ui/app.spec.ts (brand asset loading assertion only)"
   ],
   "stages": [
     {
@@ -120,7 +121,7 @@
       "substeps": [
         {
           "id": "5a",
-          "status": "merged_ci_passed_render_recheck_pending",
+          "status": "merged_source_verified_test_harness_repair_pending",
           "scope": "Canonical Firestore authority and isolated Render acceptance",
           "mergedCommit": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
           "pr": 39
@@ -139,7 +140,7 @@
   "lastSourceCommit": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "sourceStagesComplete": true,
   "status": "in_progress",
-  "resumeFrom": "render_merged_main_acceptance",
+  "resumeFrom": "brand_asset_assertion_acceptance",
   "lastReport": "docs/super-admin/REPORT.md",
   "productionReadiness": {
     "checkedAt": "2026-10-11T06:46:39.621967Z",
@@ -218,7 +219,18 @@
     "productionCredentials": false,
     "productionWrites": 0,
     "runtime": "report_only",
-    "status": "pending_merged_main_recheck"
+    "status": "scope_and_regression_passed_on_render_candidate_ci_asset_race",
+    "deployId": "dep-db5j25h42hec7395ek3g",
+    "sourceCommit": "47aa3f2435b5b31e2db893d89f4605bea342c5a7",
+    "finishedAt": "2026-10-11T06:52:55.856871Z",
+    "evidence": {
+      "unitApi": 283,
+      "firestoreEmulator": 37,
+      "ui": 50,
+      "superAdminUi": 9,
+      "failed": 0,
+      "skipped": 0
+    }
   },
   "sourceIntegrationValidated": true,
   "acceptanceHistory": [
@@ -256,6 +268,26 @@
     "accountingBranch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
     "accountingLeaseUntil": "2026-10-11T07:25:00Z",
     "ownedPathsUnchanged": true,
-    "note": "Accounting branch C5 is active. Only super-admin documentation changes; no accounting, UI, package, Rules or production service changes. Source snapshot contains user's merged PR38/39."
+    "note": "Active accounting PR48 modifies tax configuration, operations, types, package and dedicated tax tests. The app.spec brand asset assertion is not among its changed paths; only that assertion is adjusted, without altering invoice/correction tests or product branding.",
+    "accountingPullRequestFilesReviewed": true,
+    "brandTestPathNotChangedByActiveAccountingPr": true
+  },
+  "candidateGithubChecks": {
+    "runId": 38119218903,
+    "jobId": 114410292927,
+    "sha": "47aa3f2435b5b31e2db893d89f4605bea342c5a7",
+    "status": "completed",
+    "conclusion": "failure",
+    "unitApi": 283,
+    "firestoreEmulator": 37,
+    "ui": {
+      "tests": 50,
+      "passed": 49,
+      "failed": 1,
+      "superAdminPassed": 9
+    },
+    "failure": "RTL brand asset readiness assertion checks all img.complete/naturalWidth immediately; trace confirms all logo URLs HTTP200. Use bounded async poll with unchanged predicate and re-test.",
+    "artifactId": 11694249893,
+    "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38119218903"
   }
 }

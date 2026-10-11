@@ -89,7 +89,8 @@ test('RTL brand, local assets, both themes and mobile navigation render without 
   await expect(page.locator('#btn-quick-new-invoice')).toHaveCSS('background-color', 'rgb(8, 127, 117)');
   expect(await page.locator('body').evaluate(body => getComputedStyle(body).fontFamily)).toContain('IBM Plex Sans Arabic');
   await expect(page.getByRole('img', { name: 'سودافلو | SudaFlow' }).first()).toBeVisible();
-  expect(await page.locator('img[src*="/brand/"]').evaluateAll(images => images.every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0))).toBe(true);
+  // A visible logo does not mean every light/dark asset has finished decoding.
+  await expect.poll(() => page.locator('img[src*="/brand/"]').evaluateAll(images => images.every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0)), { message: 'All local brand images must finish loading', timeout: 5000 }).toBe(true);
   await expect(page.locator('main')).not.toContainText('جاري التحميل');
   await page.screenshot({ path: 'test-results/sudaflow-light.png', fullPage: true });
   await page.getByRole('button', { name: /تبديل وضع السمة/ }).first().click();

@@ -40,6 +40,7 @@ export function validateTaxConfiguration(input: TaxConfiguration, orgId: string)
 
 export function validateTaxControlAccount(configuration: TaxConfiguration, accounts: Account[], orgId: string) {
   const validated = validateTaxConfiguration(configuration, orgId);
+  ensure(accounts.length <= 1200, 'دليل حسابات الضريبة يتجاوز حد التحقق.');
   const codes = new Set<string>();
   for (const account of accounts) {identifier(account.code); ensure(account.org_id === orgId && !codes.has(account.code), 'دليل حسابات الضريبة أجنبي أو مكرر.'); codes.add(account.code);}
   if (!validated.tax_account_code) return validated;

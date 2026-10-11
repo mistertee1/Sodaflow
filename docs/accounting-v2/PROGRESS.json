@@ -5,9 +5,13 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
+  "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "c4-fixed-assets-transactions-20261011",
+    "acquired_at": "2026-10-11T03:28:00.000Z",
+    "expires_at": "2026-10-11T04:05:00.000Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1194,7 +1198,3 @@
   "integration_regressions": {
     "status": "resolved_ci_passed",
     "invoice_workspace": "Four document/correction tests explicitly enter معاينة المستند from invoice workspace; full UI suite passed.",
-    "initial_cloud_outage": "Authoritative organization discovery no longer invents a tenant on outage; errors remain visible and retry through online/focus/30s reconciliation. Two recovery tests passed.",
-    "evidence": "GitHub Actions run 38050129713: 271 unit/API, 33 Firestore Emulator, 50 UI, zero production vulnerabilities."
-  }
-}

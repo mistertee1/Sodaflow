@@ -10,8 +10,8 @@
   "lease": {
     "worker": "c5-tax-quotes-20261011",
     "acquired_at": "2026-10-11T04:48:12Z",
-    "heartbeat_at": "2026-10-11T04:48:12Z",
-    "expires_at": "2026-10-11T05:33:12.000Z",
+    "heartbeat_at": "2026-10-11T04:51:40Z",
+    "expires_at": "2026-10-11T05:36:40.000Z",
     "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
     "milestone": "C5.1"
   },
@@ -923,15 +923,30 @@
           "scope": "Configurable tax center, sales/purchase taxes, tax periods and reports",
           "status": "in_progress",
           "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
-          "pr": null,
+          "pr": 47,
           "substeps": [
             {
               "id": "C5.1",
               "scope": "Configurable tax policy validation and pure sales/purchase tax line quotes",
               "status": "in_progress",
               "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
-              "pr": null,
-              "render_acceptance": "not_exposed_no_command_or_ui"
+              "pr": 47,
+              "render_acceptance": "not_exposed_no_command_or_ui",
+              "report": "REPORT_C5_1_TAX_QUOTES.md",
+              "checks": {
+                "unit_api": 313,
+                "new_tests": 13,
+                "types": "passed_local",
+                "core": "passed_local",
+                "build": "passed_local",
+                "emulator": "pending_ci",
+                "ui": "pending_ci"
+              },
+              "ci": {
+                "run_id": 38112824166,
+                "commit_sha": "9b9d00df8839b380dbaff7df5e18cba503772966",
+                "conclusion": "in_progress"
+              }
             }
           ]
         },
@@ -1105,12 +1120,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_C4_3_FIXED_ASSET_UI.md",
+  "last_report": "REPORT_C5_1_TAX_QUOTES.md",
   "next_steps": [
-    "C5.1 configurable tax policy and pure sales/purchase tax quotes",
-    "Authenticated Render acceptance for C2/C3/C4 remains pending; no deployment authorized in this run"
+    "C5.2a protected versioned tax configuration persistence and audit",
+    "C5.2b/c source-linked sales/purchase tax posting, corrections, reconciliation and restore",
+    "C5.3 tax UI, periods, reports and authenticated Render acceptance"
   ],
-  "updated_at": "2026-10-11T04:48:12Z",
+  "updated_at": "2026-10-11T04:51:40Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1228,7 +1244,7 @@
     ],
     "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
   },
-  "next": "C5.1 configurable tax policy and pure sales/purchase tax quotes",
+  "next": "C5.2a protected versioned tax configuration persistence and audit",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",

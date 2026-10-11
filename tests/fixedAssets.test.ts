@@ -11,3 +11,12 @@ test('C4.1 validates life, dates, residual values and daily source date',()=>{fo
 test('C4.1 requires separate active fixed-asset contra and expense controls',()=>{for(const mutate of[(a:any[])=>a.find(x=>x.code==='1510').reporting_group='other_assets',(a:any[])=>a.find(x=>x.code==='1590').nature='DEBIT',(a:any[])=>a.find(x=>x.code==='5810').is_active=false]){const chart=structuredClone(accounts);mutate(chart);assert.throws(()=>fixedAssetRegistrationQuote(input,{...snapshot,accounts:chart}));}});
 test('C4.1 rejects duplicate/foreign charts and unbalanced source journals',()=>{for(const mutate of[(f:any)=>f.accounts.push({...f.accounts[0]}),(f:any)=>f.accounts[0].org_id='foreign',(f:any)=>f.journal_entries[0].lines[1].credit_sdg--]){const f=structuredClone(snapshot)as any;mutate(f);assert.throws(()=>fixedAssetRegistrationQuote(input,f));}});
 test('C4.1 rejects forged fields and invalid text or identifiers',()=>{for(const patch of[{journal_id:'forged'},{id:'../asset'},{name:' '},{reason:' '}])assert.throws(()=>fixedAssetRegistrationQuote({...input,...patch}as any,snapshot));});
+
+test('C4.3 low-value schedules never produce negative depreciation or exceed source cost', () => {
+  const f = structuredClone(snapshot), i = {...input, useful_life_months: 12, residual_value_sdg: 0, residual_value_usd: 0};
+  f.journal_entries[0].lines[0].debit_sdg = 7; f.journal_entries[0].lines[0].debit_usd = .07;
+  f.journal_entries[0].lines[1].credit_sdg = 7; f.journal_entries[0].lines[1].credit_usd = .07;
+  const q = fixedAssetRegistrationQuote(i, f);
+  assert.ok(q.schedule.every(row => row.depreciation_sdg >= 0 && row.depreciation_usd >= 0 && row.accumulated_sdg <= 7 && row.accumulated_usd <= .07));
+  assert.equal(q.schedule.at(-1)!.accumulated_sdg, 7); assert.equal(q.schedule.at(-1)!.accumulated_usd, .07);
+});

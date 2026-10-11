@@ -2,6 +2,7 @@ import type { OpeningInput } from '../domain/openingBalances';
 import type { OpeningTerms } from '../domain/openingSources';
 import type { OwnerEquityInput } from '../domain/ownerEquity';
 import type { FxRevaluationInput } from '../domain/fxRevaluation';
+import type { FixedAssetAction, FixedAssetPreview, FixedAssetPreviewRequest } from '../domain/fixedAssetPreview';
 import type { AccountingPeriod } from '../domain/periodContracts';
 import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
 import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
@@ -27,6 +28,10 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  fixedAssets: Document[];
+  fixedAssetDepreciations: Document[];
+  previewFixedAsset: (request: FixedAssetPreviewRequest, expectedOrgId: string) => Promise<FixedAssetPreview>;
+  saveFixedAsset: (action: FixedAssetAction, data: Document, expectedOrgId: string, requestId: string) => Promise<Document>;
   openingBatches: Document[];
   openingLots: Document[];
   openingSettlements: Document[];
@@ -418,6 +423,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
   const nothing = async () => {};
   const value: AppContextType = {
+    fixedAssets: rows<Document>('fixed_assets'), fixedAssetDepreciations: rows<Document>('fixed_asset_depreciations'),
+    previewFixedAsset: async (request, expectedOrgId) => {
+      const id = activeOrg.current, epoch = session.current;
+      if (!id || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409);
+      const preview = id === guestId && !userRef.current ? await getGuest().fixedAssetPreview(id, guestActor, request) : await api<FixedAssetPreview>(`/organizations/${encodeURIComponent(id)}/fixed-assets/preview`, {method: 'POST', body: JSON.stringify(request)});
+      if (id !== activeOrg.current || epoch !== session.current || preview.organizationId !== id) throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد المعاينة.', 409);
+      return preview;
+    },
+    saveFixedAsset: (action, data, expectedOrgId, requestId) => activeOrg.current === expectedOrgId ? run(action, data, requestId) : Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409)),
     openingBatches: rows<Document>('opening_batches'), openingLots: rows<Document>('opening_lots'), openingSettlements: rows<Document>('opening_settlements'),
     ownerEquityEvents: rows<Document>('owner_equity_events'), fxRevaluations: rows<Document>('fx_revaluations'),
     previewOpening: async (request, expectedOrgId) => {

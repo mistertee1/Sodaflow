@@ -162,14 +162,14 @@ export function fixedAssetDepreciationEvidence(
     date: input.date,
     amount_sdg: row.depreciation_sdg,
     amount_usd: row.depreciation_usd,
-    journal_id: journalId,
+    journal_id: row.depreciation_sdg > 0 || row.depreciation_usd > 0 ? journalId : null,
     operation_id: identity.operation_id,
     created_by: identity.created_by,
     created_at: identity.created_at,
     reason: input.reason,
     asset_revision_before: asset.revision,
   };
-  const entry = {
+  const entry = event.journal_id ? {
     ...journal(
       journalId,
       asset.org_id,
@@ -182,7 +182,7 @@ export function fixedAssetDepreciationEvidence(
       0,
     ),
     created_at: identity.created_at,
-  };
+  } : null;
   const accumulatedSdg = row.accumulated_sdg,
     accumulatedUsd = row.accumulated_usd,
     complete = input.sequence === asset.schedule.length,
@@ -239,6 +239,8 @@ export function verifyFixedAssetSources(
     const key = `${asset.source_journal_id}:${asset.source_line_index}`;
     ensure(!sourceLines.has(key), "مصدر شراء الأصل مستخدم أكثر من مرة.");
     sourceLines.add(key);
+    const liveSource = entries.filter(row => row.id === asset.source_journal_id);
+    ensure(liveSource.length === 1 && stable(liveSource[0]) === stable(asset.source_journal_basis), 'قيد شراء الأصل مفقود أو مختلف عن إثبات التسجيل.');
     const quote = fixedAssetRegistrationQuote(
       Object.fromEntries(
         registrationKeys.map((key) => [key, asset.input[key]]),
@@ -311,7 +313,7 @@ export function verifyFixedAssetSources(
           row.reference_id === event.id,
       );
       ensure(
-        linked.length === 1 && stable(linked[0]) === stable(derived.entry),
+        derived.entry ? linked.length === 1 && stable(linked[0]) === stable(derived.entry) : linked.length === 0,
         "قيد الإهلاك مفقود أو مختلف.",
       );
       current = derived.updated;

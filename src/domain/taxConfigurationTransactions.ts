@@ -66,29 +66,31 @@ export async function verifyTaxConfigurationSources(data: Record<string,Document
 
 export function taxConfigurationBackupCounts(data:Record<string,Document[]>){return{tax_configuration_count:(data.tax_configurations||[]).length,tax_configuration_version_count:(data.tax_configuration_versions||[]).length};}
 
-function verifyInvoiceTaxReference(invoice: Document, versions: Document[]) {
-  const evidence=invoice.tax_evidence;
+function verifyDocumentTaxReference(document: Document, versions: Document[], direction:'sales'|'purchases') {
+  const evidence=document.tax_evidence;
   if(!evidence)return;
   const id=identifier(evidence.configuration_id),revision=evidence.configuration_revision;
   ensure(Number.isSafeInteger(revision)&&revision>0&&typeof evidence.configuration_version_hash==='string','مرجع إصدار ضريبة الفاتورة غير صالح.',409);
   const version=versions.find(row=>row.configuration_id===id&&row.revision===revision);
   ensure(version&&version.id===`${id}-r${revision}`&&version.version_hash===evidence.configuration_version_hash,'مرجع ضريبة الفاتورة لا يطابق إصداراً محفوظاً.',409);
-  ensure(version.direction==='sales'&&version.rate===evidence.rate&&version.calculation===evidence.calculation&&version.rounding===evidence.rounding&&version.jurisdiction===evidence.jurisdiction&&version.tax_account_code===evidence.tax_account_code,'سياسة ضريبة الفاتورة لا تطابق الإصدار المحفوظ.',409);
+  ensure(version.direction===direction&&version.rate===evidence.rate&&version.calculation===evidence.calculation&&version.rounding===evidence.rounding&&version.jurisdiction===evidence.jurisdiction&&version.tax_account_code===evidence.tax_account_code,'سياسة ضريبة الفاتورة لا تطابق الإصدار المحفوظ.',409);
+  ensure(evidence.effective_on===document.issue_date,'تاريخ دليل الضريبة لا يطابق المستند.',409);
   ensure(evidence.effective_on>=version.effective_from&&(!version.effective_to||evidence.effective_on<=version.effective_to),'تاريخ ضريبة الفاتورة خارج صلاحية الإصدار المحفوظ.',409);
 }
 
 export async function validateTaxConfigurationBackup(backup:Document){
   const data=backup.collections;
   ensure(data&&typeof data==='object','مصادر النسخة غير صالحة.');
-  const configurations=data.tax_configurations||[],versions=data.tax_configuration_versions||[],taxed=(data.invoices||[]).filter((row:Document)=>row.tax_evidence);
-  const declared=backup.tax_configuration_schema_version!==undefined||backup.counters?.tax_configuration_count!==undefined||backup.counters?.tax_configuration_version_count!==undefined||configurations.length||versions.length||taxed.length;
+  const configurations=data.tax_configurations||[],versions=data.tax_configuration_versions||[],taxed=(data.invoices||[]).filter((row:Document)=>row.tax_evidence),taxedPurchases=(data.purchase_bills||[]).filter((row:Document)=>row.tax_evidence);
+  const declared=backup.tax_configuration_schema_version!==undefined||backup.counters?.tax_configuration_count!==undefined||backup.counters?.tax_configuration_version_count!==undefined||configurations.length||versions.length||taxed.length||taxedPurchases.length;
   if(declared){
     ensure(backup.tax_configuration_schema_version===1&&Array.isArray(data.tax_configurations)&&Array.isArray(data.tax_configuration_versions),'إعدادات الضرائب أو إصداراتها ناقصة في النسخة.',409);
     const counts=taxConfigurationBackupCounts(data);
     ensure(backup.counters?.tax_configuration_count===counts.tax_configuration_count&&backup.counters?.tax_configuration_version_count===counts.tax_configuration_version_count,'عدد إعدادات الضرائب أو إصداراتها في النسخة مختلف.',409);
     await verifyTaxConfigurationSources(data,identifier(backup.org?.id));
     for(const current of configurations)validateTaxControlAccount(validateTaxConfiguration(policy(current),identifier(backup.org?.id)),data.accounts as Account[],identifier(backup.org?.id));
-    for(const invoice of taxed)verifyInvoiceTaxReference(invoice,versions);
+    for(const invoice of taxed)verifyDocumentTaxReference(invoice,versions,'sales');
+    for(const bill of taxedPurchases)verifyDocumentTaxReference(bill,versions,'purchases');
   }
   return{tax_configurations:configurations,tax_configuration_versions:versions};
 }
@@ -100,7 +102,8 @@ export async function remapTaxConfigurations(data:Record<string,Document[]>,orgI
   return{
     tax_configurations:(data.tax_configurations||[]).map(row=>({...row,org_id:orgId,source_org_id:row.source_org_id||row.org_id,version_hash:hashes.get(`${row.id}-r${row.revision}`)})),
     tax_configuration_versions:versions,
-    invoices:(data.invoices||[]).map(row=>row.tax_evidence?{...row,org_id:orgId,tax_evidence:{...row.tax_evidence,configuration_version_hash:hashes.get(`${row.tax_evidence.configuration_id}-r${row.tax_evidence.configuration_revision}`)}}:{...row,org_id:orgId})
+    invoices:(data.invoices||[]).map(row=>row.tax_evidence?{...row,org_id:orgId,tax_evidence:{...row.tax_evidence,configuration_version_hash:hashes.get(`${row.tax_evidence.configuration_id}-r${row.tax_evidence.configuration_revision}`)}}:{...row,org_id:orgId}),
+    purchase_bills:(data.purchase_bills||[]).map(row=>row.tax_evidence?{...row,org_id:orgId,tax_evidence:{...row.tax_evidence,configuration_version_hash:hashes.get(`${row.tax_evidence.configuration_id}-r${row.tax_evidence.configuration_revision}`)}}:{...row,org_id:orgId})
   };
 }
 

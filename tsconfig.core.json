@@ -46,6 +46,7 @@
     "tests/fxRevaluationTransactions.test.ts",
     "tests/fixedAssets.test.ts",
     "tests/fixedAssetTransactions.test.ts",
-    "tests/ui/fixedAssets.spec.ts"
+    "tests/ui/fixedAssets.spec.ts",
+    "tests/taxConfiguration.test.ts"
   ]
 }

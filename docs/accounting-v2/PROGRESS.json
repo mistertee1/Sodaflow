@@ -7,7 +7,14 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "c5-tax-quotes-20261011",
+    "acquired_at": "2026-10-11T04:48:12Z",
+    "heartbeat_at": "2026-10-11T04:48:12Z",
+    "expires_at": "2026-10-11T05:33:12.000Z",
+    "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
+    "milestone": "C5.1"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -914,9 +921,19 @@
         {
           "id": "C5",
           "scope": "Configurable tax center, sales/purchase taxes, tax periods and reports",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
+          "pr": null,
+          "substeps": [
+            {
+              "id": "C5.1",
+              "scope": "Configurable tax policy validation and pure sales/purchase tax line quotes",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
+              "pr": null,
+              "render_acceptance": "not_exposed_no_command_or_ui"
+            }
+          ]
         },
         {
           "id": "C6",
@@ -1093,7 +1110,7 @@
     "C5.1 configurable tax policy and pure sales/purchase tax quotes",
     "Authenticated Render acceptance for C2/C3/C4 remains pending; no deployment authorized in this run"
   ],
-  "updated_at": "2026-10-11T04:47:40Z",
+  "updated_at": "2026-10-11T04:48:12Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1118,7 +1135,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C4.3",
+  "active_substep": "C5.1",
   "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
     {

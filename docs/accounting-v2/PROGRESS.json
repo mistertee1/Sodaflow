@@ -7,14 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "c4-fixed-assets-ui-20261011",
-    "acquired_at": "2026-10-11T04:32:30Z",
-    "heartbeat_at": "2026-10-11T04:45:27Z",
-    "expires_at": "2026-10-11T05:30:27.000Z",
-    "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
-    "milestone": "C4.3"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -835,7 +828,7 @@
         {
           "id": "C4",
           "scope": "Fixed asset register, straight-line depreciation and source-linked ledger lifecycle",
-          "status": "in_progress",
+          "status": "implemented_ci_passed_render_acceptance_pending",
           "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
           "pr": 45,
           "substeps": [
@@ -892,29 +885,29 @@
             {
               "id": "C4.3",
               "scope": "Fixed asset register, protected previews and depreciation posting UI with role/reload coverage",
-              "status": "implemented_ci_in_progress",
+              "status": "implemented_ci_passed_render_acceptance_pending",
               "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
               "pr": 46,
               "checks": {
                 "unit_api": 300,
                 "new_unit_api": 7,
-                "types": "passed_local_and_ci",
-                "core": "passed_local_and_ci",
-                "build": "passed_local_and_ci",
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 34,
                 "new_emulator": 1,
-                "emulator": "passed_ci_pending_count_confirmation",
                 "ui": 56,
                 "new_ui": 4,
-                "ui_status": "passed_local_ci_pending",
-                "production_audit": "passed_ci"
+                "production_audit_vulnerabilities": 0
               },
               "report": "REPORT_C4_3_FIXED_ASSET_UI.md",
               "ci": {
                 "run_id": 38112407756,
                 "commit_sha": "37e33f7c5e24c18383be8cf854f8523f3541c0bb",
-                "conclusion": "in_progress"
+                "conclusion": "success"
               },
-              "render_acceptance": "pending_matching_authenticated_staging_deploy_prohibited_in_this_run"
+              "render_acceptance": "pending_matching_authenticated_staging_deploy_prohibited_in_this_run",
+              "completed_at": "2026-10-11T04:47:40Z"
             }
           ]
         },
@@ -1097,9 +1090,10 @@
   ],
   "last_report": "REPORT_C4_3_FIXED_ASSET_UI.md",
   "next_steps": [
-    "C4.3 fixed asset register/depreciation UI, role/reload and Render acceptance"
+    "C5.1 configurable tax policy and pure sales/purchase tax quotes",
+    "Authenticated Render acceptance for C2/C3/C4 remains pending; no deployment authorized in this run"
   ],
-  "updated_at": "2026-10-11T04:45:27Z",
+  "updated_at": "2026-10-11T04:47:40Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1187,14 +1181,23 @@
       "branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
       "pr": 45,
       "code_commit": "ab2bc849b05bb36bd201d0d3c09f83adef28cbc8"
+    },
+    {
+      "worker": "c4-fixed-assets-ui-20261011",
+      "acquired_at": "2026-10-11T04:32:30Z",
+      "released_at": "2026-10-11T04:47:40Z",
+      "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
+      "pr": 46,
+      "code_commit": "37e33f7c5e24c18383be8cf854f8523f3541c0bb"
     }
   ],
   "last_lease": {
-    "worker": "c4-fixed-assets-transactions-20261011",
-    "released_at": "2026-10-11T03:41:00.000Z",
-    "branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
-    "pr": 45,
-    "code_commit": "ab2bc849b05bb36bd201d0d3c09f83adef28cbc8"
+    "worker": "c4-fixed-assets-ui-20261011",
+    "acquired_at": "2026-10-11T04:32:30Z",
+    "released_at": "2026-10-11T04:47:40Z",
+    "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
+    "pr": 46,
+    "code_commit": "37e33f7c5e24c18383be8cf854f8523f3541c0bb"
   },
   "last_remote_review": {
     "checked_at": "2026-10-10T06:48:42.580Z",
@@ -1208,7 +1211,7 @@
     ],
     "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
   },
-  "next": "C4.3 fixed asset register/depreciation UI, role/reload and Render acceptance",
+  "next": "C5.1 configurable tax policy and pure sales/purchase tax quotes",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1229,22 +1232,20 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c4-fixed-assets-transactions-20261011",
-    "branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
-    "pr": 45,
-    "code_commit": "ab2bc849b05bb36bd201d0d3c09f83adef28cbc8",
+    "worker": "c4-fixed-assets-ui-20261011",
+    "acquired_at": "2026-10-11T04:32:30Z",
+    "released_at": "2026-10-11T04:47:40Z",
+    "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
+    "pr": 46,
+    "code_commit": "37e33f7c5e24c18383be8cf854f8523f3541c0bb",
     "ci": {
-      "run_id": 38108879973,
-      "commit_sha": "ab2bc849b05bb36bd201d0d3c09f83adef28cbc8",
-      "conclusion": "success",
-      "unit_api": 293,
-      "emulator": 33,
-      "ui": 52,
-      "production_audit_vulnerabilities": 0
+      "run_id": 38112407756,
+      "commit_sha": "37e33f7c5e24c18383be8cf854f8523f3541c0bb",
+      "conclusion": "success"
     },
-    "status": "C4_2_fixed_asset_transactions_ci_passed",
-    "ended_at": "2026-10-11T03:41:00.000Z",
-    "next": "C4.3 fixed asset register/depreciation UI, role/reload and Render acceptance"
+    "status": "C4_3_fixed_asset_UI_ci_passed",
+    "ended_at": "2026-10-11T04:47:40Z",
+    "next": "C5.1 configurable tax policy and pure sales/purchase tax quotes"
   },
   "acceptance_environment": {
     "provider": "Render",

@@ -5,6 +5,7 @@ import { invoiceFinancials } from './financial';
 import { dateOnly, ensure, identifier, money, validateJournal } from './validation';
 import type { BookAmount, ReturnBasis } from './returnQuotes';
 import type { PurchaseBill } from './payables';
+import { allocatePurchaseTaxLineValues, type PurchaseTaxSourceInput } from './purchaseTaxSources';
 import { acquisitionCost } from './inventoryCost';
 
 const books = ['sdg', 'usd'] as const;
@@ -107,13 +108,17 @@ export function buildPurchaseReturnBases(bill: PurchaseBill & { payment_account_
   ensure(bill.settlement !== 'cash' || !['2110', '1300'].includes(bill.payment_account_code), 'حساب السداد النقدي الأصلي غير صالح.');
   money(bill.exchange_rate_used, 8);
   ensure(Array.isArray(bill.items) && bill.items.length > 0 && bill.items.length <= 100, 'بنود مصدر مردود الشراء غير صالحة.');
+  const taxInput=bill.tax_evidence?{configuration_id:bill.tax_evidence.configuration_id,expected_configuration_revision:bill.tax_evidence.configuration_revision,issue_date:issueDate,currency:bill.currency,exchange_rate_used:bill.exchange_rate_used,items:bill.items.map(item=>({product_id:item.product_id,quantity:item.quantity,unit_cost:item.unit_cost}))} as PurchaseTaxSourceInput:undefined;
+  const taxAllocations=taxInput?allocatePurchaseTaxLineValues(taxInput,bill.tax_evidence as any):undefined;
   const ids = new Set<string>();
-  const bases = bill.items.map((item): ReturnBasis => {
+  const bases = bill.items.map((item,index): ReturnBasis => {
     identifier(item.id); identifier(item.product_id); ensure(!ids.has(item.id), 'معرف بند الشراء الأصلي مكرر.'); ids.add(item.id);
     const value = acquisitionCost(item.quantity, { cost_currency: bill.currency, unit_cost: item.unit_cost, exchange_rate_used: bill.exchange_rate_used, zero_cost_reason: item.zero_cost_reason });
-    ensure(new BigNumber(value.sdg).eq(item.value_sdg) && new BigNumber(value.usd).eq(item.value_usd), 'قيمة بند الشراء لا تطابق تكلفة الاستلام الأصلية.', 409);
+    const inventory=taxAllocations?.[index]?.inventory||value,supplier=taxAllocations?.[index]?.supplier||value;
+    ensure(new BigNumber(inventory.sdg).eq(item.value_sdg) && new BigNumber(inventory.usd).eq(item.value_usd), 'قيمة بند الشراء لا تطابق تكلفة الاستلام الأصلية.', 409);
+    ensure(!taxAllocations||(new BigNumber(supplier.sdg).eq(item.supplier_credit_sdg)&&new BigNumber(supplier.usd).eq(item.supplier_credit_usd)),'حصة بند الشراء من إجمالي المورد لا تطابق دليل الضريبة.',409);
     const sourceId = returnSourceId(bill.id, item.id);
-    return { source_id: sourceId, quantity: item.quantity, components: { supplier_credit: value } };
+    return { source_id: sourceId, quantity: item.quantity, components: { supplier_credit: {sdg:supplier.sdg,usd:supplier.usd} } };
   });
   const total: BookAmount = { sdg: 0, usd: 0 };
   for (const book of books) {
@@ -128,11 +133,14 @@ export function buildPurchaseReturnBases(bill: PurchaseBill & { payment_account_
   money(original.exchange_rate_used, 8); ensure(original.exchange_rate_used === bill.exchange_rate_used, 'سعر صرف الشراء لا يطابق قيد المصدر.', 409);
   const checked = validateJournal(original.lines);
   ensure(original.is_balanced === true && (Object.keys(checked) as (keyof typeof checked)[]).every(key => checked[key] === original[key]), 'إجماليات قيد الشراء لا تطابق أطرافه.', 409);
-  ensure(original.lines.every(line => ['1300', bill.payment_account_code].includes(line.account_code)), 'قيد الشراء يتضمن حساباً مختلفاً.', 409);
-  for (const book of books) for (const [code, side] of [['1300', 'debit'], [bill.payment_account_code, 'credit']] as const) {
+  const taxCode=bill.tax_evidence?.tax_treatment==='receivable'?bill.tax_evidence.tax_account_code:null;
+  ensure(original.lines.every(line => ['1300', bill.payment_account_code,...(taxCode?[taxCode]:[])].includes(line.account_code)), 'قيد الشراء يتضمن حساباً مختلفاً.', 409);
+  const inventoryTotal={sdg:bill.items.reduce((n,item)=>n.plus(item.value_sdg),new BigNumber(0)).toNumber(),usd:bill.items.reduce((n,item)=>n.plus(item.value_usd),new BigNumber(0)).toNumber()};
+  for (const book of books) for (const [code, side,target] of [['1300', 'debit',inventoryTotal[book]], [bill.payment_account_code, 'credit',total[book]]] as const) {
     const opposite = side === 'debit' ? 'credit' : 'debit';
     const matching = original.lines.filter(line => line.account_code === code);
-    ensure(matching.reduce((n, line) => n.plus(line[`${side}_${book}`]), new BigNumber(0)).eq(total[book]) && matching.every(line => line[`${opposite}_${book}`] === 0), 'قيمة الشراء لا تطابق مخزونه/سداد مصدره.', 409);
+    ensure(matching.reduce((n, line) => n.plus(line[`${side}_${book}`]), new BigNumber(0)).eq(target) && matching.every(line => line[`${opposite}_${book}`] === 0), 'قيمة الشراء لا تطابق مخزونه/سداد مصدره.', 409);
   }
+  if(taxCode)for(const book of books){const matching=original.lines.filter(line=>line.account_code===taxCode);ensure(matching.reduce((n,line)=>n.plus(line[`debit_${book}`]),new BigNumber(0)).eq(bill.tax_evidence?.[book]?.tax||0)&&matching.every(line=>line[`credit_${book}`]===0),'قيمة ضريبة الشراء القابلة للاسترداد لا تطابق قيدها.',409);}
   return { bill_id: bill.id, journal_id: original.id, issue_date: issueDate, org_id: expectedOrgId, bases };
 }

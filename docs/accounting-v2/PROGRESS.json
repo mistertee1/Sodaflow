@@ -8,11 +8,12 @@
   "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "c5-tax-config-transactions-20261011",
-    "acquired_at": "2026-10-11T05:28:58.961Z",
-    "expires_at": "2026-10-11T06:18:58.961Z",
+    "worker": "c5-tax-config-transactions-resume-20261011",
+    "acquired_at": "2026-10-11T06:40:00.000Z",
+    "heartbeat_at": "2026-10-11T06:40:00.000Z",
+    "expires_at": "2026-10-11T07:25:00.000Z",
     "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
-    "purpose": "C5.2a protected versioned tax configuration persistence and audit"
+    "purpose": "Resume C5.2a protected versioned tax configuration persistence and audit after expired idle lease"
   },
   "milestones": [
     {

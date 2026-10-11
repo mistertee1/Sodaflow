@@ -7,14 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "c5-tax-config-hardening-20261011",
-    "acquired_at": "2026-10-11T09:36:37.349Z",
-    "heartbeat_at": "2026-10-11T09:36:37.349Z",
-    "expires_at": "2026-10-11T10:31:37.349Z",
-    "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
-    "purpose": "Harden and finalize C5.2a after reviewing successful initial CI"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -922,8 +915,8 @@
           "id": "C5",
           "scope": "Configurable tax center, sales/purchase taxes, tax periods and reports",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
-          "pr": 47,
+          "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
+          "pr": 48,
           "substeps": [
             {
               "id": "C5.1",
@@ -949,6 +942,31 @@
                 "conclusion": "success"
               },
               "completed_at": "2026-10-11T04:56:11Z"
+            },
+            {
+              "id": "C5.2a",
+              "scope": "Protected versioned tax configuration persistence, audit and tamper-evident hash chain",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
+              "pr": 48,
+              "report": "REPORT_C5_2A_TAX_CONFIG_TRANSACTIONS.md",
+              "checks": {
+                "unit_api": 317,
+                "new_tests": 4,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 34,
+                "ui": 56,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38129634478,
+                "commit_sha": "3ca2c0d6644181c5a1385d6eb78f8cc9ce25436e",
+                "conclusion": "success"
+              },
+              "render_acceptance": "not_exposed_no_operational_ui",
+              "completed_at": "2026-10-11T10:49:00Z"
             }
           ]
         },
@@ -1122,13 +1140,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_C5_1_TAX_QUOTES.md",
+  "last_report": "REPORT_C5_2A_TAX_CONFIG_TRANSACTIONS.md",
   "next_steps": [
-    "C5.2a protected versioned tax configuration persistence and audit",
-    "C5.2b/c source-linked sales/purchase tax posting, corrections, reconciliation and restore",
+    "C5.2b source-linked sales tax posting and corrections",
+    "C5.2c purchase tax posting, reconciliation and strict restore",
     "C5.3 tax UI, periods, reports and authenticated Render acceptance"
   ],
-  "updated_at": "2026-10-11T09:36:37.349Z",
+  "updated_at": "2026-10-11T10:49:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1153,7 +1171,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C5.2a",
+  "active_substep": "C5.2b",
   "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
     {
@@ -1232,15 +1250,23 @@
       "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
       "pr": 47,
       "code_commit": "9b9d00df8839b380dbaff7df5e18cba503772966"
+    },
+    {
+      "worker": "c5-tax-config-hardening-20261011",
+      "acquired_at": "2026-10-11T09:36:37.349Z",
+      "released_at": "2026-10-11T10:49:00Z",
+      "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
+      "pr": 48,
+      "code_commit": "3ca2c0d6644181c5a1385d6eb78f8cc9ce25436e"
     }
   ],
   "last_lease": {
-    "worker": "c5-tax-quotes-20261011",
-    "acquired_at": "2026-10-11T04:48:12Z",
-    "released_at": "2026-10-11T04:56:11Z",
-    "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
-    "pr": 47,
-    "code_commit": "9b9d00df8839b380dbaff7df5e18cba503772966"
+    "worker": "c5-tax-config-hardening-20261011",
+    "acquired_at": "2026-10-11T09:36:37.349Z",
+    "released_at": "2026-10-11T10:49:00Z",
+    "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
+    "pr": 48,
+    "code_commit": "3ca2c0d6644181c5a1385d6eb78f8cc9ce25436e"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1254,7 +1280,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "C5.2a protected versioned tax configuration persistence and audit",
+  "next": "C5.2b source-linked sales tax posting and corrections",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1275,20 +1301,20 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c5-tax-quotes-20261011",
-    "acquired_at": "2026-10-11T04:48:12Z",
-    "released_at": "2026-10-11T04:56:11Z",
-    "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
-    "pr": 47,
-    "code_commit": "9b9d00df8839b380dbaff7df5e18cba503772966",
+    "worker": "c5-tax-config-hardening-20261011",
+    "acquired_at": "2026-10-11T09:36:37.349Z",
+    "released_at": "2026-10-11T10:49:00Z",
+    "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
+    "pr": 48,
+    "code_commit": "3ca2c0d6644181c5a1385d6eb78f8cc9ce25436e",
     "ci": {
-      "run_id": 38112824166,
-      "commit_sha": "9b9d00df8839b380dbaff7df5e18cba503772966",
+      "run_id": 38129634478,
+      "commit_sha": "3ca2c0d6644181c5a1385d6eb78f8cc9ce25436e",
       "conclusion": "success"
     },
-    "status": "C5_1_tax_configuration_quotes_ci_passed",
-    "ended_at": "2026-10-11T04:56:11Z",
-    "next": "C5.2a protected versioned tax configuration persistence and audit"
+    "status": "C5_2a_tax_configuration_persistence_ci_passed",
+    "ended_at": "2026-10-11T10:49:00Z",
+    "next": "C5.2b source-linked sales tax posting and corrections"
   },
   "acceptance_environment": {
     "provider": "Render",

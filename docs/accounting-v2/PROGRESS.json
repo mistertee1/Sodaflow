@@ -7,7 +7,13 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "c5-tax-config-transactions-20261011",
+    "acquired_at": "2026-10-11T05:28:58.961Z",
+    "expires_at": "2026-10-11T06:18:58.961Z",
+    "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
+    "purpose": "C5.2a protected versioned tax configuration persistence and audit"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1121,7 +1127,7 @@
     "C5.2b/c source-linked sales/purchase tax posting, corrections, reconciliation and restore",
     "C5.3 tax UI, periods, reports and authenticated Render acceptance"
   ],
-  "updated_at": "2026-10-11T04:56:11Z",
+  "updated_at": "2026-10-11T05:28:58.961Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1146,7 +1152,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C5.1",
+  "active_substep": "C5.2a",
   "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
     {

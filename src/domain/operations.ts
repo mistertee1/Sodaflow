@@ -8,7 +8,8 @@ import { ownerEquityTransaction } from './ownerEquityTransactions';
 import { fixedAssetTransaction } from './fixedAssetTransactions';
 import { quoteFixedAsset, type FixedAssetPreviewRequest } from './fixedAssetPreview';
 import { fixedAssetCollections, fixedAssetBackupCounts, remapFixedAssets, validateFixedAssetBackup, verifyFixedAssetSources } from './fixedAssetSources';
-import { taxConfigurationCommand } from './taxConfigurationTransactions';
+import { taxConfigurationCommand, validateTaxConfigurationVersions } from './taxConfigurationTransactions';
+import { salesTaxSourceQuote } from './salesTaxSources';
 import { periodCollections, assertPeriodPosting, assertRecentOwner, validatePeriods, verifyClosedPeriodHashes } from './periodContracts';
 import { periodCommand, closeChecklist } from './accountingPeriods';
 import { readOpeningPreview } from './openingPreview';
@@ -592,7 +593,20 @@ export class Operations {
           if (data.due_date) ensure(dateOnly(data.due_date) >= dateOnly(data.issue_date), 'تاريخ الاستحقاق قبل الإصدار.');
           ensure(!(data.paid_amount_sdg || data.paid_amount_usd), 'سجّل التحصيل بسند قبض بعد إصدار الفاتورة.');
           const customer = await required('customers', data.customer_id);
-          const financials = invoiceFinancials(data, settings);
+          const baseFinancials = invoiceFinancials(data, settings);
+          let taxEvidence: Document | undefined;
+          if (data.tax_configuration_id !== undefined || data.expected_tax_configuration_revision !== undefined) {
+            ensure(data.tax_configuration_id && data.expected_tax_configuration_revision, 'معرف وإصدار إعداد الضريبة مطلوبان معاً.');
+            const current = await required('tax_configurations', data.tax_configuration_id);
+            await validateTaxConfigurationVersions(tx, root, orgId, current);
+            const configuration = pick(current, ['schema_version','id','org_id','revision','name','jurisdiction','direction','rate','calculation','rounding','recoverable','tax_account_code','effective_from','effective_to','active']);
+            taxEvidence = salesTaxSourceQuote({configuration_id:data.tax_configuration_id,expected_configuration_revision:data.expected_tax_configuration_revision,issue_date:data.issue_date,currency_mode:data.currency_mode,exchange_rate_used:data.exchange_rate_used||0,discount_type:data.discount_type,discount_value:data.discount_value||0,items:data.items}, {org_id:orgId,configurations:[configuration as any],accounts:await tx.list(`${root}/accounts`) as Account[]}, settings);
+            taxEvidence.configuration_version_hash = current.version_hash;
+          }
+          const financials = taxEvidence ? {...baseFinancials,
+            subtotal_sdg:safeAdd(taxEvidence.sdg.base,baseFinancials.discount_total_sdg,0),subtotal_usd:safeAdd(taxEvidence.usd.base,baseFinancials.discount_total_usd,2),
+            tax_total_sdg:taxEvidence.sdg.tax,tax_total_usd:taxEvidence.usd.tax,grand_total_sdg:taxEvidence.sdg.total,grand_total_usd:taxEvidence.usd.total,
+            remaining_sdg:taxEvidence.sdg.total,remaining_usd:taxEvidence.usd.total} : baseFinancials;
           const month = monthKey(now, settings.timezone || 'Africa/Khartoum');
           // Legacy counters are repaired from authoritative documents inside the same transaction.
           const existing = counters.invoice_month === month ? undefined : await tx.list(`${root}/invoices`);
@@ -609,7 +623,7 @@ export class Operations {
           while (await tx.get(numberKey)) { number++; numberKey = `${root}/invoice_numbers/${encodeURIComponent(`${prefix}${String(number).padStart(4, '0')}`)}`; }
           ensure(Number.isSafeInteger(number) && number <= 999999999, 'تسلسل الفواتير يحتاج مراجعة.');
           const id = `inv-${command.operationId}`;
-          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone, customer_address: customer.address || '', ...financials, paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
+          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
           invoice.receivable_currency = receivableCurrency(invoice);
           let cogsSdg = 0, cogsUsd = 0;
           for (const item of invoice.items) item.cost_status = item.product_id ? 'unknown' : 'not_tracked';
@@ -635,7 +649,7 @@ export class Operations {
           const lines = [journalLine('1200', 'ذمم العملاء', invoice.grand_total_sdg, 0, invoice.grand_total_usd, 0)];
           const revenueSdg = safeSub(invoice.grand_total_sdg, invoice.tax_total_sdg, 0), revenueUsd = safeSub(invoice.grand_total_usd, invoice.tax_total_usd, 2);
           if (revenueSdg || revenueUsd) lines.push(journalLine('4100', 'إيراد المبيعات', 0, revenueSdg, 0, revenueUsd));
-          if (invoice.tax_total_sdg || invoice.tax_total_usd) lines.push(journalLine('2130', 'ضريبة المبيعات المستحقة', 0, invoice.tax_total_sdg, 0, invoice.tax_total_usd));
+          if (invoice.tax_total_sdg || invoice.tax_total_usd) lines.push(journalLine(taxEvidence?.tax_account_code||'2130', 'ضريبة المبيعات المستحقة', 0, invoice.tax_total_sdg, 0, invoice.tax_total_usd));
           invoice.costing_status = invoice.items.some(item => item.cost_status === 'unknown') ? 'incomplete' : 'complete';
           invoice.costing_version = 2; invoice.cogs_sdg = cogsSdg; invoice.cogs_usd = cogsUsd;
           if (cogsSdg || cogsUsd) lines.push(journalLine('5100', 'تكلفة البضاعة المباعة', cogsSdg, 0, cogsUsd, 0), journalLine('1300', 'المخزون', 0, cogsSdg, 0, cogsUsd));

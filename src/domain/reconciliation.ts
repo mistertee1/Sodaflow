@@ -100,7 +100,15 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
       dateOnly(invoice.issue_date);
       const hasCorrections = (data.credit_notes || []).some(row => row.invoice_id === invoice.id);
       const originalRule = hasCorrections ? buildSalesReturnBases(invoice as Invoice, sourceEntries('invoice', invoice.id) as any, invoice.org_id).rounding_rule : settings.rounding_rule;
-      const calculated = invoiceFinancials(invoice as Invoice, { ...settings, rounding_rule: originalRule });
+      const untaxedInvoice = invoice.tax_evidence ? {...invoice,items:invoice.items.map((item:Document)=>({...item,tax_rate:0}))} : invoice;
+      const baseCalculated = invoiceFinancials(untaxedInvoice as Invoice, { ...settings, rounding_rule: originalRule });
+      const evidence=invoice.tax_evidence;
+      if(evidence) {
+        identifier(evidence.configuration_id);dateOnly(evidence.effective_on);identifier(evidence.tax_account_code);
+        if(evidence.effective_on!==invoice.issue_date||!Number.isSafeInteger(evidence.configuration_revision)||evidence.configuration_revision<1||!['exclusive','inclusive'].includes(evidence.calculation)||!['SDG','USD'].includes(evidence.source_currency)) throw new Error('دليل ضريبة الفاتورة غير صالح.');
+        for(const book of ['sdg','usd'] as const) {for(const field of ['base','tax','total']) money(evidence[book][field],book==='sdg'?0:2);if(!new BigNumber(evidence[book].base).plus(evidence[book].tax).eq(evidence[book].total)) throw new Error('دليل ضريبة الفاتورة غير متوازن.');}
+      }
+      const calculated = evidence ? {...baseCalculated,subtotal_sdg:new BigNumber(evidence.sdg.base).plus(baseCalculated.discount_total_sdg).toNumber(),subtotal_usd:new BigNumber(evidence.usd.base).plus(baseCalculated.discount_total_usd).toNumber(),tax_total_sdg:evidence.sdg.tax,tax_total_usd:evidence.usd.tax,grand_total_sdg:evidence.sdg.total,grand_total_usd:evidence.usd.total} : baseCalculated;
       for (const field of ['subtotal_sdg', 'subtotal_usd', 'discount_total_sdg', 'discount_total_usd', 'tax_total_sdg', 'tax_total_usd', 'grand_total_sdg', 'grand_total_usd'] as const) compare('invoices', invoice.id, field, calculated[field], invoice[field]);
       money(invoice.remaining_sdg, 0); money(invoice.remaining_usd, 2); money(invoice.paid_amount_sdg, 0); money(invoice.paid_amount_usd, 2);
       for (const item of invoice.items) if (item.product_id && !indexes.products.has(item.product_id)) add('missing_product', 'invoices', invoice.id, { message: item.product_id });

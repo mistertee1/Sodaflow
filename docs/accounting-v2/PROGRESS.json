@@ -10,9 +10,10 @@
   "lease": {
     "worker": "c5-tax-lifecycle-integration-20261011",
     "acquired_at": "2026-10-11T20:35:19Z",
-    "expires_at": "2026-10-11T21:35:19Z",
+    "expires_at": "2026-10-11T22:35:19Z",
     "branch": "codex/accounting-v2-c5-tax-lifecycle-integrated-20261011",
-    "purpose": "Integrate C5.2c tax backup strictness, tenant-bound invoice evidence remapping, purchase tax source foundation and reconciliation without overwriting parallel work"
+    "purpose": "Continue C5.2c purchase tax posting, configured correction lifecycle and reconciliation on integrated PR53",
+    "heartbeat_at": "2026-10-11T21:18:00Z"
   },
   "milestones": [
     {
@@ -1176,7 +1177,7 @@
     "C5.2c configured sales correction lifecycle, purchase tax posting, reconciliation and strict restore",
     "C5.3 tax UI, periods, reports and authenticated Render acceptance"
   ],
-  "updated_at": "2026-10-11T20:35:19Z",
+  "updated_at": "2026-10-11T21:18:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1326,7 +1327,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Integrate PR51 and PR52 unique C5.2c safeguards, run full verification, then continue purchase posting and configured correction lifecycle",
+  "next": "Publish and verify configured purchase tax posting, then implement tax-preserving sales and purchase corrections",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",

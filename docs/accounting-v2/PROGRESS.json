@@ -967,6 +967,31 @@
               },
               "render_acceptance": "not_exposed_no_operational_ui",
               "completed_at": "2026-10-11T10:49:00Z"
+            },
+            {
+              "id": "C5.2b",
+              "scope": "Source-linked configured sales tax evidence and atomic invoice/AR/revenue/tax posting",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c5-sales-tax-transactions-20261011",
+              "pr": 50,
+              "report": "REPORT_C5_2B_SALES_TAX_TRANSACTIONS.md",
+              "checks": {
+                "unit_api": 323,
+                "new_tests": 6,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 34,
+                "ui": 56,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38142139448,
+                "commit_sha": "aba2586308b745f429ce4d247ed358c997997c91",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-11T13:41:00Z"
             }
           ]
         },
@@ -1140,13 +1165,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_C5_2A_TAX_CONFIG_TRANSACTIONS.md",
+  "last_report": "REPORT_C5_2B_SALES_TAX_TRANSACTIONS.md",
   "next_steps": [
-    "C5.2b source-linked sales tax posting and corrections",
-    "C5.2c purchase tax posting, reconciliation and strict restore",
+    "C5.2c configured sales correction lifecycle, purchase tax posting, reconciliation and strict restore",
     "C5.3 tax UI, periods, reports and authenticated Render acceptance"
   ],
-  "updated_at": "2026-10-11T13:12:00Z",
+  "updated_at": "2026-10-11T13:41:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1323,14 +1347,18 @@
     "released_at": "2026-10-11T13:12:00Z",
     "pr": 50,
     "code_commit": "2ff2e8edea1528e9573e991500e03339fee2ba3a",
-    "status": "C5_2b_atomic_sales_tax_posting_implemented_ci_running",
-    "ended_at": "2026-10-11T13:12:00Z",
+    "status": "C5_2b_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-11T13:41:00Z",
     "ci": {
-      "run_id": 38141907161,
-      "commit_sha": "2ff2e8edea1528e9573e991500e03339fee2ba3a",
-      "conclusion": "in_progress"
+      "run_id": 38142139448,
+      "commit_sha": "aba2586308b745f429ce4d247ed358c997997c91",
+      "conclusion": "success",
+      "unit_api": 323,
+      "emulator": 34,
+      "ui": 56,
+      "production_audit_vulnerabilities": 0
     },
-    "next": "Verify CI, then finalize C5.2b report or fix findings; proceed to C5.2c configured tax corrections/purchases/restore"
+    "next": "Proceed to C5.2c configured sales corrections, purchase tax posting, tax configuration backup/restore and reconciliation"
   },
   "acceptance_environment": {
     "provider": "Render",

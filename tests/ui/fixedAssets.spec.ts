@@ -74,7 +74,8 @@ test('C4.3 rejected residual value preserves draft; changes invalidate reviewed 
   await form.getByLabel('العمر الإنتاجي بالأشهر').fill('24'); await expect(preview).toHaveCount(0); await form.getByRole('button', {name: 'معاينة الأصل بدون حفظ'}).click(); await expect(preview.getByRole('row')).toHaveCount(25); await expect(preview.getByRole('checkbox')).not.toBeChecked();
 });
 
-test('C4.3 Accountant can review and post next installment; closed period error keeps the reason and data unchanged', async ({page}) => {
+test('C4.3 Accountant can review and post next installment; uncovered period keeps the reason and data unchanged', async ({page}) => {
+  await page.clock.install({time: new Date('2026-11-30T12:00:00Z')});
   await seed(page, 'Accountant', true); await page.getByRole('button', {name: 'عرض الأصل حاسوب المبيعات'}).click();
   await page.getByLabel('سبب قسط الإهلاك').fill('إهلاك المحاسب'); await page.getByRole('button', {name: 'معاينة قسط الإهلاك بدون حفظ'}).click();
   const preview = page.getByRole('region', {name: 'معاينة الأصل المحمية'}); await expect(preview).toBeVisible();

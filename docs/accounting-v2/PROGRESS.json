@@ -7,11 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "c4-fixed-assets-transactions-20261011",
-    "acquired_at": "2026-10-11T03:28:00.000Z",
-    "expires_at": "2026-10-11T04:05:00.000Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -833,8 +829,8 @@
           "id": "C4",
           "scope": "Fixed asset register, straight-line depreciation and source-linked ledger lifecycle",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
-          "pr": 44,
+          "branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
+          "pr": 45,
           "substeps": [
             {
               "id": "C4.1",
@@ -860,6 +856,31 @@
               },
               "render_acceptance": "not_exposed_no_command_or_ui",
               "completed_at": "2026-10-11T02:42:00.000Z"
+            },
+            {
+              "id": "C4.2",
+              "scope": "Protected atomic fixed asset registration, depreciation posting, reconciliation and backup",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
+              "pr": 45,
+              "report": "REPORT_C4_2_FIXED_ASSET_TRANSACTIONS.md",
+              "checks": {
+                "unit_api": 293,
+                "new_tests": 4,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 33,
+                "ui": 52,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38108879973,
+                "commit_sha": "ab2bc849b05bb36bd201d0d3c09f83adef28cbc8",
+                "conclusion": "success"
+              },
+              "render_acceptance": "not_exposed_no_ui",
+              "completed_at": "2026-10-11T03:41:00.000Z"
             }
           ]
         },
@@ -1040,11 +1061,11 @@
       ]
     }
   ],
-  "last_report": "REPORT_C4_1_FIXED_ASSET_QUOTES.md",
+  "last_report": "REPORT_C4_2_FIXED_ASSET_TRANSACTIONS.md",
   "next_steps": [
-    "C4.2 protected atomic asset registration and depreciation posting lifecycle"
+    "C4.3 fixed asset register/depreciation UI, role/reload and Render acceptance"
   ],
-  "updated_at": "2026-10-11T02:42:00.000Z",
+  "updated_at": "2026-10-11T03:41:00.000Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1069,7 +1090,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C4.1",
+  "active_substep": "C4.2",
   "observed_main_sha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
   "lease_history": [
     {
@@ -1124,14 +1145,22 @@
       "branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
       "pr": 44,
       "code_commit": "e3039bfc0bac3b6eb12504a2f92f596bab69e746"
+    },
+    {
+      "worker": "c4-fixed-assets-transactions-20261011",
+      "acquired_at": "2026-10-11T03:28:00.000Z",
+      "released_at": "2026-10-11T03:41:00.000Z",
+      "branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
+      "pr": 45,
+      "code_commit": "ab2bc849b05bb36bd201d0d3c09f83adef28cbc8"
     }
   ],
   "last_lease": {
-    "worker": "c4-fixed-assets-quotes-20261010",
-    "released_at": "2026-10-11T02:42:00.000Z",
-    "branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
-    "pr": 44,
-    "code_commit": "e3039bfc0bac3b6eb12504a2f92f596bab69e746"
+    "worker": "c4-fixed-assets-transactions-20261011",
+    "released_at": "2026-10-11T03:41:00.000Z",
+    "branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
+    "pr": 45,
+    "code_commit": "ab2bc849b05bb36bd201d0d3c09f83adef28cbc8"
   },
   "last_remote_review": {
     "checked_at": "2026-10-10T06:48:42.580Z",
@@ -1145,7 +1174,7 @@
     ],
     "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
   },
-  "next": "C4.2 protected atomic asset registration and depreciation posting lifecycle",
+  "next": "C4.3 fixed asset register/depreciation UI, role/reload and Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1166,22 +1195,22 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c4-fixed-assets-quotes-20261010",
-    "branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
-    "pr": 44,
-    "code_commit": "e3039bfc0bac3b6eb12504a2f92f596bab69e746",
+    "worker": "c4-fixed-assets-transactions-20261011",
+    "branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
+    "pr": 45,
+    "code_commit": "ab2bc849b05bb36bd201d0d3c09f83adef28cbc8",
     "ci": {
-      "run_id": 38105712957,
-      "commit_sha": "e3039bfc0bac3b6eb12504a2f92f596bab69e746",
+      "run_id": 38108879973,
+      "commit_sha": "ab2bc849b05bb36bd201d0d3c09f83adef28cbc8",
       "conclusion": "success",
-      "unit_api": 289,
+      "unit_api": 293,
       "emulator": 33,
       "ui": 52,
       "production_audit_vulnerabilities": 0
     },
-    "status": "C4_1_fixed_asset_quotes_ci_passed",
-    "ended_at": "2026-10-11T02:42:00.000Z",
-    "next": "C4.2 protected atomic asset registration and depreciation posting lifecycle"
+    "status": "C4_2_fixed_asset_transactions_ci_passed",
+    "ended_at": "2026-10-11T03:41:00.000Z",
+    "next": "C4.3 fixed asset register/depreciation UI, role/reload and Render acceptance"
   },
   "acceptance_environment": {
     "provider": "Render",
@@ -1198,3 +1227,7 @@
   "integration_regressions": {
     "status": "resolved_ci_passed",
     "invoice_workspace": "Four document/correction tests explicitly enter معاينة المستند from invoice workspace; full UI suite passed.",
+    "initial_cloud_outage": "Authoritative organization discovery no longer invents a tenant on outage; errors remain visible and retry through online/focus/30s reconciliation. Two recovery tests passed.",
+    "evidence": "GitHub Actions run 38050129713: 271 unit/API, 33 Firestore Emulator, 50 UI, zero production vulnerabilities."
+  }
+}

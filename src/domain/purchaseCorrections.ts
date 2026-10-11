@@ -25,8 +25,8 @@ const value = (row: Document, prefix: string): BookAmount => {
 };
 export const billSignedBalance = (bill: Document) => add(value(bill, 'remaining'), negate(value(bill, 'advance_balance')));
 const sides = (lines: JournalEntryLine[]) => lines.map(line => [line.account_code, line.debit_sdg, line.credit_sdg, line.debit_usd, line.credit_usd]);
-function postingAccounts(lines: JournalEntryLine[], accounts: Document[], active: boolean) {
-  const groups: Record<string, string> = { '2110': 'payables', '1300': 'inventory', '5910': 'operating_expense', '4200': 'fx_gain', '5500': 'fx_loss' };
+function postingAccounts(lines: JournalEntryLine[], accounts: Document[], active: boolean, extraGroups:Record<string,string>={}) {
+  const groups: Record<string, string> = { '2110': 'payables', '1300': 'inventory', '5910': 'operating_expense', '4200': 'fx_gain', '5500': 'fx_loss',...extraGroups };
   for (const line of lines) { const account = accounts.find(row => row.code === line.account_code); ensure(account && (!active || account.is_active) && classifyAccount(account as Account).reporting_group === (groups[line.account_code] || 'cash_bank'), 'حساب مردود/استرداد المورد غير صالح.', 409); }
 }
 export function supplierPaymentLines(settled: BookAmount, cash: BookAmount, code: string) {
@@ -40,7 +40,7 @@ export function verifyPurchaseSource(bill: Document, data: Record<string, Docume
   const entries = data.journal_entries || [], payments = (data.supplier_payments || []).filter(row => row.bill_id === bill.id), returns = (data.purchase_returns || []).filter(row => row.bill_id === bill.id), refunds = (data.supplier_refunds || []).filter(row => row.bill_id === bill.id), accounts = data.accounts || [];
   const originals = entries.filter(entry => entry.reference_type === 'purchase_bill' && entry.reference_id === bill.id);
   const source = buildPurchaseReturnBases(bill as PurchaseBill & { payment_account_code: string }, originals as JournalEntry[], identifier(bill.org_id));
-  postingAccounts(originals.flatMap(row => row.lines), accounts, false);
+  postingAccounts(originals.flatMap(row => row.lines), accounts, false,bill.tax_evidence?.tax_treatment==='receivable'?{[bill.tax_evidence.tax_account_code]:'other_assets'}:{});
   const received = new Map<string, { quantity: BigNumber; cost: BookAmount }>();
   for (const line of bill.items) { const old = received.get(line.product_id) || { quantity: new BigNumber(0), cost: zero() }; received.set(line.product_id, { quantity: old.quantity.plus(line.quantity), cost: add(old.cost, { sdg: line.value_sdg, usd: line.value_usd }) }); }
   const originalMovements = (data.inventory_movements || []).filter(row => row.reference_type === 'purchase_bill' && row.reference_id === bill.id);
@@ -129,6 +129,7 @@ export async function purchaseCorrectionCommand(action: string, data: Document, 
   let result: Document;
   const chart = [...getDefaultChartOfAccounts(c.orgId).filter(account=>!state.accounts.some(row=>row.code===account.code)),...state.accounts];
   if (action === 'purchaseReturn.create') {
+    ensure(!bill.tax_evidence,'مردود فاتورة شراء ضريبية مهيأة يتطلب دورة عكس ضريبة C5.2c ولا يجوز تحميل الضريبة على فروق المخزون.',409);
     ensure(Object.keys(data).every(key=>['bill_id','date','reason','lines'].includes(key)) && Array.isArray(data.lines) && data.lines.length>0 && data.lines.length<=100,'أرسل مصدر وكمية المردود فقط.');
     const id = `pr-${c.operationId}`; ensure(!await c.tx.get(`${c.root}/purchase_returns/${id}`),'معرّف المردود موجود؛ لا يجوز استبدال مستند مالي.',409);
     let credit = zero(), inventory = zero(); const selected = new Set<string>(), quantities = new Map<string,BigNumber>();

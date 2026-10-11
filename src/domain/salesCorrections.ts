@@ -159,7 +159,9 @@ export async function saveSalesCustomer(c: PayableContext, customer: Document, u
 }
 
 export async function salesCorrectionCommand(action: string, data: Document, c: PayableContext) {
-  const invoice = await c.required('invoices', data.invoice_id) as Invoice, state = await loadSalesSource(c.tx, c.root, invoice);
+  const invoice = await c.required('invoices', data.invoice_id) as Invoice;
+  ensure(!invoice.tax_evidence, 'تصحيح فاتورة ضريبية مهيأة يتطلب دورة C5.2c ولا يجوز إعادة بنائها من النسبة الحالية.', 409);
+  const state = await loadSalesSource(c.tx, c.root, invoice);
   const date = dateOnly(data.date); assertOpenPeriod(date, c.settings); ensure(date >= state.lastDate, 'تاريخ التصحيح قبل آخر حركة للمصدر.', 409);
   ensure(state.sequence < 200, 'سجل الفاتورة تجاوز حد المعاملة؛ يلزم إجراء ترحيل خادمي.', 409);
   const reason = text(data.reason, 500, true), customer = await c.required('customers', invoice.customer_id);

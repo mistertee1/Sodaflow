@@ -7,7 +7,14 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "c4-fixed-assets-ui-20261011",
+    "acquired_at": "2026-10-11T04:32:30Z",
+    "heartbeat_at": "2026-10-11T04:32:30Z",
+    "expires_at": "2026-10-11T05:17:30.000Z",
+    "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
+    "milestone": "C4.3"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -829,7 +836,7 @@
           "id": "C4",
           "scope": "Fixed asset register, straight-line depreciation and source-linked ledger lifecycle",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
+          "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
           "pr": 45,
           "substeps": [
             {
@@ -881,6 +888,13 @@
               },
               "render_acceptance": "not_exposed_no_ui",
               "completed_at": "2026-10-11T03:41:00.000Z"
+            },
+            {
+              "id": "C4.3",
+              "scope": "Fixed asset register, protected previews and depreciation posting UI with role/reload coverage",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
+              "pr": null
             }
           ]
         },
@@ -1065,7 +1079,7 @@
   "next_steps": [
     "C4.3 fixed asset register/depreciation UI, role/reload and Render acceptance"
   ],
-  "updated_at": "2026-10-11T03:41:00.000Z",
+  "updated_at": "2026-10-11T04:32:30Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1090,8 +1104,8 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C4.2",
-  "observed_main_sha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
+  "active_substep": "C4.3",
+  "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",

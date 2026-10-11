@@ -58,8 +58,14 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
   for (const account of data.accounts) inspect('accounts', account.code, () => { classifyAccount(account as any); });
   for (const configuration of data.tax_configurations || []) inspect('tax_configurations',configuration.id,()=>{
     validateTaxControlAccount(validateTaxConfiguration(taxPolicy(configuration) as any,configuration.org_id),data.accounts as any,configuration.org_id);
-    const versions=(data.tax_configuration_versions||[]).filter(row=>row.configuration_id===configuration.id);
+    const versions=(data.tax_configuration_versions||[]).filter(row=>row.configuration_id===configuration.id).sort((a,b)=>a.revision-b.revision);
     if(versions.length!==configuration.revision)throw new Error('سلسلة إصدارات إعداد الضريبة ناقصة.');
+    let previous:string|null=null;
+    for(let index=0;index<versions.length;index++) {
+      const version=versions[index];
+      if(version.revision!==index+1||version.previous_version_hash!==previous||typeof version.version_hash!=='string'||!/^[a-f0-9]{64}$/.test(version.version_hash))throw new Error('ترابط سلسلة إصدارات الضريبة غير صالح.');
+      previous=version.version_hash;
+    }
     const last=versions.find(row=>row.revision===configuration.revision);
     if(!last||last.version_hash!==configuration.version_hash)throw new Error('آخر إصدار ضريبة لا يطابق الإعداد الحالي.');
   });

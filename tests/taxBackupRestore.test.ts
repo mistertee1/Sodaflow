@@ -91,4 +91,7 @@ test('C5.2c1 reconciliation surfaces a tax policy mismatch as a read-only findin
   bad.invoices[0].tax_evidence.jurisdiction = 'مزور';
   const findings = reconcileFinancialData(bad as FinancialData, f.backup.settings, { requireCosting: true });
   assert.ok(findings.some(finding => finding.code === 'invalid_record' && finding.collection === 'invoices'));
+  const brokenChain = structuredClone(f.backup.collections);
+  brokenChain.tax_configuration_versions[1].previous_version_hash = '0'.repeat(64);
+  assert.ok(reconcileFinancialData(brokenChain as FinancialData, f.backup.settings, { requireCosting: true }).some(finding => finding.code === 'invalid_record' && finding.collection === 'tax_configurations'));
 });

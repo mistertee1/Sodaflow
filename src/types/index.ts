@@ -51,6 +51,8 @@ export interface OrganizationCounters {
   owner_equity_event_count?: number;
   fixed_asset_count?: number;
   fixed_asset_depreciation_count?: number;
+  tax_configuration_count?: number;
+  tax_configuration_version_count?: number;
   opening_batch_count?: number;
   opening_lot_count?: number;
   opening_settlement_count?: number;

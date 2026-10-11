@@ -38,6 +38,19 @@ export function validateTaxConfiguration(input: TaxConfiguration, orgId: string)
   return {...clean(input), name, jurisdiction};
 }
 
+export function validateTaxControlAccount(configuration: TaxConfiguration, accounts: Account[], orgId: string) {
+  const validated = validateTaxConfiguration(configuration, orgId);
+  const codes = new Set<string>();
+  for (const account of accounts) {identifier(account.code); ensure(account.org_id === orgId && !codes.has(account.code), 'دليل حسابات الضريبة أجنبي أو مكرر.'); codes.add(account.code);}
+  if (!validated.tax_account_code) return validated;
+  const account = accounts.find(row => row.code === validated.tax_account_code);
+  ensure(account?.is_active, 'حساب الضريبة غير متاح.');
+  const group = classifyAccount(account).reporting_group;
+  if (validated.direction === 'sales') ensure(account.type === 'LIABILITY' && account.nature === 'CREDIT' && group === 'tax_payable', 'حساب ضريبة المبيعات يجب أن يكون التزاماً ضريبياً دائناً.');
+  else ensure(account.type === 'ASSET' && account.nature === 'DEBIT' && group === 'other_assets', 'حساب الضريبة القابلة للاسترداد يجب أن يكون أصلاً مديناً منفصلاً عن النقد والمخزون والذمم.');
+  return validated;
+}
+
 /** Pure line quote. Protected callers must derive amount from document sources and read current policy from the server. */
 export function configuredTaxQuote(input: TaxQuoteInput, snapshot: TaxSnapshot) {
   ensure(input && typeof input === 'object' && !Array.isArray(input) && Object.keys(input).every(key => inputKeys.includes(key)), 'حقول حساب الضريبة غير صالحة؛ المبلغ الضريبي مشتق من الإعداد.');
@@ -51,15 +64,7 @@ export function configuredTaxQuote(input: TaxQuoteInput, snapshot: TaxSnapshot) 
   ensure(configuration && configuration.active && configuration.direction === input.direction, 'إعداد الضريبة غير متاح لهذا النوع.');
   ensure(Number.isSafeInteger(input.expected_configuration_revision) && input.expected_configuration_revision === configuration.revision, 'إعداد الضريبة تغير؛ أعد المعاينة.', 409);
   ensure(configuration.effective_from <= date && (configuration.effective_to === null || date <= configuration.effective_to), 'التاريخ خارج صلاحية إعداد الضريبة.');
-  const codes = new Set<string>();
-  for (const account of snapshot.accounts) {identifier(account.code); ensure(account.org_id === orgId && !codes.has(account.code), 'دليل حسابات الضريبة أجنبي أو مكرر.'); codes.add(account.code);}
-  if (configuration.tax_account_code) {
-    const account = snapshot.accounts.find(row => row.code === configuration.tax_account_code);
-    ensure(account?.is_active, 'حساب الضريبة غير متاح.');
-    const group = classifyAccount(account).reporting_group;
-    if (configuration.direction === 'sales') ensure(account.type === 'LIABILITY' && account.nature === 'CREDIT' && group === 'tax_payable', 'حساب ضريبة المبيعات يجب أن يكون التزاماً ضريبياً دائناً.');
-    else ensure(account.type === 'ASSET' && account.nature === 'DEBIT' && group === 'other_assets', 'حساب الضريبة القابلة للاسترداد يجب أن يكون أصلاً مديناً منفصلاً عن النقد والمخزون والذمم.');
-  }
+  validateTaxControlAccount(configuration, snapshot.accounts, orgId);
   ensure(['SDG','USD'].includes(input.currency) && ['sdg_only','dual'].includes(input.currency_policy), 'عملة أو سياسة الضريبة غير مدعومة.');
   ensure(input.currency_policy === 'dual' || input.currency === 'SDG', 'الدولار يتطلب سياسة الدفترين.');
   const rate = input.currency_policy === 'dual' ? money(input.exchange_rate_used, 8, true) : 0;

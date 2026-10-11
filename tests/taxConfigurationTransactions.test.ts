@@ -18,13 +18,13 @@ function fixture(role:'Owner'|'Accountant'|'Admin'='Owner', authority:'local'|'b
 test('C5.2a creates immutable version, recent-auth audit and idempotent receipt atomically',async()=>{
   const f=fixture(),first=await f.run('taxConfiguration.create',input(),'tax-create');assert.equal(first.result.revision,1);
   const dump=f.memory.dump(),version=dump[`${root}/tax_configuration_versions/sales-tax-r1`],audit=dump[`${root}/audit_logs/audit-tax-create`];
-  assert.equal(version.configuration_id,'sales-tax');assert.equal(version.reason,'اعتماد السياسة');assert.equal(audit.new_state[`${root}/tax_configurations/sales-tax`].jurisdiction,'إعداد المؤسسة');assert.deepEqual(audit.tax_configuration_evidence,{configuration_id:'sales-tax',revision:1,version_id:'sales-tax-r1'});assert.equal(audit.reauthentication.auth_time,owner.authTime);
+  assert.equal(version.configuration_id,'sales-tax');assert.equal(version.reason,'اعتماد السياسة');assert.equal(version.previous_version_hash,null);assert.match(version.version_hash,/^[a-f0-9]{64}$/);assert.equal(first.result.version_hash,version.version_hash);assert.equal(audit.new_state[`${root}/tax_configurations/sales-tax`].jurisdiction,'إعداد المؤسسة');assert.deepEqual(audit.tax_configuration_evidence,{configuration_id:'sales-tax',revision:1,version_id:'sales-tax-r1'});assert.equal(audit.reauthentication.auth_time,owner.authTime);
   assert.deepEqual((await f.run('taxConfiguration.create',input(),'tax-create')).result,first.result);
 });
 
 test('C5.2a update preserves all versions, rejects stale/no-op and never returns an obsolete cached result',async()=>{
   const f=fixture();await f.run('taxConfiguration.create',input(),'tax-create');const updated=await f.run('taxConfiguration.update',input({expected_revision:1,rate:17.5,reason:'تعديل معتمد'}),'tax-update');assert.equal(updated.result.revision,2);
-  const dump=f.memory.dump();assert.equal(dump[`${root}/tax_configuration_versions/sales-tax-r1`].rate,15);assert.equal(dump[`${root}/tax_configuration_versions/sales-tax-r2`].rate,17.5);
+  const dump=f.memory.dump(),v1=dump[`${root}/tax_configuration_versions/sales-tax-r1`],v2=dump[`${root}/tax_configuration_versions/sales-tax-r2`];assert.equal(v1.rate,15);assert.equal(v2.rate,17.5);assert.equal(v2.previous_version_hash,v1.version_hash);assert.equal(updated.result.version_hash,v2.version_hash);
   await assert.rejects(f.run('taxConfiguration.update',input({expected_revision:1,rate:20}),'tax-stale'),/تغير/);
   await assert.rejects(f.run('taxConfiguration.update',input({expected_revision:2,rate:17.5}),'tax-noop'),/لم يتغير/);
   await assert.rejects(f.run('taxConfiguration.create',input(),'tax-create'),/تغير بعد العملية المحفوظة/);

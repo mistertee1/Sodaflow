@@ -1,0 +1,903 @@
+{
+  "schemaVersion": 1,
+  "repository": "mistertee1/Sodaflow",
+  "sourceBaseCommit": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+  "acceptanceSourceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+  "authorityCodeCommit": "29a8c48bc251a6084f856d8ca0ed8b7f04584754",
+  "sourceDelta": {
+    "comparedTo": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+    "paths": [
+      "docs/super-admin/PROGRESS.json",
+      "tests/ui/app.spec.ts"
+    ],
+    "applicationCodeUnchanged": true,
+    "testDelta": "One bounded asynchronous image-readiness assertion; predicate unchanged."
+  },
+  "mergedPullRequests": [
+    {
+      "number": 38,
+      "mergeCommit": "b4d8c30695f45cf21ca7945cfc3327729e127421"
+    },
+    {
+      "number": 39,
+      "mergeCommit": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+      "mergedBy": "mistertee1",
+      "mergedAt": "2026-10-10T20:32:22Z"
+    }
+  ],
+  "githubChecks": {
+    "runId": 38119689684,
+    "jobId": 114411670173,
+    "sha": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38119689684",
+    "counts": {
+      "unitApi": 283,
+      "firestoreEmulator": 37,
+      "ui": 50,
+      "superAdminUi": 9,
+      "failed": 0,
+      "skipped": 0
+    },
+    "types": "passed",
+    "core": "passed",
+    "build": "passed",
+    "productionAuditVulnerabilities": 0
+  },
+  "render": {
+    "workspaceId": "tea-db20pccs728c73ald730",
+    "serviceId": "srv-db4ui5h42hec73f2cdcg",
+    "deployId": "dep-db5j66dckfvc73adgthg",
+    "sourceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+    "url": "https://sudaflow-super-admin-acceptance.onrender.com",
+    "status": "live",
+    "runtime": "report_only",
+    "autoDeploy": false,
+    "productionCredentials": false,
+    "productionWrites": 0,
+    "projectId": "demo-sudaflow",
+    "summary": {
+      "schemaVersion": 1,
+      "sourceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+      "provider": "Render",
+      "startedAt": "2026-10-11T06:57:02.391Z",
+      "projectId": "demo-sudaflow",
+      "productionWrites": 0,
+      "status": "scope_passed_regression_passed",
+      "checks": [
+        {
+          "name": "authority-baseline",
+          "command": "node --import tsx --test tests/serverAuthority.test.ts",
+          "exitCode": 1,
+          "durationMs": 1523,
+          "counts": {
+            "tests": 12,
+            "pass": 3,
+            "fail": 9,
+            "cancelled": 0,
+            "skipped": 0
+          },
+          "status": "failed"
+        },
+        {
+          "name": "types",
+          "command": "npm run lint",
+          "exitCode": 0,
+          "durationMs": 7783,
+          "counts": {},
+          "status": "passed"
+        },
+        {
+          "name": "core",
+          "command": "npm run lint:core",
+          "exitCode": 0,
+          "durationMs": 4110,
+          "counts": {},
+          "status": "passed"
+        },
+        {
+          "name": "unit-api",
+          "command": "npm test",
+          "exitCode": 0,
+          "durationMs": 12059,
+          "counts": {
+            "tests": 283,
+            "pass": 283,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0
+          },
+          "status": "passed"
+        },
+        {
+          "name": "build",
+          "command": "npm run build",
+          "exitCode": 0,
+          "durationMs": 7928,
+          "counts": {},
+          "status": "passed"
+        },
+        {
+          "name": "firestore-emulator",
+          "command": "npm run test:emulator",
+          "exitCode": 0,
+          "durationMs": 96989,
+          "counts": {
+            "tests": 37,
+            "pass": 37,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0
+          },
+          "status": "passed"
+        },
+        {
+          "name": "production-audit",
+          "command": "npm audit --omit=dev --audit-level=high",
+          "exitCode": 0,
+          "durationMs": 652,
+          "counts": {},
+          "status": "passed"
+        },
+        {
+          "name": "browser-build-mode",
+          "command": "node --input-type=module -e import assert from 'node:assert/strict'; import {resolveConfig} from 'vite'; const config=await resolveConfig({},'build'); console.log(JSON.stringify({mode:config.mode,isProduction:config.isProduction,nodeEnv:process.env.NODE_ENV})); assert.equal(config.isProduction,true);",
+          "exitCode": 0,
+          "durationMs": 229,
+          "counts": {},
+          "status": "passed"
+        },
+        {
+          "name": "ui-regression",
+          "command": "node --import tsx node_modules/@playwright/test/cli.js test --reporter=list,json",
+          "exitCode": 0,
+          "durationMs": 106546,
+          "counts": {
+            "tests": 50,
+            "pass": 50,
+            "fail": 0,
+            "skipped": 0
+          },
+          "status": "passed"
+        }
+      ],
+      "browserBuildEnvironment": "production",
+      "superAdminUi": {
+        "tests": 9,
+        "passed": 9,
+        "failed": 0,
+        "skipped": 0
+      },
+      "uiFailures": [],
+      "productionReady": false,
+      "finishedAt": "2026-10-11T07:01:00.214Z"
+    },
+    "finishedAt": "2026-10-11T07:01:23.428013Z",
+    "liveSummary": {
+      "schemaVersion": 1,
+      "sourceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+      "provider": "Render",
+      "startedAt": "2026-10-11T06:57:02.391Z",
+      "projectId": "demo-sudaflow",
+      "productionWrites": 0,
+      "status": "scope_passed_regression_passed",
+      "checks": [
+        {
+          "name": "authority-baseline",
+          "command": "node --import tsx --test tests/serverAuthority.test.ts",
+          "exitCode": 1,
+          "durationMs": 1523,
+          "counts": {
+            "tests": 12,
+            "pass": 3,
+            "fail": 9,
+            "cancelled": 0,
+            "skipped": 0
+          },
+          "status": "failed"
+        },
+        {
+          "name": "types",
+          "command": "npm run lint",
+          "exitCode": 0,
+          "durationMs": 7783,
+          "counts": {},
+          "status": "passed"
+        },
+        {
+          "name": "core",
+          "command": "npm run lint:core",
+          "exitCode": 0,
+          "durationMs": 4110,
+          "counts": {},
+          "status": "passed"
+        },
+        {
+          "name": "unit-api",
+          "command": "npm test",
+          "exitCode": 0,
+          "durationMs": 12059,
+          "counts": {
+            "tests": 283,
+            "pass": 283,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0
+          },
+          "status": "passed"
+        },
+        {
+          "name": "build",
+          "command": "npm run build",
+          "exitCode": 0,
+          "durationMs": 7928,
+          "counts": {},
+          "status": "passed"
+        },
+        {
+          "name": "firestore-emulator",
+          "command": "npm run test:emulator",
+          "exitCode": 0,
+          "durationMs": 96989,
+          "counts": {
+            "tests": 37,
+            "pass": 37,
+            "fail": 0,
+            "cancelled": 0,
+            "skipped": 0
+          },
+          "status": "passed"
+        },
+        {
+          "name": "production-audit",
+          "command": "npm audit --omit=dev --audit-level=high",
+          "exitCode": 0,
+          "durationMs": 652,
+          "counts": {},
+          "status": "passed"
+        },
+        {
+          "name": "browser-build-mode",
+          "command": "node --input-type=module -e import assert from 'node:assert/strict'; import {resolveConfig} from 'vite'; const config=await resolveConfig({},'build'); console.log(JSON.stringify({mode:config.mode,isProduction:config.isProduction,nodeEnv:process.env.NODE_ENV})); assert.equal(config.isProduction,true);",
+          "exitCode": 0,
+          "durationMs": 229,
+          "counts": {},
+          "status": "passed"
+        },
+        {
+          "name": "ui-regression",
+          "command": "node --import tsx node_modules/@playwright/test/cli.js test --reporter=list,json",
+          "exitCode": 0,
+          "durationMs": 106546,
+          "counts": {
+            "tests": 50,
+            "pass": 50,
+            "fail": 0,
+            "skipped": 0
+          },
+          "status": "passed"
+        }
+      ],
+      "browserBuildEnvironment": "production",
+      "superAdminUi": {
+        "tests": 9,
+        "passed": 9,
+        "failed": 0,
+        "skipped": 0
+      },
+      "uiFailures": [],
+      "productionReady": false,
+      "finishedAt": "2026-10-11T07:01:00.214Z",
+      "serviceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6"
+    },
+    "runtimeSmoke": [
+      {
+        "label": "health",
+        "url": "https://sudaflow-super-admin-acceptance.onrender.com/health",
+        "method": "GET",
+        "http": 200,
+        "data": {
+          "status": "ok",
+          "role": "synthetic-acceptance-report",
+          "acceptanceStatus": "scope_passed_regression_passed",
+          "productionReady": false
+        },
+        "cacheControl": "no-store",
+        "checkedAt": "2026-10-11T07:02:38.103567+00:00"
+      },
+      {
+        "label": "report",
+        "url": "https://sudaflow-super-admin-acceptance.onrender.com/report.json",
+        "method": "GET",
+        "http": 200,
+        "data": {
+          "sourceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+          "serviceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+          "status": "scope_passed_regression_passed",
+          "productionReady": false
+        },
+        "cacheControl": "no-store",
+        "checkedAt": "2026-10-11T07:02:38.168686+00:00"
+      },
+      {
+        "label": "erp_api_unavailable",
+        "url": "https://sudaflow-super-admin-acceptance.onrender.com/api/super-admin/session",
+        "method": "GET",
+        "http": 404,
+        "data": null,
+        "cacheControl": "no-store",
+        "checkedAt": "2026-10-11T07:02:38.164523+00:00"
+      },
+      {
+        "label": "writes_rejected",
+        "url": "https://sudaflow-super-admin-acceptance.onrender.com/report.json",
+        "method": "POST",
+        "http": 405,
+        "data": null,
+        "cacheControl": "no-store",
+        "checkedAt": "2026-10-11T07:02:38.209782+00:00"
+      }
+    ]
+  },
+  "historicalAcceptance": {
+    "attempt1": {
+      "deployId": "dep-db4ui6142hec73f2ce8g",
+      "sourceCommit": "40232c46998eebf38eadcd00b532a6730f693d64",
+      "status": "build_failed",
+      "unitApi": 283,
+      "firestoreEmulator": 37,
+      "ui": {
+        "tests": 50,
+        "passed": 42,
+        "failed": 8,
+        "superAdminPassed": 8,
+        "superAdminFailed": 1
+      },
+      "resolved": "Build now explicitly compiles browser fixtures with NODE_ENV=production; no UI assertions weakened."
+    },
+    "attempt2": {
+      "deployId": "dep-db4uo40473hc7397mih0",
+      "liveAt": "2026-10-10T07:51:13.561841Z",
+      "summary": {
+        "schemaVersion": 1,
+        "sourceCommit": "29a8c48bc251a6084f856d8ca0ed8b7f04584754",
+        "provider": "Render",
+        "startedAt": "2026-10-10T07:42:20.950Z",
+        "projectId": "demo-sudaflow",
+        "productionWrites": 0,
+        "status": "scope_passed_regression_blocked",
+        "checks": [
+          {
+            "name": "authority-baseline",
+            "command": "node --import tsx --test tests/serverAuthority.test.ts",
+            "exitCode": 1,
+            "durationMs": 1628,
+            "counts": {
+              "tests": 12,
+              "pass": 3,
+              "fail": 9,
+              "cancelled": 0,
+              "skipped": 0
+            },
+            "status": "failed"
+          },
+          {
+            "name": "types",
+            "command": "npm run lint",
+            "exitCode": 0,
+            "durationMs": 7243,
+            "counts": {},
+            "status": "passed"
+          },
+          {
+            "name": "core",
+            "command": "npm run lint:core",
+            "exitCode": 0,
+            "durationMs": 3690,
+            "counts": {},
+            "status": "passed"
+          },
+          {
+            "name": "unit-api",
+            "command": "npm test",
+            "exitCode": 0,
+            "durationMs": 10872,
+            "counts": {
+              "tests": 283,
+              "pass": 283,
+              "fail": 0,
+              "cancelled": 0,
+              "skipped": 0
+            },
+            "status": "passed"
+          },
+          {
+            "name": "build",
+            "command": "npm run build",
+            "exitCode": 0,
+            "durationMs": 6975,
+            "counts": {},
+            "status": "passed"
+          },
+          {
+            "name": "firestore-emulator",
+            "command": "npm run test:emulator",
+            "exitCode": 0,
+            "durationMs": 88701,
+            "counts": {
+              "tests": 37,
+              "pass": 37,
+              "fail": 0,
+              "cancelled": 0,
+              "skipped": 0
+            },
+            "status": "passed"
+          },
+          {
+            "name": "production-audit",
+            "command": "npm audit --omit=dev --audit-level=high",
+            "exitCode": 0,
+            "durationMs": 615,
+            "counts": {},
+            "status": "passed"
+          },
+          {
+            "name": "browser-build-mode",
+            "command": "node --input-type=module -e import assert from 'node:assert/strict'; import {resolveConfig} from 'vite'; const config=await resolveConfig({},'build'); console.log(JSON.stringify({mode:config.mode,isProduction:config.isProduction,nodeEnv:process.env.NODE_ENV})); assert.equal(config.isProduction,true);",
+            "exitCode": 0,
+            "durationMs": 213,
+            "counts": {},
+            "status": "passed"
+          },
+          {
+            "name": "ui-regression",
+            "command": "node --import tsx node_modules/@playwright/test/cli.js test --reporter=list,json",
+            "exitCode": 1,
+            "durationMs": 356810,
+            "counts": {
+              "tests": 50,
+              "pass": 44,
+              "fail": 6,
+              "skipped": 0
+            },
+            "status": "failed"
+          }
+        ],
+        "browserBuildEnvironment": "production",
+        "superAdminUi": {
+          "tests": 9,
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        "uiFailures": [
+          {
+            "file": "app.spec.ts",
+            "title": "B3 mobile credit/physical return/refund forms enforce sources, resist duplicate submission, and preserve both books after reload",
+            "status": "unexpected"
+          },
+          {
+            "file": "app.spec.ts",
+            "title": "long invoice PDF keeps the merchant identity and exports multiple complete pages",
+            "status": "unexpected"
+          },
+          {
+            "file": "app.spec.ts",
+            "title": "B3 saved sales and supplier correction documents download independently, preserve Arabic evidence and audit once under double clicks",
+            "status": "unexpected"
+          },
+          {
+            "file": "app.spec.ts",
+            "title": "B3 a 100-line saved credit PDF paginates complete rows with safe source text and repeated A4 evidence",
+            "status": "unexpected"
+          },
+          {
+            "file": "auth.spec.ts",
+            "title": "an initial cloud outage recovers on reconnect and the owner can save shop name and logo across reload",
+            "status": "unexpected"
+          },
+          {
+            "file": "auth.spec.ts",
+            "title": "an initial organization outage retries while the visible page remains open",
+            "status": "unexpected"
+          }
+        ],
+        "productionReady": false,
+        "finishedAt": "2026-10-10T07:50:17.701Z",
+        "serviceCommit": "29a8c48bc251a6084f856d8ca0ed8b7f04584754"
+      },
+      "note": "Its six UI regressions were fixed by the accounting agent in PR38 and passed on integrated main."
+    },
+    "attempt3": {
+      "deployId": "dep-db5j25h42hec7395ek3g",
+      "sourceCommit": "47aa3f2435b5b31e2db893d89f4605bea342c5a7",
+      "liveAt": "2026-10-11T06:52:55.856871Z",
+      "summary": {
+        "schemaVersion": 1,
+        "sourceCommit": "47aa3f2435b5b31e2db893d89f4605bea342c5a7",
+        "provider": "Render",
+        "startedAt": "2026-10-11T06:48:28.086Z",
+        "projectId": "demo-sudaflow",
+        "productionWrites": 0,
+        "status": "scope_passed_regression_passed",
+        "checks": [
+          {
+            "name": "authority-baseline",
+            "command": "node --import tsx --test tests/serverAuthority.test.ts",
+            "exitCode": 1,
+            "durationMs": 1431,
+            "counts": {
+              "tests": 12,
+              "pass": 3,
+              "fail": 9,
+              "cancelled": 0,
+              "skipped": 0
+            },
+            "status": "failed"
+          },
+          {
+            "name": "types",
+            "command": "npm run lint",
+            "exitCode": 0,
+            "durationMs": 7242,
+            "counts": {},
+            "status": "passed"
+          },
+          {
+            "name": "core",
+            "command": "npm run lint:core",
+            "exitCode": 0,
+            "durationMs": 3825,
+            "counts": {},
+            "status": "passed"
+          },
+          {
+            "name": "unit-api",
+            "command": "npm test",
+            "exitCode": 0,
+            "durationMs": 11326,
+            "counts": {
+              "tests": 283,
+              "pass": 283,
+              "fail": 0,
+              "cancelled": 0,
+              "skipped": 0
+            },
+            "status": "passed"
+          },
+          {
+            "name": "build",
+            "command": "npm run build",
+            "exitCode": 0,
+            "durationMs": 8153,
+            "counts": {},
+            "status": "passed"
+          },
+          {
+            "name": "firestore-emulator",
+            "command": "npm run test:emulator",
+            "exitCode": 0,
+            "durationMs": 92295,
+            "counts": {
+              "tests": 37,
+              "pass": 37,
+              "fail": 0,
+              "cancelled": 0,
+              "skipped": 0
+            },
+            "status": "passed"
+          },
+          {
+            "name": "production-audit",
+            "command": "npm audit --omit=dev --audit-level=high",
+            "exitCode": 0,
+            "durationMs": 603,
+            "counts": {},
+            "status": "passed"
+          },
+          {
+            "name": "browser-build-mode",
+            "command": "node --input-type=module -e import assert from 'node:assert/strict'; import {resolveConfig} from 'vite'; const config=await resolveConfig({},'build'); console.log(JSON.stringify({mode:config.mode,isProduction:config.isProduction,nodeEnv:process.env.NODE_ENV})); assert.equal(config.isProduction,true);",
+            "exitCode": 0,
+            "durationMs": 210,
+            "counts": {},
+            "status": "passed"
+          },
+          {
+            "name": "ui-regression",
+            "command": "node --import tsx node_modules/@playwright/test/cli.js test --reporter=list,json",
+            "exitCode": 0,
+            "durationMs": 107171,
+            "counts": {
+              "tests": 50,
+              "pass": 50,
+              "fail": 0,
+              "skipped": 0
+            },
+            "status": "passed"
+          }
+        ],
+        "browserBuildEnvironment": "production",
+        "superAdminUi": {
+          "tests": 9,
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        },
+        "uiFailures": [],
+        "productionReady": false,
+        "finishedAt": "2026-10-11T06:52:20.347Z"
+      },
+      "note": "All283/37/50 passed on Render. Separate PR CI run49/50 failed the one immediate brand asset readiness assertion."
+    }
+  },
+  "production": {
+    "provider": "Render",
+    "workspaceId": "tea-db20pccs728c73ald730",
+    "serviceId": "srv-db4lfrvavr4c73fn1hl0",
+    "url": "https://sudaflow.onrender.com",
+    "branch": "codex/wafer-ux-phase1",
+    "deployedCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0",
+    "probes": [
+      {
+        "label": "health",
+        "url": "https://sudaflow.onrender.com/api/health",
+        "http": 200,
+        "data": {
+          "status": "ok",
+          "app": "SudaFlow",
+          "version": "3.0.0",
+          "release": "2026-10-05-central-sync-recovery"
+        },
+        "checkedAt": "2026-10-11T06:46:36.829634+00:00"
+      },
+      {
+        "label": "readiness",
+        "url": "https://sudaflow.onrender.com/api/health/ready",
+        "http": 503,
+        "data": {
+          "status": "error",
+          "firebase_project_id": "sodaflow",
+          "firestore_database_id": "(default)",
+          "checks": {
+            "firebase": {
+              "status": "error",
+              "code": "service_unavailable",
+              "message": "تعذر تأكيد الحفظ. أعد المحاولة بعد التحقق من إعداد الخادم والاتصال."
+            }
+          }
+        },
+        "checkedAt": "2026-10-11T06:46:39.621967+00:00"
+      },
+      {
+        "label": "session",
+        "url": "https://sudaflow.onrender.com/api/super-admin/session",
+        "http": 401,
+        "data": {
+          "error": "تسجيل الدخول مطلوب."
+        },
+        "checkedAt": "2026-10-11T06:46:36.823729+00:00"
+      },
+      {
+        "label": "overview",
+        "url": "https://sudaflow.onrender.com/api/super-admin/overview",
+        "http": 401,
+        "data": {
+          "error": "تسجيل الدخول مطلوب."
+        },
+        "checkedAt": "2026-10-11T06:46:36.828004+00:00"
+      },
+      {
+        "label": "companies",
+        "url": "https://sudaflow.onrender.com/api/super-admin/companies",
+        "http": 401,
+        "data": {
+          "error": "تسجيل الدخول مطلوب."
+        },
+        "checkedAt": "2026-10-11T06:46:36.828575+00:00"
+      }
+    ],
+    "credentialDiagnostic": {
+      "logAt": "2026-10-11T06:46:39.564567438Z",
+      "message": "MetadataLookupWarning ETIMEDOUT, ENOTFOUND",
+      "interpretation": "Firebase credential probe failed before the Firestore probe. Current customer database existence, IAM, indexes and Storage are not confirmed."
+    },
+    "verifiedAdminUidProvided": false,
+    "financialWrites": 0,
+    "productionValidated": false,
+    "configurationChanged": false,
+    "rulesDeployed": false,
+    "commercialMigrationApplied": false,
+    "claimsChanged": false
+  },
+  "coordination": {
+    "checkedAt": "2026-10-11T06:47:26.837Z",
+    "accountingPullRequest": 48,
+    "accountingBranch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
+    "accountingLeaseUntil": "2026-10-11T07:25:00Z",
+    "ownedPathsUnchanged": true,
+    "note": "Accounting branch C5 is active. Only super-admin documentation changes; no accounting, UI, package, Rules or production service changes. Source snapshot contains user's merged PR38/39."
+  },
+  "candidateGithubFailure": {
+    "runId": 38119218903,
+    "jobId": 114410292927,
+    "sha": "47aa3f2435b5b31e2db893d89f4605bea342c5a7",
+    "status": "completed",
+    "conclusion": "failure",
+    "counts": {
+      "unitApi": 283,
+      "firestoreEmulator": 37,
+      "ui": {
+        "tests": 50,
+        "passed": 49,
+        "failed": 1
+      },
+      "superAdminUi": 9
+    },
+    "test": "RTL brand, local assets, both themes and mobile navigation render without overflow",
+    "artifactId": 11694249893,
+    "traceDiagnosis": {
+      "brandLogoResponses": 4,
+      "statusCodes": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "failedImageRead": {
+        "completeAndNaturalWidth": false
+      },
+      "interpretation": "Immediate image-readiness condition returned false while all four SVG requests succeeded. Bounded asynchronous polling keeps the predicate unchanged; repaired source passed all CI/Render regression checks."
+    }
+  },
+  "testHarnessRepair": {
+    "sourceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+    "path": "tests/ui/app.spec.ts",
+    "scope": "Original complete && naturalWidth >0 predicate for every local brand img, now bounded expect.poll5000ms.",
+    "productCodeChanged": false,
+    "accountingActivePrConflict": false,
+    "status": "verified_ci_and_render_full_regression"
+  },
+  "sourceBlobs": [
+    {
+      "path": "firestore.rules",
+      "sha": "3127efd3b3c497a1b90aacbcaddab3143439325d"
+    },
+    {
+      "path": "package-lock.json",
+      "sha": "c26643947b63b797fd5f48f88e18933baae81621"
+    },
+    {
+      "path": "server/resilientStore.ts",
+      "sha": "1d0a640d89199873b52e4ca88bbe14476cd55355"
+    },
+    {
+      "path": "src/context/AppContext.tsx",
+      "sha": "7c6ed7e2ecee89f22af86e5c72832b2d87da2195"
+    },
+    {
+      "path": "tests/serverAuthority.test.ts",
+      "sha": "d7a6074d8db00e4e6238a665b28aa507223d9d4a"
+    },
+    {
+      "path": "tests/serverAuthorityFirestore.test.ts",
+      "sha": "0dea71b5ce583453a1d8cc07ba4fdb77078803bf"
+    }
+  ],
+  "reportServerSmokePreviousSnapshot": [
+    {
+      "label": "health",
+      "http": 200,
+      "data": {
+        "status": "ok",
+        "role": "synthetic-acceptance-report",
+        "acceptanceStatus": "scope_passed_regression_passed",
+        "productionReady": false
+      },
+      "cacheControl": "no-store",
+      "checkedAt": "2026-10-11T06:57:09.193812+00:00"
+    },
+    {
+      "label": "report",
+      "http": 200,
+      "data": {
+        "sourceCommit": "47aa3f2435b5b31e2db893d89f4605bea342c5a7",
+        "serviceCommit": "47aa3f2435b5b31e2db893d89f4605bea342c5a7",
+        "status": "scope_passed_regression_passed",
+        "productionReady": false,
+        "projectId": "demo-sudaflow",
+        "productionWrites": 0,
+        "superAdminUi": {
+          "tests": 9,
+          "passed": 9,
+          "failed": 0,
+          "skipped": 0
+        }
+      },
+      "cacheControl": "no-store",
+      "checkedAt": "2026-10-11T06:57:09.150022+00:00"
+    },
+    {
+      "label": "erp_api_unavailable",
+      "http": 404,
+      "data": null,
+      "cacheControl": "no-store",
+      "checkedAt": "2026-10-11T06:57:09.102989+00:00"
+    },
+    {
+      "label": "writes_rejected",
+      "http": 405,
+      "data": null,
+      "cacheControl": "no-store",
+      "checkedAt": "2026-10-11T06:57:09.150263+00:00"
+    }
+  ],
+  "updatedAt": "2026-10-11T07:04:35.028Z",
+  "githubChecksHistory": [
+    {
+      "runId": 38084146537,
+      "jobId": 114306978319,
+      "sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38084146537",
+      "counts": {
+        "unitApi": 283,
+        "firestoreEmulator": 37,
+        "ui": 50,
+        "superAdminUi": 9,
+        "failed": 0,
+        "skipped": 0
+      },
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "productionAuditVulnerabilities": 0
+    },
+    {
+      "runId": 38119218903,
+      "jobId": 114410292927,
+      "sha": "47aa3f2435b5b31e2db893d89f4605bea342c5a7",
+      "status": "completed",
+      "conclusion": "failure",
+      "counts": {
+        "unitApi": 283,
+        "firestoreEmulator": 37,
+        "ui": {
+          "tests": 50,
+          "passed": 49,
+          "failed": 1
+        },
+        "superAdminUi": 9
+      },
+      "test": "RTL brand, local assets, both themes and mobile navigation render without overflow",
+      "artifactId": 11694249893,
+      "traceDiagnosis": {
+        "brandLogoResponses": 4,
+        "statusCodes": [
+          200,
+          200,
+          200,
+          200
+        ],
+        "failedImageRead": {
+          "completeAndNaturalWidth": false
+        },
+        "interpretation": "Immediate image-readiness condition returned false while all four SVG requests succeeded. Bounded asynchronous polling keeps the predicate unchanged; repaired source passed all CI/Render regression checks."
+      }
+    }
+  ],
+  "documentation": {
+    "pr": 49,
+    "branch": "codex/super-admin-render-authority-20261010",
+    "userMergesOnly": true,
+    "followupIsDocsAndOneTestAssertionOnly": true,
+    "finalDocumentationDelta": "Final evidence/checkpoint/docs are additional to the accepted source; application and test source hashes remain unchanged."
+  },
+  "automation": {
+    "id": "6ac35722234c819194e0535527c23124",
+    "state": "paused_external_requirements",
+    "leaseReleased": true
+  }
+}

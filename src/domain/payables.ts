@@ -9,6 +9,8 @@ import { getAccountCodeForPaymentMethod, getDefaultChartOfAccounts } from '../se
 import { classifyAccount } from './accountClassification';
 import { safeAdd, safeSub } from '../lib/currency';
 import { billSignedBalance, loadPurchaseSource, purchaseCaches, savePurchaseSupplier, verifyPurchaseSource } from './purchaseCorrections';
+import { allocatePurchaseTaxInventory, purchaseTaxSourceQuote } from './purchaseTaxSources';
+import { validateTaxConfigurationVersions } from './taxConfigurationTransactions';
 
 export const payableCollections = ['suppliers', 'purchase_bills', 'supplier_payments'] as const;
 export interface PurchaseLine { id: string; product_id: string; product_name: string; quantity: number; unit_cost: number; value_sdg: number; value_usd: number; zero_cost_reason?: string; }
@@ -59,8 +61,22 @@ export async function payableCommand(action: string, data: Document, c: PayableC
     const reference = text(data.supplier_reference, 80, true);
     const refPath = `${c.root}/purchase_numbers/${supplier.id}.${encodeURIComponent(reference.toLowerCase())}`;
     ensure(!await c.tx.get(refPath), 'رقم فاتورة المورد مستخدم مسبقاً.', 409);
-    ensure(!data.tax_amount && !data.discount_amount, 'سجّل تكلفة صافية؛ معالجة ضريبة المشتريات والخصم المنفصل ضمن مركز الضرائب.');
+    ensure(!data.tax_amount && !data.discount_amount, 'مبلغ الضريبة والخصم مشتقان خادمياً ولا يقبلان من العميل.');
     ensure(Array.isArray(data.items) && data.items.length > 0 && data.items.length <= 100, 'فاتورة الشراء تتطلب 1–100 بند.');
+    let taxEvidence: Document | undefined;
+    if (data.tax_configuration_id !== undefined || data.expected_tax_configuration_revision !== undefined) {
+      ensure(data.tax_configuration_id && data.expected_tax_configuration_revision, 'معرف وإصدار إعداد ضريبة المشتريات مطلوبان معاً.');
+      const current = await c.required('tax_configurations', data.tax_configuration_id);
+      await validateTaxConfigurationVersions(c.tx, c.root, c.orgId, current);
+      const configuration = Object.fromEntries(['schema_version','id','org_id','revision','name','jurisdiction','direction','rate','calculation','rounding','recoverable','tax_account_code','effective_from','effective_to','active'].map(key => [key,current[key]]));
+      taxEvidence = purchaseTaxSourceQuote({ configuration_id:data.tax_configuration_id, expected_configuration_revision:data.expected_tax_configuration_revision, issue_date:issueDate, currency:data.currency, exchange_rate_used:data.exchange_rate_used||0, items:data.items }, { org_id:c.orgId, configurations:[configuration as any], accounts:await c.tx.list(`${c.root}/accounts`) as Account[] });
+      taxEvidence.configuration_version_hash = current.version_hash;
+    }
+    const nativeAllocations = taxEvidence ? allocatePurchaseTaxInventory({ configuration_id:data.tax_configuration_id, expected_configuration_revision:data.expected_tax_configuration_revision, issue_date:issueDate, currency:data.currency, exchange_rate_used:data.exchange_rate_used||0, items:data.items }, taxEvidence as any) : undefined;
+    const raw = data.items.map((item:Document) => new BigNumber(item.quantity).times(item.unit_cost)), rawTotal = raw.reduce((sum:BigNumber,value:BigNumber)=>sum.plus(value),new BigNumber(0));
+    const allocateBook = (target:number,decimals:number) => {const values:number[]=[];let used=new BigNumber(0),total=new BigNumber(target);for(let i=0;i<raw.length;i++){const value=i===raw.length-1?total.minus(used):total.times(raw[i]).div(rawTotal).decimalPlaces(decimals,BigNumber.ROUND_HALF_UP);values.push(value.toNumber());used=used.plus(value);}return values;};
+    const sdgAllocations = taxEvidence ? allocateBook(taxEvidence.tax_treatment==='receivable'?taxEvidence.sdg.base:taxEvidence.sdg.total,0) : undefined;
+    const usdAllocations = taxEvidence ? allocateBook(taxEvidence.tax_treatment==='receivable'?taxEvidence.usd.base:taxEvidence.usd.total,2) : undefined;
     const products = new Map<string, Document>(), quantities = new Map<string, { quantity: number; sdg: number; usd: number }>();
     const items: PurchaseLine[] = [];
     for (const [i, item] of data.items.entries()) {
@@ -68,18 +84,20 @@ export async function payableCommand(action: string, data: Document, c: PayableC
       ensure(!item.tax_rate && !item.discount_percent, 'أدخل تكلفة البند الصافية الموثقة.');
       let product = products.get(id); if (!product) { product = await c.required('products', id); products.set(id, product); }
       ensure(product.is_active && product.track_inventory, 'بند الشراء يتطلب منتج مخزون نشطاً.'); validateCostState(product as Product);
-      const delta = acquisitionCost(item.quantity, { cost_currency: data.currency, unit_cost: item.unit_cost, exchange_rate_used: data.exchange_rate_used || 0, zero_cost_reason: item.zero_cost_reason });
+      const delta = taxEvidence ? {sdg:sdgAllocations![i],usd:usdAllocations![i]} : acquisitionCost(item.quantity, { cost_currency: data.currency, unit_cost: item.unit_cost, exchange_rate_used: data.exchange_rate_used || 0, zero_cost_reason: item.zero_cost_reason });
       const previous = quantities.get(id) || { quantity: 0, sdg: 0, usd: 0 };
       quantities.set(id, { quantity: safeAdd(previous.quantity, item.quantity, 6), sdg: safeAdd(previous.sdg, delta.sdg, 0), usd: safeAdd(previous.usd, delta.usd, 2) });
-      items.push({ id: `line-${i + 1}`, product_id: id, product_name: product.name, quantity: item.quantity, unit_cost: item.unit_cost, value_sdg: delta.sdg, value_usd: delta.usd, ...(item.zero_cost_reason ? { zero_cost_reason: text(item.zero_cost_reason, 500) } : {}) });
+      items.push({ id: `line-${i + 1}`, product_id: id, product_name: product.name, quantity: item.quantity, unit_cost: item.unit_cost, value_sdg: delta.sdg, value_usd: delta.usd, ...(nativeAllocations?{tax_inventory_value_native:nativeAllocations[i]}:{}), ...(item.zero_cost_reason ? { zero_cost_reason: text(item.zero_cost_reason, 500) } : {}) });
     }
     const sdg = items.reduce((n, i) => n.plus(i.value_sdg), new BigNumber(0)).toNumber(), usd = items.reduce((n, i) => n.plus(i.value_usd), new BigNumber(0)).toNumber();
     money(sdg, 0); money(usd, 2); ensure(sdg > 0 || usd > 0, 'إجمالي فاتورة الشراء يجب أن يكون موجباً.');
     const code = data.settlement === 'credit' ? '2110' : await cashAccount(c, data);
     const id = `pb-${c.operationId}`, journalId = `jv-purchase-${c.operationId}`;
-    const result = { ...stamp, id, supplier_id: supplier.id, supplier_name: supplier.name, supplier_reference: reference, issue_date: issueDate, due_date: dueDate, currency: data.currency, exchange_rate_used: data.exchange_rate_used || 0, items, grand_total_sdg: sdg, grand_total_usd: usd, remaining_sdg: data.settlement === 'credit' ? sdg : 0, remaining_usd: data.settlement === 'credit' ? usd : 0, paid_amount_sdg: data.settlement === 'cash' ? sdg : 0, paid_amount_usd: data.settlement === 'cash' ? usd : 0, settlement: data.settlement, status: data.settlement === 'cash' ? 'paid' : 'open', journal_id: journalId, payment_account_code: code, notes: text(data.notes || '', 2000), reason: text(data.reason, 500, true) };
+    const totalSdg=taxEvidence?.sdg.total??sdg,totalUsd=taxEvidence?.usd.total??usd;
+    const result = { ...stamp, id, supplier_id: supplier.id, supplier_name: supplier.name, supplier_reference: reference, issue_date: issueDate, due_date: dueDate, currency: data.currency, exchange_rate_used: data.exchange_rate_used || 0, items, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), grand_total_sdg: totalSdg, grand_total_usd: totalUsd, remaining_sdg: data.settlement === 'credit' ? totalSdg : 0, remaining_usd: data.settlement === 'credit' ? totalUsd : 0, paid_amount_sdg: data.settlement === 'cash' ? totalSdg : 0, paid_amount_usd: data.settlement === 'cash' ? totalUsd : 0, settlement: data.settlement, status: data.settlement === 'cash' ? 'paid' : 'open', journal_id: journalId, payment_account_code: code, notes: text(data.notes || '', 2000), reason: text(data.reason, 500, true) };
     const changed = [...quantities].map(([productId, delta]) => ({ product: products.get(productId)!, delta, after: receiveCost(products.get(productId)! as Product, delta.quantity, delta, issueDate) }));
-    await c.post(journal(journalId, c.orgId, c.actor, issueDate, 'purchase_bill', id, `فاتورة شراء ${reference}: ${supplier.name}`, [journalLine('1300', 'المخزون', sdg, 0, usd, 0), journalLine(code, data.settlement === 'credit' ? 'ذمم الموردين' : 'النقد والبنوك', 0, sdg, 0, usd)], result.exchange_rate_used));
+    const lines=[journalLine('1300', 'المخزون', sdg, 0, usd, 0)];if(taxEvidence?.tax_treatment==='receivable')lines.push(journalLine(taxEvidence.tax_account_code,'ضريبة مشتريات مستردة',taxEvidence.sdg.tax,0,taxEvidence.usd.tax,0));lines.push(journalLine(code, data.settlement === 'credit' ? 'ذمم الموردين' : 'النقد والبنوك', 0, totalSdg, 0, totalUsd));
+    await c.post(journal(journalId, c.orgId, c.actor, issueDate, 'purchase_bill', id, `فاتورة شراء ${reference}: ${supplier.name}`, lines, result.exchange_rate_used));
     for (const [index, { product, delta, after }] of changed.entries()) {
       c.set(`${c.root}/products/${product.id}`, { ...product, ...after });
       const movementId = `mov-purchase-${c.operationId}-${index + 1}`;

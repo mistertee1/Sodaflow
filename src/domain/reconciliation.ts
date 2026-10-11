@@ -20,8 +20,11 @@ import { dateOnly, identifier, money, validateJournal } from './validation';
 import { verifyOpeningSources } from './openingSources';
 import { openingCollections } from './openingCollections';
 import { hasOpeningSources, openingOrganization } from './openingIntegration';
+import { taxConfigurationCollections } from './taxConfigurationTransactions';
+import { validateTaxConfiguration, validateTaxControlAccount } from './taxConfiguration';
 
-export const financialCollections = [...fixedAssetCollections, ...fxRevaluationCollections, ...equityCollections, ...periodCollections, ...openingCollections, 'audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
+export const financialCollections = [...taxConfigurationCollections, ...fixedAssetCollections, ...fxRevaluationCollections, ...equityCollections, ...periodCollections, ...openingCollections, 'audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
+const taxPolicy = (row: Document) => ({schema_version:row.schema_version,id:row.id,org_id:row.org_id,revision:row.revision,name:row.name,jurisdiction:row.jurisdiction,direction:row.direction,rate:row.rate,calculation:row.calculation,rounding:row.rounding,recoverable:row.recoverable,tax_account_code:row.tax_account_code,effective_from:row.effective_from,effective_to:row.effective_to,active:row.active});
 export type FinancialCollection = typeof financialCollections[number];
 export type FinancialData = Record<FinancialCollection, Document[]>;
 export interface Finding {
@@ -53,6 +56,17 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
     indexes[name].set(id, row);
   }
   for (const account of data.accounts) inspect('accounts', account.code, () => { classifyAccount(account as any); });
+  for (const configuration of data.tax_configurations || []) inspect('tax_configurations',configuration.id,()=>{
+    validateTaxControlAccount(validateTaxConfiguration(taxPolicy(configuration) as any,configuration.org_id),data.accounts as any,configuration.org_id);
+    const versions=(data.tax_configuration_versions||[]).filter(row=>row.configuration_id===configuration.id);
+    if(versions.length!==configuration.revision)throw new Error('سلسلة إصدارات إعداد الضريبة ناقصة.');
+    const last=versions.find(row=>row.revision===configuration.revision);
+    if(!last||last.version_hash!==configuration.version_hash)throw new Error('آخر إصدار ضريبة لا يطابق الإعداد الحالي.');
+  });
+  for (const version of data.tax_configuration_versions || []) inspect('tax_configuration_versions',version.id,()=>{
+    validateTaxConfiguration({...taxPolicy(version),id:version.configuration_id} as any,version.org_id);
+    if(!indexes.tax_configurations.has(version.configuration_id)||version.id!==`${version.configuration_id}-r${version.revision}`)throw new Error('إصدار ضريبة بلا إعداد حالي مطابق.');
+  });
   const entriesByReference = new Map<string, Document[]>();
   let arSdg = new BigNumber(0), arUsd = new BigNumber(0);
   for (const entry of data.journal_entries) {
@@ -106,6 +120,8 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
       if(evidence) {
         identifier(evidence.configuration_id);dateOnly(evidence.effective_on);identifier(evidence.tax_account_code);
         if(evidence.effective_on!==invoice.issue_date||!Number.isSafeInteger(evidence.configuration_revision)||evidence.configuration_revision<1||!['exclusive','inclusive'].includes(evidence.calculation)||!['SDG','USD'].includes(evidence.source_currency)) throw new Error('دليل ضريبة الفاتورة غير صالح.');
+        const version=indexes.tax_configuration_versions.get(`${evidence.configuration_id}-r${evidence.configuration_revision}`);
+        if(!version||version.version_hash!==evidence.configuration_version_hash||version.direction!=='sales'||version.rate!==evidence.rate||version.calculation!==evidence.calculation||version.rounding!==evidence.rounding||version.jurisdiction!==evidence.jurisdiction||version.tax_account_code!==evidence.tax_account_code)throw new Error('دليل ضريبة الفاتورة لا يطابق إصدار السياسة المحفوظ.');
         for(const book of ['sdg','usd'] as const) {for(const field of ['base','tax','total']) money(evidence[book][field],book==='sdg'?0:2);if(!new BigNumber(evidence[book].base).plus(evidence[book].tax).eq(evidence[book].total)) throw new Error('دليل ضريبة الفاتورة غير متوازن.');}
       }
       const calculated = evidence ? {...baseCalculated,subtotal_sdg:new BigNumber(evidence.sdg.base).plus(baseCalculated.discount_total_sdg).toNumber(),subtotal_usd:new BigNumber(evidence.usd.base).plus(baseCalculated.discount_total_usd).toNumber(),tax_total_sdg:evidence.sdg.tax,tax_total_usd:evidence.usd.tax,grand_total_sdg:evidence.sdg.total,grand_total_usd:evidence.usd.total} : baseCalculated;
@@ -204,4 +220,5 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
   findings.push(...reconcileFixedAssets(data),...reconcileFxRevaluations(data),...reconcileEquitySources(data), ...reconcileAuditArchives(data.audit_archives || []), ...reconcilePurchaseCorrections(data), ...reconcileSalesCorrections(data), ...reconcilePayables(data), ...reconcileCashManagement(data), ...reconcileCashSessions(data));
   return findings;
 }
+
 

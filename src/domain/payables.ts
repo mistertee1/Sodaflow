@@ -191,8 +191,8 @@ export function reconcilePayables(data: Record<string, Document[]>) {
     const received = new Map<string, { q: BigNumber; sdg: BigNumber; usd: BigNumber }>();
     for (const item of bill.items) {
       ensure((data.products || []).some(p => p.id === item.product_id && p.track_inventory), 'مرجع المنتج ناقص.');
-      const delta = acquisitionCost(item.quantity, { cost_currency: bill.currency, unit_cost: item.unit_cost, exchange_rate_used: bill.exchange_rate_used, zero_cost_reason: item.zero_cost_reason });
-      compare('purchase_bills', bill.id, `${item.id}:sdg`, delta.sdg, item.value_sdg); compare('purchase_bills', bill.id, `${item.id}:usd`, delta.usd, item.value_usd);
+      if (bill.tax_evidence) { money(item.value_sdg,0);money(item.value_usd,2);money(item.tax_inventory_value_native,bill.currency==='USD'?2:0); }
+      else { const delta = acquisitionCost(item.quantity, { cost_currency: bill.currency, unit_cost: item.unit_cost, exchange_rate_used: bill.exchange_rate_used, zero_cost_reason: item.zero_cost_reason }); compare('purchase_bills', bill.id, `${item.id}:sdg`, delta.sdg, item.value_sdg); compare('purchase_bills', bill.id, `${item.id}:usd`, delta.usd, item.value_usd); }
       const old = received.get(item.product_id) || { q: new BigNumber(0), sdg: new BigNumber(0), usd: new BigNumber(0) };
       received.set(item.product_id, { q: old.q.plus(item.quantity), sdg: old.sdg.plus(item.value_sdg), usd: old.usd.plus(item.value_usd) });
     }
@@ -215,9 +215,11 @@ export function reconcilePayables(data: Record<string, Document[]>) {
       state.remaining_sdg = safeSub(state.remaining_sdg, quote.settledSdg, 0); state.remaining_usd = safeSub(state.remaining_usd, quote.settledUsd, 2);
     }
     for (const currency of ['sdg', 'usd']) {
-      const total = bill.items.reduce((n: BigNumber, i: Document) => n.plus(i[`value_${currency}`]), new BigNumber(0)).toNumber(); money(total, currency === 'sdg' ? 0 : 2);
+      const inventoryTotal = bill.items.reduce((n: BigNumber, i: Document) => n.plus(i[`value_${currency}`]), new BigNumber(0)).toNumber(); money(inventoryTotal, currency === 'sdg' ? 0 : 2);
+      const total=bill.tax_evidence?.[currency]?.total??inventoryTotal;money(total,currency==='sdg'?0:2);
+      if(bill.tax_evidence){ensure(bill.tax_evidence.configuration_version_hash&&bill.tax_evidence.effective_on===bill.issue_date,'دليل ضريبة الشراء ناقص أو تاريخه مختلف.');const expectedInventory=bill.tax_evidence.tax_treatment==='receivable'?bill.tax_evidence[currency].base:bill.tax_evidence[currency].total;compare('purchase_bills',bill.id,`tax_inventory_${currency}`,expectedInventory,inventoryTotal);const tax=bill.tax_evidence.tax_treatment==='receivable'?bill.tax_evidence[currency].tax:0;compare('purchase_bills',bill.id,`tax_${currency}`,tax,amount(originals,bill.tax_evidence.tax_account_code||'',''+currency,false));}
       compare('purchase_bills', bill.id, `grand_total_${currency}`, total, bill[`grand_total_${currency}`]);
-      compare('purchase_bills', bill.id, `inventory_${currency}`, total, amount(originals, '1300', currency, false));
+      compare('purchase_bills', bill.id, `inventory_${currency}`, inventoryTotal, amount(originals, '1300', currency, false));
       compare('purchase_bills', bill.id, `credit_${currency}`, total, amount(originals, bill.settlement === 'credit' ? '2110' : bill.payment_account_code, currency));
       const settled = bill.settlement === 'cash' ? total : relatedPayments.reduce((n: BigNumber, p: Document) => n.plus(p[`settled_amount_${currency}`]), new BigNumber(0)).toNumber();
       compare('purchase_bills', bill.id, `paid_amount_${currency}`, settled, bill[`paid_amount_${currency}`]);

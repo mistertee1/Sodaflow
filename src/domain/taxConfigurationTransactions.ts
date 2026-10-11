@@ -4,6 +4,7 @@ import {clean} from './store';
 import {validateTaxConfiguration, validateTaxControlAccount, type TaxConfiguration} from './taxConfiguration';
 import {ensure, identifier, text} from './validation';
 
+export const taxConfigurationCollections = ['tax_configurations','tax_configuration_versions'] as const;
 const inputKeys = ['id','expected_revision','name','jurisdiction','direction','rate','calculation','rounding','recoverable','tax_account_code','effective_from','effective_to','active','reason'];
 const policyKeys = ['schema_version','id','org_id','revision','name','jurisdiction','direction','rate','calculation','rounding','recoverable','tax_account_code','effective_from','effective_to','active'] as const;
 const policy = (row: Document) => Object.fromEntries(policyKeys.map(key => [key, row[key]])) as unknown as TaxConfiguration;
@@ -31,12 +32,11 @@ const versionHashBasis = (row: Document) => ({
   previous_version_hash: row.previous_version_hash ?? null
 });
 
-/** Proves the current materialized policy still has a complete immutable version chain. */
-export async function validateTaxConfigurationVersions(tx: Transaction, root: string, orgId: string, current: Document) {
+/** Proves a materialized policy against a complete immutable version chain. */
+export async function validateTaxConfigurationVersionRecords(current: Document, versions: Document[], orgId: string) {
   const id = identifier(current.id);
   ensure(current.org_id === orgId && Number.isSafeInteger(current.revision) && current.revision > 0, 'إعداد الضريبة الحالي تالف أو أجنبي.');
   const validatedCurrent = validateTaxConfiguration(policy(current), orgId);
-  const versions = await tx.find(`${root}/tax_configuration_versions`, 'configuration_id', id);
   ensure(versions.length === current.revision && versions.length <= 1200, 'سلسلة إصدارات إعداد الضريبة ناقصة أو تتجاوز حد التحقق.', 409);
   const revisions = new Set<number>();
   let previousVersionHash: string | null = null;
@@ -53,6 +53,74 @@ export async function validateTaxConfigurationVersions(tx: Transaction, root: st
   ensure(JSON.stringify({...policy(last), id:last.configuration_id}) === JSON.stringify(validatedCurrent), 'الإعداد الحالي لا يطابق آخر إصدار محفوظ.', 409);
   ensure(last.operation_id === current.operation_id && last.versioned_by === current.updated_by && last.version_hash === current.version_hash, 'دليل آخر إصدار لا يطابق الإعداد الحالي.', 409);
   return versions;
+}
+
+/** Proves the current materialized policy still has a complete immutable version chain. */
+export async function validateTaxConfigurationVersions(tx: Transaction, root: string, orgId: string, current: Document) {
+  const id = identifier(current.id);
+  return validateTaxConfigurationVersionRecords(current, await tx.find(`${root}/tax_configuration_versions`, 'configuration_id', id), orgId);
+}
+
+export function taxConfigurationBackupCounts(data: Record<string, Document[]>) {
+  return {
+    tax_configuration_count: (data.tax_configurations || []).length,
+    tax_configuration_version_count: (data.tax_configuration_versions || []).length
+  };
+}
+
+function verifyInvoiceTaxReference(invoice: Document, versions: Document[]) {
+  const evidence=invoice.tax_evidence;
+  if(!evidence)return;
+  const id=identifier(evidence.configuration_id),revision=evidence.configuration_revision;
+  ensure(Number.isSafeInteger(revision)&&revision>0&&typeof evidence.configuration_version_hash==='string','مرجع إصدار ضريبة الفاتورة غير صالح.',409);
+  const version=versions.find(row=>row.configuration_id===id&&row.revision===revision);
+  ensure(version&&version.id===`${id}-r${revision}`&&version.version_hash===evidence.configuration_version_hash,'مرجع ضريبة الفاتورة لا يطابق إصداراً محفوظاً.',409);
+  ensure(version.direction==='sales'&&version.rate===evidence.rate&&version.calculation===evidence.calculation&&version.rounding===evidence.rounding&&version.jurisdiction===evidence.jurisdiction&&version.tax_account_code===evidence.tax_account_code,'سياسة ضريبة الفاتورة لا تطابق الإصدار المحفوظ.',409);
+  ensure(evidence.effective_on>=version.effective_from&&(!version.effective_to||evidence.effective_on<=version.effective_to),'تاريخ ضريبة الفاتورة خارج صلاحية الإصدار المحفوظ.',409);
+}
+
+export async function validateTaxConfigurationBackup(backup: Document) {
+  const data=backup.collections;
+  ensure(data&&typeof data==='object','مصادر النسخة غير صالحة.');
+  const configurations=data.tax_configurations||[],versions=data.tax_configuration_versions||[],taxed=(data.invoices||[]).filter((row:Document)=>row.tax_evidence);
+  const declared=backup.tax_configuration_schema_version!==undefined||backup.counters?.tax_configuration_count!==undefined||backup.counters?.tax_configuration_version_count!==undefined||configurations.length||versions.length||taxed.length;
+  if(declared) {
+    ensure(backup.tax_configuration_schema_version===1&&Array.isArray(data.tax_configurations)&&Array.isArray(data.tax_configuration_versions),'إعدادات الضرائب أو إصداراتها ناقصة في النسخة.',409);
+    const counts=taxConfigurationBackupCounts(data);
+    ensure(backup.counters?.tax_configuration_count===counts.tax_configuration_count&&backup.counters?.tax_configuration_version_count===counts.tax_configuration_version_count,'عدد إعدادات الضرائب أو إصداراتها في النسخة مختلف.',409);
+    ensure(configurations.length<=250&&versions.length<=1200,'إعدادات الضرائب في النسخة تتجاوز الحد التشغيلي.',409);
+    const ids=new Set<string>(),versionIds=new Set<string>();let assigned=0;
+    for(const current of configurations) {
+      const id=identifier(current.id);ensure(!ids.has(id),'معرف إعداد ضريبة مكرر في النسخة.',409);ids.add(id);
+      validateTaxControlAccount(validateTaxConfiguration(policy(current),identifier(backup.org?.id)),data.accounts as Account[],identifier(backup.org?.id));
+      const chain=versions.filter((row:Document)=>row.configuration_id===id);assigned+=chain.length;
+      await validateTaxConfigurationVersionRecords(current,chain,identifier(backup.org?.id));
+      for(const row of chain){ensure(!versionIds.has(row.id),'معرف إصدار ضريبة مكرر في النسخة.',409);versionIds.add(row.id);}
+    }
+    ensure(assigned===versions.length,'يوجد إصدار ضريبة بلا إعداد حالي مطابق.',409);
+    for(const invoice of taxed)verifyInvoiceTaxReference(invoice,versions);
+  }
+  return {tax_configurations:configurations,tax_configuration_versions:versions};
+}
+
+export async function remapTaxConfigurations(data: Record<string, Document[]>, destination: string) {
+  identifier(destination);
+  const hashes=new Map<string,string>(),versions:Document[]=[];
+  for(const current of data.tax_configurations||[]) {
+    let previousVersionHash:string|null=null;
+    for(const source of (data.tax_configuration_versions||[]).filter(row=>row.configuration_id===current.id).sort((a,b)=>a.revision-b.revision)) {
+      const version=clean({...source,org_id:destination,previous_version_hash:previousVersionHash});
+      const versionHash=await digest(versionHashBasis(version));
+      versions.push({...version,version_hash:versionHash});
+      hashes.set(`${current.id}-r${source.revision}`,versionHash);
+      previousVersionHash=versionHash;
+    }
+  }
+  return {
+    tax_configurations:(data.tax_configurations||[]).map(row=>({...row,org_id:destination,version_hash:hashes.get(`${row.id}-r${row.revision}`)})),
+    tax_configuration_versions:versions,
+    invoices:(data.invoices||[]).map(row=>row.tax_evidence?{...row,org_id:destination,tax_evidence:{...row.tax_evidence,configuration_version_hash:hashes.get(`${row.tax_evidence.configuration_id}-r${row.tax_evidence.configuration_revision}`)}}:{...row,org_id:destination})
+  };
 }
 
 export async function taxConfigurationCommand(action:string,data:Document,c:{tx:Transaction;root:string;orgId:string;actor:string;operationId:string;iso:string}) {

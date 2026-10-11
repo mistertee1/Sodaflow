@@ -2,20 +2,14 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-10T07:41:00Z",
-  "activeRunId": "super-admin-render-authority-20261010-0723",
-  "leaseUntil": "2026-10-10T08:53:00Z",
+  "updatedAt": "2026-10-11T06:47:26.837Z",
+  "activeRunId": "super-admin-render-verification-20261011-0647",
+  "leaseUntil": "2026-10-11T08:02:26.837Z",
   "automationId": "6ac35722234c819194e0535527c23124",
   "currentStage": 5,
   "workBranch": "codex/super-admin-render-authority-20261010",
   "ownedPaths": [
-    "server/resilientStore.ts",
-    "tests/serverAuthority.test.ts",
-    "tests/serverAuthorityFirestore.test.ts",
-    "ops/render-super-admin/**",
-    "docs/super-admin/**",
-    "package.json",
-    "tsconfig.core.json"
+    "docs/super-admin/**"
   ],
   "stages": [
     {
@@ -126,8 +120,10 @@
       "substeps": [
         {
           "id": "5a",
-          "status": "in_progress",
-          "scope": "Canonical Firestore authority and isolated Render acceptance"
+          "status": "merged_ci_passed_render_recheck_pending",
+          "scope": "Canonical Firestore authority and isolated Render acceptance",
+          "mergedCommit": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+          "pr": 39
         },
         {
           "id": "5b",
@@ -140,13 +136,13 @@
   "productionValidated": false,
   "lastCompletedStage": 4,
   "unmergedWorkBranch": "codex/super-admin-render-authority-20261010",
-  "lastSourceCommit": "2a92aa74e3a218b1b33db1fad22966c09c611449",
+  "lastSourceCommit": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "sourceStagesComplete": true,
   "status": "in_progress",
-  "resumeFrom": "render_authority_acceptance",
+  "resumeFrom": "render_merged_main_acceptance",
   "lastReport": "docs/super-admin/REPORT.md",
   "productionReadiness": {
-    "checkedAt": "2026-10-10T07:13:12Z",
+    "checkedAt": "2026-10-11T06:46:39.621967Z",
     "provider": "Render",
     "workspaceId": "tea-db20pccs728c73ald730",
     "serviceId": "srv-db4lfrvavr4c73fn1hl0",
@@ -165,17 +161,25 @@
       "checkedAt": "2026-10-05T13:28:33Z",
       "firestoreCode": "firestore_database_missing",
       "note": "Historical evidence only. Netlify is no longer the requested deployment target."
-    }
+    },
+    "anonymousAccess": {
+      "session": 401,
+      "overview": 401,
+      "companies": 401
+    },
+    "httpHealth": 200
   },
-  "observedMainSha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
-  "workBaseSha": "deb7a2a38bac09ac64b623e4ec86ce43429555f5",
+  "observedMainSha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+  "workBaseSha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "userMergesOnly": true,
   "dependencies": [
     {
       "pr": 38,
       "branch": "codex/accounting-v2-ci-lock-repair-20261010",
       "sha": "deb7a2a38bac09ac64b623e4ec86ce43429555f5",
-      "reason": "Restore npm lock unchanged; required for npm ci. User reviews and merges."
+      "reason": "Restore npm lock unchanged; required for npm ci. User reviews and merges.",
+      "status": "merged_by_user",
+      "mergeCommit": "b4d8c30695f45cf21ca7945cfc3327729e127421"
     }
   ],
   "baselineRegression": {
@@ -185,61 +189,73 @@
       "passed": 44,
       "failed": 6
     },
-    "note": "Existing invoice workspace and auth UI regressions; Super Admin UI passes. Do not modify accounting/UI tests or claim full regression green."
+    "note": "Existing invoice workspace and auth UI regressions; Super Admin UI passes. Do not modify accounting/UI tests or claim full regression green.",
+    "status": "resolved_in_merged_main",
+    "resolvedByPullRequest": 38,
+    "currentCi": {
+      "runId": 38084146537,
+      "sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+      "conclusion": "success",
+      "unitApi": 283,
+      "firestoreEmulator": 37,
+      "ui": 50,
+      "superAdminUi": 9,
+      "failed": 0,
+      "skipped": 0,
+      "productionAuditVulnerabilities": 0,
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38084146537"
+    }
   },
   "acceptance": {
     "provider": "Render",
     "workspaceId": "tea-db20pccs728c73ald730",
     "serviceId": "srv-db4ui5h42hec73f2cdcg",
-    "deployId": "dep-db4ui6142hec73f2ce8g",
     "url": "https://sudaflow-super-admin-acceptance.onrender.com",
-    "sourceCommit": "40232c46998eebf38eadcd00b532a6730f693d64",
+    "configuredBranch": "codex/super-admin-render-authority-20261010",
+    "sourceBaseCommit": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
     "autoDeploy": false,
     "projectId": "demo-sudaflow",
     "productionCredentials": false,
     "productionWrites": 0,
     "runtime": "report_only",
-    "status": "render_retry_after_build_environment_fix",
-    "evidence": {
-      "baseline": {
-        "tests": 12,
-        "passed": 3,
-        "failed": 9
-      },
+    "status": "pending_merged_main_recheck"
+  },
+  "sourceIntegrationValidated": true,
+  "acceptanceHistory": [
+    {
+      "sourceCommit": "29a8c48bc251a6084f856d8ca0ed8b7f04584754",
+      "deployId": "dep-db4uo40473hc7397mih0",
+      "status": "live_scope_passed_regression_blocked",
       "unitApi": 283,
       "firestoreEmulator": 37,
-      "authorityUnit": 12,
-      "authorityEmulator": 4,
-      "types": "passed",
-      "build": "passed",
-      "auditReportedVulnerabilities": 0,
-      "ui": "in_progress"
+      "ui": {
+        "tests": 50,
+        "passed": 44,
+        "failed": 6,
+        "superAdminPassed": 9
+      },
+      "finishedAt": "2026-10-10T07:51:13.561841Z",
+      "productionWrites": 0
+    }
+  ],
+  "mergedPullRequests": [
+    {
+      "number": 38,
+      "mergeCommit": "b4d8c30695f45cf21ca7945cfc3327729e127421"
     },
-    "githubChecks": {
-      "id": 38034521896,
-      "jobId": 114162091308,
-      "status": "completed",
-      "conclusion": "failure",
-      "sha": "40232c46998eebf38eadcd00b532a6730f693d64",
-      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38034521896",
-      "note": "All type/unit/build/emulator/audit checks passed; complete UI remains blocked by existing invoice/auth regressions."
-    },
-    "attempts": [
-      {
-        "sourceCommit": "40232c46998eebf38eadcd00b532a6730f693d64",
-        "deployId": "dep-db4ui6142hec73f2ce8g",
-        "status": "build_failed",
-        "unitApi": 283,
-        "firestoreEmulator": 37,
-        "ui": {
-          "passed": 42,
-          "failed": 8,
-          "superAdminPassed": 8,
-          "superAdminFailed": 1
-        },
-        "note": "First acceptance image inherited NODE_ENV=test into Vite compilation; likely development StrictMode race. Correct build environment and rerun without changing UI assertions or product code.",
-        "finishedAt": "2026-10-10T07:37:53Z"
-      }
-    ]
+    {
+      "number": 39,
+      "mergeCommit": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+      "mergedBy": "mistertee1",
+      "mergedAt": "2026-10-10T20:32:22Z"
+    }
+  ],
+  "coordination": {
+    "checkedAt": "2026-10-11T06:47:26.837Z",
+    "accountingPullRequest": 48,
+    "accountingBranch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
+    "accountingLeaseUntil": "2026-10-11T07:25:00Z",
+    "ownedPathsUnchanged": true,
+    "note": "Accounting branch C5 is active. Only super-admin documentation changes; no accounting, UI, package, Rules or production service changes. Source snapshot contains user's merged PR38/39."
   }
 }

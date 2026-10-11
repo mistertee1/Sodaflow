@@ -10,8 +10,8 @@
   "lease": {
     "worker": "c4-fixed-assets-ui-20261011",
     "acquired_at": "2026-10-11T04:32:30Z",
-    "heartbeat_at": "2026-10-11T04:40:25Z",
-    "expires_at": "2026-10-11T05:25:25.000Z",
+    "heartbeat_at": "2026-10-11T04:45:27Z",
+    "expires_at": "2026-10-11T05:30:27.000Z",
     "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
     "milestone": "C4.3"
   },
@@ -892,19 +892,29 @@
             {
               "id": "C4.3",
               "scope": "Fixed asset register, protected previews and depreciation posting UI with role/reload coverage",
-              "status": "in_progress",
+              "status": "implemented_ci_in_progress",
               "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
               "pr": 46,
               "checks": {
                 "unit_api": 300,
                 "new_unit_api": 7,
-                "types": "passed_local",
-                "core": "passed_local",
-                "build": "passed_local",
+                "types": "passed_local_and_ci",
+                "core": "passed_local_and_ci",
+                "build": "passed_local_and_ci",
+                "new_emulator": 1,
+                "emulator": "passed_ci_pending_count_confirmation",
+                "ui": 56,
                 "new_ui": 4,
-                "ui": "pending_ci",
-                "emulator": "pending_ci"
-              }
+                "ui_status": "passed_local_ci_pending",
+                "production_audit": "passed_ci"
+              },
+              "report": "REPORT_C4_3_FIXED_ASSET_UI.md",
+              "ci": {
+                "run_id": 38112407756,
+                "commit_sha": "37e33f7c5e24c18383be8cf854f8523f3541c0bb",
+                "conclusion": "in_progress"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_deploy_prohibited_in_this_run"
             }
           ]
         },
@@ -1085,11 +1095,11 @@
       ]
     }
   ],
-  "last_report": "REPORT_C4_2_FIXED_ASSET_TRANSACTIONS.md",
+  "last_report": "REPORT_C4_3_FIXED_ASSET_UI.md",
   "next_steps": [
     "C4.3 fixed asset register/depreciation UI, role/reload and Render acceptance"
   ],
-  "updated_at": "2026-10-11T04:40:25Z",
+  "updated_at": "2026-10-11T04:45:27Z",
   "deferred_requirements": [
     {
       "prd_sections": [

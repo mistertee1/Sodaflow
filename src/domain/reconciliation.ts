@@ -1,5 +1,6 @@
 import { equityCollections, reconcileEquitySources } from './ownerEquitySources';
 import { fxRevaluationCollections, reconcileFxRevaluations } from './fxRevaluationSources';
+import { fixedAssetCollections, reconcileFixedAssets } from './fixedAssetSources';
 import { periodCollections, validatePeriods } from './periodContracts';
 import { reconcileAuditArchives } from './auditArchives';
 import BigNumber from 'bignumber.js';
@@ -20,7 +21,7 @@ import { verifyOpeningSources } from './openingSources';
 import { openingCollections } from './openingCollections';
 import { hasOpeningSources, openingOrganization } from './openingIntegration';
 
-export const financialCollections = [...fxRevaluationCollections, ...equityCollections, ...periodCollections, ...openingCollections, 'audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
+export const financialCollections = [...fixedAssetCollections, ...fxRevaluationCollections, ...equityCollections, ...periodCollections, ...openingCollections, 'audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
 export type FinancialCollection = typeof financialCollections[number];
 export type FinancialData = Record<FinancialCollection, Document[]>;
 export interface Finding {
@@ -192,7 +193,7 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
       compare('invoices', invoice.id, `posted_cogs_${currency}`, snapshot.toNumber(), sourceEntries('invoice', invoice.id).flatMap(e => e.lines || []).filter(l => l.account_code === '5100').reduce((sum, l) => sum.plus(l[`debit_${currency}`]).minus(l[`credit_${currency}`]), new BigNumber(0)).toNumber());
     }
   });
-  findings.push(...reconcileFxRevaluations(data),...reconcileEquitySources(data), ...reconcileAuditArchives(data.audit_archives || []), ...reconcilePurchaseCorrections(data), ...reconcileSalesCorrections(data), ...reconcilePayables(data), ...reconcileCashManagement(data), ...reconcileCashSessions(data));
+  findings.push(...reconcileFixedAssets(data),...reconcileFxRevaluations(data),...reconcileEquitySources(data), ...reconcileAuditArchives(data.audit_archives || []), ...reconcilePurchaseCorrections(data), ...reconcileSalesCorrections(data), ...reconcilePayables(data), ...reconcileCashManagement(data), ...reconcileCashSessions(data));
   return findings;
 }
 

@@ -5,13 +5,9 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c3-fx-ui-20261010",
+  "active_branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "c3-fx-ui-20261010",
-    "acquired_at": "2026-10-10T18:02:00.000Z",
-    "expires_at": "2026-10-10T18:37:00.000Z"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -800,15 +796,68 @@
                 "conclusion": "success"
               },
               "render_acceptance": "not_exposed_no_ui"
+            },
+            {
+              "id": "C3.3",
+              "scope": "Protected FX revaluation preview/posting UI, role guards, synchronization and reload persistence",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c3-fx-ui-20261010",
+              "pr": 43,
+              "report": "REPORT_C3_3_FX_REVALUATION_UI.md",
+              "checks": {
+                "unit_api": 281,
+                "new_unit_api": 1,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 33,
+                "ui": 52,
+                "new_ui": 2,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38090460970,
+                "commit_sha": "cd99f4b783cd9247651a7eb53d629f18a25720a7",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_confirmed_workspace_staging_service_and_matching_deploy",
+              "completed_at": "2026-10-10T22:11:00.000Z"
             }
           ]
         },
         {
           "id": "C4",
           "scope": "Fixed asset register, straight-line depreciation and source-linked ledger lifecycle",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
+          "pr": 44,
+          "substeps": [
+            {
+              "id": "C4.1",
+              "scope": "Source-backed fixed asset registration quote and straight-line depreciation schedule",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
+              "pr": 44,
+              "report": "REPORT_C4_1_FIXED_ASSET_QUOTES.md",
+              "checks": {
+                "unit_api": 289,
+                "new_tests": 8,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 33,
+                "ui": 52,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38105712957,
+                "commit_sha": "e3039bfc0bac3b6eb12504a2f92f596bab69e746",
+                "conclusion": "success"
+              },
+              "render_acceptance": "not_exposed_no_command_or_ui",
+              "completed_at": "2026-10-11T02:42:00.000Z"
+            }
+          ]
         },
         {
           "id": "C5",
@@ -987,11 +1036,11 @@
       ]
     }
   ],
-  "last_report": "REPORT_C3_2_FX_REVALUATION_TRANSACTIONS.md",
+  "last_report": "REPORT_C4_1_FIXED_ASSET_QUOTES.md",
   "next_steps": [
-    "C3.3 protected FX preview/UI, role/reload and Render acceptance"
+    "C4.2 protected atomic asset registration and depreciation posting lifecycle"
   ],
-  "updated_at": "2026-10-10T16:30:15.862Z",
+  "updated_at": "2026-10-11T02:42:00.000Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1016,7 +1065,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C3.3",
+  "active_substep": "C4.1",
   "observed_main_sha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
   "lease_history": [
     {
@@ -1063,14 +1112,22 @@
       "branch": "codex/accounting-v2-c3-fx-transactions-20261010",
       "pr": 41,
       "code_commit": "303fd4863c5953dad521076aa09bc22362dcd812"
+    },
+    {
+      "worker": "c4-fixed-assets-quotes-20261010",
+      "acquired_at": "2026-10-10T22:20:00.000Z",
+      "released_at": "2026-10-11T02:42:00.000Z",
+      "branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
+      "pr": 44,
+      "code_commit": "e3039bfc0bac3b6eb12504a2f92f596bab69e746"
     }
   ],
   "last_lease": {
-    "worker": "c3-fx-transactions-20261010",
-    "released_at": "2026-10-10T16:30:15.862Z",
-    "branch": "codex/accounting-v2-c3-fx-transactions-20261010",
-    "pr": 41,
-    "code_commit": "303fd4863c5953dad521076aa09bc22362dcd812"
+    "worker": "c4-fixed-assets-quotes-20261010",
+    "released_at": "2026-10-11T02:42:00.000Z",
+    "branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
+    "pr": 44,
+    "code_commit": "e3039bfc0bac3b6eb12504a2f92f596bab69e746"
   },
   "last_remote_review": {
     "checked_at": "2026-10-10T06:48:42.580Z",
@@ -1084,7 +1141,7 @@
     ],
     "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
   },
-  "next": "C3.3 protected FX preview/UI, role/reload and Render acceptance",
+  "next": "C4.2 protected atomic asset registration and depreciation posting lifecycle",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1105,22 +1162,22 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c3-fx-transactions-20261010",
-    "branch": "codex/accounting-v2-c3-fx-transactions-20261010",
-    "pr": 41,
-    "code_commit": "303fd4863c5953dad521076aa09bc22362dcd812",
+    "worker": "c4-fixed-assets-quotes-20261010",
+    "branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
+    "pr": 44,
+    "code_commit": "e3039bfc0bac3b6eb12504a2f92f596bab69e746",
     "ci": {
-      "run_id": 38067352811,
-      "commit_sha": "303fd4863c5953dad521076aa09bc22362dcd812",
+      "run_id": 38105712957,
+      "commit_sha": "e3039bfc0bac3b6eb12504a2f92f596bab69e746",
       "conclusion": "success",
-      "unit_api": 280,
+      "unit_api": 289,
       "emulator": 33,
-      "ui": 50,
+      "ui": 52,
       "production_audit_vulnerabilities": 0
     },
-    "status": "C3_2_fx_revaluation_transactions_ci_passed_render_pending",
-    "ended_at": "2026-10-10T16:30:15.862Z",
-    "next": "C3.3 protected FX preview/UI, role/reload and Render acceptance"
+    "status": "C4_1_fixed_asset_quotes_ci_passed",
+    "ended_at": "2026-10-11T02:42:00.000Z",
+    "next": "C4.2 protected atomic asset registration and depreciation posting lifecycle"
   },
   "acceptance_environment": {
     "provider": "Render",

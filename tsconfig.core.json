@@ -41,8 +41,11 @@
     "tests/ownerEquity.test.ts",
     "tests/ownerEquityTransactions.test.ts",
     "tests/fxRevaluation.test.ts",
-    "tests/fxExposure.test.ts"
-    ,"tests/fxSourceAllocations.test.ts",
-    "tests/fxRevaluationTransactions.test.ts"
+    "tests/fxExposure.test.ts",
+    "tests/fxSourceAllocations.test.ts",
+    "tests/fxRevaluationTransactions.test.ts",
+    "tests/fixedAssets.test.ts",
+    "tests/fixedAssetTransactions.test.ts",
+    "tests/ui/fixedAssets.spec.ts"
   ]
 }

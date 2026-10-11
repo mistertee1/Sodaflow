@@ -6,6 +6,7 @@ import { fxRevaluationEvidence } from './fxRevaluationSources';
 import type { FxRevaluationInput, FxRevaluationSnapshot } from './fxRevaluation';
 import { ownerEquityTransaction } from './ownerEquityTransactions';
 import { fixedAssetTransaction } from './fixedAssetTransactions';
+import { quoteFixedAsset, type FixedAssetPreviewRequest } from './fixedAssetPreview';
 import { fixedAssetCollections, fixedAssetBackupCounts, remapFixedAssets, validateFixedAssetBackup, verifyFixedAssetSources } from './fixedAssetSources';
 import { periodCollections, assertPeriodPosting, assertRecentOwner, validatePeriods, verifyClosedPeriodHashes } from './periodContracts';
 import { periodCommand, closeChecklist } from './accountingPeriods';
@@ -114,6 +115,30 @@ export class Operations {
       const data=await readOpeningFinancialData(tx,`organizations/${orgId}`,orgId);await assertOpeningFinancialData(data,org.settings);verifyFxRevaluationSources(data,orgId);
       const evidence=fxRevaluationEvidence(input,{...data,org_id:orgId,accounts:data.accounts as Account[],journal_entries:data.journal_entries as JournalEntry[],settings:org.settings} as unknown as FxRevaluationSnapshot,{operation_id:'preview',created_by:actor.uid,created_at:now.toISOString(),sequence:data.fx_revaluations.length+1});
       return{organizationId:orgId,quote:evidence.event.quote,quote_hash:await fxQuoteHash(evidence.event.quote)};
+    });
+  }
+  async fixedAssetPreview(orgId: string, actor: Actor, request: FixedAssetPreviewRequest) {
+    return this.store.transaction(async tx => {
+      const {org, role} = await membership(tx, orgId, actor);
+      ensure(['Owner', 'Accountant'].includes(role), 'معاينة الأصول متاحة للمالك والمحاسب فقط.', 403);
+      ensure(request && ['fixedAsset.register', 'fixedAsset.depreciate'].includes(request.action), 'عملية معاينة الأصل غير صالحة.');
+      ensure(hasPermission(role, actions[request.action]), 'صلاحية معاينة الأصل غير متاحة.', 403);
+      const now = this.now(), subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+      assertSubscriptionActive(subscription); assertFeature(subscription, 'accounting');
+      ensure(org.accounting_version === 2, 'الأصول الثابتة تتطلب محاسبة V2.', 409);
+      if (this.store.authority === 'browser') throw new BusinessError('معاينة الأصول المحمية تتطلب خدمة الخادم.', 403, 'accounting_server_required');
+      if (this.store.authority === 'server') {
+        if (!this.verifyCostingSecurity) throw new BusinessError('تعذر تأكيد قواعد حماية V2 المنشورة.', 503, 'accounting_rules_not_verified');
+        await this.verifyCostingSecurity();
+      }
+      const data = await readOpeningFinancialData(tx, `organizations/${orgId}`, orgId);
+      await assertOpeningFinancialData(data, org.settings); verifyFixedAssetSources(data, orgId);
+      if (request.action === 'fixedAsset.depreciate') {
+        const periods = validatePeriods(data.accounting_periods, orgId), date = dateOnly(request.input?.date);
+        ensure(periods.length > 0 && date === request.input.date && date <= merchantDay(now, org.settings.timezone || 'Africa/Khartoum'), 'تاريخ الإهلاك غير صالح أو مستقبلي؛ أنشئ فترة تغطيه.', 409);
+        assertOpenPeriod(date, org.settings); assertPeriodPosting(periods, date, role, false, request.input.reason);
+      }
+      return quoteFixedAsset(request, data, orgId);
     });
   }
   async advancedReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}) {

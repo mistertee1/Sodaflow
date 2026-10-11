@@ -23,7 +23,7 @@ const monthEnd = (start: string, offset: number) => {
 const allocation = (cost: number, residual: number, months: number, decimals: number) => {
   const depreciable = new BigNumber(cost).minus(residual), regular = depreciable.dividedBy(months).decimalPlaces(decimals,BigNumber.ROUND_HALF_UP);
   let used = new BigNumber(0);
-  return Array.from({length:months},(_,index)=>{const amount=index===months-1?depreciable.minus(used):regular;used=used.plus(amount);return amount.toNumber();});
+  return Array.from({length:months},(_,index)=>{const remaining=depreciable.minus(used),amount=index===months-1?remaining:BigNumber.minimum(regular,remaining);used=used.plus(amount);return amount.toNumber();});
 };
 
 /** Pure source-backed registration and straight-line schedule. It grants no permission and writes nothing. */

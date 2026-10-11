@@ -12,6 +12,7 @@ import {
   assertOpeningFinancialData,
 } from "./openingTransactions";
 import { ensure } from "./validation";
+import { quoteFixedAsset, type FixedAssetPreviewRequest } from './fixedAssetPreview';
 
 export async function fixedAssetTransaction(
   action: string,
@@ -29,10 +30,17 @@ export async function fixedAssetTransaction(
   const original = await readOpeningFinancialData(c.tx, c.root, c.orgId);
   await assertOpeningFinancialData(original, c.settings);
   verifyFixedAssetSources(original, c.orgId);
+  // Preserve the existing server command contract, while binding UI submissions to their reviewed quote.
+  const {expected_quote_hash, ...input} = data;
+  const preview = await quoteFixedAsset({action, input} as FixedAssetPreviewRequest, original, c.orgId);
+  if (expected_quote_hash !== undefined) {
+    ensure(typeof expected_quote_hash === 'string' && /^[a-f0-9]{64}$/.test(expected_quote_hash), 'بصمة معاينة الأصل غير صالحة.');
+    ensure(preview.quote_hash === expected_quote_hash, 'معاينة الأصل تغيرت؛ أعد المعاينة والتأكيد.', 409);
+  }
   const iso = c.now.toISOString();
   if (action === "fixedAsset.register") {
     const asset = fixedAssetRegistrationEvidence(
-      data as unknown as FixedAssetRegistrationInput,
+      input as unknown as FixedAssetRegistrationInput,
       {
         org_id: c.orgId,
         accounts: original.accounts as Account[],
@@ -55,16 +63,16 @@ export async function fixedAssetTransaction(
     };
   }
   ensure(action === "fixedAsset.depreciate", "عملية أصل ثابت غير معروفة.");
-  const asset = original.fixed_assets.find((row) => row.id === data.asset_id);
+  const asset = original.fixed_assets.find((row) => row.id === input.asset_id);
   ensure(asset, "الأصل غير موجود.", 404);
-  const proposed = fixedAssetDepreciationEvidence(asset, data, {
+  const proposed = fixedAssetDepreciationEvidence(asset, input, {
     operation_id: c.operationId,
     created_by: c.actor,
     created_at: iso,
   });
   for (const [name, id] of [
     ["fixed_asset_depreciations", proposed.event.id],
-    ["journal_entries", proposed.entry.id],
+    ...(proposed.entry ? [["journal_entries", proposed.entry.id]] : []),
   ])
     ensure(
       !(await c.tx.get(`${c.root}/${name}/${id}`)),
@@ -76,7 +84,7 @@ export async function fixedAssetTransaction(
     row.id === asset.id ? proposed.updated : row,
   );
   staged.fixed_asset_depreciations.push(proposed.event);
-  staged.journal_entries.push(proposed.entry);
+  if (proposed.entry) staged.journal_entries.push(proposed.entry);
   await assertOpeningFinancialData(staged, c.settings);
   return {
     result: proposed.event,
@@ -86,10 +94,10 @@ export async function fixedAssetTransaction(
         path: `${c.root}/fixed_asset_depreciations/${proposed.event.id}`,
         value: proposed.event,
       },
-      {
+      ...(proposed.entry ? [{
         path: `${c.root}/journal_entries/${proposed.entry.id}`,
         value: proposed.entry,
-      },
+      }] : []),
     ],
     entry: proposed.entry,
   };

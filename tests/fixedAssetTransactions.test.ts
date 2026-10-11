@@ -344,3 +344,88 @@ test("C4.2 backup restores tenant-remapped asset lifecycle and rejects incomplet
     [],
   );
 });
+
+test('C4.3 protected previews are read-only, bind both commands, and reject a stale/forged reviewed quote', async () => {
+  const f = await fixture(), before = f.store.dump();
+  const p = await f.ops.fixedAssetPreview(f.org.id, owner, {action: 'fixedAsset.register', input: f.input});
+  assert.deepEqual(f.store.dump(), before); assert.equal(p.organizationId, f.org.id); assert.equal(p.quote.purchase_cost_sdg, 1200); assert.match(p.quote_hash, /^[a-f0-9]{64}$/);
+  await assert.rejects(f.run('fixedAsset.register', {...f.input, expected_quote_hash: 'f'.repeat(64)})); assert.deepEqual(f.store.dump(), before);
+  await f.run('fixedAsset.register', {...f.input, expected_quote_hash: p.quote_hash}, 'ui-register');
+  const input = {asset_id: 'asset-1', expected_revision: 1, sequence: 1, date: '2026-10-31', reason: 'إهلاك مراجع'};
+  const registered = f.store.dump(), dep = await f.ops.fixedAssetPreview(f.org.id, owner, {action: 'fixedAsset.depreciate', input});
+  assert.deepEqual(f.store.dump(), registered); assert.equal(dep.quote.amount_sdg, 100); assert.equal(dep.quote.book_after_sdg, 1100);
+  await assert.rejects(f.run('fixedAsset.depreciate', {...input, reason: 'تغير السبب', expected_quote_hash: dep.quote_hash})); assert.deepEqual(f.store.dump(), registered);
+  const command = {...input, expected_quote_hash: dep.quote_hash};
+  const saved = await f.run('fixedAsset.depreciate', command, 'ui-dep'); assert.deepEqual(await f.run('fixedAsset.depreciate', command, 'ui-dep'), saved);
+  const posted = f.store.dump(); await assert.rejects(f.run('fixedAsset.depreciate', command, 'other-dep')); assert.deepEqual(f.store.dump(), posted);
+});
+
+test('C4.3 preview enforces live role, tenant, entitlement, server authority and rules attestation', async () => {
+  for (const mode of ['Admin', 'Viewer', 'foreign', 'expired', 'feature', 'browser', 'rules']) {
+    const f = await fixture(); let actor = owner, ops = f.ops;
+    await f.store.transaction(async tx => {
+      if (['Admin', 'Viewer'].includes(mode)) {actor = {...owner, uid: mode}; tx.set(`${f.root}/members/${mode}`, {uid: mode, org_id: f.org.id, role: mode, status: 'active'});}
+      if (mode === 'foreign') actor = {...owner, uid: 'stranger'};
+      if (mode === 'expired') tx.set(f.root, {...await tx.get(f.root), subscriptionStatus: 'expired'});
+      if (mode === 'feature') {const plan = await tx.get('plans/Enterprise'); tx.set('plans/Enterprise', {...plan, features: {...plan!.features, accounting: false}});}
+    });
+    if (['browser', 'rules'].includes(mode)) ops = new Operations({authority: mode === 'browser' ? 'browser' : 'server', transaction: f.store.transaction.bind(f.store)}, () => now);
+    const before = f.store.dump(); await assert.rejects(ops.fixedAssetPreview(f.org.id, actor, {action: 'fixedAsset.register', input: f.input})); assert.deepEqual(f.store.dump(), before);
+  }
+  const f = await fixture();
+  await f.store.transaction(async tx => tx.set(`${f.root}/members/accountant`, {uid: 'accountant', org_id: f.org.id, role: 'Accountant', status: 'active'}));
+  assert.equal((await f.ops.fixedAssetPreview(f.org.id, {...owner, uid: 'accountant'}, {action: 'fixedAsset.register', input: f.input})).quote.id, 'asset-1');
+});
+
+test('C4.3 depreciation rechecks open periods after review and refuses future dates', async () => {
+  const f = await fixture(); await f.run('fixedAsset.register', f.input, 'register');
+  const input = {asset_id: 'asset-1', expected_revision: 1, sequence: 1, date: '2026-10-31', reason: 'مراجعة'};
+  const preview = await f.ops.fixedAssetPreview(f.org.id, owner, {action: 'fixedAsset.depreciate', input});
+  await f.run('period.softClose', {id: 'oct', expected_revision: 1, reason: 'قفل بعد المعاينة'}, 'close');
+  const before = f.store.dump();
+  await assert.rejects(f.ops.fixedAssetPreview(f.org.id, owner, {action: 'fixedAsset.depreciate', input}));
+  await assert.rejects(f.run('fixedAsset.depreciate', {...input, expected_quote_hash: preview.quote_hash})); assert.deepEqual(f.store.dump(), before);
+  await assert.rejects(f.ops.fixedAssetPreview(f.org.id, owner, {action: 'fixedAsset.depreciate', input: {...input, date: '2026-12-31'}}));
+});
+
+test('C4.3 registration source must still exist and depreciation controls must remain active', async () => {
+  for (const mode of ['source', 'missing', 'account']) {
+    const f = await fixture(); await f.run('fixedAsset.register', f.input, 'register');
+    await f.store.transaction(async tx => {
+      if (mode === 'source') {const entry = (await tx.get(`${f.root}/journal_entries/purchase-asset`))!; entry.lines[0].debit_sdg++; entry.lines[1].credit_sdg++; tx.set(`${f.root}/journal_entries/purchase-asset`, entry);}
+      if (mode === 'missing') tx.delete(`${f.root}/journal_entries/purchase-asset`);
+      if (mode === 'account') tx.set(`${f.root}/accounts/1590`, {...await tx.get(`${f.root}/accounts/1590`), is_active: false});
+    });
+    const before = f.store.dump(), input = {asset_id: 'asset-1', expected_revision: 1, sequence: 1, date: '2026-10-31', reason: 'إهلاك'};
+    await assert.rejects(f.ops.fixedAssetPreview(f.org.id, owner, {action: 'fixedAsset.depreciate', input}));
+    await assert.rejects(f.run('fixedAsset.depreciate', input)); assert.deepEqual(f.store.dump(), before);
+  }
+});
+
+test('C4.3 zero rounded installment advances source sequence without an invalid zero journal and restores', async () => {
+  const f = await fixture();
+  await f.store.transaction(async tx => {const entry = (await tx.get(`${f.root}/journal_entries/purchase-asset`))!; entry.lines[0].debit_sdg = 1; entry.lines[0].debit_usd = 0; entry.lines[1].credit_sdg = 1; entry.lines[1].credit_usd = 0; tx.set(`${f.root}/journal_entries/purchase-asset`, entry);});
+  await f.run('fixedAsset.register', f.input, 'register');
+  const input = {asset_id: 'asset-1', expected_revision: 1, sequence: 1, date: '2026-10-31', reason: 'قسط صفر بعد التقريب'};
+  const preview = await f.ops.fixedAssetPreview(f.org.id, owner, {action: 'fixedAsset.depreciate', input}); assert.equal(preview.quote.amount_sdg, 0); assert.deepEqual(preview.quote.lines, []);
+  const event = await f.run('fixedAsset.depreciate', {...input, expected_quote_hash: preview.quote_hash}, 'zero-dep'); assert.equal(event.result.journal_id, null);
+  const backup = await f.ops.snapshot(f.org.id, owner, true); assert.equal(backup.collections.journal_entries.length, 1); assert.equal(backup.collections.fixed_assets[0].revision, 2);
+  verifyFixedAssetSources(backup.collections, f.org.id); assert.deepEqual(reconcileFinancialData(backup.collections as FinancialData, backup.settings, {requireCosting: true}), []);
+  const {validateFixedAssetBackup, remapFixedAssets} = await import('../src/domain/fixedAssetSources'); assert.equal(validateFixedAssetBackup(backup).fixed_asset_depreciations.length, 1);
+  const remapped = {...backup.collections, ...remapFixedAssets(backup.collections, 'restored'), journal_entries: backup.collections.journal_entries.map((row: any) => ({...row, org_id: 'restored'}))}; verifyFixedAssetSources(remapped, 'restored');
+});
+
+test('C4.3 HTTP preview rejects forged payload/query/auth and sets no-store without writing', async () => {
+  const {default: express} = await import('express'), {createApi} = await import('../server/api'), f = await fixture();
+  const app = express(); app.use(express.json()); app.use('/api', createApi({operations: f.ops, verify: async token => {if (token !== 'valid') throw Error('invalid'); return owner;}}));
+  const server = app.listen(0, '127.0.0.1'); await new Promise<void>(resolve => server.once('listening', resolve));
+  const url = `http://127.0.0.1:${(server.address() as any).port}/api/organizations/${f.org.id}/fixed-assets/preview`, before = f.store.dump();
+  const send = (body: any, suffix = '', token = 'valid') => fetch(url + suffix, {method: 'POST', headers: {'Content-Type': 'application/json', Authorization: `Bearer ${token}`}, body: JSON.stringify(body)});
+  try {
+    const response = await send({action: 'fixedAsset.register', input: f.input}); assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'no-store'); assert.equal((await response.json()).quote.purchase_cost_sdg, 1200);
+    assert.equal((await send({action: 'fixedAsset.register', input: f.input}, '', 'invalid')).status, 401);
+    assert.equal((await send({action: 'fixedAsset.register', input: f.input}, '?orgId=foreign')).status, 400);
+    assert.equal((await send({action: 'fixedAsset.register', input: {...f.input, purchase_cost_sdg: 1}})).status, 400);
+    assert.equal((await send({action: 'fixedAsset.register', input: f.input, actor: 'forged'})).status, 400); assert.deepEqual(f.store.dump(), before);
+  } finally {await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));}
+});

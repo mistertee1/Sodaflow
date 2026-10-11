@@ -7,14 +7,7 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "c5-tax-quotes-20261011",
-    "acquired_at": "2026-10-11T04:48:12Z",
-    "heartbeat_at": "2026-10-11T04:51:40Z",
-    "expires_at": "2026-10-11T05:36:40.000Z",
-    "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
-    "milestone": "C5.1"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -928,7 +921,7 @@
             {
               "id": "C5.1",
               "scope": "Configurable tax policy validation and pure sales/purchase tax line quotes",
-              "status": "in_progress",
+              "status": "implemented_ci_passed",
               "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
               "pr": 47,
               "render_acceptance": "not_exposed_no_command_or_ui",
@@ -936,17 +929,19 @@
               "checks": {
                 "unit_api": 313,
                 "new_tests": 13,
-                "types": "passed_local",
-                "core": "passed_local",
-                "build": "passed_local",
-                "emulator": "pending_ci",
-                "ui": "pending_ci"
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 34,
+                "ui": 56,
+                "production_audit_vulnerabilities": 0
               },
               "ci": {
                 "run_id": 38112824166,
                 "commit_sha": "9b9d00df8839b380dbaff7df5e18cba503772966",
-                "conclusion": "in_progress"
-              }
+                "conclusion": "success"
+              },
+              "completed_at": "2026-10-11T04:56:11Z"
             }
           ]
         },
@@ -1126,7 +1121,7 @@
     "C5.2b/c source-linked sales/purchase tax posting, corrections, reconciliation and restore",
     "C5.3 tax UI, periods, reports and authenticated Render acceptance"
   ],
-  "updated_at": "2026-10-11T04:51:40Z",
+  "updated_at": "2026-10-11T04:56:11Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1222,27 +1217,35 @@
       "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
       "pr": 46,
       "code_commit": "37e33f7c5e24c18383be8cf854f8523f3541c0bb"
+    },
+    {
+      "worker": "c5-tax-quotes-20261011",
+      "acquired_at": "2026-10-11T04:48:12Z",
+      "released_at": "2026-10-11T04:56:11Z",
+      "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
+      "pr": 47,
+      "code_commit": "9b9d00df8839b380dbaff7df5e18cba503772966"
     }
   ],
   "last_lease": {
-    "worker": "c4-fixed-assets-ui-20261011",
-    "acquired_at": "2026-10-11T04:32:30Z",
-    "released_at": "2026-10-11T04:47:40Z",
-    "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
-    "pr": 46,
-    "code_commit": "37e33f7c5e24c18383be8cf854f8523f3541c0bb"
+    "worker": "c5-tax-quotes-20261011",
+    "acquired_at": "2026-10-11T04:48:12Z",
+    "released_at": "2026-10-11T04:56:11Z",
+    "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
+    "pr": 47,
+    "code_commit": "9b9d00df8839b380dbaff7df5e18cba503772966"
   },
   "last_remote_review": {
-    "checked_at": "2026-10-10T06:48:42.580Z",
-    "main_sha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
-    "user_merged_prs": [
-      33,
-      34,
-      35,
-      36,
-      37
+    "checked_at": "2026-10-11T04:56:11Z",
+    "main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+    "open_accounting_prs": [
+      43,
+      44,
+      45,
+      46,
+      47
     ],
-    "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
+    "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
   "next": "C5.2a protected versioned tax configuration persistence and audit",
   "integration_tracking_resolution": {
@@ -1265,20 +1268,20 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c4-fixed-assets-ui-20261011",
-    "acquired_at": "2026-10-11T04:32:30Z",
-    "released_at": "2026-10-11T04:47:40Z",
-    "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
-    "pr": 46,
-    "code_commit": "37e33f7c5e24c18383be8cf854f8523f3541c0bb",
+    "worker": "c5-tax-quotes-20261011",
+    "acquired_at": "2026-10-11T04:48:12Z",
+    "released_at": "2026-10-11T04:56:11Z",
+    "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
+    "pr": 47,
+    "code_commit": "9b9d00df8839b380dbaff7df5e18cba503772966",
     "ci": {
-      "run_id": 38112407756,
-      "commit_sha": "37e33f7c5e24c18383be8cf854f8523f3541c0bb",
+      "run_id": 38112824166,
+      "commit_sha": "9b9d00df8839b380dbaff7df5e18cba503772966",
       "conclusion": "success"
     },
-    "status": "C4_3_fixed_asset_UI_ci_passed",
-    "ended_at": "2026-10-11T04:47:40Z",
-    "next": "C5.1 configurable tax policy and pure sales/purchase tax quotes"
+    "status": "C5_1_tax_configuration_quotes_ci_passed",
+    "ended_at": "2026-10-11T04:56:11Z",
+    "next": "C5.2a protected versioned tax configuration persistence and audit"
   },
   "acceptance_environment": {
     "provider": "Render",

@@ -23,6 +23,8 @@ export function FixedAssetsCenter() {
   const current = useRef(scope.current); current.current = {org: a.currentOrg?.id, uid: a.currentUser?.uid};
   useEffect(() => {mounted.current = true; return () => {mounted.current = false;};}, []);
   const allowed = ['Owner', 'Accountant'].includes(a.userRole) && a.isActionAllowed('journal:create') && a.isActionAllowed('periods:adjust');
+  const permissionNow = useRef(allowed), revisionNow = useRef(a.counters.revision);
+  permissionNow.current = allowed; revisionNow.current = a.counters.revision;
   const sourceLines = useMemo(() => a.journalEntries.flatMap(entry => entry.lines.flatMap((line, index) => {
     const account = a.accounts.find(row => row.code === line.account_code);
     return account?.is_active && account.nature === 'DEBIT' && classifyAccount(account).reporting_group === 'fixed_assets'
@@ -39,7 +41,7 @@ export function FixedAssetsCenter() {
   const registrationKey = JSON.stringify(input), depreciationKey = JSON.stringify({selectedId, revision: selected?.revision, depreciationReason});
   useEffect(() => {setPreview(null); setConfirmed(false);}, [registrationKey, depreciationKey, allowed, a.counters.revision]);
   const guard = () => {
-    if (!mounted.current || !scope.current.org || scope.current.org !== current.current.org || scope.current.uid !== current.current.uid || !allowed)
+    if (!mounted.current || !scope.current.org || scope.current.org !== current.current.org || scope.current.uid !== current.current.uid || !permissionNow.current)
       throw Error('تغيرت المؤسسة أو الصلاحية؛ أعد فتح العملية.');
     return scope.current.org;
   };
@@ -50,7 +52,9 @@ export function FixedAssetsCenter() {
     finally {working.current = false; if (mounted.current) setBusy(false);}
   };
   const review = async (request: FixedAssetPreviewRequest) => {
+    const revision = revisionNow.current;
     const result = await a.previewFixedAsset(request, guard()); guard();
+    if (revision !== revisionNow.current) throw Error('بيانات المؤسسة تغيرت أثناء المعاينة؛ أعد المعاينة.');
     setPreview({...result, request, key: JSON.stringify(request)}); setConfirmed(false);
   };
   const save = async () => {

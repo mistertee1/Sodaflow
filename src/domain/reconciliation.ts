@@ -73,6 +73,12 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
     validateTaxConfiguration({...taxPolicy(version),id:version.configuration_id} as any,version.org_id);
     if(!indexes.tax_configurations.has(version.configuration_id)||version.id!==`${version.configuration_id}-r${version.revision}`)throw new Error('إصدار ضريبة بلا إعداد حالي مطابق.');
   });
+  for(const bill of data.purchase_bills||[])if(bill.tax_evidence)inspect('purchase_bills',bill.id,()=>{
+    const evidence=bill.tax_evidence,version=indexes.tax_configuration_versions.get(`${identifier(evidence.configuration_id)}-r${evidence.configuration_revision}`);
+    dateOnly(evidence.effective_on);identifier(evidence.tax_account_code||'nonrecoverable-tax');
+    if(evidence.effective_on!==bill.issue_date||!version||version.version_hash!==evidence.configuration_version_hash||version.direction!=='purchases'||version.rate!==evidence.rate||version.calculation!==evidence.calculation||version.rounding!==evidence.rounding||version.jurisdiction!==evidence.jurisdiction||version.tax_account_code!==evidence.tax_account_code)throw new Error('دليل ضريبة فاتورة المورد لا يطابق إصدار السياسة المحفوظ.');
+    if(!['receivable','cost'].includes(evidence.tax_treatment))throw new Error('معالجة ضريبة فاتورة المورد غير صالحة.');
+  });
   const entriesByReference = new Map<string, Document[]>();
   let arSdg = new BigNumber(0), arUsd = new BigNumber(0);
   for (const entry of data.journal_entries) {

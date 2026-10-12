@@ -8,12 +8,12 @@
   "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "c5-tax-lifecycle-integration-20261011",
-    "acquired_at": "2026-10-11T20:35:19Z",
-    "expires_at": "2026-10-11T22:35:19Z",
+    "worker": "c5-tax-corrections-20261012",
+    "acquired_at": "2026-10-12T01:52:00Z",
+    "expires_at": "2026-10-12T03:52:00Z",
     "branch": "codex/accounting-v2-c5-tax-lifecycle-integrated-20261011",
-    "purpose": "Continue C5.2c purchase tax posting, configured correction lifecycle and reconciliation on integrated PR53",
-    "heartbeat_at": "2026-10-11T21:18:00Z"
+    "purpose": "Verify integrated purchase-tax CI and continue C5.2c configured sales correction lifecycle",
+    "heartbeat_at": "2026-10-12T01:52:00Z"
   },
   "milestones": [
     {
@@ -1177,7 +1177,7 @@
     "C5.2c configured sales correction lifecycle, purchase tax posting, reconciliation and strict restore",
     "C5.3 tax UI, periods, reports and authenticated Render acceptance"
   ],
-  "updated_at": "2026-10-11T21:18:00Z",
+  "updated_at": "2026-10-12T01:52:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1305,6 +1305,16 @@
       "released_at": "2026-10-11T13:12:00Z",
       "pr": 50,
       "code_commit": "2ff2e8edea1528e9573e991500e03339fee2ba3a"
+    },
+    {
+      "worker": "c5-tax-lifecycle-integration-20261011",
+      "acquired_at": "2026-10-11T20:35:19Z",
+      "expires_at": "2026-10-11T22:35:19Z",
+      "branch": "codex/accounting-v2-c5-tax-lifecycle-integrated-20261011",
+      "purpose": "Continue C5.2c purchase tax posting, configured correction lifecycle and reconciliation on integrated PR53",
+      "heartbeat_at": "2026-10-11T21:18:00Z",
+      "released_at": "2026-10-12T01:52:00Z",
+      "release_reason": "expired_before_resume"
     }
   ],
   "last_lease": {
@@ -1327,7 +1337,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Publish and verify configured purchase tax posting, then implement tax-preserving sales and purchase corrections",
+  "next": "Verify PR53 latest CI and full local suite, then implement tax-preserving configured sales corrections",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",

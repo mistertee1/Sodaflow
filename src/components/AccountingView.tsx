@@ -5,6 +5,7 @@ import { FixedAssetsCenter } from './accounting/FixedAssetsCenter';
 import { AccountingPeriodsCenter } from './accounting/AccountingPeriodsCenter';
 import { TaxCenter } from './accounting/TaxCenter';
 import { ManagementDimensionsCenter } from './accounting/ManagementDimensionsCenter';
+import { ProductProfitabilityCenter } from './accounting/ProductProfitabilityCenter';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { api } from '../services/businessApi';
 import type { Operations } from '../domain/operations';
@@ -89,7 +90,7 @@ export const AccountingView: React.FC = () => {
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<
-    'opening' | 'equity' | 'fx' | 'assets' | 'tax' | 'dimensions' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
+    'opening' | 'equity' | 'fx' | 'assets' | 'tax' | 'dimensions' | 'profitability' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
   >('coa');
   const [reportStart, setReportStart] = useState('');
   const [reportEnd, setReportEnd] = useState('');
@@ -459,6 +460,7 @@ export const AccountingView: React.FC = () => {
           {isActionAllowed('journal:read') && <button data-testid="fixed-assets-tab" onClick={() => setActiveSubTab('assets')} aria-pressed={activeSubTab === 'assets'} className="sf-secondary shrink-0 whitespace-nowrap">الأصول الثابتة والإهلاك</button>}
           {isActionAllowed('tax:read') && <button data-testid="tax-center-tab" onClick={() => setActiveSubTab('tax')} aria-pressed={activeSubTab === 'tax'} className="sf-secondary shrink-0 whitespace-nowrap">الضرائب</button>}
           {isActionAllowed('dimensions:read') && <button data-testid="dimensions-center-tab" onClick={() => setActiveSubTab('dimensions')} aria-pressed={activeSubTab === 'dimensions'} className="sf-secondary shrink-0 whitespace-nowrap">الأبعاد الإدارية</button>}
+          {isActionAllowed('reports:advanced') && <button data-testid="product-profitability-tab" onClick={() => setActiveSubTab('profitability')} aria-pressed={activeSubTab === 'profitability'} className="sf-secondary shrink-0 whitespace-nowrap">ربحية المنتجات</button>}
           {isActionAllowed('payables:read') && <button onClick={() => setActiveSubTab('payables')} aria-pressed={activeSubTab === 'payables'} className="sf-secondary shrink-0 whitespace-nowrap">الموردون والمشتريات</button>}
           <button
             onClick={() => setActiveSubTab('coa')}
@@ -948,6 +950,7 @@ export const AccountingView: React.FC = () => {
       {activeSubTab === 'assets' && <FixedAssetsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'tax' && <TaxCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'dimensions' && <ManagementDimensionsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
+      {activeSubTab === 'profitability' && <ProductProfitabilityCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'payables' && <PayablesCenter />}
 
       {activeSubTab === 'period_lock' && <AccountingPeriodsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}

@@ -39,6 +39,7 @@ interface AppContextType {
   saveTaxConfiguration: (data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<TaxConfiguration>;
   loadTaxReport: (period: {start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['taxReports']>>>;
   loadBranchProfitAndLoss: (branchId:string, period:{start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['branchProfitAndLoss']>>>;
+  loadProductProfitability: (period:{start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['productProfitability']>>>;
   fixedAssets: Document[];
   fixedAssetDepreciations: Document[];
   previewFixedAsset: (request: FixedAssetPreviewRequest, expectedOrgId: string) => Promise<FixedAssetPreview>;
@@ -511,6 +512,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
       const params=new URLSearchParams({branchId,...(period.start?{start:period.start}:{}),...(period.end?{end:period.end}:{})});
       const report=id===guestId&&!userRef.current?await getGuest().branchProfitAndLoss(id,guestActor,branchId,period):await api<Awaited<ReturnType<Operations['branchProfitAndLoss']>>>(`/organizations/${encodeURIComponent(id)}/reports/branch-profit-loss?${params}`);
+      if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return report;
+    },
+    loadProductProfitability: async period => {
+      const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
+      const params=new URLSearchParams({...period.start?{start:period.start}:{},...period.end?{end:period.end}:{}});
+      const report=id===guestId&&!userRef.current?await getGuest().productProfitability(id,guestActor,period):await api<Awaited<ReturnType<Operations['productProfitability']>>>(`/organizations/${encodeURIComponent(id)}/reports/product-profitability?${params}`);
       if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return report;
     },
     creditNotes: rows<Document>('credit_notes'), customerRefunds: rows<Document>('customer_refunds'),

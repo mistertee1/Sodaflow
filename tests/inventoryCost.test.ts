@@ -150,6 +150,15 @@ test('A2 server report honors periods and custom account metadata after billing 
   await assert.rejects(f.ops.advancedReports(f.org.id, owner, { start: '2026-10-06', end: '2026-10-05' }), /بداية الفترة/);
 });
 
+test('D2.1 product profitability uses frozen source revenue/cost and reconstructs period turnover',async()=>{
+  const f=await fixture(10);await f.basis(2);await f.run('accounting.activate',{reason:'مطابقة موثقة'},'activate-profit');
+  const sale=(await f.run('invoice.create',f.invoice(2),'profit-sale')).result as Invoice;
+  const report=await f.ops.productProfitability(f.org.id,owner,{start:'2026-10-05',end:'2026-10-05'}),row=report.rows.find(item=>item.product_id===f.product.id)!;
+  assert.equal(sale.items[0].total_cost_usd,4);assert.equal(row.quantity_sold,2);assert.equal(row.sales_usd,20);assert.equal(row.cogs_usd,4);assert.equal(row.gross_profit_usd,16);assert.equal(row.gross_margin_usd,80);assert.equal(row.current_stock,8);assert.equal(row.inventory_value_usd,16);assert.equal(row.costs_complete,true);assert.equal(row.stock_turnover_usd,0.5);
+  await assert.rejects(f.ops.productProfitability(f.org.id,{...owner,uid:'stranger'},{start:'2026-10-05',end:'2026-10-05'}),/عضوية|صلاحية/);
+  await assert.rejects(f.ops.productProfitability(f.org.id,owner,{start:'2026-10-06',end:'2026-10-05'}),/بداية الفترة/);
+});
+
 test('C6.1 comparative reports keep independent ranges and cumulative as-of balances',async()=>{
   const f=await fixture();await f.run('account.create',{code:'consulting',name_ar:'استشارات',name_en:'Consulting',type:'REVENUE',nature:'CREDIT',is_active:true},'comparison-account');
   for(const [date,amount] of [['2026-09-10',100],['2026-10-10',160]] as const)await f.run('journal.create',{date,reference_type:'manual',description:'إيراد مقارنة',lines:[journalLine('1110','cash',amount),journalLine('consulting','revenue',0,amount)]},`comparison-${date}`);

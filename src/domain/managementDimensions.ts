@@ -11,6 +11,11 @@ export interface ManagementDimension {
 }
 export const dimensionCollection = (kind: DimensionKind) => kind === 'branch' ? 'branches' : kind === 'cost_center' ? 'cost_centers' : 'projects';
 export const dimensionField = (kind: DimensionKind) => kind === 'branch' ? 'branch_id' : kind === 'cost_center' ? 'cost_center_id' : 'project_id';
+export function dimensionTags(data: Document) {
+  const result: Document = {};
+  for (const field of ['branch_id','cost_center_id','project_id']) if (data[field]) result[field] = identifier(data[field]);
+  return result;
+}
 export function dimensionKind(value: unknown): DimensionKind { ensure(['branch','cost_center','project'].includes(String(value)), 'نوع البعد الإداري غير صالح.'); return value as DimensionKind; }
 export function createDimension(data: Document, orgId: string, actor: string, now: string): ManagementDimension {
   ensure(Object.keys(data).every(key => ['kind','id','code','name_ar','name_en','status'].includes(key)), 'حقول البعد الإداري غير صالحة أو محمية.');

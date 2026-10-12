@@ -1,0 +1,31 @@
+import BigNumber from 'bignumber.js';
+import {clean} from './store';
+import {configuredTaxQuote,type TaxConfiguration,type TaxSnapshot} from './taxConfiguration';
+import {dateOnly,ensure,identifier,money} from './validation';
+export interface PurchaseTaxSourceInput {configuration_id:string;expected_configuration_revision:number;issue_date:string;currency:'SDG'|'USD';exchange_rate_used:number;items:{product_id:string;quantity:number;unit_cost:number;tax_rate?:number;tax_amount?:number}[];}
+export interface PurchaseTaxLineAllocation {inventory:{native:number;sdg:number;usd:number};supplier:{native:number;sdg:number;usd:number};}
+function allocateTarget(raw:BigNumber[],target:number,decimals:number){
+ const rawTotal=raw.reduce((sum,value)=>sum.plus(value),new BigNumber(0));ensure(rawTotal.gt(0),'أساس توزيع تكلفة الشراء يجب أن يكون موجباً.');
+ const allocated:number[]=[],targetNumber=new BigNumber(target);let used=new BigNumber(0);
+ for(let index=0;index<raw.length;index++){const value=index===raw.length-1?targetNumber.minus(used):targetNumber.times(raw[index]).div(rawTotal).decimalPlaces(decimals,BigNumber.ROUND_HALF_UP);allocated.push(value.toNumber());used=used.plus(value);}
+ ensure(used.eq(targetNumber),'تعذر توزيع تكلفة الشراء بعد الضريبة.');return allocated;
+}
+export function allocatePurchaseTaxLineValues(input:PurchaseTaxSourceInput,evidence:ReturnType<typeof purchaseTaxSourceQuote>){
+ const raw=input.items.map(item=>new BigNumber(item.quantity).times(item.unit_cost));
+ const inventoryNative=evidence.tax_treatment==='receivable'?evidence.native.base:evidence.native.total;
+ const inventorySdg=evidence.tax_treatment==='receivable'?evidence.sdg.base:evidence.sdg.total;
+ const inventoryUsd=evidence.tax_treatment==='receivable'?evidence.usd.base:evidence.usd.total;
+ const inventory={native:allocateTarget(raw,inventoryNative,input.currency==='USD'?2:0),sdg:allocateTarget(raw,inventorySdg,0),usd:allocateTarget(raw,inventoryUsd,2)};
+ const supplier={native:allocateTarget(raw,evidence.native.total,input.currency==='USD'?2:0),sdg:allocateTarget(raw,evidence.sdg.total,0),usd:allocateTarget(raw,evidence.usd.total,2)};
+ return raw.map((_,index):PurchaseTaxLineAllocation=>({inventory:{native:inventory.native[index],sdg:inventory.sdg[index],usd:inventory.usd[index]},supplier:{native:supplier.native[index],sdg:supplier.sdg[index],usd:supplier.usd[index]}}));
+}
+export function allocatePurchaseTaxInventory(input:PurchaseTaxSourceInput,evidence:ReturnType<typeof purchaseTaxSourceQuote>){
+ return allocatePurchaseTaxLineValues(input,evidence).map(row=>row.inventory.native);
+}
+export function purchaseTaxSourceQuote(input:PurchaseTaxSourceInput,snapshot:TaxSnapshot){
+ const id=identifier(input.configuration_id),date=dateOnly(input.issue_date);ensure(date===input.issue_date&&Number.isSafeInteger(input.expected_configuration_revision)&&input.expected_configuration_revision>0,'مرجع إعداد ضريبة المشتريات غير صالح.');ensure(Array.isArray(input.items)&&input.items.length>0&&input.items.length<=100,'ضريبة المشتريات تتطلب بنود شراء موثقة.');
+ let amount=new BigNumber(0);for(const item of input.items){identifier(item.product_id);money(item.quantity,6,true);money(item.unit_cost,8);ensure(item.tax_rate===undefined&&item.tax_amount===undefined,'ضريبة المشتريات مشتقة من الإعداد ولا تقبل نسبة أو مبلغاً من العميل.');amount=amount.plus(new BigNumber(item.quantity).times(item.unit_cost));}const decimals=input.currency==='USD'?2:0;ensure(amount.isFinite()&&amount.gt(0),'أساس ضريبة المشتريات يجب أن يكون موجباً.');const base=amount.decimalPlaces(decimals,BigNumber.ROUND_HALF_UP).toNumber();money(base,decimals,true);
+ const quote=configuredTaxQuote({configuration_id:id,expected_configuration_revision:input.expected_configuration_revision,date,direction:'purchases',amount:base,currency:input.currency,currency_policy:input.currency==='USD'?'dual':'sdg_only',exchange_rate_used:input.currency==='USD'?input.exchange_rate_used:undefined},snapshot),configuration=quote.configuration as TaxConfiguration;ensure(configuration.direction==='purchases'&&(quote.tax_treatment==='cost'||quote.tax_treatment==='receivable'),'إعداد ضريبة المشتريات غير صالح.');
+ return clean({schema_version:1,configuration_id:id,configuration_revision:configuration.revision,calculation:configuration.calculation,rate:configuration.rate,rounding:configuration.rounding,jurisdiction:configuration.jurisdiction,effective_on:date,source_currency:input.currency,exchange_rate_used:quote.exchange_rate_used,recoverable:configuration.recoverable,tax_treatment:quote.tax_treatment,tax_account_code:quote.tax_account_code,native:quote.native,sdg:quote.sdg,usd:quote.usd,conversion_base_adjustment_sdg:quote.conversion_base_adjustment_sdg,conversion_base_adjustment_usd:quote.conversion_base_adjustment_usd});
+}
+

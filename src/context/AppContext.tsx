@@ -1,7 +1,10 @@
 import type { OpeningInput } from '../domain/openingBalances';
 import type { OpeningTerms } from '../domain/openingSources';
 import type { OwnerEquityInput } from '../domain/ownerEquity';
+import type { FxRevaluationInput } from '../domain/fxRevaluation';
+import type { FixedAssetAction, FixedAssetPreview, FixedAssetPreviewRequest } from '../domain/fixedAssetPreview';
 import type { AccountingPeriod } from '../domain/periodContracts';
+import type { TaxConfiguration } from '../domain/taxConfiguration';
 import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
 import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
@@ -26,6 +29,12 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  taxConfigurations: TaxConfiguration[];
+  saveTaxConfiguration: (data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<TaxConfiguration>;
+  fixedAssets: Document[];
+  fixedAssetDepreciations: Document[];
+  previewFixedAsset: (request: FixedAssetPreviewRequest, expectedOrgId: string) => Promise<FixedAssetPreview>;
+  saveFixedAsset: (action: FixedAssetAction, data: Document, expectedOrgId: string, requestId: string) => Promise<Document>;
   openingBatches: Document[];
   openingLots: Document[];
   openingSettlements: Document[];
@@ -33,6 +42,9 @@ interface AppContextType {
   saveOpening: (action: 'opening.commit' | 'openingSettlement.create', data: Document, expectedOrgId: string, requestId: string) => Promise<Document>;
   ownerEquityEvents: Document[];
   saveOwnerEquity: (data: OwnerEquityInput, expectedOrgId: string, requestId: string) => Promise<Document>;
+  fxRevaluations: Document[];
+  previewFxRevaluation: (data: FxRevaluationInput, expectedOrgId: string) => Promise<Awaited<ReturnType<Operations['fxRevaluationPreview']>>>;
+  saveFxRevaluation: (data: FxRevaluationInput & {expected_quote_hash:string}, expectedOrgId: string, requestId: string) => Promise<Document>;
   accountingPeriods: AccountingPeriod[];
   loadAccountingPeriods: (periodId?: string) => Promise<Awaited<ReturnType<Operations['periodReports']>>>;
   saveAccountingPeriod: (action: 'period.create' | 'period.softClose' | 'period.close' | 'period.reopen', data: Document, expectedOrgId: string) => Promise<AccountingPeriod>;
@@ -377,7 +389,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const sensitive = ['payables:read', 'audit_logs:view', 'journal:read', 'accounts:read', 'periods:read'];
     const readOnly = action.endsWith(':read') || action === 'members:view';
     if (!active && (!readOnly || sensitive.includes(action))) return false;
-    const features: Partial<Record<ActionType, string>> = { 'equity:write': 'accounting', 'opening:preview': 'accounting', 'opening:write': 'accounting', 'opening:settle': 'accounting', 'periods:read': 'accounting', 'periods:manage': 'accounting', 'periods:adjust': 'accounting', 'periods:reopen': 'accounting', 'payables:read': 'accounting', 'payables:write': 'accounting', 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
+    const features: Partial<Record<ActionType, string>> = { 'tax:read': 'accounting', 'tax:manage': 'accounting', 'equity:write': 'accounting', 'opening:preview': 'accounting', 'opening:write': 'accounting', 'opening:settle': 'accounting', 'periods:read': 'accounting', 'periods:manage': 'accounting', 'periods:adjust': 'accounting', 'periods:reopen': 'accounting', 'payables:read': 'accounting', 'payables:write': 'accounting', 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
     if (features[action] && state.subscription.features[features[action]!] !== true) return false;
     if (action === 'invoices:create' && invoiceQuotaReached(state.subscription, state.counters.lifetime_invoice_count || state.counters.invoice_count, state.counters.monthly_invoice_count || 0)) return false;
     return true;
@@ -414,8 +426,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
   const nothing = async () => {};
   const value: AppContextType = {
+    taxConfigurations: rows<TaxConfiguration>('tax_configurations'),
+    saveTaxConfiguration: (data, updating, expectedOrgId, requestId) => activeOrg.current === expectedOrgId
+      ? run<TaxConfiguration>(updating ? 'taxConfiguration.update' : 'taxConfiguration.create', data, requestId)
+      : Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح إعداد الضريبة.', 409)),
+    fixedAssets: rows<Document>('fixed_assets'), fixedAssetDepreciations: rows<Document>('fixed_asset_depreciations'),
+    previewFixedAsset: async (request, expectedOrgId) => {
+      const id = activeOrg.current, epoch = session.current;
+      if (!id || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409);
+      const preview = id === guestId && !userRef.current ? await getGuest().fixedAssetPreview(id, guestActor, request) : await api<FixedAssetPreview>(`/organizations/${encodeURIComponent(id)}/fixed-assets/preview`, {method: 'POST', body: JSON.stringify(request)});
+      if (id !== activeOrg.current || epoch !== session.current || preview.organizationId !== id) throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد المعاينة.', 409);
+      return preview;
+    },
+    saveFixedAsset: (action, data, expectedOrgId, requestId) => activeOrg.current === expectedOrgId ? run(action, data, requestId) : Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409)),
     openingBatches: rows<Document>('opening_batches'), openingLots: rows<Document>('opening_lots'), openingSettlements: rows<Document>('opening_settlements'),
-    ownerEquityEvents: rows<Document>('owner_equity_events'),
+    ownerEquityEvents: rows<Document>('owner_equity_events'), fxRevaluations: rows<Document>('fx_revaluations'),
     previewOpening: async (request, expectedOrgId) => {
       const id = activeOrg.current, epoch = session.current;
       if (!id || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409);
@@ -431,6 +456,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (activeOrg.current !== expectedOrgId) return Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409));
       return run('ownerEquity.create', data, requestId);
     },
+    previewFxRevaluation: async(data,expectedOrgId)=>{
+      const id=activeOrg.current,epoch=session.current;if(!id||id!==expectedOrgId)throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.',409);
+      const preview=id===guestId&&!userRef.current?await getGuest().fxRevaluationPreview(id,guestActor,data):await api<Awaited<ReturnType<Operations['fxRevaluationPreview']>>>(`/organizations/${encodeURIComponent(id)}/fx-revaluations/preview`,{method:'POST',body:JSON.stringify(data)});
+      if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد المعاينة.',409);return preview;
+    },
+    saveFxRevaluation:(data,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run('fxRevaluation.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.',409)),
     accountingPeriods: rows<AccountingPeriod>('accounting_periods'),
     loadAccountingPeriods: async periodId => {
       const id = activeOrg.current, epoch = session.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');

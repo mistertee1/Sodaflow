@@ -12,7 +12,8 @@ export function nativeCurrencyExposure(orgId: string, asOf: string, accountCode:
   for(const entry of entries){identifier(entry.id);ensure(entry.org_id===orgId&&!journals.has(entry.id),'قيد أجنبي أو مكرر في إثبات الانكشاف.');dateOnly(entry.date);validateJournal(entry.lines);journals.set(entry.id,entry);}
   const proof=new Map<string,NativeSourceAllocation>();
   for(const allocation of allocations){identifier(allocation.journal_id);identifier(allocation.source_id);ensure(['SDG','USD'].includes(allocation.native_currency),'عملة مصدر الانكشاف غير صالحة.');ensure(Number.isSafeInteger(allocation.line_index)&&allocation.line_index>=0,'طرف مصدر الانكشاف غير صالح.');
-    const entry=journals.get(allocation.journal_id),line=entry?.lines[allocation.line_index];ensure(line&&line.account_code===accountCode,'دليل المصدر يشير إلى قيد أو طرف غير مطابق.');
+    const entry=journals.get(allocation.journal_id),line=entry?.lines[allocation.line_index];ensure(line,'دليل المصدر يشير إلى قيد أو طرف غير مطابق.');
+    if(line.account_code!==accountCode)continue;
     const key=JSON.stringify([allocation.journal_id,allocation.line_index]);ensure(!proof.has(key),'دليل مصدر الانكشاف مكرر.');proof.set(key,allocation);
   }
   const pools={SDG:{sdg:new BigNumber(0),usd:new BigNumber(0)},USD:{sdg:new BigNumber(0),usd:new BigNumber(0)}};

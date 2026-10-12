@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-ci-lock-repair-20261010",
+  "active_branch": "codex/accounting-v2-c5-tax-ui-20261012",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -750,22 +750,299 @@
               "safety_findings": [
                 "GL USD is a reporting book, not proof of native USD exposure. Mixed SDG/USD AR/AP pools must be split by source currency; SDG-native cash must not be revalued as USD. No posting command may use account-level quote until this is resolved."
               ]
+            },
+            {
+              "id": "C3.1c",
+              "scope": "Trusted server-derived native-currency adapters for cash, AR/AP, corrections and opening sources",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c3-native-exposure-20261010",
+              "pr": 40,
+              "report": "REPORT_C3_1C_TRUSTED_SOURCE_ADAPTERS.md",
+              "checks": {
+                "unit_api": 276,
+                "new_tests": 3,
+                "types": "passed",
+                "core": "passed",
+                "emulator": 33,
+                "ui": 50,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38065501675,
+                "commit_sha": "e0f151ef9443fe47f101d85e61bb92bc68e58b7a",
+                "conclusion": "success"
+              },
+              "render_acceptance": "not_exposed_no_command_or_UI"
+            },
+            {
+              "id": "C3.2",
+              "scope": "Protected atomic source-linked FX revaluation posting, reconciliation and backup",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c3-fx-transactions-20261010",
+              "pr": 41,
+              "report": "REPORT_C3_2_FX_REVALUATION_TRANSACTIONS.md",
+              "checks": {
+                "unit_api": 280,
+                "new_tests": 4,
+                "types": "passed",
+                "core": "passed",
+                "emulator": 33,
+                "ui": 50,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38067352811,
+                "commit_sha": "303fd4863c5953dad521076aa09bc22362dcd812",
+                "conclusion": "success"
+              },
+              "render_acceptance": "not_exposed_no_ui"
+            },
+            {
+              "id": "C3.3",
+              "scope": "Protected FX revaluation preview/posting UI, role guards, synchronization and reload persistence",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c3-fx-ui-20261010",
+              "pr": 43,
+              "report": "REPORT_C3_3_FX_REVALUATION_UI.md",
+              "checks": {
+                "unit_api": 281,
+                "new_unit_api": 1,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 33,
+                "ui": 52,
+                "new_ui": 2,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38090460970,
+                "commit_sha": "cd99f4b783cd9247651a7eb53d629f18a25720a7",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_confirmed_workspace_staging_service_and_matching_deploy",
+              "completed_at": "2026-10-10T22:11:00.000Z"
             }
           ]
         },
         {
           "id": "C4",
           "scope": "Fixed asset register, straight-line depreciation and source-linked ledger lifecycle",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
+          "pr": 45,
+          "substeps": [
+            {
+              "id": "C4.1",
+              "scope": "Source-backed fixed asset registration quote and straight-line depreciation schedule",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
+              "pr": 44,
+              "report": "REPORT_C4_1_FIXED_ASSET_QUOTES.md",
+              "checks": {
+                "unit_api": 289,
+                "new_tests": 8,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 33,
+                "ui": 52,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38105712957,
+                "commit_sha": "e3039bfc0bac3b6eb12504a2f92f596bab69e746",
+                "conclusion": "success"
+              },
+              "render_acceptance": "not_exposed_no_command_or_ui",
+              "completed_at": "2026-10-11T02:42:00.000Z"
+            },
+            {
+              "id": "C4.2",
+              "scope": "Protected atomic fixed asset registration, depreciation posting, reconciliation and backup",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
+              "pr": 45,
+              "report": "REPORT_C4_2_FIXED_ASSET_TRANSACTIONS.md",
+              "checks": {
+                "unit_api": 293,
+                "new_tests": 4,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 33,
+                "ui": 52,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38108879973,
+                "commit_sha": "ab2bc849b05bb36bd201d0d3c09f83adef28cbc8",
+                "conclusion": "success"
+              },
+              "render_acceptance": "not_exposed_no_ui",
+              "completed_at": "2026-10-11T03:41:00.000Z"
+            },
+            {
+              "id": "C4.3",
+              "scope": "Fixed asset register, protected previews and depreciation posting UI with role/reload coverage",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
+              "pr": 46,
+              "checks": {
+                "unit_api": 300,
+                "new_unit_api": 7,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 34,
+                "new_emulator": 1,
+                "ui": 56,
+                "new_ui": 4,
+                "production_audit_vulnerabilities": 0
+              },
+              "report": "REPORT_C4_3_FIXED_ASSET_UI.md",
+              "ci": {
+                "run_id": 38112407756,
+                "commit_sha": "37e33f7c5e24c18383be8cf854f8523f3541c0bb",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_deploy_prohibited_in_this_run",
+              "completed_at": "2026-10-11T04:47:40Z"
+            }
+          ]
         },
         {
           "id": "C5",
           "scope": "Configurable tax center, sales/purchase taxes, tax periods and reports",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
+          "pr": 48,
+          "substeps": [
+            {
+              "id": "C5.1",
+              "scope": "Configurable tax policy validation and pure sales/purchase tax line quotes",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
+              "pr": 47,
+              "render_acceptance": "not_exposed_no_command_or_ui",
+              "report": "REPORT_C5_1_TAX_QUOTES.md",
+              "checks": {
+                "unit_api": 313,
+                "new_tests": 13,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 34,
+                "ui": 56,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38112824166,
+                "commit_sha": "9b9d00df8839b380dbaff7df5e18cba503772966",
+                "conclusion": "success"
+              },
+              "completed_at": "2026-10-11T04:56:11Z"
+            },
+            {
+              "id": "C5.2a",
+              "scope": "Protected versioned tax configuration persistence, audit and tamper-evident hash chain",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
+              "pr": 48,
+              "report": "REPORT_C5_2A_TAX_CONFIG_TRANSACTIONS.md",
+              "checks": {
+                "unit_api": 317,
+                "new_tests": 4,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 34,
+                "ui": 56,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38129634478,
+                "commit_sha": "3ca2c0d6644181c5a1385d6eb78f8cc9ce25436e",
+                "conclusion": "success"
+              },
+              "render_acceptance": "not_exposed_no_operational_ui",
+              "completed_at": "2026-10-11T10:49:00Z"
+            },
+            {
+              "id": "C5.2b",
+              "scope": "Source-linked configured sales tax evidence and atomic invoice/AR/revenue/tax posting",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c5-sales-tax-transactions-20261011",
+              "pr": 50,
+              "report": "REPORT_C5_2B_SALES_TAX_TRANSACTIONS.md",
+              "checks": {
+                "unit_api": 323,
+                "new_tests": 6,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 34,
+                "ui": 56,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38142139448,
+                "commit_sha": "aba2586308b745f429ce4d247ed358c997997c91",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-11T13:41:00Z"
+            },
+            {
+              "id": "C5.2c",
+              "scope": "Protected purchase tax posting, frozen sales tax corrections, reconciliation and strict tax restore",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c5-tax-backup-20261011",
+              "pr": 51,
+              "report": "REPORT_C5_2C_TAX_COMPLETION.md",
+              "checks": {
+                "unit_api": 332,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 56,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38198089675,
+                "commit_sha": "fe0267c63a6e344661f3690f98df0936553706b1",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-12T04:05:00Z"
+            },
+            {
+              "id": "C5.3.1",
+              "scope": "Owner-protected tax policy UI, role-based read access, optimistic versioning and reload persistence",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c5-tax-ui-20261012",
+              "pr": 54,
+              "report": "REPORT_C5_3_1_TAX_POLICY_UI.md",
+              "checks": {
+                "unit_api": 332,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 58,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38209232481,
+                "commit_sha": "05278645316b66f931cd37cb2e185711e1500e66",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-12T07:15:00Z"
+            }
+          ],
+          "active_substep": "C5.3"
         },
         {
           "id": "C6",
@@ -937,11 +1214,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_C3_1_FX_REVALUATION_QUOTES.md",
+  "last_report": "REPORT_C5_3_1_TAX_POLICY_UI.md",
   "next_steps": [
-    "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch"
+    "C5.3.2 tax periods, liability/receivable aggregation and reports",
+    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1 on a matching staging commit"
   ],
-  "updated_at": "2026-10-10T12:12:58.200Z",
+  "updated_at": "2026-10-12T07:15:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -966,8 +1244,8 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C3.1",
-  "observed_main_sha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
+  "active_substep": "C5.3.2",
+  "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",
@@ -993,30 +1271,121 @@
       "branch": "codex/accounting-v2-c2-capital-transactions-20261010",
       "pr": 33,
       "code_commit": "7d5131a3be5ecaa5a53875c02bee1ab4cef47642"
+    },
+    {
+      "worker": "c3-native-exposure-20261010",
+      "released_at": "2026-10-10T13:11:42.622Z",
+      "branch": "codex/accounting-v2-c3-native-exposure-20261010",
+      "code_commit": "8c835848b2fade385b17588d292e332fe584ef56"
+    },
+    {
+      "worker": "c3-source-adapters-20261010",
+      "released_at": "2026-10-10T16:00:08.894Z",
+      "branch": "codex/accounting-v2-c3-native-exposure-20261010",
+      "pr": 40,
+      "code_commit": "e0f151ef9443fe47f101d85e61bb92bc68e58b7a"
+    },
+    {
+      "worker": "c3-fx-transactions-20261010",
+      "released_at": "2026-10-10T16:30:15.862Z",
+      "branch": "codex/accounting-v2-c3-fx-transactions-20261010",
+      "pr": 41,
+      "code_commit": "303fd4863c5953dad521076aa09bc22362dcd812"
+    },
+    {
+      "worker": "c4-fixed-assets-quotes-20261010",
+      "acquired_at": "2026-10-10T22:20:00.000Z",
+      "released_at": "2026-10-11T02:42:00.000Z",
+      "branch": "codex/accounting-v2-c4-fixed-assets-quotes-20261010",
+      "pr": 44,
+      "code_commit": "e3039bfc0bac3b6eb12504a2f92f596bab69e746"
+    },
+    {
+      "worker": "c4-fixed-assets-transactions-20261011",
+      "acquired_at": "2026-10-11T03:28:00.000Z",
+      "released_at": "2026-10-11T03:41:00.000Z",
+      "branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
+      "pr": 45,
+      "code_commit": "ab2bc849b05bb36bd201d0d3c09f83adef28cbc8"
+    },
+    {
+      "worker": "c4-fixed-assets-ui-20261011",
+      "acquired_at": "2026-10-11T04:32:30Z",
+      "released_at": "2026-10-11T04:47:40Z",
+      "branch": "codex/accounting-v2-c4-fixed-assets-ui-20261011",
+      "pr": 46,
+      "code_commit": "37e33f7c5e24c18383be8cf854f8523f3541c0bb"
+    },
+    {
+      "worker": "c5-tax-quotes-20261011",
+      "acquired_at": "2026-10-11T04:48:12Z",
+      "released_at": "2026-10-11T04:56:11Z",
+      "branch": "codex/accounting-v2-c5-tax-quotes-20261011",
+      "pr": 47,
+      "code_commit": "9b9d00df8839b380dbaff7df5e18cba503772966"
+    },
+    {
+      "worker": "c5-tax-config-hardening-20261011",
+      "acquired_at": "2026-10-11T09:36:37.349Z",
+      "released_at": "2026-10-11T10:49:00Z",
+      "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
+      "pr": 48,
+      "code_commit": "3ca2c0d6644181c5a1385d6eb78f8cc9ce25436e"
+    },
+    {
+      "worker": "c5-sales-tax-transactions-20261011",
+      "acquired_at": "2026-10-11T11:47:00Z",
+      "branch": "codex/accounting-v2-c5-sales-tax-transactions-20261011",
+      "released_at": "2026-10-11T11:53:00Z",
+      "pr": 50,
+      "code_commit": "32e75cd7595da8550f875538b694d6c884767bb4"
+    },
+    {
+      "worker": "c5-sales-tax-posting-20261011",
+      "acquired_at": "2026-10-11T12:59:00Z",
+      "branch": "codex/accounting-v2-c5-sales-tax-transactions-20261011",
+      "released_at": "2026-10-11T13:12:00Z",
+      "pr": 50,
+      "code_commit": "2ff2e8edea1528e9573e991500e03339fee2ba3a"
+    },
+    {
+      "worker": "c5-tax-completion-20261012",
+      "acquired_at": "2026-10-12T01:52:00Z",
+      "branch": "codex/accounting-v2-c5-tax-backup-20261011",
+      "released_at": "2026-10-12T04:05:00Z",
+      "pr": 51,
+      "code_commit": "fe0267c63a6e344661f3690f98df0936553706b1"
+    },
+    {
+      "worker": "c5-tax-policy-ui-20261012",
+      "acquired_at": "2026-10-12T04:40:00Z",
+      "branch": "codex/accounting-v2-c5-tax-ui-20261012",
+      "released_at": "2026-10-12T07:15:00Z",
+      "pr": 54,
+      "code_commit": "05278645316b66f931cd37cb2e185711e1500e66"
     }
   ],
   "last_lease": {
-    "worker": "accounting-v2-20261008-c2222-1326",
-    "acquired_at": "2026-10-08T13:27:04Z",
-    "updated_at": "2026-10-08T13:27:04Z",
-    "expires_at": "2026-10-08T14:12:04.000Z",
-    "ended_at": "2026-10-08T13:39:25Z",
-    "status": "completed_checkpoint_handoff",
-    "next_branch": "codex/accounting-v2-c2-opening-ui"
+    "worker": "c5-tax-policy-ui-20261012",
+    "acquired_at": "2026-10-12T04:40:00Z",
+    "branch": "codex/accounting-v2-c5-tax-ui-20261012",
+    "released_at": "2026-10-12T07:15:00Z",
+    "pr": 54,
+    "code_commit": "05278645316b66f931cd37cb2e185711e1500e66"
   },
   "last_remote_review": {
-    "checked_at": "2026-10-10T06:48:42.580Z",
-    "main_sha": "674e5e56c1c8035d1dab766cba4b364671a5709c",
-    "user_merged_prs": [
-      33,
-      34,
-      35,
-      36,
-      37
+    "checked_at": "2026-10-11T04:56:11Z",
+    "main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+    "open_accounting_prs": [
+      43,
+      44,
+      45,
+      46,
+      47
     ],
-    "note": "Merged stack and main PR37; integration CI38032075118 failed setup-node due missing npm lock. No tests ran."
+    "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch",
+  "next": "Proceed to C5.3.2 tax periods and reports; retain independent Render acceptance for matching staging commits",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1037,22 +1406,24 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "integration-ui-repair-20261010",
-    "branch": "codex/accounting-v2-ci-lock-repair-20261010",
-    "pr": 38,
-    "code_commit": "35067c0aa3ef3e9883bb5980f48606803ba851d4",
+    "worker": "c5-tax-policy-ui-20261012",
+    "acquired_at": "2026-10-12T04:40:00Z",
+    "branch": "codex/accounting-v2-c5-tax-ui-20261012",
+    "released_at": "2026-10-12T07:15:00Z",
+    "pr": 54,
+    "code_commit": "05278645316b66f931cd37cb2e185711e1500e66",
+    "status": "C5_3_1_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-12T07:15:00Z",
     "ci": {
-      "run_id": 38050129713,
-      "commit_sha": "41839330a7ed14bd97cc5bf5c65b6a3c734e715e",
+      "run_id": 38209232481,
+      "commit_sha": "05278645316b66f931cd37cb2e185711e1500e66",
       "conclusion": "success",
-      "unit_api": 271,
-      "emulator": 33,
-      "ui": 50,
+      "unit_api": 340,
+      "emulator": 35,
+      "ui": 58,
       "production_audit_vulnerabilities": 0
     },
-    "status": "integration_repair_ci_passed_ready_for_user_review",
-    "ended_at": "2026-10-10T12:12:58.200Z",
-    "next": "After user merges PR38, resume C3 source-native adapters and mixed-currency revaluation quote in a separate branch"
+    "next": "Proceed to C5.3.2 tax periods and reports; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

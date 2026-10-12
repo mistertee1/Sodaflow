@@ -375,3 +375,69 @@ test('C2.3 real Firestore restores original equity sources twice with exact nest
     }
   }finally{await deleteApp(app);}
 });
+
+test('C4.3 real Firestore serializes asset/depreciation races, persists proof and denies direct SDK bypass', async () => {
+  assert.match(process.env.FIRESTORE_EMULATOR_HOST || '', /^(127\.0\.0\.1|localhost):8091$/);
+  const app = initializeApp({projectId: project}, 'fixed-assets-atomic'), db = getFirestore(app), store = new FirestoreStore(db);
+  const actor = {uid: 'fixed-assets-fs-owner', email: 'fixed-assets@example.com', emailVerified: true}, now = new Date('2026-10-31T12:00:00Z'), rules = await readFile('firestore.rules', 'utf8');
+  try {
+    const org = await new Organizations(store).create(actor, 'أصول محمية', INITIAL_SETTINGS, 'fixed-assets-fs', true), root = `organizations/${org.id}`;
+    const accounts = getDefaultChartOfAccounts(org.id) as any[];
+    for (const [code, type, nature, group] of [['1500','ASSET','DEBIT','fixed_assets'], ['1590','ASSET','CREDIT','fixed_assets'], ['5600','EXPENSE','DEBIT','operating_expense']]) {
+      const account = {code, name_ar: code, name_en: code, type, nature, reporting_group: group, org_id: org.id, is_active: true, is_system: false, balance_sdg: 0, balance_usd: 0};
+      const index = accounts.findIndex(row => row.code === code); if (index >= 0) accounts[index] = account; else accounts.push(account);
+    }
+    const source = journal('fs-asset-buy', org.id, actor.uid, '2026-10-01', 'manual', 'fs-asset', 'شراء أصل', [journalLine('1500', 'معدات', 1200, 0, 12, 0), journalLine('1130', 'بنك', 0, 1200, 0, 12)], 100);
+    await store.transaction(async tx => {
+      tx.set(root, {...await tx.get(root), accounting_version: 2, planId: 'Enterprise', subscriptionEnd: '2027-01-01', subscriptionEndMillis: Date.parse('2027-01-01')});
+      for (const account of accounts) tx.set(`${root}/accounts/${account.code}`, account);
+      tx.set(`${root}/journal_entries/${source.id}`, source);
+    });
+    const ops = new Operations(store, () => now, saved => saved as any, async () => verifyAccountingRulesSource([{content: rules}]));
+    const run = (action: string, data: Record<string, unknown>, operationId: string) => ops.execute(org.id, actor, {action, data, operationId});
+    await run('period.create', {id: 'oct', start_date: '2026-10-01', end_date: '2026-10-31', reason: 'فترة الأصول'}, 'fs-assets-period');
+    const input = {id: 'asset-fs', name: 'معدات فعلية', category: 'معدات', purchase_date: source.date, in_service_date: source.date, source_journal_id: source.id, source_line_index: 0, useful_life_months: 12, residual_value_sdg: 0, residual_value_usd: 0, asset_account_code: '1500', accumulated_depreciation_account_code: '1590', depreciation_expense_account_code: '5600', reason: 'تسجيل محمي', reference_number: 'FA-FS'};
+    const preview = await ops.fixedAssetPreview(org.id, actor, {action: 'fixedAsset.register', input});
+    const races = await Promise.allSettled([run('fixedAsset.register', {...input, expected_quote_hash: preview.quote_hash}, 'asset-race-1'), run('fixedAsset.register', {...input, expected_quote_hash: preview.quote_hash}, 'asset-race-2')]); assert.equal(races.filter(row => row.status === 'fulfilled').length, 1);
+    const dep = {asset_id: input.id, expected_revision: 1, sequence: 1, date: '2026-10-31', reason: 'إهلاك مراجع'}, dp = await ops.fixedAssetPreview(org.id, actor, {action: 'fixedAsset.depreciate', input: dep}), command = {...dep, expected_quote_hash: dp.quote_hash};
+    const posted = await Promise.allSettled([run('fixedAsset.depreciate', command, 'dep-race-1'), run('fixedAsset.depreciate', command, 'dep-race-2')]); assert.equal(posted.filter(row => row.status === 'fulfilled').length, 1);
+    const index = posted.findIndex(row => row.status === 'fulfilled'), winner = (posted[index] as PromiseFulfilledResult<any>).value; assert.deepEqual(await run('fixedAsset.depreciate', command, `dep-race-${index + 1}`), winner);
+    const snapshot = await ops.snapshot(org.id, actor, true); assert.equal(snapshot.collections.fixed_assets.length, 1); assert.equal(snapshot.collections.fixed_asset_depreciations.length, 1); assert.equal(snapshot.collections.fixed_assets[0].book_value_sdg, 1100);
+    assert.equal(snapshot.counters.fixed_asset_count, 1); assert.equal(snapshot.counters.fixed_asset_depreciation_count, 1); assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData, snapshot.settings, {requireCosting: true}), []);
+    for (const uid of [actor.uid, 'fixed-assets-foreign']) {
+      const client = env.authenticatedContext(uid, {email_verified: true}).firestore();
+      for (const name of ['fixed_assets', 'fixed_asset_depreciations']) {await assertFails(getDocs(collection(client, `${root}/${name}`))); await assertFails(setDoc(doc(client, `${root}/${name}/forged`), {id: 'forged', org_id: org.id}));}
+    }
+    const before = (await db.doc(`${root}/meta/counters`).get()).data(); await assert.rejects(run('fixedAsset.depreciate', command, 'dep-stale')); assert.deepEqual((await db.doc(`${root}/meta/counters`).get()).data(), before); assert.equal((await db.doc(`${root}/idempotency/dep-stale`).get()).exists, false);
+  } finally {await deleteApp(app);}
+});
+
+test('C5.2a real Firestore serializes tax revisions, proves version history and denies direct SDK bypass', async () => {
+  assert.match(process.env.FIRESTORE_EMULATOR_HOST || '', /^(127\.0\.0\.1|localhost):8091$/);
+  const app = initializeApp({projectId: project}, 'tax-configuration-atomic'), db = getFirestore(app), store = new FirestoreStore(db);
+  const now = new Date('2026-10-11T09:45:00Z'), actor = {uid: 'tax-fs-owner', email: 'tax-fs@example.com', emailVerified: true, authTime: now.getTime() / 1000}, rules = await readFile('firestore.rules', 'utf8');
+  try {
+    const org = await new Organizations(store).create(actor, 'ضرائب محمية', INITIAL_SETTINGS, 'tax-fs', true), root = `organizations/${org.id}`;
+    await store.transaction(async tx => tx.set(root, {...await tx.get(root), accounting_version: 2, planId: 'Enterprise', subscriptionEnd: '2027-01-01', subscriptionEndMillis: Date.parse('2027-01-01')}));
+    const ops = new Operations(store, () => now, saved => saved as any, async () => verifyAccountingRulesSource([{content: rules}]));
+    const run = (action:string, data:Record<string,unknown>, operationId:string) => ops.execute(org.id, actor, {action, data, operationId});
+    const policy = (patch:Record<string,unknown> = {}) => ({id:'sales-tax',name:'ضريبة اختبارية',jurisdiction:'المؤسسة',direction:'sales',rate:15,calculation:'exclusive',rounding:'half_up',recoverable:false,tax_account_code:'2130',effective_from:'2026-01-01',effective_to:null,active:true,reason:'اعتماد موثق',...patch});
+    await run('taxConfiguration.create', policy(), 'tax-fs-create');
+    const updates = [policy({expected_revision:1,rate:17,reason:'تعديل أول'}), policy({expected_revision:1,rate:18,reason:'تعديل ثان'})];
+    const race = await Promise.allSettled(updates.map((data,index) => run('taxConfiguration.update', data, `tax-fs-update-${index + 1}`)));
+    assert.equal(race.filter(row => row.status === 'fulfilled').length, 1);
+    const winnerIndex = race.findIndex(row => row.status === 'fulfilled'), winner = (race[winnerIndex] as PromiseFulfilledResult<any>).value;
+    assert.deepEqual(await run('taxConfiguration.update', updates[winnerIndex], `tax-fs-update-${winnerIndex + 1}`), winner);
+    const current = (await db.doc(`${root}/tax_configurations/sales-tax`).get()).data()!;
+    assert.equal(current.revision, 2); assert.equal(current.rate, updates[winnerIndex].rate);
+    const versions = await db.collection(`${root}/tax_configuration_versions`).orderBy('revision').get(); assert.equal(versions.size, 2); assert.deepEqual(versions.docs.map(row => row.data().rate), [15, updates[winnerIndex].rate]);
+    assert.equal((await db.collection(`${root}/audit_logs`).where('entity_type','==','taxConfiguration').get()).size, 2);
+    for (const uid of [actor.uid, 'tax-fs-foreign']) {
+      const client = env.authenticatedContext(uid, {email_verified: true}).firestore();
+      for (const name of ['tax_configurations','tax_configuration_versions']) {await assertFails(getDocs(collection(client, `${root}/${name}`))); await assertFails(setDoc(doc(client, `${root}/${name}/forged`), {id:'forged',org_id:org.id}));}
+    }
+    await store.transaction(async tx => {const version = await tx.get(`${root}/tax_configuration_versions/sales-tax-r1`); tx.set(`${root}/tax_configuration_versions/sales-tax-r1`, {...version, rate: 99});});
+    const counters = (await db.doc(`${root}/meta/counters`).get()).data(); await assert.rejects(run('taxConfiguration.update', policy({expected_revision:2,rate:20}), 'tax-fs-tampered'), /يطابق|سلسلة/);
+    assert.deepEqual((await db.doc(`${root}/meta/counters`).get()).data(), counters); assert.equal((await db.doc(`${root}/idempotency/tax-fs-tampered`).get()).exists, false);
+  } finally {await deleteApp(app);}
+});

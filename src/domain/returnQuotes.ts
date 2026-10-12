@@ -102,25 +102,28 @@ const balanced = (lines: JournalEntryLine[]) => {
 };
 
 /** Source components come from the original posting; a price-only credit omits physical cost. */
-export function salesCreditLines(revenue: BookAmount, tax: BookAmount, restoredCost: BookAmount = zero): JournalEntryLine[] {
+export function salesCreditLines(revenue: BookAmount, tax: BookAmount, restoredCost: BookAmount = zero, taxAccountCode = '2130'): JournalEntryLine[] {
   for (const value of [revenue, tax, restoredCost]) validateAmount(value);
+  identifier(taxAccountCode); ensure(!['1200', '1300', '4100', '5100'].includes(taxAccountCode), 'حساب عكس ضريبة المبيعات يجب أن يكون حساب ضريبة مستقلاً.');
   return balanced([
-    debit('4100', 'مردود إيراد المبيعات', revenue), debit('2130', 'مردود ضريبة المبيعات', tax),
+    debit('4100', 'مردود إيراد المبيعات', revenue), debit(taxAccountCode, 'مردود ضريبة المبيعات', tax),
     credit('1200', 'ذمم العملاء', sum(revenue, tax)),
     debit('1300', 'المخزون المرتجع', restoredCost), credit('5100', 'مردود تكلفة المبيعات', restoredCost),
   ]);
 }
 
 /** Both books retain the full original credit; current inventory carrying difference is explicit. */
-export function purchaseReturnLines(supplierCredit: BookAmount, inventoryOut: BookAmount, varianceAccountCode: string): JournalEntryLine[] {
-  validateAmount(supplierCredit); validateAmount(inventoryOut); identifier(varianceAccountCode);
+export function purchaseReturnLines(supplierCredit: BookAmount, inventoryOut: BookAmount, varianceAccountCode: string, recoverableTax: BookAmount = zero, taxAccountCode?: string): JournalEntryLine[] {
+  validateAmount(supplierCredit); validateAmount(inventoryOut); validateAmount(recoverableTax); identifier(varianceAccountCode);
   ensure(!['2110', '1300'].includes(varianceAccountCode), 'حساب فرق المردود يجب أن يكون منفصلاً عن المخزون وذمم الموردين.');
+  const hasTax = recoverableTax.sdg > 0 || recoverableTax.usd > 0;
+  if (hasTax) { identifier(taxAccountCode); ensure(!['2110', '1300', varianceAccountCode].includes(taxAccountCode!), 'حساب عكس ضريبة الشراء يجب أن يكون أصلاً ضريبياً مستقلاً.'); }
   const gain: BookAmount = { sdg: 0, usd: 0 }, loss: BookAmount = { sdg: 0, usd: 0 };
   for (const book of books) {
-    const delta = new BigNumber(supplierCredit[book]).minus(inventoryOut[book]);
+    const delta = new BigNumber(supplierCredit[book]).minus(inventoryOut[book]).minus(recoverableTax[book]);
     if (delta.gte(0)) gain[book] = delta.toNumber(); else loss[book] = delta.negated().toNumber();
   }
-  return balanced([debit('2110', 'ذمم الموردين', supplierCredit), credit('1300', 'المخزون المرتجع للمورد', inventoryOut), debit(varianceAccountCode, 'فرق تكلفة المردود', loss), credit(varianceAccountCode, 'فرق تكلفة المردود', gain)]);
+  return balanced([debit('2110', 'ذمم الموردين', supplierCredit), credit('1300', 'المخزون المرتجع للمورد', inventoryOut), ...(hasTax ? [credit(taxAccountCode!, 'عكس ضريبة مشتريات قابلة للاسترداد', recoverableTax)] : []), debit(varianceAccountCode, 'فرق تكلفة المردود', loss), credit(varianceAccountCode, 'فرق تكلفة المردود', gain)]);
 }
 
 /** Quotes are not permission grants: posting must also verify an active mapped cash account and funds. */

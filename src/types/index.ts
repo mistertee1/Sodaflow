@@ -42,12 +42,17 @@ export interface OrgInvitation {
 }
 
 export interface OrganizationCounters {
+  fx_revaluation_count?: number;
   audit_archive_count?: number;
   audit_event_count?: number;
   /** Derived backup count for accounting-period evidence. */
   accounting_period_count?: number;
   /** Derived immutable opening-source completeness counts. */
   owner_equity_event_count?: number;
+  fixed_asset_count?: number;
+  fixed_asset_depreciation_count?: number;
+  tax_configuration_count?: number;
+  tax_configuration_version_count?: number;
   opening_batch_count?: number;
   opening_lot_count?: number;
   opening_settlement_count?: number;
@@ -297,6 +302,7 @@ export interface InvoiceItem {
 }
 
 export interface Invoice {
+  tax_evidence?: Record<string, any>;
   source_event_sequence?: number;
   correction_count?: number;
   credit_balance_sdg?: number;

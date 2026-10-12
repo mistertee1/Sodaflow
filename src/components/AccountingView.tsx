@@ -1,6 +1,9 @@
 import { OpeningBalancesCenter } from './accounting/OpeningBalancesCenter';
 import { OwnerEquityCenter } from './accounting/OwnerEquityCenter';
+import { FxRevaluationCenter } from './accounting/FxRevaluationCenter';
+import { FixedAssetsCenter } from './accounting/FixedAssetsCenter';
 import { AccountingPeriodsCenter } from './accounting/AccountingPeriodsCenter';
+import { TaxCenter } from './accounting/TaxCenter';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { api } from '../services/businessApi';
 import type { Operations } from '../domain/operations';
@@ -68,7 +71,7 @@ export const AccountingView: React.FC = () => {
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<
-    'opening' | 'equity' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
+    'opening' | 'equity' | 'fx' | 'assets' | 'tax' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
   >('coa');
   const [reportStart, setReportStart] = useState('');
   const [reportEnd, setReportEnd] = useState('');
@@ -401,6 +404,9 @@ export const AccountingView: React.FC = () => {
           {(['ledger', 'receivables', 'cash'] as const).map(view => <button key={view} onClick={() => setActiveSubTab(view)} aria-pressed={activeSubTab === view} className="sf-secondary shrink-0 whitespace-nowrap">{{ ledger: 'دفتر الأستاذ', receivables: 'كشوف العملاء', cash: 'النقدية والبنوك' }[view]}</button>)}
           {isActionAllowed('opening:preview') && <button onClick={() => setActiveSubTab('opening')} aria-pressed={activeSubTab === 'opening'} className="sf-secondary shrink-0 whitespace-nowrap">الأرصدة الافتتاحية والسداد</button>}
           {isActionAllowed('journal:read') && <button onClick={() => setActiveSubTab('equity')} aria-pressed={activeSubTab === 'equity'} className="sf-secondary shrink-0 whitespace-nowrap">رأس المال والمسحوبات</button>}
+          {isActionAllowed('journal:read') && <button data-testid="fx-revaluation-tab" onClick={() => setActiveSubTab('fx')} aria-pressed={activeSubTab === 'fx'} className="sf-secondary shrink-0 whitespace-nowrap">إعادة تقييم العملات</button>}
+          {isActionAllowed('journal:read') && <button data-testid="fixed-assets-tab" onClick={() => setActiveSubTab('assets')} aria-pressed={activeSubTab === 'assets'} className="sf-secondary shrink-0 whitespace-nowrap">الأصول الثابتة والإهلاك</button>}
+          {isActionAllowed('tax:read') && <button data-testid="tax-center-tab" onClick={() => setActiveSubTab('tax')} aria-pressed={activeSubTab === 'tax'} className="sf-secondary shrink-0 whitespace-nowrap">الضرائب</button>}
           {isActionAllowed('payables:read') && <button onClick={() => setActiveSubTab('payables')} aria-pressed={activeSubTab === 'payables'} className="sf-secondary shrink-0 whitespace-nowrap">الموردون والمشتريات</button>}
           <button
             onClick={() => setActiveSubTab('coa')}
@@ -886,6 +892,9 @@ export const AccountingView: React.FC = () => {
       {(['ledger', 'receivables', 'cash'] as const).map(view => activeSubTab === view && <OperationalCenter key={view} view={view} />)}
       {activeSubTab === 'opening' && <OpeningBalancesCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'equity' && <OwnerEquityCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
+      {activeSubTab === 'fx' && <FxRevaluationCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
+      {activeSubTab === 'assets' && <FixedAssetsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
+      {activeSubTab === 'tax' && <TaxCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'payables' && <PayablesCenter />}
 
       {activeSubTab === 'period_lock' && <AccountingPeriodsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}

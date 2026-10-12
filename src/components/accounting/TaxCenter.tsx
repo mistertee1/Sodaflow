@@ -3,6 +3,7 @@ import {useApp} from '../../context/AppContext';
 import {classifyAccount} from '../../domain/accountClassification';
 import type {TaxConfiguration} from '../../domain/taxConfiguration';
 import {operationId} from '../../services/businessApi';
+import {OwnerReauthenticationDialog} from './OwnerReauthenticationDialog';
 
 const field = 'w-full min-w-0 mt-1 p-2 rounded border border-sf-border bg-sf-raised';
 type Draft = Omit<TaxConfiguration, 'schema_version' | 'org_id' | 'revision'> & {reason: string; expected_revision?: number};
@@ -11,7 +12,7 @@ const blank = (): Draft => ({id: `tax-${operationId()}`, name: '', jurisdiction:
 
 export function TaxCenter() {
   const a = useApp(), [draft, setDraft] = useState<Draft>(blank), [editing, setEditing] = useState(false);
-  const [busy, setBusy] = useState(false), [notice, setNotice] = useState('');
+  const [busy, setBusy] = useState(false), [notice, setNotice] = useState(''), [reauth, setReauth] = useState(false);
   const mounted = useRef(true), working = useRef(false), scope = useRef({org: a.currentOrg?.id, uid: a.currentUser?.uid});
   const current = useRef(scope.current); current.current = {org: a.currentOrg?.id, uid: a.currentUser?.uid};
   useEffect(() => {mounted.current = true; return () => {mounted.current = false;};}, []);
@@ -30,12 +31,12 @@ export function TaxCenter() {
   };
   const reset = () => {setDraft(blank()); setEditing(false);};
   const select = (row: TaxConfiguration) => {setEditing(true); setNotice(''); setDraft({...row, reason: '', expected_revision: row.revision});};
-  const save = async () => {
+  const save = async (reason: string, org: string) => {
     if (working.current) return;
     working.current = true; setBusy(true); setNotice('');
     try {
-      const org = guard();
-      const payload = {...draft, rate: Number(draft.rate), tax_account_code: draft.direction === 'purchases' && !draft.recoverable ? null : draft.tax_account_code || null,
+      if (org !== guard() || reason !== draft.reason.trim()) throw Error('سبب التحقق يجب أن يطابق النموذج؛ أعد فتح التحقق.');
+      const payload = {...draft, reason, rate: Number(draft.rate), tax_account_code: draft.direction === 'purchases' && !draft.recoverable ? null : draft.tax_account_code || null,
         effective_to: draft.effective_to || null};
       const saved = await a.saveTaxConfiguration(payload, editing, org, operationId()); guard();
       setNotice(`تم حفظ إعداد ${saved.name} بالإصدار ${saved.revision}.`); reset();
@@ -48,7 +49,7 @@ export function TaxCenter() {
     <p>سياسات داخلية قابلة للضبط وليست إقراراً بالامتثال القانوني. تحفظ كل تعديلات المالك كسلسلة إصدارات مدققة.</p>
     {notice && <p role="status" className="sf-card p-3">{notice}</p>}
     {!canManage && <p>الإعدادات للعرض فقط؛ الإنشاء والتعديل متاحان لمالك المؤسسة بعد تحقق الدخول.</p>}
-    {canManage && <form aria-label="إعداد ضريبة" className="sf-card p-4 space-y-3" onSubmit={event => {event.preventDefault(); void save();}}>
+    {canManage && <form aria-label="إعداد ضريبة" className="sf-card p-4 space-y-3" onSubmit={event => {event.preventDefault(); setReauth(true);}}>
       <h4 className="font-semibold">{editing ? `تعديل ${draft.name}` : 'إضافة سياسة ضريبية'}</h4>
       <fieldset disabled={busy} className="grid sm:grid-cols-2 gap-3 min-w-0">
         <label>المعرف<input aria-label="معرف الضريبة" className={field} required maxLength={100} disabled={editing} value={draft.id} onChange={e => set('id', e.target.value)}/></label>
@@ -71,5 +72,6 @@ export function TaxCenter() {
       <h4 className="font-semibold">الإعدادات المحفوظة</h4>
       {!a.taxConfigurations.length ? <p>لا توجد إعدادات ضريبية.</p> : <div className="overflow-auto"><table className="w-full whitespace-nowrap text-right"><thead><tr><th>السياسة</th><th>الاتجاه</th><th>النسبة</th><th>الحساب</th><th>السريان</th><th>الإصدار</th><th>الحالة</th>{canManage&&<th>إجراء</th>}</tr></thead><tbody>{[...a.taxConfigurations].sort((x,y)=>x.id.localeCompare(y.id)).map(row=><tr key={row.id}><td>{row.name}<br/><span className="text-xs text-sf-muted">{row.jurisdiction}</span></td><td>{row.direction==='sales'?'مبيعات':'مشتريات'}</td><td>{row.rate}%</td><td>{row.tax_account_code||'على التكلفة'}</td><td>{row.effective_from} — {row.effective_to||'مفتوح'}</td><td>{row.revision}</td><td>{row.active?'نشط':'متوقف'}</td>{canManage&&<td><button className="sf-secondary" aria-label={`تعديل إعداد ${row.name}`} onClick={()=>select(row)}>تعديل</button></td>}</tr>)}</tbody></table></div>}
     </section>
+    {reauth && <OwnerReauthenticationDialog purpose={{title:'تحقق المالك وحفظ إعداد الضريبة',description:'ينشئ الحفظ إصداراً مدققاً جديداً لسياسة الضريبة.',initialReason:draft.reason,reasonLabel:'سبب إعداد الضريبة',confirmation:'أؤكد حفظ سياسة الضريبة في التجربة المحلية',submit:'التحقق وحفظ الإعداد'}} onClose={()=>setReauth(false)} onConfirm={save}/>} 
   </section>;
 }

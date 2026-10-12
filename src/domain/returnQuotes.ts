@@ -102,10 +102,11 @@ const balanced = (lines: JournalEntryLine[]) => {
 };
 
 /** Source components come from the original posting; a price-only credit omits physical cost. */
-export function salesCreditLines(revenue: BookAmount, tax: BookAmount, restoredCost: BookAmount = zero): JournalEntryLine[] {
+export function salesCreditLines(revenue: BookAmount, tax: BookAmount, restoredCost: BookAmount = zero, taxAccountCode = '2130'): JournalEntryLine[] {
   for (const value of [revenue, tax, restoredCost]) validateAmount(value);
+  identifier(taxAccountCode);
   return balanced([
-    debit('4100', 'مردود إيراد المبيعات', revenue), debit('2130', 'مردود ضريبة المبيعات', tax),
+    debit('4100', 'مردود إيراد المبيعات', revenue), debit(taxAccountCode, 'مردود ضريبة المبيعات', tax),
     credit('1200', 'ذمم العملاء', sum(revenue, tax)),
     debit('1300', 'المخزون المرتجع', restoredCost), credit('5100', 'مردود تكلفة المبيعات', restoredCost),
   ]);

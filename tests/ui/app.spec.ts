@@ -6,6 +6,7 @@ import { correctionGuestFixture } from './helpers/salesCorrections';
 import { openingBooksFixture, settleOpeningBooks } from '../fixtures/openingBooks';
 import { INITIAL_SETTINGS } from '../../src/data/initialData';
 import { createDefaultSubscription, getPlanConfig } from '../../src/lib/plans';
+import { periodGuestFixture } from './helpers/accountingPeriods';
 
 async function seedBrandInvoices(page: Page, longInvoice = false) {
   await page.addInitScript(({ longInvoice }) => {
@@ -301,6 +302,16 @@ test('A1 expense payment selection saves the bank account and removes merchandis
   const posting = records.find(([key]) => key.includes('/journal_entries/'))![1] as any;
   expect(expense.payment_account_code).toBe('1130');
   expect(posting.lines.find((line: any) => line.account_code === '1130').credit_sdg).toBe(100);
+});
+
+test('D1.2 expense and manual journal dimensions survive posting and reload', async ({ page }) => {
+  const records=await periodGuestFixture(false,'Owner'),root='organizations/local-guest-org',now='2026-10-05T12:00:00.000Z';
+  Object.assign(records,{[`${root}/branches/north`]:{id:'north',org_id:'local-guest-org',kind:'branch',code:'NORTH',name_ar:'الفرع الشمالي',status:'active',created_by:'guest',created_at:now,updated_at:now,revision:1},[`${root}/cost_centers/sales`]:{id:'sales',org_id:'local-guest-org',kind:'cost_center',code:'SALES',name_ar:'المبيعات',status:'active',created_by:'guest',created_at:now,updated_at:now,revision:1},[`${root}/projects/contract-a`]:{id:'contract-a',org_id:'local-guest-org',kind:'project',code:'A',name_ar:'العقد أ',status:'active',created_by:'guest',created_at:now,updated_at:now,revision:1}});
+  await page.addInitScript(records=>localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records)),records);await page.goto('/');await page.locator('#tab-expenses').click();await page.getByRole('button',{name:/إضافة مصروف|مصروف جديد/}).first().click();let dialog=page.getByRole('dialog',{name:'تسجيل مصروف'});
+  await dialog.locator('input[type="text"]').first().fill('إيجار مشروع الفرع');await dialog.locator('input[type="number"]').first().fill('75');await dialog.getByLabel('فرع المصروف').selectOption('north');await dialog.getByLabel('مركز تكلفة المصروف').selectOption('sales');await dialog.getByLabel('مشروع المصروف').selectOption('contract-a');await dialog.locator('form').evaluate(form=>(form as HTMLFormElement).requestSubmit());await expect(dialog).toHaveCount(0);
+  await page.locator('#tab-accounting').click();await page.getByRole('button',{name:'قيد يومية يدوي',exact:true}).click();dialog=page.getByRole('dialog',{name:'إنشاء قيد يومية'});await dialog.getByLabel('البيان العام للقيد').fill('قيد أبعاد مستقل');await dialog.getByLabel('فرع القيد').selectOption('north');await dialog.getByLabel('مركز تكلفة القيد').selectOption('sales');await dialog.getByLabel('مشروع القيد').selectOption('contract-a');const lineSelects=dialog.locator('.space-y-3 select');await lineSelects.nth(0).selectOption('1110');await lineSelects.nth(1).selectOption('3100');await dialog.getByPlaceholder('مدين ج.س').nth(0).fill('10');await dialog.getByPlaceholder('دائن ج.س').nth(1).fill('10');await dialog.locator('form').evaluate(form=>(form as HTMLFormElement).requestSubmit());await expect(dialog).toHaveCount(0);
+  const verify=async()=>page.evaluate(()=>Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3')||'{}')).filter(([path])=>path.includes('/journal_entries/')).map(([,row])=>row as any).filter(row=>row.description?.includes('إيجار مشروع الفرع')||row.description==='قيد أبعاد مستقل').every(row=>row.lines.every((line:any)=>line.branch_id==='north'&&line.cost_center_id==='sales'&&line.project_id==='contract-a')));expect(await verify()).toBe(true);
+  const saved=await page.evaluate(()=>localStorage.getItem('sudaflow_guest_transactions_v3'));await page.addInitScript(saved=>localStorage.setItem('sudaflow_guest_transactions_v3',saved!),saved);await page.reload();expect(await verify()).toBe(true);
 });
 
 test('A1 report dates reject reversed ranges without hiding account repair controls', async ({ page }) => {

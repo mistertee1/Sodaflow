@@ -75,6 +75,7 @@ export const AccountingView: React.FC = () => {
     products,
     accounts,
     journalEntries,
+    branches, costCenters, projects,
     addAccount,
     updateAccount,
     addJournalEntry,
@@ -130,6 +131,9 @@ export const AccountingView: React.FC = () => {
   const [entryDescription, setEntryDescription] = useState('');
   const [entryAdjusting, setEntryAdjusting] = useState(false), [entryReason, setEntryReason] = useState('');
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split('T')[0]);
+  const [entryBranchId, setEntryBranchId] = useState('');
+  const [entryCostCenterId, setEntryCostCenterId] = useState('');
+  const [entryProjectId, setEntryProjectId] = useState('');
   const [entryLines, setEntryLines] = useState<
     Array<{
       account_code: string;
@@ -312,6 +316,9 @@ export const AccountingView: React.FC = () => {
           credit_usd: Number(l.credit_usd) || 0,
           description: l.description || entryDescription,
           notes: l.description || entryDescription,
+          ...(entryBranchId ? { branch_id: entryBranchId } : {}),
+          ...(entryCostCenterId ? { cost_center_id: entryCostCenterId } : {}),
+          ...(entryProjectId ? { project_id: entryProjectId } : {}),
         };
       });
 
@@ -335,6 +342,7 @@ export const AccountingView: React.FC = () => {
 
       setIsNewEntryOpen(false);
       setEntryDescription(''); setEntryAdjusting(false); setEntryReason('');
+      setEntryBranchId(''); setEntryCostCenterId(''); setEntryProjectId('');
       setEntryLines([
         { account_code: '', debit_sdg: 0, credit_sdg: 0, debit_usd: 0, credit_usd: 0 },
         { account_code: '', debit_sdg: 0, credit_sdg: 0, debit_usd: 0, credit_usd: 0 },
@@ -1116,6 +1124,11 @@ export const AccountingView: React.FC = () => {
               </div>
 
               {isActionAllowed('periods:adjust') && <div className="space-y-2"><label className="flex gap-2"><input type="checkbox" checked={entryAdjusting} onChange={e => setEntryAdjusting(e.target.checked)} disabled={isSavingEntry} />قيد تسوية لفترة مقفلة مبدئياً</label>{entryAdjusting && <label className="block">سبب التسوية<input aria-label="سبب التسوية" value={entryReason} onChange={e => setEntryReason(e.target.value)} required maxLength={1000} disabled={isSavingEntry} className="w-full mt-1 p-2 rounded border border-sf-border bg-sf-raised" /></label>}</div>}
+              {isActionAllowed('dimensions:read') && (branches.length > 0 || costCenters.length > 0 || projects.length > 0) && <fieldset className="border border-sf-border rounded-xl p-3"><legend className="px-1 font-semibold">أبعاد القيد الاختيارية</legend><div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <label>الفرع<select aria-label="فرع القيد" value={entryBranchId} onChange={e => setEntryBranchId(e.target.value)} className="w-full mt-1 p-2 rounded border border-sf-border bg-sf-raised"><option value="">بدون فرع</option>{branches.filter(row => row.status === 'active').map(row => <option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+                <label>مركز التكلفة<select aria-label="مركز تكلفة القيد" value={entryCostCenterId} onChange={e => setEntryCostCenterId(e.target.value)} className="w-full mt-1 p-2 rounded border border-sf-border bg-sf-raised"><option value="">بدون مركز</option>{costCenters.filter(row => row.status === 'active').map(row => <option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+                <label>المشروع<select aria-label="مشروع القيد" value={entryProjectId} onChange={e => setEntryProjectId(e.target.value)} className="w-full mt-1 p-2 rounded border border-sf-border bg-sf-raised"><option value="">بدون مشروع</option>{projects.filter(row => row.status === 'active').map(row => <option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+              </div></fieldset>}
               {/* Lines editor */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">

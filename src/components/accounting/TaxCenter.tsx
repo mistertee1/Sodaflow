@@ -30,7 +30,9 @@ export function TaxCenter() {
     return scope.current.org;
   };
   const reset = () => {setDraft(blank()); setEditing(false);};
-  const select = (row: TaxConfiguration) => {setEditing(true); setNotice(''); setDraft({...row, reason: '', expected_revision: row.revision});};
+  const select = (row: TaxConfiguration) => {setEditing(true); setNotice(''); setDraft({id:row.id,name:row.name,jurisdiction:row.jurisdiction,direction:row.direction,rate:row.rate,
+    calculation:row.calculation,rounding:row.rounding,recoverable:row.recoverable,tax_account_code:row.tax_account_code,effective_from:row.effective_from,
+    effective_to:row.effective_to,active:row.active,reason:'',expected_revision:row.revision});};
   const save = async (reason: string, org: string) => {
     if (working.current) return;
     working.current = true; setBusy(true); setNotice('');

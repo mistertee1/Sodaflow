@@ -1041,7 +1041,8 @@
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "completed_at": "2026-10-12T07:15:00Z"
             }
-          ]
+          ],
+          "active_substep": "C5.3"
         },
         {
           "id": "C6",
@@ -1417,7 +1418,7 @@
       "run_id": 38209232481,
       "commit_sha": "05278645316b66f931cd37cb2e185711e1500e66",
       "conclusion": "success",
-      "unit_api": 332,
+      "unit_api": 340,
       "emulator": 35,
       "ui": 58,
       "production_audit_vulnerabilities": 0

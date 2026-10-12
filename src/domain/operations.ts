@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 30014)
-Total output lines: 923
-
 import { equityCollections, verifyEquitySources, equityBackupCounts, validateEquityBackup, remapEquityEvents } from './ownerEquitySources';
 import { fxRevaluationCollections, verifyFxRevaluationSources, fxRevaluationBackupCounts, validateFxRevaluationBackup, remapFxRevaluations } from './fxRevaluationSources';
 import { fxRevaluationTransaction } from './fxRevaluationTransactions';
@@ -528,7 +525,7 @@ export class Operations {
           if (!updating) { const count = (await tx.list(`${root}/products`)).length; ensure(count < plan.max_products, 'تم بلوغ حد المنتجات في الباقة.'); counters.product_count = count; counterAdd('product_count', 1); }
           result = { ...old, ...pick(input, ['name', 'description', 'unit', 'price_sdg', 'price_usd', 'tax_rate', 'category', 'is_active', 'min_stock_alert', 'track_inventory']), ...(!updating ? { ...stamp, stock_quantity: input.stock_quantity || 0 } : {}), id };
           text(result.name, 200, true); text(result.unit || '', 50, true);
-          money(result.price_sdg, 0); money(result…14 tokens truncated…result.tax_rate || 0) <= 100, 'نسبة الضريبة غير صالحة.');
+          money(result.price_sdg, 0); money(result.price_usd, 2); money(result.tax_rate ?? 0, 4); ensure((result.tax_rate || 0) <= 100, 'نسبة الضريبة غير صالحة.');
           money(result.stock_quantity ?? 0, 6); money(result.min_stock_alert ?? 0, 6);
           ensure(typeof result.is_active === 'boolean' && (result.track_inventory === undefined || typeof result.track_inventory === 'boolean'), 'حالة المنتج غير صالحة.');
           let openingValue: Document = {};

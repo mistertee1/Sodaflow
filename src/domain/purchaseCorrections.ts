@@ -11,6 +11,7 @@ import { issueCost, validateCostState } from './inventoryCost';
 import { validateFinancialAccount } from './cashManagement';
 import { classifyAccount } from './accountClassification';
 import { getDefaultChartOfAccounts } from '../services/accountingService';
+import { validateTaxConfigurationVersions } from './taxConfigurationTransactions';
 
 export const purchaseCorrectionCollections = ['purchase_returns', 'supplier_refunds'] as const;
 export const purchaseVarianceAccount = '5910';
@@ -40,7 +41,8 @@ export function verifyPurchaseSource(bill: Document, data: Record<string, Docume
   const entries = data.journal_entries || [], payments = (data.supplier_payments || []).filter(row => row.bill_id === bill.id), returns = (data.purchase_returns || []).filter(row => row.bill_id === bill.id), refunds = (data.supplier_refunds || []).filter(row => row.bill_id === bill.id), accounts = data.accounts || [];
   const originals = entries.filter(entry => entry.reference_type === 'purchase_bill' && entry.reference_id === bill.id);
   const source = buildPurchaseReturnBases(bill as PurchaseBill & { payment_account_code: string }, originals as JournalEntry[], identifier(bill.org_id));
-  postingAccounts(originals.flatMap(row => row.lines), accounts, false,bill.tax_evidence?.tax_treatment==='receivable'?{[bill.tax_evidence.tax_account_code]:'other_assets'}:{});
+  const taxGroups = bill.tax_evidence?.tax_treatment === 'receivable' ? { [identifier(bill.tax_evidence.tax_account_code)]: 'other_assets' } : {};
+  postingAccounts(originals.flatMap(row => row.lines), accounts, false,taxGroups);
   const received = new Map<string, { quantity: BigNumber; cost: BookAmount }>();
   for (const line of bill.items) { const old = received.get(line.product_id) || { quantity: new BigNumber(0), cost: zero() }; received.set(line.product_id, { quantity: old.quantity.plus(line.quantity), cost: add(old.cost, { sdg: line.value_sdg, usd: line.value_usd }) }); }
   const originalMovements = (data.inventory_movements || []).filter(row => row.reference_type === 'purchase_bill' && row.reference_id === bill.id);
@@ -54,7 +56,7 @@ export function verifyPurchaseSource(bill: Document, data: Record<string, Docume
   const posting = (row: Document, type: string, date: string, lines: JournalEntryLine[], rate: number) => {
     const matches = entries.filter(entry => entry.reference_type === type && entry.reference_id === row.id);
     if (!lines.length) { ensure(!row.journal_id && !matches.length, 'المردود الصفري لا يجيز قيداً مختلقاً.', 409); return; }
-    ensure(matches.length === 1, 'قيد تصحيح المورد ناقص أو مكرر.', 409); const entry = matches[0], totals = validateJournal(entry.lines); postingAccounts(lines, accounts, false);
+    ensure(matches.length === 1, 'قيد تصحيح المورد ناقص أو مكرر.', 409); const entry = matches[0], totals = validateJournal(entry.lines); postingAccounts(lines, accounts, false, taxGroups);
     ensure(entry.id === row.journal_id && entry.org_id === bill.org_id && dateOnly(entry.date) === date && entry.exchange_rate_used === rate && entry.is_balanced && JSON.stringify(sides(entry.lines)) === JSON.stringify(sides(lines)) && Object.entries(totals).every(([key, amount]) => entry[key] === amount), 'قيد تصحيح المورد لا يطابق المصدر.', 409);
   };
   for (const [index, event] of events.entries()) {
@@ -68,14 +70,14 @@ export function verifyPurchaseSource(bill: Document, data: Record<string, Docume
       posting(row, 'supplier_payment', date, supplierPaymentLines(settled, cash, row.payment_account_code), row.exchange_rate_used); balance = add(balance, negate(settled)); paid = add(paid, settled);
     } else if (event.kind === 'return') {
       text(row.reason, 500, true); ensure(row.native_currency === bill.currency && row.variance_account_code === purchaseVarianceAccount && Array.isArray(row.lines) && row.lines.length > 0 && row.lines.length <= 100 && Array.isArray(row.stock), 'مستند مردود المورد غير صالح.');
-      const selected = new Set<string>(), expectedStock = new Map<string, BigNumber>(); let credit = zero(), inventory = zero();
+      const selected = new Set<string>(), expectedStock = new Map<string, BigNumber>(); let credit = zero(), inventory = zero(), recoverableTax = zero();
       for (const line of row.lines) {
         ensure(line && Object.keys(line).every(key => ['line_id','sequence','quantity','components'].includes(key)), 'حقول مردود المورد غير صالحة.');
         const basis = source.bases.find(basis => basis.source_id === returnSourceId(bill.id, identifier(line.line_id))); ensure(basis && !selected.has(line.line_id), 'بند مردود المورد مفقود أو مكرر.'); selected.add(line.line_id);
         const previous = histories.get(basis.source_id) || [], quote = quoteReturnAllocation(basis, previous, line.quantity);
-        ensure(line.sequence === quote.sequence && Object.keys(line.components || {}).length === 1 && same(line.components.supplier_credit, quote.components.supplier_credit), 'توزيع مردود المورد لا يطابق المصدر.', 409);
+        ensure(line.sequence === quote.sequence && JSON.stringify(Object.keys(line.components || {}).sort()) === JSON.stringify(Object.keys(quote.components).sort()) && Object.keys(quote.components).every(key => same(line.components[key], quote.components[key])), 'توزيع مردود المورد لا يطابق المصدر.', 409);
         const item = bill.items.find((item: Document) => item.id === line.line_id)!;
-        expectedStock.set(item.product_id, (expectedStock.get(item.product_id) || new BigNumber(0)).plus(line.quantity)); credit = add(credit, quote.components.supplier_credit);
+        expectedStock.set(item.product_id, (expectedStock.get(item.product_id) || new BigNumber(0)).plus(line.quantity)); credit = add(credit, quote.components.supplier_credit); recoverableTax = add(recoverableTax, quote.components.recoverable_tax || zero());
         histories.set(basis.source_id, [...previous, { id: row.id, source_id: basis.source_id, sequence: line.sequence, quantity: line.quantity, components: quote.components }]);
       }
       ensure(row.stock.length === expectedStock.size, 'تفاصيل مخزون المردود ناقصة أو مكررة.'); const stockIds = new Set<string>();
@@ -87,8 +89,8 @@ export function verifyPurchaseSource(bill: Document, data: Record<string, Docume
         ensure(movements.length === 1 && movements[0].type === 'PURCHASE_RETURN' && movements[0].org_id === bill.org_id && dateOnly(movements[0].date) === date && movements[0].journal_id === row.journal_id && movements[0].costing_version === 2 && typeof movements[0].quantity === 'number' && qty.negated().eq(movements[0].quantity) && same(negate(issued.delta), value(movements[0], 'value_delta')) && movements[0].previous_stock === stock.before.stock_quantity && movements[0].resulting_stock === issued.after.stock_quantity, 'حركة مخزون مردود المورد لا تطابق المصدر.', 409);
       }
       ensure((data.inventory_movements || []).filter(m => m.reference_type === 'purchase_return' && m.reference_id === row.id).length === row.stock.length, 'حركات مردود المورد مكررة.');
-      const variance = add(credit, negate(inventory)); ensure(same(credit, value(row, 'supplier_credit')) && same(inventory, value(row, 'inventory_out')) && same(variance, value(row, 'variance')), 'إجماليات مردود المورد لا تطابق المصدر.', 409);
-      const lines = credit.sdg || credit.usd || inventory.sdg || inventory.usd ? purchaseReturnLines(credit, inventory, purchaseVarianceAccount) : [];
+      const variance = add(add(credit, negate(inventory)), negate(recoverableTax)); ensure(same(credit, value(row, 'supplier_credit')) && same(inventory, value(row, 'inventory_out')) && same(recoverableTax, value(row, 'recoverable_tax')) && same(variance, value(row, 'variance')), 'إجماليات مردود المورد لا تطابق المصدر.', 409);
+      const lines = credit.sdg || credit.usd || inventory.sdg || inventory.usd ? purchaseReturnLines(credit, inventory, purchaseVarianceAccount, recoverableTax, bill.tax_evidence?.tax_account_code) : [];
       posting(row, 'purchase_return', date, lines, bill.exchange_rate_used); balance = add(balance, negate(credit)); returned = add(returned, credit); correctionCount++;
     } else {
       text(row.reason, 500, true); ensure(row.native_currency === bill.currency && balance.sdg <= 0 && balance.usd <= 0, 'لا يوجد رصيد مورد مدين قابل للاسترداد.', 409);
@@ -123,26 +125,32 @@ export async function savePurchaseSupplier(c: PayableContext, supplier: Document
   c.set(`${c.root}/suppliers/${supplier.id}`, { ...supplier, payable_due_sdg: due.sdg, payable_due_usd: due.usd, advance_balance_sdg: advance.sdg, advance_balance_usd: advance.usd, updated_at: c.iso });
 }
 export async function purchaseCorrectionCommand(action: string, data: Document, c: PayableContext) {
-  const bill = await c.required('purchase_bills', data.bill_id), state = await loadPurchaseSource(c.tx,c.root,bill), supplier = await c.required('suppliers',bill.supplier_id);
+  const bill = await c.required('purchase_bills', data.bill_id);
+  if (bill.tax_evidence) {
+    const current = await c.required('tax_configurations', bill.tax_evidence.configuration_id);
+    await validateTaxConfigurationVersions(c.tx, c.root, c.orgId, current);
+    const version = await c.required('tax_configuration_versions', `${bill.tax_evidence.configuration_id}-r${bill.tax_evidence.configuration_revision}`);
+    ensure(version.version_hash === bill.tax_evidence.configuration_version_hash && version.direction === 'purchases' && version.tax_account_code === bill.tax_evidence.tax_account_code && version.recoverable === bill.tax_evidence.recoverable, 'إصدار سياسة ضريبة فاتورة المورد لا يطابق دليلها المجمد.', 409);
+  }
+  const state = await loadPurchaseSource(c.tx,c.root,bill), supplier = await c.required('suppliers',bill.supplier_id);
   const date = dateOnly(data.date), reason = text(data.reason,500,true); assertOpenPeriod(date,c.settings); ensure(date >= state.lastDate, 'تاريخ تصحيح المورد قبل آخر حركة للمصدر.',409); ensure(state.sequence < 200, 'سجل الشراء تجاوز حد المعاملة.',409);
   const stamp = { org_id:c.orgId, bill_id:bill.id, supplier_id:bill.supplier_id, supplier_reference:bill.supplier_reference, native_currency:bill.currency, date, reason, source_sequence:state.sequence+1, created_by:c.actor, created_at:c.iso, operation_id:c.operationId, schema_version:3 };
   let result: Document;
   const chart = [...getDefaultChartOfAccounts(c.orgId).filter(account=>!state.accounts.some(row=>row.code===account.code)),...state.accounts];
   if (action === 'purchaseReturn.create') {
-    ensure(!bill.tax_evidence,'مردود فاتورة شراء ضريبية مهيأة يتطلب دورة عكس ضريبة C5.2c ولا يجوز تحميل الضريبة على فروق المخزون.',409);
     ensure(Object.keys(data).every(key=>['bill_id','date','reason','lines'].includes(key)) && Array.isArray(data.lines) && data.lines.length>0 && data.lines.length<=100,'أرسل مصدر وكمية المردود فقط.');
     const id = `pr-${c.operationId}`; ensure(!await c.tx.get(`${c.root}/purchase_returns/${id}`),'معرّف المردود موجود؛ لا يجوز استبدال مستند مالي.',409);
-    let credit = zero(), inventory = zero(); const selected = new Set<string>(), quantities = new Map<string,BigNumber>();
+    let credit = zero(), inventory = zero(), recoverableTax = zero(); const selected = new Set<string>(), quantities = new Map<string,BigNumber>();
     const lines = data.lines.map((line: Document)=>{
       ensure(line && Object.keys(line).every(key=>['line_id','quantity'].includes(key)),'حقول بند مردود المورد غير صالحة.'); const lineId = identifier(line.line_id), basis = state.source.bases.find(basis=>basis.source_id===returnSourceId(bill.id,lineId)); ensure(basis && !selected.has(lineId),'بند مردود المورد مفقود أو مكرر.'); selected.add(lineId);
-      const quote = quoteReturnAllocation(basis,state.histories.get(basis.source_id)||[],line.quantity), item = bill.items.find((item:Document)=>item.id===lineId)!; credit = add(credit,quote.components.supplier_credit); quantities.set(item.product_id,(quantities.get(item.product_id)||new BigNumber(0)).plus(line.quantity)); return { line_id:lineId, quantity:line.quantity, sequence:quote.sequence, components:quote.components };
+      const quote = quoteReturnAllocation(basis,state.histories.get(basis.source_id)||[],line.quantity), item = bill.items.find((item:Document)=>item.id===lineId)!; credit = add(credit,quote.components.supplier_credit); recoverableTax = add(recoverableTax,quote.components.recoverable_tax||zero()); quantities.set(item.product_id,(quantities.get(item.product_id)||new BigNumber(0)).plus(line.quantity)); return { line_id:lineId, quantity:line.quantity, sequence:quote.sequence, components:quote.components };
     });
     const stock: Document[] = [];
     for (const [productId,quantity] of quantities) { const product=await c.required('products',productId) as Product, before=validateCostState(product), issued=issueCost(product,quantity.toNumber(),date); inventory=add(inventory,issued.delta); stock.push({ product_id:productId, product_name:product.name, quantity:quantity.toNumber(), before, after:issued.after, inventory_out_sdg:issued.delta.sdg, inventory_out_usd:issued.delta.usd }); }
-    const posting = credit.sdg || credit.usd || inventory.sdg || inventory.usd ? purchaseReturnLines(credit,inventory,purchaseVarianceAccount) : [], journalId = posting.length ? `jv-purchase-return-${c.operationId}` : undefined;
-    postingAccounts(posting,chart,true); if(journalId) await c.post(journal(journalId,c.orgId,c.actor,date,'purchase_return',id,`مردود شراء ${bill.supplier_reference}: ${reason}`,posting,bill.exchange_rate_used));
+    const posting = credit.sdg || credit.usd || inventory.sdg || inventory.usd ? purchaseReturnLines(credit,inventory,purchaseVarianceAccount,recoverableTax,bill.tax_evidence?.tax_account_code) : [], journalId = posting.length ? `jv-purchase-return-${c.operationId}` : undefined;
+    postingAccounts(posting,chart,true,bill.tax_evidence?.tax_treatment==='receivable'?{[bill.tax_evidence.tax_account_code]:'other_assets'}:{}); if(journalId) await c.post(journal(journalId,c.orgId,c.actor,date,'purchase_return',id,`مردود شراء ${bill.supplier_reference}: ${reason}`,posting,bill.exchange_rate_used));
     for(const [index,row] of stock.entries()) { c.set(`${c.root}/products/${row.product_id}`,{ ...await c.required('products',row.product_id),...row.after }); const movementId=`mov-purchase-return-${c.operationId}-${index+1}`; c.set(`${c.root}/inventory_movements/${movementId}`,{ ...stamp,id:movementId,product_id:row.product_id,product_name:row.product_name,type:'PURCHASE_RETURN',quantity:-row.quantity,previous_stock:row.before.stock_quantity,resulting_stock:row.after.stock_quantity,reference_type:'purchase_return',reference_id:id,value_delta_sdg:-row.inventory_out_sdg,value_delta_usd:-row.inventory_out_usd,costing_version:2,...(journalId?{journal_id:journalId}:{}) }); c.counterAdd('inventory_movement_count',1); }
-    const variance=add(credit,negate(inventory)); result={ ...stamp,id,lines,stock,supplier_credit_sdg:credit.sdg,supplier_credit_usd:credit.usd,inventory_out_sdg:inventory.sdg,inventory_out_usd:inventory.usd,variance_sdg:variance.sdg,variance_usd:variance.usd,variance_account_code:purchaseVarianceAccount,...(journalId?{journal_id:journalId}:{}) }; state.balance=add(state.balance,negate(credit)); state.returned=add(state.returned,credit); state.correctionCount++;
+    const variance=add(add(credit,negate(inventory)),negate(recoverableTax)); result={ ...stamp,id,lines,stock,supplier_credit_sdg:credit.sdg,supplier_credit_usd:credit.usd,inventory_out_sdg:inventory.sdg,inventory_out_usd:inventory.usd,recoverable_tax_sdg:recoverableTax.sdg,recoverable_tax_usd:recoverableTax.usd,variance_sdg:variance.sdg,variance_usd:variance.usd,variance_account_code:purchaseVarianceAccount,...(journalId?{journal_id:journalId}:{}) }; state.balance=add(state.balance,negate(credit)); state.returned=add(state.returned,credit); state.correctionCount++;
     c.set(`${c.root}/purchase_returns/${id}`,result); c.counterAdd('purchase_return_count',1);
   } else {
     ensure(action==='supplierRefund.create' && Object.keys(data).every(key=>['bill_id','date','reason','amount','financial_account_id','exchange_rate_used'].includes(key)),'طلب استرداد المورد غير صالح.'); ensure(state.balance.sdg<=0 && state.balance.usd<=0,'لا يوجد رصيد مورد مدين قابل للاسترداد.',409);

@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c6-comparative-reports-20261012",
+  "active_branch": "codex/accounting-v2-d1-dimensions-foundation-20261012",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1095,16 +1095,37 @@
     },
     {
       "id": "D",
-      "status": "pending",
-      "branch": null,
-      "pr": null,
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-d1-dimensions-foundation-20261012",
+      "pr": 57,
       "steps": [
         {
           "id": "D1",
           "scope": "Branch dimensions, cost centers/projects and branch P&L",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-d1-dimensions-foundation-20261012",
+          "pr": 57,
+          "substeps": [
+            {
+              "id": "D1.1",
+              "scope": "Protected dimension masters, journal-line validation and branch P&L backend",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d1-dimensions-foundation-20261012",
+              "pr": 57,
+              "report": "REPORT_D1_1_DIMENSIONS_FOUNDATION.md",
+              "checks": { "unit_api": 337, "types": "passed", "core": "passed", "build": "passed", "emulator": 35, "ui": 60, "production_audit_vulnerabilities": 0 },
+              "ci": { "run_id": 38241877010, "commit_sha": "aa849671b479922fa840e06d17643178d601f813", "conclusion": "success" },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-12T11:25:00Z"
+            },
+            {
+              "id": "D1.2",
+              "scope": "Dimension UI, source-document propagation and management report filters",
+              "status": "pending",
+              "branch": null,
+              "pr": null
+            }
+          ]
         },
         {
           "id": "D2",
@@ -1254,12 +1275,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_C6_COMPARATIVE_REPORTS.md",
+  "last_report": "REPORT_D1_1_DIMENSIONS_FOUNDATION.md",
   "next_steps": [
-    "D1 branch dimensions, cost centers/projects and branch P&L",
-    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6 on matching staging commits"
+    "D1.2 dimension UI, source-document propagation and management report filters",
+    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1 on matching staging commits"
   ],
-  "updated_at": "2026-10-12T11:11:00Z",
+  "updated_at": "2026-10-12T11:25:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1284,7 +1305,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D1",
+  "active_substep": "D1.2",
   "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
     {
@@ -1419,15 +1440,23 @@
       "released_at": "2026-10-12T11:11:00Z",
       "pr": 56,
       "code_commit": "70bbbb459bc70765624bb725dab2ec67f415a190"
+    },
+    {
+      "worker": "d1-dimensions-foundation-20261012",
+      "acquired_at": "2026-10-12T11:14:00Z",
+      "branch": "codex/accounting-v2-d1-dimensions-foundation-20261012",
+      "released_at": "2026-10-12T11:25:00Z",
+      "pr": 57,
+      "code_commit": "aa849671b479922fa840e06d17643178d601f813"
     }
   ],
   "last_lease": {
-    "worker": "c6-comparative-reports-20261012",
-    "acquired_at": "2026-10-12T10:59:00Z",
-    "branch": "codex/accounting-v2-c6-comparative-reports-20261012",
-    "released_at": "2026-10-12T11:11:00Z",
-    "pr": 56,
-    "code_commit": "70bbbb459bc70765624bb725dab2ec67f415a190"
+    "worker": "d1-dimensions-foundation-20261012",
+    "acquired_at": "2026-10-12T11:14:00Z",
+    "branch": "codex/accounting-v2-d1-dimensions-foundation-20261012",
+    "released_at": "2026-10-12T11:25:00Z",
+    "pr": 57,
+    "code_commit": "aa849671b479922fa840e06d17643178d601f813"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1441,7 +1470,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to D1 branch dimensions, cost centers/projects and branch P&L; retain independent Render acceptance for matching staging commits",
+  "next": "Proceed to D1.2 dimension UI, source-document propagation and management report filters; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1462,24 +1491,24 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c6-comparative-reports-20261012",
-    "acquired_at": "2026-10-12T10:59:00Z",
-    "branch": "codex/accounting-v2-c6-comparative-reports-20261012",
-    "released_at": "2026-10-12T11:11:00Z",
-    "pr": 56,
-    "code_commit": "70bbbb459bc70765624bb725dab2ec67f415a190",
-    "status": "C6_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-12T11:11:00Z",
+    "worker": "d1-dimensions-foundation-20261012",
+    "acquired_at": "2026-10-12T11:14:00Z",
+    "branch": "codex/accounting-v2-d1-dimensions-foundation-20261012",
+    "released_at": "2026-10-12T11:25:00Z",
+    "pr": 57,
+    "code_commit": "aa849671b479922fa840e06d17643178d601f813",
+    "status": "D1_1_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-12T11:25:00Z",
     "ci": {
-      "run_id": 38240509827,
-      "commit_sha": "70bbbb459bc70765624bb725dab2ec67f415a190",
+      "run_id": 38241877010,
+      "commit_sha": "aa849671b479922fa840e06d17643178d601f813",
       "conclusion": "success",
-      "unit_api": 336,
+      "unit_api": 337,
       "emulator": 35,
       "ui": 60,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to D1 branch dimensions, cost centers/projects and branch P&L; Render acceptance remains independent"
+    "next": "Proceed to D1.2 dimension UI, source-document propagation and management report filters; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

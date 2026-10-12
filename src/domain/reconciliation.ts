@@ -20,8 +20,9 @@ import { dateOnly, identifier, money, validateJournal } from './validation';
 import { verifyOpeningSources } from './openingSources';
 import { openingCollections } from './openingCollections';
 import { hasOpeningSources, openingOrganization } from './openingIntegration';
+import { taxConfigurationCollections } from './taxConfigurationTransactions';
 
-export const financialCollections = [...fixedAssetCollections, ...fxRevaluationCollections, ...equityCollections, ...periodCollections, ...openingCollections, 'audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
+export const financialCollections = [...taxConfigurationCollections, ...fixedAssetCollections, ...fxRevaluationCollections, ...equityCollections, ...periodCollections, ...openingCollections, 'audit_archives', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', ...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections] as const;
 export type FinancialCollection = typeof financialCollections[number];
 export type FinancialData = Record<FinancialCollection, Document[]>;
 export interface Finding {

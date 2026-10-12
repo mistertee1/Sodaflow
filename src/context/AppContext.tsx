@@ -5,6 +5,7 @@ import type { FxRevaluationInput } from '../domain/fxRevaluation';
 import type { FixedAssetAction, FixedAssetPreview, FixedAssetPreviewRequest } from '../domain/fixedAssetPreview';
 import type { AccountingPeriod } from '../domain/periodContracts';
 import type { TaxConfiguration } from '../domain/taxConfiguration';
+import type { ManagementDimension } from '../domain/managementDimensions';
 import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
 import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
@@ -29,6 +30,9 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  branches: ManagementDimension[];
+  costCenters: ManagementDimension[];
+  projects: ManagementDimension[];
   taxConfigurations: TaxConfiguration[];
   saveTaxConfiguration: (data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<TaxConfiguration>;
   loadTaxReport: (period: {start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['taxReports']>>>;
@@ -495,6 +499,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     currentUser, authLoading, syncStatus, syncError, dismissSyncError: () => setSyncError(null), lastSyncedAt,
     currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.exported_at ? state.member?.status || (state.role === 'Owner' ? 'active' : 'unknown') : 'unknown', orgMembers: rows<OrgMember>('members'),
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
+    branches: rows<ManagementDimension>('branches'), costCenters: rows<ManagementDimension>('cost_centers'), projects: rows<ManagementDimension>('projects'),
     creditNotes: rows<Document>('credit_notes'), customerRefunds: rows<Document>('customer_refunds'),
     createCreditNote: data => run('creditNote.create', data), refundCustomer: data => run('customerRefund.create', data),
     suppliers: rows<Supplier>('suppliers'), purchaseBills: rows<PurchaseBill>('purchase_bills'), supplierPayments: rows<SupplierPayment>('supplier_payments'), purchaseReturns: rows<Document>('purchase_returns'), supplierRefunds: rows<Document>('supplier_refunds'), returnPurchase: data => run<Document>('purchaseReturn.create',data), refundSupplier: data => run<Document>('supplierRefund.create',data),

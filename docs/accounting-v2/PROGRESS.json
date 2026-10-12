@@ -1065,7 +1065,8 @@
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "completed_at": "2026-10-12T09:16:00Z"
             }
-          ]
+          ],
+          "active_substep": "C5.3"
         },
         {
           "id": "C6",

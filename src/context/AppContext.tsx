@@ -38,6 +38,7 @@ interface AppContextType {
   taxConfigurations: TaxConfiguration[];
   saveTaxConfiguration: (data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<TaxConfiguration>;
   loadTaxReport: (period: {start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['taxReports']>>>;
+  loadBranchProfitAndLoss: (branchId:string, period:{start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['branchProfitAndLoss']>>>;
   fixedAssets: Document[];
   fixedAssetDepreciations: Document[];
   previewFixedAsset: (request: FixedAssetPreviewRequest, expectedOrgId: string) => Promise<FixedAssetPreview>;
@@ -505,6 +506,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     saveDimension: (kind, data, updating, expectedOrgId, requestId) => {
       if (activeOrg.current !== expectedOrgId) return Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح إدارة الأبعاد.', 409));
       return run<ManagementDimension>(updating ? 'dimension.update' : 'dimension.create', { ...data, kind }, requestId);
+    },
+    loadBranchProfitAndLoss: async (branchId, period) => {
+      const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
+      const params=new URLSearchParams({branchId,...(period.start?{start:period.start}:{}),...(period.end?{end:period.end}:{})});
+      const report=id===guestId&&!userRef.current?await getGuest().branchProfitAndLoss(id,guestActor,branchId,period):await api<Awaited<ReturnType<Operations['branchProfitAndLoss']>>>(`/organizations/${encodeURIComponent(id)}/reports/branch-profit-loss?${params}`);
+      if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return report;
     },
     creditNotes: rows<Document>('credit_notes'), customerRefunds: rows<Document>('customer_refunds'),
     createCreditNote: data => run('creditNote.create', data), refundCustomer: data => run('customerRefund.create', data),

@@ -12,6 +12,7 @@ async function seed(page:Page,role:'Owner'|'Accountant'='Owner',configured=false
   };
   for(const account of getDefaultChartOfAccounts(org))records[`${root}/accounts/${account.code}`]=account;
   if(configured)records[`${root}/tax_configurations/vat`]={schema_version:1,id:'vat',org_id:org,revision:1,name:'ضريبة القيمة',jurisdiction:'اختبار',direction:'sales',rate:15,calculation:'exclusive',rounding:'half_up',recoverable:false,tax_account_code:'2130',effective_from:'2026-01-01',effective_to:null,active:true,created_at:'2026-01-01T00:00:00Z',created_by:'guest',updated_at:'2026-01-01T00:00:00Z',updated_by:'guest',operation_id:'seed',version_hash:'a'.repeat(64)};
+  if(configured)records[`${root}/journal_entries/tax-ui`]={id:'tax-ui',org_id:org,date:'2026-10-01',description:'ضريبة اختبار',reference_type:'invoice',reference_id:'invoice-ui',created_by:'guest',created_at:'2026-10-01T00:00:00Z',exchange_rate_used:0,lines:[{id:'tax',account_code:'2130',description:'ضريبة',debit_sdg:0,credit_sdg:150,debit_usd:0,credit_usd:1}]};
   await page.addInitScript(records=>{localStorage.setItem('mohasbasd_guest_session','true');localStorage.setItem('sudanese_merchant_has_seen_tour_v2','true');if(!localStorage.getItem('sudaflow_guest_transactions_v3'))localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records));},records);
   await page.goto('/');await page.locator('#tab-accounting').click();await page.getByTestId('tax-center-tab').click();
 }
@@ -30,4 +31,8 @@ test('C5.3.1 Owner creates and versions a tax policy once and it survives reload
 
 test('C5.3.1 Accountant reads tax policies but cannot create or edit them',async({page})=>{
   await seed(page,'Accountant',true);const center=page.getByRole('region',{name:'مركز الضرائب'});await expect(center).toContainText('ضريبة القيمة');await expect(center.getByRole('form',{name:'إعداد ضريبة'})).toHaveCount(0);await expect(center.getByRole('button',{name:/تعديل إعداد/})).toHaveCount(0);
+});
+
+test('C5.3.2 Accountant loads a journal-backed tax period report and it survives reload',async({page})=>{
+  await seed(page,'Accountant',true);const report=page.getByRole('region',{name:'تقرير الفترة الضريبية'});await report.getByLabel('بداية فترة الضريبة').fill('2026-10-01');await report.getByLabel('نهاية فترة الضريبة').fill('2026-10-31');await report.getByRole('button',{name:'تحميل التقرير'}).click();await expect(report).toContainText('١٥٠ SDG');await expect(report).toContainText('2130');await expect(report).toContainText('عدد القيود ذات الصلة في الفترة: 1');await page.reload();await page.locator('#tab-accounting').click();await page.getByTestId('tax-center-tab').click();await expect(page.getByRole('region',{name:'تقرير الفترة الضريبية'})).toBeVisible();
 });

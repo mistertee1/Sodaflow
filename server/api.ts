@@ -95,6 +95,7 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   router.get('/organizations/:orgId/backup', route(async (req, actor) => service().snapshot(req.params.orgId, actor, true)));
   router.get('/organizations/:orgId/reports/advanced', route(async (req, actor) => service().advancedReports(req.params.orgId, actor, { start: typeof req.query.start === 'string' ? req.query.start : undefined, end: typeof req.query.end === 'string' ? req.query.end : undefined })));
   router.get('/organizations/:orgId/reports/payables', route(async (req, actor) => service().payableReports(req.params.orgId, actor, { start: typeof req.query.start === 'string' ? req.query.start : undefined, end: typeof req.query.end === 'string' ? req.query.end : undefined })));
+  router.get('/organizations/:orgId/reports/tax', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route(async(req,actor)=>{ensure(Object.keys(req.query).every(key=>['start','end'].includes(key)),'مرشحات تقرير الضريبة غير صالحة.');return service().taxReports(req.params.orgId,actor,{start:typeof req.query.start==='string'&&req.query.start?req.query.start:undefined,end:typeof req.query.end==='string'&&req.query.end?req.query.end:undefined});}));
   for (const view of ['ledger', 'receivables', 'cash'] as const) {
     router.get(`/organizations/:orgId/reports/${view}`, (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, route(async (req, actor) => {
       return service().operationalReport(req.params.orgId, actor, view, req.query);

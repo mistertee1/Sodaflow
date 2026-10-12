@@ -8,12 +8,12 @@
   "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "c5-tax-corrections-20261012",
-    "acquired_at": "2026-10-12T01:52:00Z",
-    "expires_at": "2026-10-12T03:52:00Z",
+    "worker": "c5-tax-corrections-integration-20261012b",
+    "acquired_at": "2026-10-12T06:59:36.929Z",
+    "expires_at": "2026-10-12T08:59:36.929Z",
     "branch": "codex/accounting-v2-c5-tax-lifecycle-integrated-20261011",
-    "purpose": "Verify integrated purchase-tax CI and continue C5.2c configured sales correction lifecycle",
-    "heartbeat_at": "2026-10-12T01:52:00Z"
+    "purpose": "Integrate latest C5.2c base safely, preserve concurrent work, verify CI, document and release milestone",
+    "heartbeat_at": "2026-10-12T06:59:36.929Z"
   },
   "milestones": [
     {
@@ -1315,6 +1315,16 @@
       "heartbeat_at": "2026-10-11T21:18:00Z",
       "released_at": "2026-10-12T01:52:00Z",
       "release_reason": "expired_before_resume"
+    },
+    {
+      "worker": "c5-tax-corrections-20261012",
+      "acquired_at": "2026-10-12T01:52:00Z",
+      "expires_at": "2026-10-12T03:52:00Z",
+      "branch": "codex/accounting-v2-c5-tax-lifecycle-integrated-20261011",
+      "purpose": "Verify integrated purchase-tax CI and continue C5.2c configured sales correction lifecycle",
+      "heartbeat_at": "2026-10-12T01:52:00Z",
+      "status": "expired_reclaimed",
+      "released_at": "2026-10-12T06:59:36.929Z"
     }
   ],
   "last_lease": {

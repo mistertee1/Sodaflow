@@ -108,8 +108,14 @@ test('D1 dimensions are protected, journal tags require active masters and branc
   const taggedSnapshot=await f.ops.snapshot(f.org.id,actor),taggedPosting=taggedSnapshot.collections.journal_entries.find(row=>row.reference_id===taggedExpense.id)!;
   assert.deepEqual(taggedPosting.lines.map((line:JournalEntry['lines'][number])=>({branch_id:line.branch_id,cost_center_id:line.cost_center_id,project_id:line.project_id})),[dimensions,dimensions]);
   assert.equal(taggedExpense.branch_id,'north');assert.equal(taggedExpense.cost_center_id,'sales');assert.equal(taggedExpense.project_id,'contract-a');
+  const customer=(await f.run('customer.create',{name:'عميل الفرع',phone:'',preferred_currency:'SDG'},'dimension-customer')).result;
+  const service=(await f.run('product.create',{name:'خدمة الفرع',unit:'خدمة',price_sdg:50,price_usd:0,tax_rate:0,is_active:true,track_inventory:false,stock_quantity:0},'dimension-service')).result;
+  const invoice=(await f.run('invoice.create',{customer_id:customer.id,issue_date:'2026-10-05',currency_mode:'single_sdg',exchange_rate_used:0,discount_type:'fixed',discount_value:0,items:[{product_id:service.id,description:'خدمة',unit:'خدمة',quantity:1,unit_price:50,currency:'SDG',tax_rate:0,discount_percent:0}],...dimensions},'dimension-invoice')).result;
+  const invoicePosting=(await f.ops.snapshot(f.org.id,actor)).collections.journal_entries.find(row=>row.reference_id===invoice.id)!;
+  assert.equal(invoice.branch_id,'north');assert.ok(invoicePosting.lines.every((line:JournalEntry['lines'][number])=>line.branch_id==='north'&&line.cost_center_id==='sales'&&line.project_id==='contract-a'));
   await f.run('dimension.update',{kind:'project',id:'contract-a',expected_revision:1,updates:{status:'inactive'}},'disable-project');
   await assert.rejects(f.run('journal.create',{reference_type:'manual',description:'بعد معطل',date:'2026-10-05',lines:[{...journalLine('1110','نقد',1,0,0,0),project_id:'contract-a'},{...journalLine('4100','مبيعات',0,1,0,0),project_id:'contract-a'}]},'inactive'),/غير موجود أو غير نشط/);
   const before=f.store.dump();await assert.rejects(f.run('expense.create',{title:'مصروف مرفوض',category:'إيجار',amount:1,currency:'SDG',date:'2026-10-05',project_id:'contract-a'},'inactive-expense'),/غير موجود أو غير نشط/);assert.deepEqual(f.store.dump(),before);
+  await assert.rejects(f.run('invoice.create',{customer_id:customer.id,issue_date:'2026-10-05',currency_mode:'single_sdg',exchange_rate_used:0,discount_type:'fixed',discount_value:0,items:[{product_id:service.id,description:'مرفوض',unit:'خدمة',quantity:1,unit_price:1,currency:'SDG',tax_rate:0,discount_percent:0}],project_id:'contract-a'},'inactive-invoice'),/غير موجود أو غير نشط/);
   const snapshot=await f.ops.snapshot(f.org.id,{...actor,uid:'accountant'});assert.equal(snapshot.collections.branches.length,1);assert.equal(snapshot.collections.cost_centers.length,1);assert.equal(snapshot.collections.projects.length,1);
 });

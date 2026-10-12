@@ -1,0 +1,19 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {INITIAL_SETTINGS} from '../src/data/initialData';
+import {MemoryStore} from '../src/domain/store';
+import {Operations,type Actor} from '../src/domain/operations';
+import {createDefaultSubscription,getPlanConfig} from '../src/lib/plans';
+const org='sales-tax-command',root=`organizations/${org}`,now=new Date('2026-10-11T13:05:00Z');
+const owner:Actor={uid:'owner',email:'owner@test.local',emailVerified:true,authTime:Math.floor(now.getTime()/1000)-30};
+async function fixture(){
+  const store=new MemoryStore({[root]:{id:org,owner_uid:'owner',name:'ضريبة البيع',status:'active',accounting_version:2,settings:INITIAL_SETTINGS},[`${root}/meta/subscription`]:{...createDefaultSubscription(org),...getPlanConfig('Enterprise'),plan:'Enterprise',org_id:org,status:'active',effective_status:'active'},[`${root}/accounts/2130`]:{id:'2130',code:'2130',org_id:org,name_ar:'ضريبة مستحقة',name_en:'Tax payable',type:'LIABILITY',nature:'CREDIT',reporting_group:'tax_payable',is_active:true,balance_sdg:0,balance_usd:0}});
+  const ops=new Operations(store,()=>now),run=(action:string,data:any,id:string)=>ops.execute(org,owner,{action,data,operationId:id});
+  await run('period.create',{id:'oct',start_date:'2026-10-01',end_date:'2026-10-31',reason:'أكتوبر'},'period');
+  await run('taxConfiguration.create',{id:'vat',name:'ضريبة',jurisdiction:'اختبار',direction:'sales',rate:15,calculation:'exclusive',rounding:'half_up',recoverable:false,tax_account_code:'2130',effective_from:'2026-01-01',effective_to:null,active:true,reason:'اعتماد'},'tax');
+  const customer=(await run('customer.create',{name:'عميل ضريبي',phone:''},'customer')).result,product=(await run('product.create',{name:'خدمة',unit:'خدمة',price_sdg:1000,price_usd:0,tax_rate:0,is_active:true,track_inventory:false,stock_quantity:0},'product')).result;
+  const invoice=()=>({customer_id:customer.id,issue_date:'2026-10-11',currency_mode:'single_sdg',exchange_rate_used:0,discount_type:'percent',discount_value:10,tax_configuration_id:'vat',expected_tax_configuration_revision:1,items:[{product_id:product.id,description:'خدمة',unit:'خدمة',quantity:2,unit_price:1000,currency:'SDG',tax_rate:0,discount_percent:10}]});
+  return{store,ops,run,invoice};
+}
+test('C5.2b posts configured sales tax atomically from immutable version evidence',async()=>{const f=await fixture(),saved=(await f.run('invoice.create',f.invoice(),'invoice')).result,dump=f.store.dump(),entry=dump[`${root}/journal_entries/jv-inv-${saved.id}`];assert.equal(saved.tax_total_sdg,243);assert.equal(saved.grand_total_sdg,1863);assert.equal(saved.tax_evidence.configuration_revision,1);assert.match(saved.tax_evidence.configuration_version_hash,/^[a-f0-9]{64}$/);assert.equal(entry.lines.find((line:any)=>line.account_code==='2130').credit_sdg,243);assert.equal(entry.lines.find((line:any)=>line.account_code==='1200').debit_sdg,1863);await assert.rejects(f.run('creditNote.create',{invoice_id:saved.id,date:'2026-10-11',reason:'ممنوع قبل دورة التصحيح',kind:'price_credit',lines:[{line_id:'line-1',amount:1}]},'credit'),/C5/);});
+test('C5.2b rejects client tax, stale configuration and damaged version chain without partial invoice',async()=>{const f=await fixture();await assert.rejects(f.run('invoice.create',{...f.invoice(),items:[{...f.invoice().items[0],tax_rate:15}]},'forged'),/مشتقة/);await assert.rejects(f.run('invoice.create',{...f.invoice(),expected_tax_configuration_revision:2},'stale'),/تغير/);const docs=f.store.dump();docs[`${root}/tax_configuration_versions/vat-r1`].rate=99;const damaged=new MemoryStore(docs),ops=new Operations(damaged,()=>now);await assert.rejects(ops.execute(org,owner,{action:'invoice.create',operationId:'damaged',data:f.invoice()}),/بصمة|يطابق/);assert.equal(Object.keys(damaged.dump()).filter(key=>key.includes('/invoices/')).length,0);});

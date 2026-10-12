@@ -967,6 +967,31 @@
               },
               "render_acceptance": "not_exposed_no_operational_ui",
               "completed_at": "2026-10-11T10:49:00Z"
+            },
+            {
+              "id": "C5.2b",
+              "scope": "Source-linked configured sales tax evidence and atomic invoice/AR/revenue/tax posting",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c5-sales-tax-transactions-20261011",
+              "pr": 50,
+              "report": "REPORT_C5_2B_SALES_TAX_TRANSACTIONS.md",
+              "checks": {
+                "unit_api": 323,
+                "new_tests": 6,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 34,
+                "ui": 56,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38142139448,
+                "commit_sha": "aba2586308b745f429ce4d247ed358c997997c91",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-11T13:41:00Z"
             }
           ]
         },
@@ -1140,13 +1165,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_C5_2A_TAX_CONFIG_TRANSACTIONS.md",
+  "last_report": "REPORT_C5_2B_SALES_TAX_TRANSACTIONS.md",
   "next_steps": [
-    "C5.2b source-linked sales tax posting and corrections",
-    "C5.2c purchase tax posting, reconciliation and strict restore",
+    "C5.2c configured sales correction lifecycle, purchase tax posting, reconciliation and strict restore",
     "C5.3 tax UI, periods, reports and authenticated Render acceptance"
   ],
-  "updated_at": "2026-10-11T10:49:00Z",
+  "updated_at": "2026-10-11T13:41:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1258,15 +1282,31 @@
       "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
       "pr": 48,
       "code_commit": "3ca2c0d6644181c5a1385d6eb78f8cc9ce25436e"
+    },
+    {
+      "worker": "c5-sales-tax-transactions-20261011",
+      "acquired_at": "2026-10-11T11:47:00Z",
+      "branch": "codex/accounting-v2-c5-sales-tax-transactions-20261011",
+      "released_at": "2026-10-11T11:53:00Z",
+      "pr": 50,
+      "code_commit": "32e75cd7595da8550f875538b694d6c884767bb4"
+    },
+    {
+      "worker": "c5-sales-tax-posting-20261011",
+      "acquired_at": "2026-10-11T12:59:00Z",
+      "branch": "codex/accounting-v2-c5-sales-tax-transactions-20261011",
+      "released_at": "2026-10-11T13:12:00Z",
+      "pr": 50,
+      "code_commit": "2ff2e8edea1528e9573e991500e03339fee2ba3a"
     }
   ],
   "last_lease": {
-    "worker": "c5-tax-config-hardening-20261011",
-    "acquired_at": "2026-10-11T09:36:37.349Z",
-    "released_at": "2026-10-11T10:49:00Z",
-    "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
-    "pr": 48,
-    "code_commit": "3ca2c0d6644181c5a1385d6eb78f8cc9ce25436e"
+    "worker": "c5-sales-tax-posting-20261011",
+    "acquired_at": "2026-10-11T12:59:00Z",
+    "branch": "codex/accounting-v2-c5-sales-tax-transactions-20261011",
+    "released_at": "2026-10-11T13:12:00Z",
+    "pr": 50,
+    "code_commit": "2ff2e8edea1528e9573e991500e03339fee2ba3a"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1280,7 +1320,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "C5.2b source-linked sales tax posting and corrections",
+  "next": "Verify CI, then finalize C5.2b report or fix findings; proceed to C5.2c configured tax corrections/purchases/restore",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1301,20 +1341,24 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c5-tax-config-hardening-20261011",
-    "acquired_at": "2026-10-11T09:36:37.349Z",
-    "released_at": "2026-10-11T10:49:00Z",
-    "branch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
-    "pr": 48,
-    "code_commit": "3ca2c0d6644181c5a1385d6eb78f8cc9ce25436e",
+    "worker": "c5-sales-tax-posting-20261011",
+    "acquired_at": "2026-10-11T12:59:00Z",
+    "branch": "codex/accounting-v2-c5-sales-tax-transactions-20261011",
+    "released_at": "2026-10-11T13:12:00Z",
+    "pr": 50,
+    "code_commit": "2ff2e8edea1528e9573e991500e03339fee2ba3a",
+    "status": "C5_2b_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-11T13:41:00Z",
     "ci": {
-      "run_id": 38129634478,
-      "commit_sha": "3ca2c0d6644181c5a1385d6eb78f8cc9ce25436e",
-      "conclusion": "success"
+      "run_id": 38142139448,
+      "commit_sha": "aba2586308b745f429ce4d247ed358c997997c91",
+      "conclusion": "success",
+      "unit_api": 323,
+      "emulator": 34,
+      "ui": 56,
+      "production_audit_vulnerabilities": 0
     },
-    "status": "C5_2a_tax_configuration_persistence_ci_passed",
-    "ended_at": "2026-10-11T10:49:00Z",
-    "next": "C5.2b source-linked sales tax posting and corrections"
+    "next": "Proceed to C5.2c configured sales corrections, purchase tax posting, tax configuration backup/restore and reconciliation"
   },
   "acceptance_environment": {
     "provider": "Render",

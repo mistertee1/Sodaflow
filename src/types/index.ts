@@ -302,6 +302,7 @@ export interface InvoiceItem {
 }
 
 export interface Invoice {
+  tax_evidence?: Record<string, any>;
   source_event_sequence?: number;
   correction_count?: number;
   credit_balance_sdg?: number;

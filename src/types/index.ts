@@ -401,6 +401,8 @@ export interface Expense {
   created_at: string;
   org_id?: string;
   branch_id?: string;
+  cost_center_id?: string;
+  project_id?: string;
   created_by?: string;
   schema_version?: number;
 }

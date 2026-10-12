@@ -4,6 +4,7 @@ import type { OwnerEquityInput } from '../domain/ownerEquity';
 import type { FxRevaluationInput } from '../domain/fxRevaluation';
 import type { FixedAssetAction, FixedAssetPreview, FixedAssetPreviewRequest } from '../domain/fixedAssetPreview';
 import type { AccountingPeriod } from '../domain/periodContracts';
+import type { TaxConfiguration } from '../domain/taxConfiguration';
 import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
 import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
@@ -28,6 +29,8 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  taxConfigurations: TaxConfiguration[];
+  saveTaxConfiguration: (data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<TaxConfiguration>;
   fixedAssets: Document[];
   fixedAssetDepreciations: Document[];
   previewFixedAsset: (request: FixedAssetPreviewRequest, expectedOrgId: string) => Promise<FixedAssetPreview>;
@@ -386,7 +389,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const sensitive = ['payables:read', 'audit_logs:view', 'journal:read', 'accounts:read', 'periods:read'];
     const readOnly = action.endsWith(':read') || action === 'members:view';
     if (!active && (!readOnly || sensitive.includes(action))) return false;
-    const features: Partial<Record<ActionType, string>> = { 'equity:write': 'accounting', 'opening:preview': 'accounting', 'opening:write': 'accounting', 'opening:settle': 'accounting', 'periods:read': 'accounting', 'periods:manage': 'accounting', 'periods:adjust': 'accounting', 'periods:reopen': 'accounting', 'payables:read': 'accounting', 'payables:write': 'accounting', 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
+    const features: Partial<Record<ActionType, string>> = { 'tax:read': 'accounting', 'tax:manage': 'accounting', 'equity:write': 'accounting', 'opening:preview': 'accounting', 'opening:write': 'accounting', 'opening:settle': 'accounting', 'periods:read': 'accounting', 'periods:manage': 'accounting', 'periods:adjust': 'accounting', 'periods:reopen': 'accounting', 'payables:read': 'accounting', 'payables:write': 'accounting', 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
     if (features[action] && state.subscription.features[features[action]!] !== true) return false;
     if (action === 'invoices:create' && invoiceQuotaReached(state.subscription, state.counters.lifetime_invoice_count || state.counters.invoice_count, state.counters.monthly_invoice_count || 0)) return false;
     return true;
@@ -423,6 +426,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
   const nothing = async () => {};
   const value: AppContextType = {
+    taxConfigurations: rows<TaxConfiguration>('tax_configurations'),
+    saveTaxConfiguration: (data, updating, expectedOrgId, requestId) => activeOrg.current === expectedOrgId
+      ? run<TaxConfiguration>(updating ? 'taxConfiguration.update' : 'taxConfiguration.create', data, requestId)
+      : Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح إعداد الضريبة.', 409)),
     fixedAssets: rows<Document>('fixed_assets'), fixedAssetDepreciations: rows<Document>('fixed_asset_depreciations'),
     previewFixedAsset: async (request, expectedOrgId) => {
       const id = activeOrg.current, epoch = session.current;

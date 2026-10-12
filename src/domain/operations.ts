@@ -765,7 +765,7 @@ export class Operations {
           const method = data.payment_method || 'cash';
           ensure(['cash', 'bankak', 'fawry', 'bank_transfer', 'other', 'on_credit', 'custom'].includes(method), 'طريقة سداد المصروف غير صالحة.');
           ensure(method !== 'custom' || data.payment_account_code, 'اختر حساب السداد المخصص.');
-          result = { ...pick(data, ['title', 'category', 'amount', 'currency', 'exchange_rate_used', 'date', 'notes', 'receipt_image', 'payment_account_code', 'expense_account_code']), payment_method: method, ...stamp, id: `exp-${command.operationId}` };
+          result = { ...pick(data, ['title', 'category', 'amount', 'currency', 'exchange_rate_used', 'date', 'notes', 'receipt_image', 'payment_account_code', 'expense_account_code', 'branch_id', 'cost_center_id', 'project_id']), payment_method: method, ...stamp, id: `exp-${command.operationId}` };
           if (org.accounting_version === 2 && method === 'on_credit' && (!result.payment_account_code || result.payment_account_code === '2110')) result.payment_account_code = '2140';
           const entry = generateExpenseJournalEntry(result as any, orgId, actor.uid);
           for (const [index, line] of entry.lines.entries()) {

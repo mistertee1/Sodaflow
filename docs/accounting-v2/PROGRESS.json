@@ -5,9 +5,16 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c5-tax-period-reports-20261012",
+  "active_branch": "codex/accounting-v2-c5-tax-center-integrated-20261012",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "c5-tax-center-integration-20261012",
+    "acquired_at": "2026-10-12T12:53:03.379Z",
+    "expires_at": "2026-10-12T14:53:03.379Z",
+    "branch": "codex/accounting-v2-c5-tax-center-integrated-20261012",
+    "purpose": "Integrate strict PR53 tax lifecycle with PR54/55 tax center UI and reports before C6",
+    "heartbeat_at": "2026-10-12T12:53:03.379Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1416,7 +1423,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to C6 comparative statements and period/as-of controls; retain independent Render acceptance for matching staging commits",
+  "next": "Integrate PR53 strict tax lifecycle with completed C5.3 UI/reports, verify full CI, then proceed to C6",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",

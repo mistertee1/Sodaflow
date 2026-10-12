@@ -314,6 +314,17 @@ test('A1 report dates reject reversed ranges without hiding account repair contr
   await expect(page.getByText('دليل الحسابات المتوافق', { exact: false })).toBeVisible();
 });
 
+test('C6 report shortcuts derive a complete prior comparison period and can clear it', async ({ page }) => {
+  await page.goto('/'); await page.locator('#tab-accounting').click();
+  await page.getByRole('button', { name: 'هذا الشهر', exact: true }).click();
+  const start = await page.getByLabel('بداية فترة التقرير').inputValue(); const end = await page.getByLabel('نهاية فترة التقرير').inputValue();
+  expect(start).toMatch(/^\d{4}-\d{2}-01$/); expect(end >= start).toBeTruthy();
+  await page.getByRole('button', { name: 'قارن بالفترة السابقة', exact: true }).click();
+  const compareStart = await page.getByLabel('بداية فترة المقارنة').inputValue(); const compareEnd = await page.getByLabel('نهاية فترة المقارنة').inputValue();
+  expect(compareStart <= compareEnd).toBeTruthy(); expect(compareEnd < start).toBeTruthy();
+  await page.getByRole('button', { name: 'إلغاء المقارنة', exact: true }).click(); await expect(page.getByLabel('بداية فترة المقارنة')).toHaveCount(0);
+});
+
 test('A2 owner establishes cost, activates V2, receives stock and snapshots COGS without duplicate submission', async ({ page }) => {
   await page.addInitScript(() => {
     const products = JSON.parse(localStorage.getItem('hisabuk_guest_v1_products') || '[]'); products[0].stock_quantity = 0;

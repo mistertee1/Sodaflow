@@ -33,6 +33,9 @@ export interface JournalEntryLine {
   credit_usd: number;
   notes?: string;
   description?: string;
+  branch_id?: string;
+  cost_center_id?: string;
+  project_id?: string;
 }
 
 export interface JournalEntry {

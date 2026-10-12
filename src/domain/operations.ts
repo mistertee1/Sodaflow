@@ -44,11 +44,13 @@ import { salesCorrectionCollections, salesCorrectionCommand, loadSalesSource, sa
 import { classifyAccount } from './accountClassification';
 import { merchantDay, operationalPermissions, readOperationalReport, type LedgerQuery, type ReportPeriod, type OperationalReportTypes } from './operationalReports';
 import { financialCollections, reconcileFinancialData, type FinancialData } from './reconciliation';
+import { branchProfitAndLoss, createDimension, dimensionCollection, dimensionField, dimensionKind, updateDimension, type ManagementDimension } from './managementDimensions';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
 export interface OperationResult { result: Document; changes: Change[]; }
 const actions: Record<string, ActionType> = {
+  'dimension.create':'dimensions:manage','dimension.update':'dimensions:manage',
   'taxConfiguration.create':'tax:manage','taxConfiguration.update':'tax:manage',
   'fixedAsset.register':'journal:create','fixedAsset.depreciate':'periods:adjust',
   'fxRevaluation.create':'periods:adjust',
@@ -69,7 +71,7 @@ const actions: Record<string, ActionType> = {
   'member.update': 'members:update_role', 'member.remove': 'members:remove',
   'invitation.create': 'members:invite', 'invitation.revoke': 'members:invite', 'backup.restore': 'backup:restore',
 };
-export const readPermissions: Record<string, ActionType> = { tax_configurations:'tax:read',tax_configuration_versions:'tax:read',fixed_assets:'journal:read',fixed_asset_depreciations:'journal:read',fx_revaluations:'journal:read', owner_equity_events:'journal:read', ...Object.fromEntries(openingCollections.map(name=>[name,'journal:read' as const])), accounting_periods:'periods:read', audit_archives: 'audit_logs:view', purchase_returns: 'payables:read', supplier_refunds: 'payables:read', credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
+export const readPermissions: Record<string, ActionType> = { branches:'dimensions:read',cost_centers:'dimensions:read',projects:'dimensions:read',tax_configurations:'tax:read',tax_configuration_versions:'tax:read',fixed_assets:'journal:read',fixed_asset_depreciations:'journal:read',fx_revaluations:'journal:read', owner_equity_events:'journal:read', ...Object.fromEntries(openingCollections.map(name=>[name,'journal:read' as const])), accounting_periods:'periods:read', audit_archives: 'audit_logs:view', purchase_returns: 'payables:read', supplier_refunds: 'payables:read', credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
@@ -158,6 +160,9 @@ export class Operations {
       const current=reports(period);return {organizationId:orgId,generatedAt:this.now().toISOString(),period,...current,...(comparison?{comparison:{period:comparison,...reports(comparison)}}:{})};
     });
   }
+  async branchProfitAndLoss(orgId:string,actor:Actor,branchId:string,period:{start?:string;end?:string}={}) {
+    return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'reports:advanced')&&hasPermission(role,'dimensions:read'),'ليس لديك صلاحية تقرير الفرع.',403);const subscription=await loadSubscription(tx,orgId,org,this.now(),this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');assertFeature(subscription,'branches');ensure(org.accounting_version===2,'تقارير الفروع تتطلب محاسبة V2.',409);const branch=await tx.get(`organizations/${orgId}/branches/${identifier(branchId)}`) as ManagementDimension|undefined;ensure(branch&&branch.org_id===orgId,'الفرع غير موجود.',404);const accounts=await tx.list(`organizations/${orgId}/accounts`) as Account[],entries=await tx.list(`organizations/${orgId}/journal_entries`) as JournalEntry[];return{organizationId:orgId,generatedAt:this.now().toISOString(),...branchProfitAndLoss(accounts,entries,branch,period)};});
+  }
   async payableReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}) {
     return this.store.transaction(async tx => {
       const { org, role } = await membership(tx, orgId, actor);
@@ -214,7 +219,7 @@ export class Operations {
       if (backup) { ensure(org.status === 'active', 'المؤسسة متوقفة؛ التصدير المحمي غير متاح.', 403); assertSubscriptionActive(subscription); }
       const collections: Record<string, Document[]> = {};
       for (const [name, permission] of Object.entries(readPermissions)) {
-        const feature = ['audit_logs','audit_archives'].includes(name) ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(name) ? 'accounting' : null;
+        const feature = name==='branches'?'branches':['cost_centers','projects'].includes(name)?'advanced_reports':['audit_logs','audit_archives'].includes(name) ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(name) ? 'accounting' : null;
         const activeSubscription = ['active', 'trial'].includes(subscription.effective_status || subscription.status) && org.status === 'active';
         collections[name] = hasPermission(role, permission) && (backup || !feature || activeSubscription && subscription.features[feature] === true) ? await tx.list(`${root}/${name}`) : [];
       }
@@ -260,7 +265,7 @@ export class Operations {
           await this.verifyCostingSecurity(); securityChecked = true;
         }
       };
-      if (org.accounting_version === 2 || ['taxConfiguration.create','taxConfiguration.update','fixedAsset.register','fixedAsset.depreciate','fxRevaluation.create','ownerEquity.create', ...openingActions, 'accounting.activate', 'product.cost.establish', 'inventory.receive', 'purchase.create', 'supplierPayment.create', 'cashTransfer.create', 'bankReconciliation.create', 'cashCount.create', 'creditNote.create', 'customerRefund.create', 'purchaseReturn.create', 'supplierRefund.create'].includes(command.action)) await requireCostAuthority();
+      if (org.accounting_version === 2 || ['dimension.create','dimension.update','taxConfiguration.create','taxConfiguration.update','fixedAsset.register','fixedAsset.depreciate','fxRevaluation.create','ownerEquity.create', ...openingActions, 'accounting.activate', 'product.cost.establish', 'inventory.receive', 'purchase.create', 'supplierPayment.create', 'cashTransfer.create', 'bankReconciliation.create', 'cashCount.create', 'creditNote.create', 'customerRefund.create', 'purchaseReturn.create', 'supplierRefund.create'].includes(command.action)) await requireCostAuthority();
       if (['bankReconciliation.create', 'cashCount.create'].includes(command.action)) {
         const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
         assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
@@ -395,6 +400,7 @@ export class Operations {
           const system = getDefaultChartOfAccounts(orgId).find(a => a.code === line.account_code);
           ensure(account?.is_active || (!account && system), 'حساب القيد غير موجود أو غير نشط.');
           if (!account && system) set(`${root}/accounts/${system.code}`, system);
+          for(const kind of ['branch','cost_center','project'] as const){const field=dimensionField(kind),id=line[field];if(!id)continue;const dimension=await tx.get(`${root}/${dimensionCollection(kind)}/${identifier(id)}`) as ManagementDimension|undefined;ensure(dimension&&dimension.org_id===orgId&&dimension.kind===kind&&dimension.status==='active',`البعد الإداري ${id} غير موجود أو غير نشط.`,409);}
         }
         ensure(!await tx.get(`${root}/journal_entries/${entry.id}`), 'القيد موجود مسبقاً.', 409);
         set(`${root}/journal_entries/${entry.id}`, entry);
@@ -420,6 +426,12 @@ export class Operations {
       let result: Document = {};
       let openingProof: Document | undefined;
       switch (command.action) {
+        case 'dimension.create': case 'dimension.update': {
+          ensure(org.accounting_version===2,'الأبعاد الإدارية تتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');
+          const kind=dimensionKind(data.kind),collection=dimensionCollection(kind),id=identifier(data.id),path=`${root}/${collection}/${id}`,old=await tx.get(path) as ManagementDimension|undefined;
+          if(command.action==='dimension.create'){ensure(!old,'البعد الإداري موجود مسبقاً.',409);if(kind==='branch'){assertFeature(subscription,'branches');const count=(await tx.list(`${root}/branches`)).length;ensure(count<(subscription.max_branches||1),'وصلت للحد الأقصى للفروع في الباقة.',403);}result=createDimension(data,orgId,actor.uid,iso);}else{ensure(old&&old.org_id===orgId,'البعد الإداري غير موجود.',404);beforeValues.set(path,old);result=updateDimension(old,data,iso);}
+          const duplicates=(await tx.list(`${root}/${collection}`)).filter(row=>row.id!==id&&String(row.code).toUpperCase()===String(result.code).toUpperCase());ensure(!duplicates.length,'رمز البعد الإداري مستخدم مسبقاً.',409);set(path,result);break;
+        }
         case 'taxConfiguration.create': case 'taxConfiguration.update': {
           const proposed=await taxConfigurationCommand(command.action,data,{tx,root,orgId,actor:actor.uid,operationId:command.operationId,iso});
           if(proposed.before)beforeValues.set(`${root}/tax_configurations/${proposed.result.id}`,proposed.before);

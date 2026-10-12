@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 30014)
+Total output lines: 923
+
 import { equityCollections, verifyEquitySources, equityBackupCounts, validateEquityBackup, remapEquityEvents } from './ownerEquitySources';
 import { fxRevaluationCollections, verifyFxRevaluationSources, fxRevaluationBackupCounts, validateFxRevaluationBackup, remapFxRevaluations } from './fxRevaluationSources';
 import { fxRevaluationTransaction } from './fxRevaluationTransactions';
@@ -10,6 +13,8 @@ import { quoteFixedAsset, type FixedAssetPreviewRequest } from './fixedAssetPrev
 import { fixedAssetCollections, fixedAssetBackupCounts, remapFixedAssets, validateFixedAssetBackup, verifyFixedAssetSources } from './fixedAssetSources';
 import { remapTaxConfigurations, taxConfigurationBackupCounts, taxConfigurationCollections, taxConfigurationCommand, validateTaxConfigurationBackup, validateTaxConfigurationVersions, verifyTaxConfigurationSources } from './taxConfigurationTransactions';
 import { salesTaxSourceQuote } from './salesTaxSources';
+import { taxPeriodReport } from './taxReports';
+import type { TaxConfiguration } from './taxConfiguration';
 import { periodCollections, assertPeriodPosting, assertRecentOwner, validatePeriods, verifyClosedPeriodHashes } from './periodContracts';
 import { periodCommand, closeChecklist } from './accountingPeriods';
 import { readOpeningPreview } from './openingPreview';
@@ -163,6 +168,15 @@ export class Operations {
       assertSubscriptionActive(subscription); assertFeature(subscription, 'accounting');
       const root = `organizations/${orgId}`;
       return { organizationId: orgId, generatedAt: this.now().toISOString(), ...await readPayableReport(tx,root,period,this.now().toISOString()) };
+    });
+  }
+  async taxReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}) {
+    return this.store.transaction(async tx => {
+      const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'tax:read'),'ليس لديك صلاحية تقارير الضرائب.',403);
+      const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');
+      ensure(org.accounting_version===2,'تقارير الضرائب تتطلب محاسبة V2.',409);
+      const root=`organizations/${orgId}`,configurations=await tx.list(`${root}/tax_configurations`) as TaxConfiguration[],entries=await tx.list(`${root}/journal_entries`) as JournalEntry[];
+      return {organizationId:orgId,generatedAt:now.toISOString(),...taxPeriodReport(configurations,entries,period)};
     });
   }
   async operationalReport<View extends keyof OperationalReportTypes>(orgId: string, actor: Actor, view: View, query: ReportPeriod & Partial<LedgerQuery> = {}): Promise<{ organizationId: string; generatedAt: string; view: View } & OperationalReportTypes[View]> {
@@ -514,7 +528,7 @@ export class Operations {
           if (!updating) { const count = (await tx.list(`${root}/products`)).length; ensure(count < plan.max_products, 'تم بلوغ حد المنتجات في الباقة.'); counters.product_count = count; counterAdd('product_count', 1); }
           result = { ...old, ...pick(input, ['name', 'description', 'unit', 'price_sdg', 'price_usd', 'tax_rate', 'category', 'is_active', 'min_stock_alert', 'track_inventory']), ...(!updating ? { ...stamp, stock_quantity: input.stock_quantity || 0 } : {}), id };
           text(result.name, 200, true); text(result.unit || '', 50, true);
-          money(result.price_sdg, 0); money(result.price_usd, 2); money(result.tax_rate ?? 0, 4); ensure((result.tax_rate || 0) <= 100, 'نسبة الضريبة غير صالحة.');
+          money(result.price_sdg, 0); money(result…14 tokens truncated…result.tax_rate || 0) <= 100, 'نسبة الضريبة غير صالحة.');
           money(result.stock_quantity ?? 0, 6); money(result.min_stock_alert ?? 0, 6);
           ensure(typeof result.is_active === 'boolean' && (result.track_inventory === undefined || typeof result.track_inventory === 'boolean'), 'حالة المنتج غير صالحة.');
           let openingValue: Document = {};

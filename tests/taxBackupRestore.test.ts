@@ -27,7 +27,8 @@ async function fixture() {
   await run('taxConfiguration.update', { ...baseTax, expected_revision: 1, rate: 17.5, reason: 'اعتماد ثانٍ' }, 'tax-v2');
   const customer = (await run('customer.create', { name: 'عميل ضريبي', phone: '' }, 'customer')).result;
   const product = (await run('product.create', { name: 'خدمة', unit: 'خدمة', price_sdg: 1000, price_usd: 0, tax_rate: 0, is_active: true, track_inventory: false, stock_quantity: 0 }, 'product')).result;
-  await run('invoice.create', { customer_id: customer.id, issue_date: '2026-10-11', currency_mode: 'single_sdg', exchange_rate_used: 0, discount_type: 'fixed', discount_value: 0, tax_configuration_id: 'vat', expected_tax_configuration_revision: 2, items: [{ product_id: product.id, description: 'خدمة', unit: 'خدمة', quantity: 1, unit_price: 1000, currency: 'SDG', tax_rate: 0, discount_percent: 0 }] }, 'invoice');
+  const invoice = (await run('invoice.create', { customer_id: customer.id, issue_date: '2026-10-11', currency_mode: 'single_sdg', exchange_rate_used: 0, discount_type: 'fixed', discount_value: 0, tax_configuration_id: 'vat', expected_tax_configuration_revision: 2, items: [{ product_id: product.id, description: 'خدمة', unit: 'خدمة', quantity: 1, unit_price: 1000, currency: 'SDG', tax_rate: 0, discount_percent: 0 }] }, 'invoice')).result;
+  await run('creditNote.create', { invoice_id: invoice.id, date: '2026-10-11', reason: 'تصحيح ضريبي محفوظ', kind: 'price_credit', lines: [{ line_id: 'line-1', amount: 235 }] }, 'tax-credit');
   return { store, org, ops, run, backup: await ops.snapshot(org.id, owner, true) };
 }
 
@@ -38,6 +39,8 @@ test('C5.2c1 backup exports exact tax counts, complete hash history and reconcil
   assert.equal(f.backup.counters.tax_configuration_version_count, 2);
   assert.equal(f.backup.collections.tax_configuration_versions[1].previous_version_hash, f.backup.collections.tax_configuration_versions[0].version_hash);
   assert.equal(f.backup.collections.invoices[0].tax_evidence.configuration_version_hash, f.backup.collections.tax_configurations[0].version_hash);
+  assert.equal(f.backup.collections.credit_notes.length, 1);
+  assert.equal(f.backup.collections.credit_notes[0].credit_sdg, 235);
   await validateTaxConfigurationBackup(f.backup);
   assert.deepEqual(reconcileFinancialData(f.backup.collections as FinancialData, f.backup.settings, { requireCosting: true }), []);
 });

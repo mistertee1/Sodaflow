@@ -26,20 +26,19 @@ export const invoiceSignedBalance = (invoice: Document): BookAmount => add(value
 const movementFields = (lines: JournalEntryLine[]) => lines.map(line => [line.account_code, line.debit_sdg, line.credit_sdg, line.debit_usd, line.credit_usd]);
 
 const controlGroups: Record<string, ReportingGroup> = { '1200': 'receivables', '4100': 'sales', '2130': 'tax_payable', '1300': 'inventory', '5100': 'cogs', '5500': 'fx_loss', '4200': 'fx_gain' };
-function validatePostingAccounts(lines: JournalEntryLine[], accounts: Document[], active: boolean, taxAccountCode?: string) {
+function validatePostingAccounts(lines: JournalEntryLine[], accounts: Document[], active: boolean, extraGroups: Record<string, ReportingGroup> = {}) {
   for (const line of lines) {
     const account = accounts.find(account => account.code === line.account_code);
-    const expected = line.account_code === taxAccountCode ? 'tax_payable' : (controlGroups[line.account_code] || 'cash_bank');
-    ensure(account && (!active || account.is_active) && classifyAccount(account as Account).reporting_group === expected, 'تصنيف أو تفعيل حساب التصحيح/الرد غير صالح.', 409);
+    ensure(account && (!active || account.is_active) && classifyAccount(account as Account).reporting_group === (extraGroups[line.account_code] || controlGroups[line.account_code] || 'cash_bank'), 'تصنيف أو تفعيل حساب التصحيح/الرد غير صالح.', 409);
   }
 }
 
 /** A bounded transaction history, independently replayed for posting, reconciliation and restore. */
 export function verifySalesSource(invoice: Invoice, entries: JournalEntry[], payments: Document[], notes: Document[], refunds: Document[], financial: Document[], accounts: Document[], checkCaches = true, movements?: Document[]) {
   const orgId = identifier(invoice.org_id);
+  const taxAccountCode = invoice.tax_evidence ? identifier(invoice.tax_evidence.tax_account_code) : '2130', taxGroups: Record<string, ReportingGroup> = { [taxAccountCode]: 'tax_payable' };
   const original = entries.filter(entry => entry.reference_type === 'invoice' && entry.reference_id === invoice.id);
-  const taxAccountCode = invoice.tax_evidence?.tax_account_code;
-  validatePostingAccounts(original.flatMap(entry => entry.lines), accounts, false, taxAccountCode);
+  validatePostingAccounts(original.flatMap(entry => entry.lines), accounts, false, taxGroups);
   const source = buildSalesReturnBases(invoice, original, orgId), native = receivableCurrency({ currency_mode: invoice.currency_mode, items: invoice.items });
   ensure(['dual','single_sdg','single_usd'].includes(invoice.currency_mode) && (!invoice.receivable_currency || invoice.receivable_currency === native), 'عملة الذمم الأصلية لا تطابق مصدر الفاتورة.', 409);
   if (movements) {
@@ -68,7 +67,7 @@ export function verifySalesSource(invoice: Invoice, entries: JournalEntry[], pay
     const found = entries.filter(entry => entry.reference_type === type && entry.reference_id === row.id);
     if (!lines.length) { ensure(!row.journal_id && found.length === 0, 'حركة بقيمة صفرية لا تجيز قيداً مختلقاً.', 409); return; }
     ensure(found.length === 1, 'قيد المصدر ناقص أو مكرر.', 409);
-    validatePostingAccounts(lines, accounts, false, taxAccountCode);
+    validatePostingAccounts(lines, accounts, false, taxGroups);
     const entry = found[0], totals = validateJournal(entry.lines);
     ensure(entry.org_id === invoice.org_id && dateOnly(entry.date) === date && entry.exchange_rate_used === rate && entry.is_balanced &&
       (type === 'payment' && !row.journal_id || row.journal_id === entry.id) && JSON.stringify(movementFields(entry.lines)) === JSON.stringify(movementFields(lines)) &&
@@ -163,11 +162,12 @@ export async function saveSalesCustomer(c: PayableContext, customer: Document, u
 
 export async function salesCorrectionCommand(action: string, data: Document, c: PayableContext) {
   const invoice = await c.required('invoices', data.invoice_id) as Invoice;
+  const taxAccountCode = invoice.tax_evidence ? identifier(invoice.tax_evidence.tax_account_code) : '2130';
   if (invoice.tax_evidence) {
-    const evidence = invoice.tax_evidence, current = await c.required('tax_configurations', evidence.configuration_id);
-    const versions = await validateTaxConfigurationVersions(c.tx, c.root, c.orgId, current);
-    const frozen = versions.find(row => row.revision === evidence.configuration_revision);
-    ensure(frozen && frozen.version_hash === evidence.configuration_version_hash && frozen.configuration_id === evidence.configuration_id && frozen.direction === 'sales' && frozen.rate === evidence.rate && frozen.calculation === evidence.calculation && frozen.rounding === evidence.rounding && frozen.tax_account_code === evidence.tax_account_code, 'دليل ضريبة الفاتورة لا يطابق الإصدار التاريخي المحفوظ.', 409);
+    const current = await c.required('tax_configurations', invoice.tax_evidence.configuration_id);
+    await validateTaxConfigurationVersions(c.tx, c.root, c.orgId, current);
+    const version = await c.required('tax_configuration_versions', `${invoice.tax_evidence.configuration_id}-r${invoice.tax_evidence.configuration_revision}`);
+    ensure(version.version_hash === invoice.tax_evidence.configuration_version_hash && version.tax_account_code === taxAccountCode && version.direction === 'sales', 'إصدار سياسة ضريبة الفاتورة لا يطابق دليلها المجمد.', 409);
   }
   const state = await loadSalesSource(c.tx, c.root, invoice);
   const date = dateOnly(data.date); assertOpenPeriod(date, c.settings); ensure(date >= state.lastDate, 'تاريخ التصحيح قبل آخر حركة للمصدر.', 409);
@@ -194,10 +194,10 @@ export async function salesCorrectionCommand(action: string, data: Document, c: 
       }
       return { line_id: lineId, ...('quantity' in input ? { quantity: input.quantity } : { amount: input.amount }), sequence: quote.sequence, allocated: quote.allocated };
     });
-    const credit = add(totals.revenue, totals.tax), posting = credit.sdg || credit.usd || totals.cost.sdg || totals.cost.usd ? salesCreditLines(totals.revenue, totals.tax, totals.cost, invoice.tax_evidence?.tax_account_code) : [];
+    const credit = add(totals.revenue, totals.tax), posting = credit.sdg || credit.usd || totals.cost.sdg || totals.cost.usd ? salesCreditLines(totals.revenue, totals.tax, totals.cost, taxAccountCode) : [];
     ensure(data.kind === 'sales_return' || credit.sdg > 0 || credit.usd > 0, 'الإشعار النقدي يجب أن يخفض قيمة فعلية.');
     const journalId = posting.length ? `jv-credit-${c.operationId}` : undefined;
-    validatePostingAccounts(posting, [...getDefaultChartOfAccounts(c.orgId).filter(account => !state.accounts.some(saved => saved.code === account.code)), ...state.accounts], true, invoice.tax_evidence?.tax_account_code);
+    validatePostingAccounts(posting, [...getDefaultChartOfAccounts(c.orgId).filter(account => !state.accounts.some(saved => saved.code === account.code)), ...state.accounts], true, { [taxAccountCode]: 'tax_payable' });
     if (journalId) await c.post(journal(journalId, c.orgId, c.actor, date, 'credit_note', id, `إشعار دائن ${invoice.invoice_number}: ${reason}`, posting, invoice.exchange_rate_used));
     let movementIndex = 0;
     for (const [productId, returned] of stock) {
@@ -263,3 +263,4 @@ export function reconcileSalesCorrections(data: Record<string, Document[]>) {
   for (const movement of data.inventory_movements || []) if (movement.reference_type === 'credit_note' || movement.type === 'SALES_RETURN') inspect('inventory_movements', movement.id, () => { ensure(movement.reference_type === 'credit_note' && notes.some(note => note.id === movement.reference_id && note.kind === 'sales_return'), 'مصدر حركة المردود مفقود.'); });
   return findings;
 }
+

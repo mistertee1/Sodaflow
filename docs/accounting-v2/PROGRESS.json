@@ -1025,6 +1025,34 @@
               "completed_at": "2026-10-12T04:05:00Z"
             },
             {
+              "id": "C5.2c-integrated",
+              "scope": "Strict integrated purchase tax, frozen sales/purchase corrections, reconciliation and tenant-safe tax restore",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c5-tax-lifecycle-integrated-20261011",
+              "pr": 53,
+              "base_branch": "codex/accounting-v2-c5-tax-backup-20261011",
+              "base_pr": 51,
+              "code_commit": "785460ca1f11a80259d43236f3259eaa8acff22c",
+              "report": "REPORT_C5_2C_TAX_LIFECYCLE_INTEGRATED.md",
+              "checks": {
+                "unit_api": 340,
+                "targeted_tax_payables": 23,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 56,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38215676862,
+                "commit_sha": "053206ca191ebe41395009ad2584cb69b34bff6e",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-12T07:09:41.829Z"
+            },
+            {
               "id": "C5.3.1",
               "scope": "Owner-protected tax policy UI, role-based read access, optimistic versioning and reload persistence",
               "status": "implemented_ci_passed_render_acceptance_pending",
@@ -1071,8 +1099,27 @@
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "completed_at": "2026-10-12T09:16:00Z"
+            },
+            {
+              "id": "C5.3.3",
+              "scope": "Integrate strict C5.2c lifecycle with C5.3 policy UI and journal-backed reports",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-c5-tax-center-integrated-20261012",
+              "pr": null,
+              "base_pr": 55,
+              "integrates_pr": 53,
+              "checks": {
+                "unit_api": "pending",
+                "types": "pending",
+                "core": "pending",
+                "build": "pending",
+                "emulator": "pending",
+                "ui": "pending"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
-          ]
+          ],
+          "active_substep": "C5.3.3"
         },
         {
           "id": "C6",
@@ -1401,6 +1448,48 @@
       "released_at": "2026-10-12T09:16:00Z",
       "pr": 55,
       "code_commit": "a234b02ebff6d0799c14453e24e6093ebdac6ce3"
+    },
+    {
+      "worker": "c5-tax-lifecycle-integration-20261011",
+      "acquired_at": "2026-10-11T20:35:19Z",
+      "expires_at": "2026-10-11T22:35:19Z",
+      "branch": "codex/accounting-v2-c5-tax-lifecycle-integrated-20261011",
+      "purpose": "Continue C5.2c purchase tax posting, configured correction lifecycle and reconciliation on integrated PR53",
+      "heartbeat_at": "2026-10-11T21:18:00Z",
+      "released_at": "2026-10-12T01:52:00Z",
+      "release_reason": "expired_before_resume"
+    },
+    {
+      "worker": "c5-tax-corrections-20261012",
+      "acquired_at": "2026-10-12T01:52:00Z",
+      "expires_at": "2026-10-12T03:52:00Z",
+      "branch": "codex/accounting-v2-c5-tax-lifecycle-integrated-20261011",
+      "purpose": "Verify integrated purchase-tax CI and continue C5.2c configured sales correction lifecycle",
+      "heartbeat_at": "2026-10-12T01:52:00Z",
+      "status": "expired_reclaimed",
+      "released_at": "2026-10-12T06:59:36.929Z"
+    },
+    {
+      "worker": "c5-tax-corrections-integration-20261012b",
+      "acquired_at": "2026-10-12T06:59:36.929Z",
+      "expires_at": "2026-10-12T08:59:36.929Z",
+      "branch": "codex/accounting-v2-c5-tax-lifecycle-integrated-20261011",
+      "purpose": "Integrate latest C5.2c base safely, preserve concurrent work, verify CI, document and release milestone",
+      "heartbeat_at": "2026-10-12T07:03:31.217Z",
+      "released_at": "2026-10-12T07:09:41.829Z",
+      "pr": 53,
+      "code_commit": "785460ca1f11a80259d43236f3259eaa8acff22c",
+      "status": "C5_2c_integrated_ci_passed_render_acceptance_pending",
+      "ci": {
+        "run_id": 38215676862,
+        "commit_sha": "053206ca191ebe41395009ad2584cb69b34bff6e",
+        "conclusion": "success",
+        "unit_api": 340,
+        "emulator": 35,
+        "ui": 56,
+        "production_audit_vulnerabilities": 0
+      },
+      "next": "Proceed to C5.3 operational tax-center UI, tax periods and reports; retain independent Render acceptance for matching staging commits"
     }
   ],
   "last_lease": {
@@ -1423,7 +1512,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Integrate PR53 strict tax lifecycle with completed C5.3 UI/reports, verify full CI, then proceed to C6",
+  "next": "Complete strict C5 integration, verify CI, then proceed to C6 comparative statements and period/as-of controls",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",

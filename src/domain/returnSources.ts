@@ -116,7 +116,7 @@ export function buildPurchaseReturnBases(bill: PurchaseBill & { payment_account_
     const value = acquisitionCost(item.quantity, { cost_currency: bill.currency, unit_cost: item.unit_cost, exchange_rate_used: bill.exchange_rate_used, zero_cost_reason: item.zero_cost_reason });
     const inventory=taxAllocations?.[index]?.inventory||value,supplier=taxAllocations?.[index]?.supplier||value;
     ensure(new BigNumber(inventory.sdg).eq(item.value_sdg) && new BigNumber(inventory.usd).eq(item.value_usd), 'قيمة بند الشراء لا تطابق تكلفة الاستلام الأصلية.', 409);
-    ensure(!taxAllocations||(new BigNumber(supplier.sdg).eq(item.supplier_credit_sdg)&&new BigNumber(supplier.usd).eq(item.supplier_credit_usd)),'حصة بند الشراء من إجمالي المورد لا تطابق دليل الضريبة.',409);
+    ensure(!taxAllocations||(item.supplier_credit_sdg!==undefined&&item.supplier_credit_usd!==undefined&&new BigNumber(supplier.sdg).eq(item.supplier_credit_sdg)&&new BigNumber(supplier.usd).eq(item.supplier_credit_usd)),'حصة بند الشراء من إجمالي المورد لا تطابق دليل الضريبة.',409);
     const sourceId = returnSourceId(bill.id, item.id);
     return { source_id: sourceId, quantity: item.quantity, components: { supplier_credit: {sdg:supplier.sdg,usd:supplier.usd} } };
   });

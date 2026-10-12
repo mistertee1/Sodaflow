@@ -24,6 +24,9 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
   ensure(invoice.org_id === expectedOrgId, 'مصدر المردود يتبع مؤسسة أخرى.', 403);
   ensure(['sent', 'paid', 'partially_paid', 'overdue'].includes(invoice.status), 'الفاتورة ليست مصدراً مرحّلاً صالحاً للمردود.', 409);
   const issueDate = dateOnly(invoice.issue_date);
+  const taxEvidence = invoice.tax_evidence;
+  const taxAccountCode = taxEvidence ? identifier(taxEvidence.tax_account_code) : '2130';
+  ensure(!taxEvidence || !['1200', '1300', '4100', '5100'].includes(taxAccountCode), 'حساب ضريبة مصدر المردود متعارض مع حساب تحكم آخر.', 409);
   ensure(Array.isArray(invoice.items) && invoice.items.length > 0 && invoice.items.length <= 100, 'بنود مصدر المردود غير صالحة.');
   const ids = new Set<string>();
   for (const item of invoice.items) {
@@ -31,6 +34,18 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
     money(item.line_total, item.currency === 'USD' ? 2 : 0);
   }
   for (const field of fields) money(invoice[field], field.endsWith('_usd') ? 2 : 0);
+  if (taxEvidence) {
+    ensure(taxEvidence.schema_version === 1 && Number.isSafeInteger(taxEvidence.configuration_revision) && taxEvidence.configuration_revision > 0 &&
+      taxEvidence.effective_on === issueDate && ['exclusive', 'inclusive'].includes(taxEvidence.calculation) && ['SDG', 'USD'].includes(taxEvidence.source_currency), 'دليل ضريبة مصدر المردود غير صالح.', 409);
+    identifier(taxEvidence.configuration_id); money(taxEvidence.rate, 4);
+    for (const book of books) {
+      for (const field of ['base', 'tax', 'total'] as const) money(taxEvidence[book]?.[field], book === 'sdg' ? 0 : 2);
+      ensure(new BigNumber(taxEvidence[book].base).plus(taxEvidence[book].tax).eq(taxEvidence[book].total) &&
+        new BigNumber(taxEvidence[book].tax).eq(invoice[`tax_total_${book}`]) &&
+        new BigNumber(taxEvidence[book].total).eq(invoice[`grand_total_${book}`]) &&
+        new BigNumber(taxEvidence[book].base).plus(invoice[`discount_total_${book}`]).eq(invoice[`subtotal_${book}`]), 'دليل الضريبة لا يطابق إجماليات مصدر المردود.', 409);
+    }
+  }
   ensure(Array.isArray(originals) && originals.length === 1, 'قيد إصدار الفاتورة ناقص أو مكرر.', 409);
   const original = originals[0];
   ensure(original.org_id === expectedOrgId && original.reference_type === 'invoice' && original.reference_id === invoice.id && dateOnly(original.date) === issueDate, 'قيد الإصدار لا يطابق مصدر المردود.', 409);
@@ -53,7 +68,7 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
   const expected: Record<string, { debit: BookAmount; credit: BookAmount }> = {
     '1200': { debit: { sdg: invoice.grand_total_sdg, usd: invoice.grand_total_usd }, credit: { sdg: 0, usd: 0 } },
     '4100': { debit: { sdg: 0, usd: 0 }, credit: { sdg: new BigNumber(invoice.grand_total_sdg).minus(invoice.tax_total_sdg).toNumber(), usd: new BigNumber(invoice.grand_total_usd).minus(invoice.tax_total_usd).toNumber() } },
-    '2130': { debit: { sdg: 0, usd: 0 }, credit: { sdg: invoice.tax_total_sdg, usd: invoice.tax_total_usd } },
+    [taxAccountCode]: { debit: { sdg: 0, usd: 0 }, credit: { sdg: invoice.tax_total_sdg, usd: invoice.tax_total_usd } },
     '5100': { debit: cogs, credit: { sdg: 0, usd: 0 } },
     '1300': { debit: { sdg: 0, usd: 0 }, credit: cogs },
   };
@@ -66,26 +81,32 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
   const candidates: { rule: typeof rules[number]; bases: ReturnBasis[] }[] = [];
   for (const rule of rules) {
     const settings = { sdg_decimals: 0, usd_decimals: 2, rounding_rule: rule } as MerchantSettings;
-    const computed = invoiceFinancials(invoice, settings);
-    if (!fields.every(field => computed[field] === invoice[field]) || !computed.items.every((item, index) => item.line_total === invoice.items[index].line_total)) continue;
+    const computed = invoiceFinancials(taxEvidence ? { ...invoice, items: invoice.items.map(item => ({ ...item, tax_rate: 0 })) } : invoice, settings);
+    if (!computed.items.every((item, index) => item.line_total === invoice.items[index].line_total)) continue;
+    if (taxEvidence) {
+      if (!books.every(book => computed[`discount_total_${book}`] === invoice[`discount_total_${book}`] &&
+        new BigNumber(computed[`grand_total_${book}`]).eq(taxEvidence[book][taxEvidence.calculation === 'inclusive' ? 'total' : 'base']))) continue;
+    } else if (!fields.every(field => computed[field] === invoice[field])) continue;
     const components = invoice.items.map(item => {
-      const source = calculateLineItem(item.quantity, item.unit_price, item.discount_percent, item.tax_rate, item.currency === 'USD' ? 2 : 0, rule);
+      const source = calculateLineItem(item.quantity, item.unit_price, item.discount_percent, taxEvidence ? 0 : item.tax_rate, item.currency === 'USD' ? 2 : 0, rule);
       const translated = (amount: number, book: typeof books[number]) => item.currency === (book === 'sdg' ? 'SDG' : 'USD') ? amount : invoice.exchange_rate_used > 0 ? convertCurrency(amount, item.currency, book === 'sdg' ? 'SDG' : 'USD', invoice.exchange_rate_used, settings) : 0;
       return { net: { sdg: translated(source.net, 'sdg'), usd: translated(source.net, 'usd') }, tax: { sdg: translated(source.tax, 'sdg'), usd: translated(source.tax, 'usd') } };
     });
     const cumulative: BookAmount = { sdg: 0, usd: 0 };
     const bases = invoice.items.map((item, index): ReturnBasis => {
-      const revenue: BookAmount = { sdg: 0, usd: 0 };
+      const revenue: BookAmount = { sdg: 0, usd: 0 }, tax: BookAmount = { sdg: 0, usd: 0 };
       for (const book of books) {
-        const before = new BigNumber(cumulative[book]), after = before.plus(components[index].net[book]), total = invoice[`subtotal_${book}`], posted = expected['4100'].credit[book];
-        const entitlement = (value: BigNumber) => total ? value.eq(total) ? new BigNumber(posted) : new BigNumber(posted).times(value).div(total).decimalPlaces(book === 'sdg' ? 0 : 2, BigNumber.ROUND_HALF_UP) : new BigNumber(0);
-        revenue[book] = entitlement(after).minus(entitlement(before)).toNumber(); cumulative[book] = after.toNumber();
+        const before = new BigNumber(cumulative[book]), after = before.plus(components[index].net[book]), total = computed[`subtotal_${book}`];
+        const entitlement = (posted: number, value: BigNumber) => total ? value.eq(total) ? new BigNumber(posted) : new BigNumber(posted).times(value).div(total).decimalPlaces(book === 'sdg' ? 0 : 2, BigNumber.ROUND_HALF_UP) : new BigNumber(0);
+        revenue[book] = entitlement(expected['4100'].credit[book], after).minus(entitlement(expected['4100'].credit[book], before)).toNumber();
+        tax[book] = taxEvidence ? entitlement(invoice[`tax_total_${book}`], after).minus(entitlement(invoice[`tax_total_${book}`], before)).toNumber() : components[index].tax[book];
+        cumulative[book] = after.toNumber();
       }
       const sourceId = returnSourceId(invoice.id, item.id);
-      return { source_id: sourceId, quantity: item.quantity, components: { revenue, tax: components[index].tax, ...(item.cost_status === 'valued' ? { cost: { sdg: item.total_cost_sdg!, usd: item.total_cost_usd! } } : {}) } };
+      return { source_id: sourceId, quantity: item.quantity, components: { revenue, tax, ...(item.cost_status === 'valued' ? { cost: { sdg: item.total_cost_sdg!, usd: item.total_cost_usd! } } : {}) } };
     });
     for (const book of books) {
-      ensure(new BigNumber(cumulative[book]).eq(invoice[`subtotal_${book}`]), 'أساس بنود المصدر لا يطابق إجماليه.', 409);
+      ensure(new BigNumber(cumulative[book]).eq(computed[`subtotal_${book}`]), 'أساس بنود المصدر لا يطابق إجماليه.', 409);
       for (const [component, target] of [['revenue', expected['4100'].credit[book]], ['tax', invoice[`tax_total_${book}`]], ['cost', cogs[book]]] as const) {
         ensure(bases.reduce((n, base) => n.plus(base.components[component]?.[book] || 0), new BigNumber(0)).eq(target), 'توزيع مصدر المردود لا يحفظ القيمة الأصلية.', 409);
       }
@@ -118,7 +139,8 @@ export function buildPurchaseReturnBases(bill: PurchaseBill & { payment_account_
     ensure(new BigNumber(inventory.sdg).eq(item.value_sdg) && new BigNumber(inventory.usd).eq(item.value_usd), 'قيمة بند الشراء لا تطابق تكلفة الاستلام الأصلية.', 409);
     ensure(!taxAllocations||(item.supplier_credit_sdg!==undefined&&item.supplier_credit_usd!==undefined&&new BigNumber(supplier.sdg).eq(item.supplier_credit_sdg)&&new BigNumber(supplier.usd).eq(item.supplier_credit_usd)),'حصة بند الشراء من إجمالي المورد لا تطابق دليل الضريبة.',409);
     const sourceId = returnSourceId(bill.id, item.id);
-    return { source_id: sourceId, quantity: item.quantity, components: { supplier_credit: {sdg:supplier.sdg,usd:supplier.usd} } };
+    const recoverableTax = bill.tax_evidence?.tax_treatment === 'receivable' ? { sdg: new BigNumber(supplier.sdg).minus(inventory.sdg).toNumber(), usd: new BigNumber(supplier.usd).minus(inventory.usd).toNumber() } : undefined;
+    return { source_id: sourceId, quantity: item.quantity, components: { supplier_credit: {sdg:supplier.sdg,usd:supplier.usd}, ...(recoverableTax ? { recoverable_tax: recoverableTax } : {}) } };
   });
   const total: BookAmount = { sdg: 0, usd: 0 };
   for (const book of books) {

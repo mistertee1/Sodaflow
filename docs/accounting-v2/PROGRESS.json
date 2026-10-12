@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c4-fixed-assets-transactions-20261011",
+  "active_branch": "codex/accounting-v2-c5-tax-ui-20261012",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1016,6 +1016,30 @@
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "completed_at": "2026-10-12T04:05:00Z"
+            },
+            {
+              "id": "C5.3.1",
+              "scope": "Owner-protected tax policy UI, role-based read access, optimistic versioning and reload persistence",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c5-tax-ui-20261012",
+              "pr": 54,
+              "report": "REPORT_C5_3_1_TAX_POLICY_UI.md",
+              "checks": {
+                "unit_api": 332,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 58,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38209232481,
+                "commit_sha": "05278645316b66f931cd37cb2e185711e1500e66",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-12T07:15:00Z"
             }
           ]
         },
@@ -1189,12 +1213,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_C5_2C_TAX_COMPLETION.md",
+  "last_report": "REPORT_C5_3_1_TAX_POLICY_UI.md",
   "next_steps": [
-    "C5.3 tax UI, periods and reports",
-    "Independent authenticated Render acceptance for C5.2b/C5.2c on a matching staging commit"
+    "C5.3.2 tax periods, liability/receivable aggregation and reports",
+    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1 on a matching staging commit"
   ],
-  "updated_at": "2026-10-12T04:05:00Z",
+  "updated_at": "2026-10-12T07:15:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1219,7 +1243,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C5.3",
+  "active_substep": "C5.3.2",
   "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
     {
@@ -1330,15 +1354,23 @@
       "released_at": "2026-10-12T04:05:00Z",
       "pr": 51,
       "code_commit": "fe0267c63a6e344661f3690f98df0936553706b1"
+    },
+    {
+      "worker": "c5-tax-policy-ui-20261012",
+      "acquired_at": "2026-10-12T04:40:00Z",
+      "branch": "codex/accounting-v2-c5-tax-ui-20261012",
+      "released_at": "2026-10-12T07:15:00Z",
+      "pr": 54,
+      "code_commit": "05278645316b66f931cd37cb2e185711e1500e66"
     }
   ],
   "last_lease": {
-    "worker": "c5-tax-completion-20261012",
-    "acquired_at": "2026-10-12T01:52:00Z",
-    "branch": "codex/accounting-v2-c5-tax-backup-20261011",
-    "released_at": "2026-10-12T04:05:00Z",
-    "pr": 51,
-    "code_commit": "fe0267c63a6e344661f3690f98df0936553706b1"
+    "worker": "c5-tax-policy-ui-20261012",
+    "acquired_at": "2026-10-12T04:40:00Z",
+    "branch": "codex/accounting-v2-c5-tax-ui-20261012",
+    "released_at": "2026-10-12T07:15:00Z",
+    "pr": 54,
+    "code_commit": "05278645316b66f931cd37cb2e185711e1500e66"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1352,7 +1384,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to C5.3 tax UI, periods and reports; retain independent Render acceptance for matching staging commits",
+  "next": "Proceed to C5.3.2 tax periods and reports; retain independent Render acceptance for matching staging commits",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1373,24 +1405,24 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c5-tax-completion-20261012",
-    "acquired_at": "2026-10-12T01:52:00Z",
-    "branch": "codex/accounting-v2-c5-tax-backup-20261011",
-    "released_at": "2026-10-12T04:05:00Z",
-    "pr": 51,
-    "code_commit": "fe0267c63a6e344661f3690f98df0936553706b1",
-    "status": "C5_2c_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-12T04:05:00Z",
+    "worker": "c5-tax-policy-ui-20261012",
+    "acquired_at": "2026-10-12T04:40:00Z",
+    "branch": "codex/accounting-v2-c5-tax-ui-20261012",
+    "released_at": "2026-10-12T07:15:00Z",
+    "pr": 54,
+    "code_commit": "05278645316b66f931cd37cb2e185711e1500e66",
+    "status": "C5_3_1_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-12T07:15:00Z",
     "ci": {
-      "run_id": 38198089675,
-      "commit_sha": "fe0267c63a6e344661f3690f98df0936553706b1",
+      "run_id": 38209232481,
+      "commit_sha": "05278645316b66f931cd37cb2e185711e1500e66",
       "conclusion": "success",
       "unit_api": 332,
       "emulator": 35,
-      "ui": 56,
+      "ui": 58,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to C5.3 tax UI, periods and reports; Render acceptance remains independent"
+    "next": "Proceed to C5.3.2 tax periods and reports; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

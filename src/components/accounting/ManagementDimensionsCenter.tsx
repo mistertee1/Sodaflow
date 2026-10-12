@@ -11,12 +11,14 @@ const labels: Record<DimensionKind, { one: string; many: string }> = {
 };
 
 export const ManagementDimensionsCenter: React.FC = () => {
-  const { branches, costCenters, projects, currentOrg, isActionAllowed, saveDimension } = useApp();
+  const { branches, costCenters, projects, currentOrg, isActionAllowed, saveDimension, loadBranchProfitAndLoss } = useApp();
   const [kind, setKind] = useState<DimensionKind>('branch');
   const [editing, setEditing] = useState<ManagementDimension | null>(null);
   const [code, setCode] = useState(''), [nameAr, setNameAr] = useState(''), [nameEn, setNameEn] = useState('');
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
   const [error, setError] = useState<string | null>(null), [saving, setSaving] = useState(false);
+  const [reportBranch,setReportBranch]=useState(''),[reportStart,setReportStart]=useState(''),[reportEnd,setReportEnd]=useState('');
+  const [report,setReport]=useState<Awaited<ReturnType<typeof loadBranchProfitAndLoss>>|null>(null),[reportBusy,setReportBusy]=useState(false),[reportError,setReportError]=useState('');
   const lock = useRef(false);
   const rows = useMemo(() => ({ branch: branches, cost_center: costCenters, project: projects })[kind].slice().sort((a,b) => a.code.localeCompare(b.code)), [kind, branches, costCenters, projects]);
   const canManage = isActionAllowed('dimensions:manage');
@@ -58,5 +60,6 @@ export const ManagementDimensionsCenter: React.FC = () => {
       <div className="p-4 border-b border-sf-border font-semibold text-sm">سجل {labels[kind].many} ({rows.length})</div>
       {rows.length === 0 ? <p className="p-6 text-center text-sm text-sf-muted">لا توجد سجلات بعد.</p> : <div className="divide-y divide-sf-border">{rows.map(row => <div key={row.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"><div><div className="font-semibold text-sm">{row.code} — {row.name_ar}</div><div className="text-xs text-sf-muted">{row.name_en || 'بدون اسم إنجليزي'} · إصدار {row.revision}</div></div><div className="flex items-center gap-2"><span className={row.status === 'active' ? 'text-xs text-sf-action' : 'text-xs text-sf-danger'}>{row.status === 'active' ? 'نشط' : 'غير نشط'}</span>{canManage && <button type="button" onClick={()=>edit(row)} className="sf-secondary text-xs">تعديل</button>}</div></div>)}</div>}
     </div>
+    {isActionAllowed('reports:advanced')&&kind==='branch'&&<form aria-label="تقرير ربحية الفرع" onSubmit={async e=>{e.preventDefault();if(!reportBranch||reportBusy)return;setReportBusy(true);setReportError('');try{setReport(await loadBranchProfitAndLoss(reportBranch,{start:reportStart||undefined,end:reportEnd||undefined}));}catch(reason){setReportError(reason instanceof Error?reason.message:'تعذر تحميل تقرير الفرع.');}finally{setReportBusy(false);}}} className="bg-sf-surface border border-sf-border rounded-xl p-4 space-y-3"><h4 className="font-semibold">قائمة دخل الفرع</h4><div className="grid sm:grid-cols-4 gap-2"><label>الفرع<select aria-label="فرع تقرير الربحية" required value={reportBranch} onChange={e=>setReportBranch(e.target.value)} className="sf-field w-full"><option value="">اختر فرعاً</option>{branches.map(row=><option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label><label>من<input aria-label="بداية تقرير الفرع" type="date" value={reportStart} onChange={e=>setReportStart(e.target.value)} className="sf-field w-full"/></label><label>حتى<input aria-label="نهاية تقرير الفرع" type="date" value={reportEnd} onChange={e=>setReportEnd(e.target.value)} className="sf-field w-full"/></label><button disabled={reportBusy} className="sf-primary self-end">{reportBusy?'تحميل...':'عرض التقرير'}</button></div>{reportError&&<p role="alert" className="text-sf-danger">{reportError}</p>}{report&&<div role="region" aria-label="نتيجة ربحية الفرع" className="grid sm:grid-cols-5 gap-2 text-sm"><p>المبيعات<br/><b>{report.sales_sdg} SDG / {report.sales_usd} USD</b></p><p>تكلفة المبيعات<br/><b>{report.cogs_sdg} / {report.cogs_usd}</b></p><p>مجمل الربح<br/><b>{report.gross_profit_sdg} / {report.gross_profit_usd}</b></p><p>المصروفات<br/><b>{report.expenses_sdg} / {report.expenses_usd}</b></p><p>صافي الربح<br/><b>{report.net_profit_sdg} / {report.net_profit_usd}</b></p></div>}</form>}
   </section>;
 };

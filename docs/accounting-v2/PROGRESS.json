@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c5-tax-period-reports-20261012",
+  "active_branch": "codex/accounting-v2-c6-comparative-reports-20261012",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1070,9 +1070,26 @@
         {
           "id": "C6",
           "scope": "Comparative statements and period/as-of controls",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-c6-comparative-reports-20261012",
+          "pr": 56,
+          "report": "REPORT_C6_COMPARATIVE_REPORTS.md",
+          "checks": {
+            "unit_api": 336,
+            "types": "passed",
+            "core": "passed",
+            "build": "passed",
+            "emulator": 35,
+            "ui": 60,
+            "production_audit_vulnerabilities": 0
+          },
+          "ci": {
+            "run_id": 38240509827,
+            "commit_sha": "70bbbb459bc70765624bb725dab2ec67f415a190",
+            "conclusion": "success"
+          },
+          "render_acceptance": "pending_matching_authenticated_staging_commit",
+          "completed_at": "2026-10-12T11:11:00Z"
         }
       ]
     },
@@ -1237,12 +1254,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_C5_3_2_TAX_PERIOD_REPORTS.md",
+  "last_report": "REPORT_C6_COMPARATIVE_REPORTS.md",
   "next_steps": [
-    "C6 comparative statements and period/as-of controls",
-    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2 on a matching staging commit"
+    "D1 branch dimensions, cost centers/projects and branch P&L",
+    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6 on matching staging commits"
   ],
-  "updated_at": "2026-10-12T09:16:00Z",
+  "updated_at": "2026-10-12T11:11:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1267,7 +1284,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C6",
+  "active_substep": "D1",
   "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
     {
@@ -1394,15 +1411,23 @@
       "released_at": "2026-10-12T09:16:00Z",
       "pr": 55,
       "code_commit": "a234b02ebff6d0799c14453e24e6093ebdac6ce3"
+    },
+    {
+      "worker": "c6-comparative-reports-20261012",
+      "acquired_at": "2026-10-12T10:59:00Z",
+      "branch": "codex/accounting-v2-c6-comparative-reports-20261012",
+      "released_at": "2026-10-12T11:11:00Z",
+      "pr": 56,
+      "code_commit": "70bbbb459bc70765624bb725dab2ec67f415a190"
     }
   ],
   "last_lease": {
-    "worker": "c5-tax-period-reports-20261012",
-    "acquired_at": "2026-10-12T07:40:00Z",
-    "branch": "codex/accounting-v2-c5-tax-period-reports-20261012",
-    "released_at": "2026-10-12T09:16:00Z",
-    "pr": 55,
-    "code_commit": "a234b02ebff6d0799c14453e24e6093ebdac6ce3"
+    "worker": "c6-comparative-reports-20261012",
+    "acquired_at": "2026-10-12T10:59:00Z",
+    "branch": "codex/accounting-v2-c6-comparative-reports-20261012",
+    "released_at": "2026-10-12T11:11:00Z",
+    "pr": 56,
+    "code_commit": "70bbbb459bc70765624bb725dab2ec67f415a190"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1416,7 +1441,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to C6 comparative statements and period/as-of controls; retain independent Render acceptance for matching staging commits",
+  "next": "Proceed to D1 branch dimensions, cost centers/projects and branch P&L; retain independent Render acceptance for matching staging commits",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1437,24 +1462,24 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c5-tax-period-reports-20261012",
-    "acquired_at": "2026-10-12T07:40:00Z",
-    "branch": "codex/accounting-v2-c5-tax-period-reports-20261012",
-    "released_at": "2026-10-12T09:16:00Z",
-    "pr": 55,
-    "code_commit": "a234b02ebff6d0799c14453e24e6093ebdac6ce3",
-    "status": "C5_3_2_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-12T09:16:00Z",
+    "worker": "c6-comparative-reports-20261012",
+    "acquired_at": "2026-10-12T10:59:00Z",
+    "branch": "codex/accounting-v2-c6-comparative-reports-20261012",
+    "released_at": "2026-10-12T11:11:00Z",
+    "pr": 56,
+    "code_commit": "70bbbb459bc70765624bb725dab2ec67f415a190",
+    "status": "C6_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-12T11:11:00Z",
     "ci": {
-      "run_id": 38228962862,
-      "commit_sha": "a234b02ebff6d0799c14453e24e6093ebdac6ce3",
+      "run_id": 38240509827,
+      "commit_sha": "70bbbb459bc70765624bb725dab2ec67f415a190",
       "conclusion": "success",
-      "unit_api": 335,
+      "unit_api": 336,
       "emulator": 35,
-      "ui": 59,
+      "ui": 60,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to C6 comparative statements and period/as-of controls; Render acceptance remains independent"
+    "next": "Proceed to D1 branch dimensions, cost centers/projects and branch P&L; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

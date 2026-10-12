@@ -146,7 +146,7 @@ export class Operations {
       return quoteFixedAsset(request, data, orgId);
     });
   }
-  async advancedReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}) {
+  async advancedReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}, comparison?: { start?: string; end?: string }) {
     return this.store.transaction(async tx => {
       const { org, role } = await membership(tx, orgId, actor);
       ensure(hasPermission(role, 'reports:advanced'), 'التقارير المتقدمة غير مسموحة لهذا الدور.', 403);
@@ -154,7 +154,8 @@ export class Operations {
       assertSubscriptionActive(subscription); assertFeature(subscription, 'accounting'); assertFeature(subscription, 'advanced_reports');
       const accounts = await tx.list(`organizations/${orgId}/accounts`) as Account[], entries = await tx.list(`organizations/${orgId}/journal_entries`) as JournalEntry[];
       const invoices = await tx.list(`organizations/${orgId}/invoices`) as Invoice[], products = await tx.list(`organizations/${orgId}/products`) as Product[];
-      return { organizationId: orgId, generatedAt: this.now().toISOString(), period, trialBalance: calculateTrialBalance(accounts, entries, period), incomeStatement: { ...calculateIncomeStatement(entries, accounts, period), costs_complete: !hasIncompleteInvoiceCosts(invoices, products, entries, period) }, balanceSheet: calculateBalanceSheet(accounts, entries, period), cashFlow: calculateCashFlowStatement(accounts, entries, period) };
+      const reports=(range:{start?:string;end?:string})=>({trialBalance:calculateTrialBalance(accounts,entries,range),incomeStatement:{...calculateIncomeStatement(entries,accounts,range),costs_complete:!hasIncompleteInvoiceCosts(invoices,products,entries,range)},balanceSheet:calculateBalanceSheet(accounts,entries,range),cashFlow:calculateCashFlowStatement(accounts,entries,range)});
+      const current=reports(period);return {organizationId:orgId,generatedAt:this.now().toISOString(),period,...current,...(comparison?{comparison:{period:comparison,...reports(comparison)}}:{})};
     });
   }
   async payableReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}) {

@@ -149,3 +149,11 @@ test('A2 server report honors periods and custom account metadata after billing 
   assert.equal(report.incomeStatement.sales_revenue_sdg, 100); assert.equal(report.incomeStatement.net_profit_sdg, 100); assert.equal(report.balanceSheet.total_assets_sdg, 200);
   await assert.rejects(f.ops.advancedReports(f.org.id, owner, { start: '2026-10-06', end: '2026-10-05' }), /بداية الفترة/);
 });
+
+test('C6.1 comparative reports keep independent ranges and cumulative as-of balances',async()=>{
+  const f=await fixture();await f.run('account.create',{code:'consulting',name_ar:'استشارات',name_en:'Consulting',type:'REVENUE',nature:'CREDIT',is_active:true},'comparison-account');
+  for(const [date,amount] of [['2026-09-10',100],['2026-10-10',160]] as const)await f.run('journal.create',{date,reference_type:'manual',description:'إيراد مقارنة',lines:[journalLine('1110','cash',amount),journalLine('consulting','revenue',0,amount)]},`comparison-${date}`);
+  const report=await f.ops.advancedReports(f.org.id,owner,{start:'2026-10-01',end:'2026-10-31'},{start:'2026-09-01',end:'2026-09-30'});
+  assert.equal(report.incomeStatement.net_profit_sdg,160);assert.equal(report.comparison?.incomeStatement.net_profit_sdg,100);assert.equal(report.balanceSheet.total_assets_sdg,260);assert.equal(report.comparison?.balanceSheet.total_assets_sdg,100);assert.deepEqual(report.comparison?.period,{start:'2026-09-01',end:'2026-09-30'});
+  await assert.rejects(f.ops.advancedReports(f.org.id,owner,{}, {start:'2026-10-02',end:'2026-10-01'}),/بداية الفترة/);
+});

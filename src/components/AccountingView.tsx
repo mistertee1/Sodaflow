@@ -53,6 +53,22 @@ import { hasIncompleteInvoiceCosts } from '../domain/inventoryCost';
 import { OperationalCenter } from './accounting/OperationalCenter';
 import { PayablesCenter } from './accounting/PayablesCenter';
 import { Dialog } from './Dialog';
+type DateRange = { start: string; end: string };
+const isoDate = (date: Date) => date.toISOString().slice(0, 10);
+const reportPreset = (kind: 'today' | 'week' | 'month' | 'lastMonth' | 'quarter' | 'year', now = new Date()): DateRange => {
+  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())); let start = new Date(date), end = new Date(date);
+  if (kind === 'week') start.setUTCDate(date.getUTCDate() - ((date.getUTCDay() + 6) % 7));
+  if (kind === 'month') start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+  if (kind === 'lastMonth') { start = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() - 1, 1)); end = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 0)); }
+  if (kind === 'quarter') start = new Date(Date.UTC(date.getUTCFullYear(), Math.floor(date.getUTCMonth() / 3) * 3, 1));
+  if (kind === 'year') start = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return { start: isoDate(start), end: isoDate(end) };
+};
+const previousRange = ({ start, end }: DateRange): DateRange => {
+  const first = new Date(`${start}T00:00:00Z`), last = new Date(`${end}T00:00:00Z`), days = Math.round((last.getTime() - first.getTime()) / 86400000) + 1;
+  const previousEnd = new Date(first); previousEnd.setUTCDate(previousEnd.getUTCDate() - 1); const previousStart = new Date(previousEnd); previousStart.setUTCDate(previousStart.getUTCDate() - days + 1);
+  return { start: isoDate(previousStart), end: isoDate(previousEnd) };
+};
 export const AccountingView: React.FC = () => {
   const {
     invoices,
@@ -75,16 +91,19 @@ export const AccountingView: React.FC = () => {
   >('coa');
   const [reportStart, setReportStart] = useState('');
   const [reportEnd, setReportEnd] = useState('');
+  const [compareStart, setCompareStart] = useState('');
+  const [compareEnd, setCompareEnd] = useState('');
   const [remoteReports, setRemoteReports] = useState<Awaited<ReturnType<Operations['advancedReports']>> | null>(null);
   const [reportError, setReportError] = useState('');
   const advancedAllowed = isActionAllowed('reports:advanced');
   const advancedTab = ['income', 'balance_sheet', 'cash_flow'].includes(activeSubTab);
-  const reportsReady = !currentUser || remoteReports?.organizationId === currentOrg?.id && (remoteReports.period.start || '') === reportStart && (remoteReports.period.end || '') === reportEnd;
+  const comparisonRequested = Boolean(compareStart && compareEnd);
+  const reportsReady = !currentUser || remoteReports?.organizationId === currentOrg?.id && (remoteReports.period.start || '') === reportStart && (remoteReports.period.end || '') === reportEnd && (!comparisonRequested || (remoteReports.comparison?.period.start || '') === compareStart && (remoteReports.comparison?.period.end || '') === compareEnd);
   useEffect(() => {
     let active = true; setRemoteReports(null); setReportError('');
-    if (currentUser && currentOrg && advancedAllowed && advancedTab) void api<Awaited<ReturnType<Operations['advancedReports']>>>(`/organizations/${encodeURIComponent(currentOrg.id)}/reports/advanced?start=${encodeURIComponent(reportStart)}&end=${encodeURIComponent(reportEnd)}`).then(value => { if (active) setRemoteReports(value); }).catch(error => { if (active) setReportError(error instanceof Error ? error.message : 'تعذر تحميل التقارير.'); });
+    if (currentUser && currentOrg && advancedAllowed && advancedTab) void api<Awaited<ReturnType<Operations['advancedReports']>>>(`/organizations/${encodeURIComponent(currentOrg.id)}/reports/advanced?start=${encodeURIComponent(reportStart)}&end=${encodeURIComponent(reportEnd)}${comparisonRequested ? `&compareStart=${encodeURIComponent(compareStart)}&compareEnd=${encodeURIComponent(compareEnd)}` : ''}`).then(value => { if (active) setRemoteReports(value); }).catch(error => { if (active) setReportError(error instanceof Error ? error.message : 'تعذر تحميل التقارير.'); });
     return () => { active = false; };
-  }, [currentUser?.uid, currentOrg?.id, counters.revision, advancedAllowed, advancedTab, reportStart, reportEnd]);
+  }, [currentUser?.uid, currentOrg?.id, counters.revision, advancedAllowed, advancedTab, reportStart, reportEnd, compareStart, compareEnd, comparisonRequested]);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
 
@@ -130,13 +149,15 @@ export const AccountingView: React.FC = () => {
 
   const reportBundle = useMemo(() => {
     const period = { start: reportStart, end: reportEnd };
-    try { return { error: '', trial: calculateTrialBalance(accounts, journalEntries, period), income: calculateIncomeStatement(journalEntries, accounts, period), balance: calculateBalanceSheet(accounts, journalEntries, period), cash: calculateCashFlowStatement(accounts, journalEntries, period) }; }
-    catch (error) { return { error: error instanceof Error ? error.message : 'تعذر حساب التقارير.', trial: calculateTrialBalance([], []), income: calculateIncomeStatement([], []), balance: calculateBalanceSheet([], []), cash: calculateCashFlowStatement([], []) }; }
-  }, [accounts, journalEntries, reportStart, reportEnd]);
+    const comparison = { start: compareStart, end: compareEnd };
+    try { return { error: '', trial: calculateTrialBalance(accounts, journalEntries, period), income: calculateIncomeStatement(journalEntries, accounts, period), balance: calculateBalanceSheet(accounts, journalEntries, period), cash: calculateCashFlowStatement(accounts, journalEntries, period), comparison: comparisonRequested ? { period: comparison, incomeStatement: calculateIncomeStatement(journalEntries, accounts, comparison), balanceSheet: calculateBalanceSheet(accounts, journalEntries, comparison), cashFlow: calculateCashFlowStatement(accounts, journalEntries, comparison) } : undefined }; }
+    catch (error) { return { error: error instanceof Error ? error.message : 'تعذر حساب التقارير.', trial: calculateTrialBalance([], []), income: calculateIncomeStatement([], []), balance: calculateBalanceSheet([], []), cash: calculateCashFlowStatement([], []), comparison: undefined }; }
+  }, [accounts, journalEntries, reportStart, reportEnd, compareStart, compareEnd, comparisonRequested]);
   const bundle = currentUser && remoteReports ? { trial: remoteReports.trialBalance, income: remoteReports.incomeStatement, balance: remoteReports.balanceSheet, cash: remoteReports.cashFlow } : reportBundle;
   const { trial: trialBalance, income: ledgerIncome, balance: balanceSheet, cash: cashFlow } = bundle;
   const incompleteCosts = currentUser ? remoteReports?.incomeStatement.costs_complete === false : hasIncompleteInvoiceCosts(invoices, products, journalEntries, { start: reportStart, end: reportEnd });
   const incomeStatement = { ...ledgerIncome, costs_complete: !incompleteCosts };
+  const comparison = currentUser ? remoteReports?.comparison : reportBundle.comparison;
 
   // Filtered Accounts
   const filteredAccounts = useMemo(() => {
@@ -326,10 +347,22 @@ export const AccountingView: React.FC = () => {
     }
   };
 
+  const applyPreset = (kind: Parameters<typeof reportPreset>[0]) => { const range = reportPreset(kind); setReportStart(range.start); setReportEnd(range.end); setCompareStart(''); setCompareEnd(''); };
+  const comparePrevious = () => { if (reportStart && reportEnd) { const range = previousRange({ start: reportStart, end: reportEnd }); setCompareStart(range.start); setCompareEnd(range.end); } };
   const reportDates = <div className="flex flex-wrap gap-3 items-end bg-sf-surface border border-sf-border p-4 rounded-xl">
+    <div className="flex flex-wrap gap-2 w-full" aria-label="اختصارات فترة التقرير">
+      {([['today', 'اليوم'], ['week', 'هذا الأسبوع'], ['month', 'هذا الشهر'], ['lastMonth', 'الشهر الماضي'], ['quarter', 'هذا الربع'], ['year', 'هذه السنة']] as const).map(([kind, label]) => <button key={kind} type="button" className="text-xs border border-sf-border rounded-lg px-3 py-2 hover:bg-sf-raised" onClick={() => applyPreset(kind)}>{label}</button>)}
+    </div>
     <label className="text-xs space-y-1">من تاريخ<input aria-label="بداية فترة التقرير" type="date" value={reportStart} onChange={e => setReportStart(e.target.value)} className="block bg-sf-raised border border-sf-border rounded-lg p-2" /></label>
     <label className="text-xs space-y-1">إلى تاريخ<input aria-label="نهاية فترة التقرير" type="date" value={reportEnd} onChange={e => setReportEnd(e.target.value)} className="block bg-sf-raised border border-sf-border rounded-lg p-2" /></label>
-    <button className="text-xs text-sf-action p-2" onClick={() => { setReportStart(''); setReportEnd(''); }}>كل الفترات</button>
+    <button className="text-xs text-sf-action p-2" onClick={() => { setReportStart(''); setReportEnd(''); setCompareStart(''); setCompareEnd(''); }}>كل الفترات</button>
+    <button type="button" disabled={!reportStart || !reportEnd} className="text-xs border border-sf-action text-sf-action rounded-lg px-3 py-2 disabled:opacity-40" onClick={comparePrevious}>قارن بالفترة السابقة</button>
+    {comparisonRequested && <div className="flex flex-wrap gap-3 items-end w-full border-t border-sf-border pt-3">
+      <span className="text-xs font-semibold text-sf-text">فترة المقارنة</span>
+      <label className="text-xs space-y-1">من<input aria-label="بداية فترة المقارنة" type="date" value={compareStart} onChange={e => setCompareStart(e.target.value)} className="block bg-sf-raised border border-sf-border rounded-lg p-2" /></label>
+      <label className="text-xs space-y-1">إلى<input aria-label="نهاية فترة المقارنة" type="date" value={compareEnd} onChange={e => setCompareEnd(e.target.value)} className="block bg-sf-raised border border-sf-border rounded-lg p-2" /></label>
+      <button type="button" className="text-xs text-sf-muted p-2" onClick={() => { setCompareStart(''); setCompareEnd(''); }}>إلغاء المقارنة</button>
+    </div>}
     <p className="text-xs text-sf-muted w-full">الدخل والتدفقات وحركة ميزان المراجعة للفترة المختارة. المركز المالي تراكمي حتى نهاية الفترة؛ الافتتاحي من القيود السابقة.</p>
   </div>;
 
@@ -341,6 +374,15 @@ export const AccountingView: React.FC = () => {
       {advancedTab && advancedAllowed && currentUser && !reportsReady && !reportError && <p role="status" className="text-sf-muted p-4">جاري تحميل التقارير من الخادم…</p>}
       {advancedTab && reportError && <p role="alert" className="text-sf-danger p-4">{reportError}</p>}
       {reportBundle.error && <p role="alert" className="bg-sf-danger-bg text-sf-danger border border-sf-danger p-4 rounded-xl">{reportBundle.error}</p>}
+      {advancedTab && comparison && reportsReady && <section aria-label="ملخص مقارنة التقارير" className="bg-sf-surface border border-sf-border rounded-xl p-4 space-y-3">
+        <h3 className="font-semibold text-sf-text">مقارنة مع {comparison.period.start} — {comparison.period.end}</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="bg-sf-raised rounded-lg p-3"><span className="text-sf-muted">صافي الربح</span><p className="font-mono">{formatMoney(incomeStatement.net_profit_sdg, 'SDG')} / {formatMoney(comparison.incomeStatement.net_profit_sdg, 'SDG')}</p></div>
+          <div className="bg-sf-raised rounded-lg p-3"><span className="text-sf-muted">إجمالي الأصول حتى التاريخ</span><p className="font-mono">{formatMoney(balanceSheet.total_assets_sdg, 'SDG')} / {formatMoney(comparison.balanceSheet.total_assets_sdg, 'SDG')}</p></div>
+          <div className="bg-sf-raised rounded-lg p-3"><span className="text-sf-muted">صافي تغير النقد</span><p className="font-mono">{formatMoney(cashFlow.net_change_in_cash_sdg, 'SDG')} / {formatMoney(comparison.cashFlow.net_change_in_cash_sdg, 'SDG')}</p></div>
+        </div>
+        <p className="text-xs text-sf-muted">كل بطاقة تعرض الفترة الحالية ثم فترة المقارنة. المركز المالي تراكمي حتى نهاية كل فترة.</p>
+      </section>}
       {/* Top Header Card */}
       <div className="bg-sf-surface border border-sf-border rounded-xl p-6 sm:p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

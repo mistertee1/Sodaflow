@@ -104,7 +104,12 @@ test('D1 dimensions are protected, journal tags require active masters and branc
   await f.run('journal.create',{reference_type:'manual',description:'مصروف الفرع',date:'2026-10-05',lines:[{...journalLine('5200','مصروف',10,0,0,0),...dimensions},{...journalLine('1110','نقد',0,10,0,0),...dimensions}]},'expense');
   await f.store.transaction(async tx=>tx.set(`${root}/journal_entries/cogs`,entry('cogs','2026-10-05',[{...journalLine('5100','تكلفة',60,0,0,0),branch_id:'north'},{...journalLine('1300','مخزون',0,60,0,0),branch_id:'north'}])));
   const report=await f.ops.branchProfitAndLoss(f.org.id,actor,'north',{start:'2026-10-01',end:'2026-10-31'});assert.equal(report.sales_sdg,100);assert.equal(report.cogs_sdg,60);assert.equal(report.expenses_sdg,10);assert.equal(report.net_profit_sdg,30);assert.equal(report.branch.id,branch.id);
+  const taggedExpense=(await f.run('expense.create',{title:'إيجار المشروع',category:'إيجار',amount:25,currency:'SDG',date:'2026-10-05',...dimensions},'tagged-expense')).result;
+  const taggedSnapshot=await f.ops.snapshot(f.org.id,actor),taggedPosting=taggedSnapshot.collections.journal_entries.find(row=>row.reference_id===taggedExpense.id)!;
+  assert.deepEqual(taggedPosting.lines.map((line:JournalEntry['lines'][number])=>({branch_id:line.branch_id,cost_center_id:line.cost_center_id,project_id:line.project_id})),[dimensions,dimensions]);
+  assert.equal(taggedExpense.branch_id,'north');assert.equal(taggedExpense.cost_center_id,'sales');assert.equal(taggedExpense.project_id,'contract-a');
   await f.run('dimension.update',{kind:'project',id:'contract-a',expected_revision:1,updates:{status:'inactive'}},'disable-project');
   await assert.rejects(f.run('journal.create',{reference_type:'manual',description:'بعد معطل',date:'2026-10-05',lines:[{...journalLine('1110','نقد',1,0,0,0),project_id:'contract-a'},{...journalLine('4100','مبيعات',0,1,0,0),project_id:'contract-a'}]},'inactive'),/غير موجود أو غير نشط/);
+  const before=f.store.dump();await assert.rejects(f.run('expense.create',{title:'مصروف مرفوض',category:'إيجار',amount:1,currency:'SDG',date:'2026-10-05',project_id:'contract-a'},'inactive-expense'),/غير موجود أو غير نشط/);assert.deepEqual(f.store.dump(),before);
   const snapshot=await f.ops.snapshot(f.org.id,{...actor,uid:'accountant'});assert.equal(snapshot.collections.branches.length,1);assert.equal(snapshot.collections.cost_centers.length,1);assert.equal(snapshot.collections.projects.length,1);
 });

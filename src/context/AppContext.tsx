@@ -6,6 +6,7 @@ import type { FixedAssetAction, FixedAssetPreview, FixedAssetPreviewRequest } fr
 import type { AccountingPeriod } from '../domain/periodContracts';
 import type { TaxConfiguration } from '../domain/taxConfiguration';
 import type { ManagementDimension } from '../domain/managementDimensions';
+import type { DimensionKind } from '../domain/managementDimensions';
 import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
 import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
@@ -33,6 +34,7 @@ interface AppContextType {
   branches: ManagementDimension[];
   costCenters: ManagementDimension[];
   projects: ManagementDimension[];
+  saveDimension: (kind: DimensionKind, data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<ManagementDimension>;
   taxConfigurations: TaxConfiguration[];
   saveTaxConfiguration: (data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<TaxConfiguration>;
   loadTaxReport: (period: {start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['taxReports']>>>;
@@ -500,6 +502,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.exported_at ? state.member?.status || (state.role === 'Owner' ? 'active' : 'unknown') : 'unknown', orgMembers: rows<OrgMember>('members'),
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
     branches: rows<ManagementDimension>('branches'), costCenters: rows<ManagementDimension>('cost_centers'), projects: rows<ManagementDimension>('projects'),
+    saveDimension: (kind, data, updating, expectedOrgId, requestId) => {
+      if (activeOrg.current !== expectedOrgId) return Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح إدارة الأبعاد.', 409));
+      return run<ManagementDimension>(updating ? 'dimension.update' : 'dimension.create', { ...data, kind }, requestId);
+    },
     creditNotes: rows<Document>('credit_notes'), customerRefunds: rows<Document>('customer_refunds'),
     createCreditNote: data => run('creditNote.create', data), refundCustomer: data => run('customerRefund.create', data),
     suppliers: rows<Supplier>('suppliers'), purchaseBills: rows<PurchaseBill>('purchase_bills'), supplierPayments: rows<SupplierPayment>('supplier_payments'), purchaseReturns: rows<Document>('purchase_returns'), supplierRefunds: rows<Document>('supplier_refunds'), returnPurchase: data => run<Document>('purchaseReturn.create',data), refundSupplier: data => run<Document>('supplierRefund.create',data),

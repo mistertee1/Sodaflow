@@ -4,8 +4,8 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-d1-dimension-master-ui-20261012",
+  "active_milestone": "D",
+  "active_branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1096,15 +1096,15 @@
     {
       "id": "D",
       "status": "in_progress",
-      "branch": "codex/accounting-v2-d1-dimension-master-ui-20261012",
-      "pr": 60,
+      "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+      "pr": 61,
       "steps": [
         {
           "id": "D1",
           "scope": "Branch dimensions, cost centers/projects and branch P&L",
-          "status": "in_progress",
-          "branch": "codex/accounting-v2-d1-dimension-master-ui-20261012",
-          "pr": 60,
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+          "pr": 61,
           "substeps": [
             {
               "id": "D1.1",
@@ -1121,9 +1121,9 @@
             {
               "id": "D1.2",
               "scope": "Dimension UI, source-document propagation and management report filters",
-              "status": "in_progress",
-              "branch": "codex/accounting-v2-d1-dimension-ui-20261012",
-              "pr": 59,
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+              "pr": 61,
               "substeps": [
                 {
                   "id": "D1.2a",
@@ -1140,9 +1140,9 @@
                 {
                   "id": "D1.2b",
                   "scope": "Dimension master UI, sales/purchase propagation and management report filters",
-                  "status": "in_progress",
-                  "branch": "codex/accounting-v2-d1-dimension-master-ui-20261012",
-                  "pr": 60,
+                  "status": "implemented_ci_passed_render_acceptance_pending",
+                  "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+                  "pr": 61,
                   "substeps": [
                     {
                       "id": "D1.2b.1",
@@ -1159,9 +1159,14 @@
                     {
                       "id": "D1.2b.2",
                       "scope": "Sales/purchase source propagation and management report dimension filters",
-                      "status": "pending",
-                      "branch": null,
-                      "pr": null
+                      "status": "implemented_ci_passed_render_acceptance_pending",
+                      "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+                      "pr": 61,
+                      "report": "REPORT_D1_2B2_DIMENSION_PROPAGATION_REPORTS.md",
+                      "checks": { "unit_api": 338, "types": "passed", "core": "passed", "build": "passed", "emulator": 35, "ui": 64, "production_audit_vulnerabilities": 0 },
+                      "ci": { "run_id": 38277327002, "commit_sha": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4", "conclusion": "success" },
+                      "render_acceptance": "pending_matching_authenticated_staging_commit",
+                      "completed_at": "2026-10-12T20:35:00Z"
                     }
                   ]
                 }
@@ -1317,12 +1322,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_D1_2B1_DIMENSION_MASTER_UI.md",
+  "last_report": "REPORT_D1_2B2_DIMENSION_PROPAGATION_REPORTS.md",
   "next_steps": [
-    "D1.2b.2 sales/purchase dimension propagation and management report filters",
-    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1 on matching staging commits"
+    "D2 product/customer profitability and source-supported management reports",
+    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2 on matching staging commits"
   ],
-  "updated_at": "2026-10-12T16:05:00Z",
+  "updated_at": "2026-10-12T20:35:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1347,7 +1352,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D1.2",
+  "active_substep": "D2",
   "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
     {
@@ -1506,15 +1511,23 @@
       "released_at": "2026-10-12T16:05:00Z",
       "pr": 60,
       "code_commit": "16070f816372f39f4f8e15259f4965557eddff14"
+    },
+    {
+      "worker": "d1-dimension-propagation-20261012",
+      "acquired_at": "2026-10-12T16:10:00Z",
+      "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+      "released_at": "2026-10-12T20:35:00Z",
+      "pr": 61,
+      "code_commit": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4"
     }
   ],
   "last_lease": {
-    "worker": "d1-dimension-master-ui-20261012",
-    "acquired_at": "2026-10-12T15:45:00Z",
-    "branch": "codex/accounting-v2-d1-dimension-master-ui-20261012",
-    "released_at": "2026-10-12T16:05:00Z",
-    "pr": 60,
-    "code_commit": "16070f816372f39f4f8e15259f4965557eddff14"
+    "worker": "d1-dimension-propagation-20261012",
+    "acquired_at": "2026-10-12T16:10:00Z",
+    "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+    "released_at": "2026-10-12T20:35:00Z",
+    "pr": 61,
+    "code_commit": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1528,7 +1541,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to D1.2b.2 sales/purchase dimension propagation and management report filters; retain independent Render acceptance",
+  "next": "Proceed to D2 product/customer profitability and source-supported management reports; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1549,24 +1562,24 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "d1-dimension-master-ui-20261012",
-    "acquired_at": "2026-10-12T15:45:00Z",
-    "branch": "codex/accounting-v2-d1-dimension-master-ui-20261012",
-    "released_at": "2026-10-12T16:05:00Z",
-    "pr": 60,
-    "code_commit": "16070f816372f39f4f8e15259f4965557eddff14",
-    "status": "D1_2b_1_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-12T16:05:00Z",
+    "worker": "d1-dimension-propagation-20261012",
+    "acquired_at": "2026-10-12T16:10:00Z",
+    "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+    "released_at": "2026-10-12T20:35:00Z",
+    "pr": 61,
+    "code_commit": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4",
+    "status": "D1_2b_2_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-12T20:35:00Z",
     "ci": {
-      "run_id": 38274107270,
-      "commit_sha": "16070f816372f39f4f8e15259f4965557eddff14",
+      "run_id": 38277327002,
+      "commit_sha": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4",
       "conclusion": "success",
-      "unit_api": 337,
+      "unit_api": 338,
       "emulator": 35,
-      "ui": 63,
+      "ui": 64,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to D1.2b.2 sales/purchase dimension propagation and management report filters; Render acceptance remains independent"
+    "next": "Proceed to D2 product/customer profitability and source-supported management reports; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

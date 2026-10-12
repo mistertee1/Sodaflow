@@ -262,3 +262,18 @@ C2.3.2 engineering evidence: source commit 7d5131a3be5ecaa5a53875c02bee1ab4cef47
 - Sales price credits and physical returns allocate the original frozen revenue and tax after document discounts. They use the historical configured tax account and policy version even after a live rate change. Physical returns also restore the original frozen cost/COGS; price credits never move stock.
 - Correction replay validates tenant, source sequence, quantities, exact dual-book components, policy chain/hash/account classification and original journal evidence. Tax configuration/version counts, invoice/bill references, corrections, journals and inventory remain part of reconciliation and strict backup/restore; missing or changed proof fails before writes.
 - CI/MemoryStore/Emulator evidence does not replace authenticated acceptance on a matching Render staging commit. C5.3 must still deliver the operational tax-center UI, tax periods and tax reports without weakening these backend gates.
+
+
+## C5.3.1 — Protected tax policy UI
+
+- The tax center reads tenant configurations from the protected snapshot for active Owner/Accountant roles with `tax:read`; it never grants platform Super Admin access to tenant books.
+- Only the actual Owner with `tax:manage`, recent linked-identity reauthentication and an explicit reason can create or update a policy. Commands use optimistic expected revisions and server-side account/policy validation; client metadata, hashes, actors and derived balances are rejected.
+- Account choices are filtered by the same accounting classification required by the backend. Organization/session changes invalidate forms and late responses, duplicate submissions are locked, and refresh persistence comes from the committed server snapshot.
+- Render acceptance remains independent and requires a deployment matching the reviewed commit.
+
+## C5.3.2 — Journal-backed tax period reports
+
+- The protected tax report accepts a bounded optional start/end period, requires `tax:read`, live accounting entitlement and Accounting V2, and returns no client-authored tax totals.
+- It groups active configured tax controls without double-counting shared accounts, derives opening/movement/closing SDG and USD balances from immutable journal lines, and separates sales liabilities from recoverable purchase assets.
+- The RTL tax center exposes period selection, native-book summaries and account reconciliation. Organization/session changes discard late responses and HTTP responses are no-store.
+- This is an operational liability/receivable ledger report, not a jurisdictional tax return, filing engine or legal calendar. Render acceptance and statutory localization remain separate.

@@ -5,9 +5,16 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c6-comparative-reports-20261012",
+  "active_branch": "codex/accounting-v2-c5-tax-center-integrated-20261012",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "c5-tax-center-integration-20261012",
+    "acquired_at": "2026-10-12T12:53:03.379Z",
+    "expires_at": "2026-10-12T14:53:03.379Z",
+    "branch": "codex/accounting-v2-c5-tax-center-integrated-20261012",
+    "purpose": "Integrate strict PR53 tax lifecycle with PR54/55 tax center UI and reports before C6",
+    "heartbeat_at": "2026-10-12T12:53:03.379Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1042,6 +1049,30 @@
               "completed_at": "2026-10-12T07:15:00Z"
             },
             {
+              "id": "C5.3.1",
+              "scope": "Owner-protected tax policy UI, role-based read access, optimistic versioning and reload persistence",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c5-tax-ui-20261012",
+              "pr": 54,
+              "report": "REPORT_C5_3_1_TAX_POLICY_UI.md",
+              "checks": {
+                "unit_api": 332,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 58,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38209232481,
+                "commit_sha": "05278645316b66f931cd37cb2e185711e1500e66",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-12T07:15:00Z"
+            },
+            {
               "id": "C5.3.2",
               "scope": "Journal-backed tax period liability/receivable reports, protected API and RTL reconciliation UI",
               "status": "implemented_ci_passed_render_acceptance_pending",
@@ -1064,9 +1095,27 @@
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "completed_at": "2026-10-12T09:16:00Z"
+            },
+            {
+              "id": "C5.3.3",
+              "scope": "Integrate strict C5.2c lifecycle with C5.3 policy UI and journal-backed reports",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-c5-tax-center-integrated-20261012",
+              "pr": null,
+              "base_pr": 55,
+              "integrates_pr": 53,
+              "checks": {
+                "unit_api": "pending",
+                "types": "pending",
+                "core": "pending",
+                "build": "pending",
+                "emulator": "pending",
+                "ui": "pending"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ],
-          "active_substep": "C5.3"
+          "active_substep": "C5.3.3"
         },
         {
           "id": "C6",
@@ -1255,6 +1304,12 @@
       ]
     }
   ],
+  "last_report": "REPORT_C5_3_2_TAX_PERIOD_REPORTS.md",
+  "next_steps": [
+    "C6 comparative statements and period/as-of controls",
+    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2 on a matching staging commit"
+  ],
+  "updated_at": "2026-10-12T09:16:00Z",
   "last_report": "REPORT_C6_COMPARATIVE_REPORTS.md",
   "next_steps": [
     "D1 branch dimensions, cost centers/projects and branch P&L",
@@ -1285,6 +1340,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
+  "active_substep": "C6",
   "active_substep": "D1",
   "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
@@ -1414,6 +1470,24 @@
       "code_commit": "a234b02ebff6d0799c14453e24e6093ebdac6ce3"
     },
     {
+      "worker": "c5-tax-lifecycle-integration-20261011",
+      "acquired_at": "2026-10-11T20:35:19Z",
+      "expires_at": "2026-10-11T22:35:19Z",
+      "branch": "codex/accounting-v2-c5-tax-lifecycle-integrated-20261011",
+      "purpose": "Continue C5.2c purchase tax posting, configured correction lifecycle and reconciliation on integrated PR53",
+      "heartbeat_at": "2026-10-11T21:18:00Z",
+      "released_at": "2026-10-12T01:52:00Z",
+      "release_reason": "expired_before_resume"
+    },
+    {
+      "worker": "c5-tax-period-reports-20261012",
+      "acquired_at": "2026-10-12T07:40:00Z",
+      "branch": "codex/accounting-v2-c5-tax-period-reports-20261012",
+      "released_at": "2026-10-12T09:16:00Z",
+      "pr": 55,
+      "code_commit": "a234b02ebff6d0799c14453e24e6093ebdac6ce3"
+    },
+    {
       "worker": "c6-comparative-reports-20261012",
       "acquired_at": "2026-10-12T10:59:00Z",
       "branch": "codex/accounting-v2-c6-comparative-reports-20261012",
@@ -1423,6 +1497,12 @@
     }
   ],
   "last_lease": {
+    "worker": "c5-tax-period-reports-20261012",
+    "acquired_at": "2026-10-12T07:40:00Z",
+    "branch": "codex/accounting-v2-c5-tax-period-reports-20261012",
+    "released_at": "2026-10-12T09:16:00Z",
+    "pr": 55,
+    "code_commit": "a234b02ebff6d0799c14453e24e6093ebdac6ce3"
     "worker": "c6-comparative-reports-20261012",
     "acquired_at": "2026-10-12T10:59:00Z",
     "branch": "codex/accounting-v2-c6-comparative-reports-20261012",
@@ -1442,6 +1522,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
+  "next": "Complete strict C5 integration, verify CI, then proceed to C6 comparative statements and period/as-of controls",
   "next": "Proceed to D1 branch dimensions, cost centers/projects and branch P&L; retain independent Render acceptance for matching staging commits",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
@@ -1463,6 +1544,24 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
+    "worker": "c5-tax-period-reports-20261012",
+    "acquired_at": "2026-10-12T07:40:00Z",
+    "branch": "codex/accounting-v2-c5-tax-period-reports-20261012",
+    "released_at": "2026-10-12T09:16:00Z",
+    "pr": 55,
+    "code_commit": "a234b02ebff6d0799c14453e24e6093ebdac6ce3",
+    "status": "C5_3_2_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-12T09:16:00Z",
+    "ci": {
+      "run_id": 38228962862,
+      "commit_sha": "a234b02ebff6d0799c14453e24e6093ebdac6ce3",
+      "conclusion": "success",
+      "unit_api": 335,
+      "emulator": 35,
+      "ui": 59,
+      "production_audit_vulnerabilities": 0
+    },
+    "next": "Proceed to C6 comparative statements and period/as-of controls; Render acceptance remains independent"
     "worker": "c6-comparative-reports-20261012",
     "acquired_at": "2026-10-12T10:59:00Z",
     "branch": "codex/accounting-v2-c6-comparative-reports-20261012",

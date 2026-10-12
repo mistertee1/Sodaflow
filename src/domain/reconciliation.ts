@@ -93,7 +93,7 @@ export function reconcileFinancialData(data: FinancialData, settings: MerchantSe
     if (!invoice || invoice.customer_id !== payment.customer_id) add('missing_invoice_or_customer', 'payments', payment.id);
     const entries = sourceEntries('payment', payment.id);
     if (entries.length !== 1) add('missing_or_duplicate_journal', 'payments', payment.id);
-    inspect('payments', payment.id, () => { dateOnly(payment.payment_date); money(payment.amount, payment.currency === 'USD' ? 2 : 0, true); });
+    inspect('payments', payment.id, () => { dateOnly(payment.payment_date); money(payment.amount, payment.currency === 'USD' ? 2 : 0, true); });by
     paymentsByInvoice.set(payment.invoice_id, [...paymentsByInvoice.get(payment.invoice_id) || [], payment]);
     for (const [field, code, side] of [['settled_amount_sdg', '1200', 'credit_sdg'], ['settled_amount_usd', '1200', 'credit_usd'], ['cash_amount_sdg', '11', 'debit_sdg'], ['cash_amount_usd', '11', 'debit_usd']] as const) {
       if (payment[field] !== undefined) compare('payments', payment.id, field, entries.flatMap(e => e.lines || []).filter(l => code === '11' ? l.account_code?.startsWith(code) : l.account_code === code).reduce((n, l) => n.plus(l[side] || 0), new BigNumber(0)).toNumber(), payment[field]);

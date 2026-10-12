@@ -4,6 +4,7 @@ import {INITIAL_SETTINGS} from '../src/data/initialData';
 import {MemoryStore, type Store} from '../src/domain/store';
 import {Operations, type Actor} from '../src/domain/operations';
 import {createDefaultSubscription, getPlanConfig} from '../src/lib/plans';
+import {remapTaxConfigurations, validateTaxConfigurationBackup, verifyTaxConfigurationSources} from '../src/domain/taxConfigurationTransactions';
 
 const org='tax-command-org', root=`organizations/${org}`, now=new Date('2026-10-11T06:45:00Z');
 const owner:Actor={uid:'owner',email:'owner@test.local',emailVerified:true,authTime:Math.floor(now.getTime()/1000)-60};
@@ -50,4 +51,17 @@ test('C5.2a is owner-only, server-authoritative, recently authenticated and vali
 test('C5.2a rolls back invalid, invented or colliding requests without partial versions',async()=>{
   const f=fixture();await assert.rejects(f.run('taxConfiguration.create',input({rate:101}),'tax-invalid'));await assert.rejects(f.run('taxConfiguration.create',input({forged_balance:10}),'tax-forged'));assert.equal(f.memory.dump()[`${root}/tax_configurations/sales-tax`],undefined);
   await f.run('taxConfiguration.create',input(),'tax-create');await assert.rejects(f.run('taxConfiguration.create',input(),'tax-duplicate'),/موجود/);assert.equal(Object.keys(f.memory.dump()).filter(key=>key.includes('/tax_configuration_versions/')).length,1);
+});
+
+test('C5.2c backup proves the complete tax version chain and remaps tenant identity',async()=>{
+  const f=fixture();await f.run('taxConfiguration.create',input(),'tax-create');await f.run('taxConfiguration.update',input({expected_revision:1,rate:17,reason:'تعديل النسخة'}),'tax-update');
+  const backup=await new Operations(f.memory,()=>now).snapshot(org,owner,true);
+  assert.equal(backup.tax_configuration_schema_version,1);assert.equal(backup.counters.tax_configuration_count,1);assert.equal(backup.counters.tax_configuration_version_count,2);
+  const validated=await validateTaxConfigurationBackup(backup);assert.equal(validated.tax_configuration_versions.length,2);
+  const remapped=await remapTaxConfigurations(backup.collections,'restored-tax-org');await verifyTaxConfigurationSources(remapped,'restored-tax-org');assert.equal(remapped.tax_configurations[0].org_id,'restored-tax-org');assert.equal(remapped.tax_configurations[0].source_org_id,org);
+});
+
+test('C5.2c rejects missing, orphaned or tampered tax policy history before restore',async()=>{
+  const f=fixture();await f.run('taxConfiguration.create',input(),'tax-create');const backup=await new Operations(f.memory,()=>now).snapshot(org,owner,true);
+  for(const mutate of [(b:any)=>{b.collections.tax_configuration_versions[0].rate=99;},(b:any)=>{b.collections.tax_configuration_versions=[];},(b:any)=>{b.counters.tax_configuration_version_count=0;}]){const damaged=structuredClone(backup);mutate(damaged);await assert.rejects(validateTaxConfigurationBackup(damaged),/بصمة|ناقصة|عدادات/);}
 });

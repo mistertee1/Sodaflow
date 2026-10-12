@@ -49,10 +49,11 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
     money(invoice[`cogs_${book}`], book === 'sdg' ? 0 : 2);
     ensure(new BigNumber(cogs[book]).eq(invoice[`cogs_${book}`]!), 'تكلفة المصدر لا تطابق لقطات البنود.', 409);
   }
+  const taxAccountCode = invoice.tax_evidence?.tax_account_code || '2130';
   const expected: Record<string, { debit: BookAmount; credit: BookAmount }> = {
     '1200': { debit: { sdg: invoice.grand_total_sdg, usd: invoice.grand_total_usd }, credit: { sdg: 0, usd: 0 } },
     '4100': { debit: { sdg: 0, usd: 0 }, credit: { sdg: new BigNumber(invoice.grand_total_sdg).minus(invoice.tax_total_sdg).toNumber(), usd: new BigNumber(invoice.grand_total_usd).minus(invoice.tax_total_usd).toNumber() } },
-    '2130': { debit: { sdg: 0, usd: 0 }, credit: { sdg: invoice.tax_total_sdg, usd: invoice.tax_total_usd } },
+    [taxAccountCode]: { debit: { sdg: 0, usd: 0 }, credit: { sdg: invoice.tax_total_sdg, usd: invoice.tax_total_usd } },
     '5100': { debit: cogs, credit: { sdg: 0, usd: 0 } },
     '1300': { debit: { sdg: 0, usd: 0 }, credit: cogs },
   };
@@ -61,6 +62,33 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
     money(amounts[side][book], book === 'sdg' ? 0 : 2);
     const posted = original.lines.filter(line => line.account_code === code).reduce((n, line) => n.plus(line[`${side}_${book}`]), new BigNumber(0));
     ensure(posted.eq(amounts[side][book]), 'القيمة الأصلية لا تطابق الإيراد/الضريبة/التكلفة في قيد الإصدار.', 409);
+  }
+  if (invoice.tax_evidence) {
+    const evidence = invoice.tax_evidence;
+    identifier(evidence.configuration_id); identifier(evidence.tax_account_code); dateOnly(evidence.effective_on);
+    ensure(evidence.effective_on === issueDate && evidence.tax_account_code === taxAccountCode && Number.isSafeInteger(evidence.configuration_revision) && evidence.configuration_revision > 0 && /^[a-f0-9]{64}$/.test(evidence.configuration_version_hash || ''), 'دليل الضريبة المجمد غير صالح.', 409);
+    ensure(['exclusive', 'inclusive'].includes(evidence.calculation) && ['SDG', 'USD'].includes(evidence.source_currency), 'سياسة الضريبة المجمدة غير صالحة.', 409);
+    for (const book of books) {
+      for (const field of ['base', 'tax', 'total']) money(evidence[book]?.[field], book === 'sdg' ? 0 : 2);
+      ensure(new BigNumber(evidence[book].base).plus(evidence[book].tax).eq(evidence[book].total) && new BigNumber(evidence[book].base).eq(expected['4100'].credit[book]) && new BigNumber(evidence[book].tax).eq(invoice[`tax_total_${book}`]) && new BigNumber(evidence[book].total).eq(invoice[`grand_total_${book}`]), 'دليل الضريبة المجمد لا يطابق الفاتورة وقيدها.', 409);
+    }
+    const untaxed = invoiceFinancials({ ...invoice, items: invoice.items.map(item => ({ ...item, tax_rate: 0 })) }, { sdg_decimals: 0, usd_decimals: 2, rounding_rule: 'round' } as MerchantSettings);
+    const bases = invoice.items.map((item, index): ReturnBasis => {
+      const revenue: BookAmount = { sdg: 0, usd: 0 }, tax: BookAmount = { sdg: 0, usd: 0 };
+      const beforeNative = invoice.items.slice(0, index).reduce((n, row) => n.plus(row.line_total), new BigNumber(0));
+      const afterNative = beforeNative.plus(item.line_total), nativeBook = evidence.source_currency === 'SDG' ? 'sdg' : 'usd';
+      const nativeSubtotal = new BigNumber(evidence.source_currency === 'SDG' ? untaxed.subtotal_sdg : untaxed.subtotal_usd);
+      ensure(nativeSubtotal.gt(0), 'أساس توزيع الضريبة المجمد غير صالح.', 409);
+      for (const book of books) {
+        const allocate = (total: number, point: BigNumber) => point.eq(nativeSubtotal) ? new BigNumber(total) : new BigNumber(total).times(point).div(nativeSubtotal).decimalPlaces(book === 'sdg' ? 0 : 2, BigNumber.ROUND_HALF_UP);
+        revenue[book] = allocate(evidence[book].base, afterNative).minus(allocate(evidence[book].base, beforeNative)).toNumber();
+        tax[book] = allocate(evidence[book].tax, afterNative).minus(allocate(evidence[book].tax, beforeNative)).toNumber();
+      }
+      void nativeBook;
+      return { source_id: returnSourceId(invoice.id, item.id), quantity: item.quantity, components: { revenue, tax, ...(item.cost_status === 'valued' ? { cost: { sdg: item.total_cost_sdg!, usd: item.total_cost_usd! } } : {}) } };
+    });
+    for (const book of books) for (const [component, target] of [['revenue', evidence[book].base], ['tax', evidence[book].tax], ['cost', cogs[book]]] as const) ensure(bases.reduce((n, base) => n.plus(base.components[component]?.[book] || 0), new BigNumber(0)).eq(target), 'توزيع التصحيح لا يحفظ الدليل الضريبي المجمد.', 409);
+    return { invoice_id: invoice.id, journal_id: original.id, issue_date: issueDate, org_id: expectedOrgId, rounding_rule: evidence.rounding === 'half_up' ? 'round' : evidence.rounding, bases, cost_statuses: Object.fromEntries(invoice.items.map(item => [returnSourceId(invoice.id, item.id), item.cost_status])) };
   }
   const candidates: { rule: typeof rules[number]; bases: ReturnBasis[] }[] = [];
   for (const rule of rules) {

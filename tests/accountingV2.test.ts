@@ -9,6 +9,7 @@ import { getDefaultChartOfAccounts, calculateTrialBalance, calculateIncomeStatem
 import { classifyAccount } from '../src/domain/accountClassification';
 import { journal, journalLine } from '../src/domain/financial';
 import { reconcileFinancialData, type FinancialData } from '../src/domain/reconciliation';
+import { defaultPlatformPlans } from '../src/lib/plans';
 
 const actor = { uid: 'owner', email: 'owner@example.com', emailVerified: true };
 const entry = (id: string, date: string, lines: JournalEntry['lines']) => journal(id, 'org', 'owner', date, 'manual', id, id, lines, 2000);
@@ -88,4 +89,22 @@ test('A1 backend rejects inventory purchases, invalid expense funding and changi
   const before = f.store.dump();
   await assert.rejects(f.run('account.update', { code: 'consulting', updates: { reporting_group: 'fx_gain' } }), /تصنيف الحساب المُستخدم/);
   assert.deepEqual(f.store.dump(), before);
+});
+
+test('D1 dimensions are protected, journal tags require active masters and branch P&L follows tagged lines', async () => {
+  const f=await fixture(),root=`organizations/${f.org.id}`,now='2026-10-05T12:00:00.000Z';
+  await f.store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01'});tx.set('plans/Enterprise',defaultPlatformPlans(now).find(plan=>plan.id==='Enterprise')!);tx.set(`${root}/members/accountant`,{uid:'accountant',role:'Accountant',status:'active'});});
+  const branch=(await f.run('dimension.create',{kind:'branch',id:'north',code:'NORTH',name_ar:'الفرع الشمالي'},'branch')).result;
+  await f.run('dimension.create',{kind:'cost_center',id:'sales',code:'SALES',name_ar:'المبيعات'},'cost');
+  await f.run('dimension.create',{kind:'project',id:'contract-a',code:'A',name_ar:'العقد أ'},'project');
+  await assert.rejects(f.ops.execute(f.org.id,{...actor,uid:'accountant'},{action:'dimension.create',operationId:'forbidden',data:{kind:'project',id:'x',code:'X',name_ar:'ممنوع'}}),/صلاحية/);
+  await assert.rejects(f.run('dimension.create',{kind:'branch',id:'duplicate',code:'north',name_ar:'مكرر'},'duplicate'),/مستخدم مسبقاً/);
+  const dimensions={branch_id:'north',cost_center_id:'sales',project_id:'contract-a'};
+  await f.run('journal.create',{reference_type:'manual',description:'بيع الفرع',date:'2026-10-05',lines:[{...journalLine('1110','نقد',100,0,0,0),...dimensions},{...journalLine('4100','مبيعات',0,100,0,0),...dimensions}]},'sale');
+  await f.run('journal.create',{reference_type:'manual',description:'مصروف الفرع',date:'2026-10-05',lines:[{...journalLine('5200','مصروف',10,0,0,0),...dimensions},{...journalLine('1110','نقد',0,10,0,0),...dimensions}]},'expense');
+  await f.store.transaction(async tx=>tx.set(`${root}/journal_entries/cogs`,entry('cogs','2026-10-05',[{...journalLine('5100','تكلفة',60,0,0,0),branch_id:'north'},{...journalLine('1300','مخزون',0,60,0,0),branch_id:'north'}])));
+  const report=await f.ops.branchProfitAndLoss(f.org.id,actor,'north',{start:'2026-10-01',end:'2026-10-31'});assert.equal(report.sales_sdg,100);assert.equal(report.cogs_sdg,60);assert.equal(report.expenses_sdg,10);assert.equal(report.net_profit_sdg,30);assert.equal(report.branch.id,branch.id);
+  await f.run('dimension.update',{kind:'project',id:'contract-a',expected_revision:1,updates:{status:'inactive'}},'disable-project');
+  await assert.rejects(f.run('journal.create',{reference_type:'manual',description:'بعد معطل',date:'2026-10-05',lines:[{...journalLine('1110','نقد',1,0,0,0),project_id:'contract-a'},{...journalLine('4100','مبيعات',0,1,0,0),project_id:'contract-a'}]},'inactive'),/غير موجود أو غير نشط/);
+  const snapshot=await f.ops.snapshot(f.org.id,{...actor,uid:'accountant'});assert.equal(snapshot.collections.branches.length,1);assert.equal(snapshot.collections.cost_centers.length,1);assert.equal(snapshot.collections.projects.length,1);
 });

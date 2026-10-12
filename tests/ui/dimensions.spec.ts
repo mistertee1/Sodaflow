@@ -3,7 +3,7 @@ import { periodGuestFixture } from './helpers/accountingPeriods';
 
 async function seed(page: Page, role: 'Owner' | 'Accountant' = 'Owner', existing = false) {
   const records = await periodGuestFixture(false, role), root = 'organizations/local-guest-org';
-  if (existing) records[`${root}/branches/north`] = { id:'north', org_id:'local-guest-org', kind:'branch', code:'NORTH', name_ar:'الفرع الشمالي', status:'active', created_by:'guest', created_at:'2026-10-05T12:00:00.000Z', updated_at:'2026-10-05T12:00:00.000Z', revision:1 };
+  if (existing) { records[`${root}/branches/north`] = { id:'north', org_id:'local-guest-org', kind:'branch', code:'NORTH', name_ar:'الفرع الشمالي', status:'active', created_by:'guest', created_at:'2026-10-05T12:00:00.000Z', updated_at:'2026-10-05T12:00:00.000Z', revision:1 }; records[`${root}/journal_entries/branch-sale`] = {id:'branch-sale',org_id:'local-guest-org',date:'2026-10-05',reference_type:'manual',reference_id:'branch-sale',description:'بيع الفرع',created_by:'guest',created_at:'2026-10-05T12:00:00.000Z',lines:[{account_code:'1110',description:'نقد',debit_sdg:100,credit_sdg:0,debit_usd:0,credit_usd:0,branch_id:'north'},{account_code:'4100',description:'مبيعات',debit_sdg:0,credit_sdg:100,debit_usd:0,credit_usd:0,branch_id:'north'}]}; }
   await page.addInitScript(records => { localStorage.setItem('mohasbasd_guest_session','true'); localStorage.setItem('sudanese_merchant_has_seen_tour_v2','true'); localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records)); }, records);
   await page.goto('/'); await page.locator('#tab-accounting').click(); await page.getByTestId('dimensions-center-tab').click();
 }
@@ -20,4 +20,8 @@ test('D1.2b Owner creates, versions and deactivates a dimension which survives r
 
 test('D1.2b Accountant reads dimensions without management controls', async ({ page }) => {
   await seed(page,'Accountant',true); const center=page.getByRole('region',{name:'إدارة الأبعاد الإدارية'});await expect(center).toContainText('NORTH — الفرع الشمالي');await expect(center.getByRole('form',{name:'حفظ فرع'})).toHaveCount(0);await expect(center.getByRole('button',{name:'تعديل'})).toHaveCount(0);
+});
+
+test('D1.2b branch management report filters journal lines and remains permission protected',async({page})=>{
+  await seed(page,'Owner',true);const form=page.getByRole('form',{name:'تقرير ربحية الفرع'});await form.getByLabel('فرع تقرير الربحية').selectOption('north');await form.getByLabel('بداية تقرير الفرع').fill('2026-10-01');await form.getByLabel('نهاية تقرير الفرع').fill('2026-10-31');await form.evaluate(node=>(node as HTMLFormElement).requestSubmit());const result=page.getByRole('region',{name:'نتيجة ربحية الفرع'});await expect(result).toContainText('100 SDG');await expect(result).toContainText('صافي الربح');
 });

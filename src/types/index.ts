@@ -218,6 +218,8 @@ export interface InventoryMovement {
   operation_id?: string;
   org_id?: string;
   branch_id?: string;
+  cost_center_id?: string;
+  project_id?: string;
   schema_version?: number;
 }
 

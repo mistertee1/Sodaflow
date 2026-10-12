@@ -51,6 +51,10 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
     addCustomer,
     subscription,
     counters,
+    branches,
+    costCenters,
+    projects,
+    isActionAllowed,
   } = useApp();
 
   const planConfig = getPlanConfig(subscription?.plan);
@@ -74,6 +78,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [notes, setNotes] = useState(settings.default_invoice_notes || '');
   const [paymentInstructions, setPaymentInstructions] = useState(settings.bank_details || '');
+  const [branchId, setBranchId] = useState(''), [costCenterId, setCostCenterId] = useState(''), [projectId, setProjectId] = useState('');
 
   // Items List
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -315,6 +320,9 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
         remaining_usd: grandTotalUsd,
         notes,
         payment_instructions: paymentInstructions,
+        ...(branchId ? { branch_id: branchId } : {}),
+        ...(costCenterId ? { cost_center_id: costCenterId } : {}),
+        ...(projectId ? { project_id: projectId } : {}),
       });
 
       // 1. Verify successful creation and confirmed invoice ID
@@ -448,6 +456,12 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
               />
             </div>
           </div>
+
+          {isActionAllowed('dimensions:read') && (branches.length > 0 || costCenters.length > 0 || projects.length > 0) && <fieldset className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-sf-raised p-4 rounded-xl border border-sf-border"><legend className="px-1 font-semibold">أبعاد الفاتورة الاختيارية</legend>
+            <label>الفرع<select aria-label="فرع الفاتورة" value={branchId} onChange={e=>setBranchId(e.target.value)} className="sf-field w-full"><option value="">بدون فرع</option>{branches.filter(row=>row.status==='active').map(row=><option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+            <label>مركز التكلفة<select aria-label="مركز تكلفة الفاتورة" value={costCenterId} onChange={e=>setCostCenterId(e.target.value)} className="sf-field w-full"><option value="">بدون مركز</option>{costCenters.filter(row=>row.status==='active').map(row=><option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+            <label>المشروع<select aria-label="مشروع الفاتورة" value={projectId} onChange={e=>setProjectId(e.target.value)} className="sf-field w-full"><option value="">بدون مشروع</option>{projects.filter(row=>row.status==='active').map(row=><option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+          </fieldset>}
 
           {/* Section 2: Currency Settings & Frozen Rate */}
           <div className="bg-sf-raised border border-sf-border rounded-xl p-4 space-y-3">

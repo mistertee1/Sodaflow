@@ -1,4 +1,5 @@
 import test from 'node:test';
+import './taxReports.test';
 import assert from 'node:assert/strict';
 import BigNumber from 'bignumber.js';
 import type {Account} from '../src/types';

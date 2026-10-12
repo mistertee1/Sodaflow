@@ -8,7 +8,7 @@ import { ownerEquityTransaction } from './ownerEquityTransactions';
 import { fixedAssetTransaction } from './fixedAssetTransactions';
 import { quoteFixedAsset, type FixedAssetPreviewRequest } from './fixedAssetPreview';
 import { fixedAssetCollections, fixedAssetBackupCounts, remapFixedAssets, validateFixedAssetBackup, verifyFixedAssetSources } from './fixedAssetSources';
-import { remapTaxConfigurations, taxConfigurationBackupCounts, taxConfigurationCollections, taxConfigurationCommand, validateTaxConfigurationBackup, validateTaxConfigurationVersions, verifyTaxConfigurationSources } from './taxConfigurationTransactions';
+import { remapTaxConfigurations, taxConfigurationBackupCounts, taxConfigurationCollections, taxConfigurationCommand, validateTaxConfigurationBackup, validateTaxConfigurationVersions } from './taxConfigurationTransactions';
 import { salesTaxSourceQuote } from './salesTaxSources';
 import { periodCollections, assertPeriodPosting, assertRecentOwner, validatePeriods, verifyClosedPeriodHashes } from './periodContracts';
 import { periodCommand, closeChecklist } from './accountingPeriods';
@@ -202,19 +202,19 @@ export class Operations {
       if (backup) { ensure(org.status === 'active', 'المؤسسة متوقفة؛ التصدير المحمي غير متاح.', 403); assertSubscriptionActive(subscription); }
       const collections: Record<string, Document[]> = {};
       for (const [name, permission] of Object.entries(readPermissions)) {
-        const feature = ['audit_logs','audit_archives'].includes(name) ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(name) ? 'accounting' : null;
+        const feature = ['audit_logs','audit_archives'].includes(name) ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...taxConfigurationCollections, ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(name) ? 'accounting' : null;
         const activeSubscription = ['active', 'trial'].includes(subscription.effective_status || subscription.status) && org.status === 'active';
         collections[name] = hasPermission(role, permission) && (backup || !feature || activeSubscription && subscription.features[feature] === true) ? await tx.list(`${root}/${name}`) : [];
       }
       if (backup) { await verifyTaxConfigurationSources(collections,orgId);verifyFixedAssetSources(collections,orgId);verifyFxRevaluationSources(collections,orgId);verifyEquitySources(collections,orgId); await verifyAuditArchives(collections.audit_archives); await verifyClosedPeriodHashes(collections.accounting_periods,collections.journal_entries,collections); if(hasOpeningSources(collections))verifyOpeningSources(collections,orgId); }
       const counters = { ...DEFAULT_ORGANIZATION_COUNTERS, ...await tx.get(`${root}/meta/counters`) };
-      if (backup) { ensure((counters.audit_archive_count || 0) === collections.audit_archives.length, 'عدد أرشيف التدقيق لا يطابق السجل المحفوظ.', 409); counters.audit_event_count = collections.audit_logs.length; counters.accounting_period_count=collections.accounting_periods.length; Object.assign(counters,openingBackupCounts(collections),equityBackupCounts(collections),fxRevaluationBackupCounts(collections),fixedAssetBackupCounts(collections),taxConfigurationBackupCounts(collections)); }
+      if (backup) { ensure((counters.audit_archive_count || 0) === collections.audit_archives.length, 'عدد أرشيف التدقيق لا يطابق السجل المحفوظ.', 409); counters.audit_event_count = collections.audit_logs.length; counters.accounting_period_count=collections.accounting_periods.length; Object.assign(counters,openingBackupCounts(collections),equityBackupCounts(collections),fxRevaluationBackupCounts(collections),fixedAssetBackupCounts(collections),taxConfigurationBackupCounts(collections)); await validateTaxConfigurationBackup({tax_configuration_schema_version:1,org,collections,counters}); }
       const currentMonth = monthKey(this.now(), org.settings.timezone || 'Africa/Khartoum');
       counters.invoice_month = currentMonth;
       counters.monthly_invoice_count = (collections.invoices || []).filter(i => Number.isFinite(new Date(i.created_at).getTime()) && monthKey(new Date(i.created_at), org.settings.timezone || 'Africa/Khartoum') === currentMonth).length;
       const usage = await tx.get(`${root}/meta/usage`);
       counters.lifetime_invoice_count = Math.max(usage?.lifetimeInvoiceCount || 0, counters.invoice_count || 0, collections.invoices.length);
-      return { schema_version: 3, ...(backup ? { audit_schema_version: 1, tax_configuration_schema_version:1, period_schema_version: 1, opening_schema_version:1, owner_equity_schema_version:1,fx_revaluation_schema_version:1,fixed_asset_schema_version:1 } : {}), org, role, member, settings: { ...INITIAL_SETTINGS, ...org.settings }, collections, counters, subscription, exported_at: this.now().toISOString() };
+      return { schema_version: 3, ...(backup ? { audit_schema_version: 1, period_schema_version: 1, opening_schema_version:1, owner_equity_schema_version:1,fx_revaluation_schema_version:1,fixed_asset_schema_version:1,tax_configuration_schema_version:1 } : {}), org, role, member, settings: { ...INITIAL_SETTINGS, ...org.settings }, collections, counters, subscription, exported_at: this.now().toISOString() };
     });
   }
   async execute(orgId: string, actor: Actor, command: Command): Promise<OperationResult> {
@@ -853,13 +853,13 @@ export class Operations {
             const ids = backup.collections[name].map((record: Document) => { ensure(record && typeof record === 'object' && !Array.isArray(record), 'سجل النسخة غير صالح.'); return identifier(name === 'accounts' ? record.code : record.id); });
             ensure(new Set(ids).size === ids.length, 'معرّفات النسخة مكررة.');
           }
-          if ([...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].some(name => backup.collections[name].length)) { assertFeature(subscription, 'accounting'); await requireCostAuthority(); }
+          if ([...taxConfigurationCollections,...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].some(name => backup.collections[name].length)) { assertFeature(subscription, 'accounting'); await requireCostAuthority(); }
           const importedSettings = validateSettings(backup.settings);
           await verifyCashSessionHashes(backup.collections);
           validatePeriods(backup.collections.accounting_periods,backup.collections.accounting_periods.length?identifier(backup.org?.id):undefined);await verifyClosedPeriodHashes(backup.collections.accounting_periods,backup.collections.journal_entries,backup.collections);
           const backupVersion = backup.org?.accounting_version || 1;
           ensure(backupVersion === 1 || backupVersion === 2, 'إصدار المحاسبة في النسخة غير مدعوم.');
-          ensure(!(backup.collections.fixed_assets.length || backup.collections.accounting_periods.length || backup.collections.purchase_bills.length || backup.collections.supplier_payments.length || backup.collections.internal_transfers.length || backup.collections.bank_reconciliations.length || backup.collections.cash_reconciliations.length || backup.collections.credit_notes.length || backup.collections.customer_refunds.length || backup.collections.purchase_returns.length || backup.collections.supplier_refunds.length || backup.collections.fx_revaluations.length || (backup.collections.owner_equity_events.length || openingCollections.some(name=>backup.collections[name].length))) || backupVersion === 2, 'دفاتر الموردين وإعادة التقييم والأصول تتطلب نسخة محاسبة V2.');
+          ensure(!(taxConfigurationCollections.some(name=>backup.collections[name].length) || backup.collections.invoices.some((invoice:Document)=>invoice.tax_evidence) || backup.collections.fixed_assets.length || backup.collections.accounting_periods.length || backup.collections.purchase_bills.length || backup.collections.supplier_payments.length || backup.collections.internal_transfers.length || backup.collections.bank_reconciliations.length || backup.collections.cash_reconciliations.length || backup.collections.credit_notes.length || backup.collections.customer_refunds.length || backup.collections.purchase_returns.length || backup.collections.supplier_refunds.length || backup.collections.fx_revaluations.length || (backup.collections.owner_equity_events.length || openingCollections.some(name=>backup.collections[name].length))) || backupVersion === 2, 'دفاتر الموردين والضرائب وإعادة التقييم والأصول تتطلب نسخة محاسبة V2.');
           if (backupVersion === 2 || backup.collections.products.some((p: Document) => p.cost_status === 'valued')) await requireCostAuthority();
           ensure(org.accounting_version !== 2 || backupVersion === 2, 'استعادة نسخة قديمة تحتاج ترحيلاً موثقاً قبل مؤسسة V2.');
           for (const customer of backup.collections.customers) { text(customer.name, 200, true); text(customer.phone, 100); ensure(typeof customer.balance_sdg === 'number' && typeof customer.balance_usd === 'number', 'رصيد العميل في النسخة يجب أن يكون رقماً.'); money(Math.abs(customer.balance_sdg), 0); money(Math.abs(customer.balance_usd), 2); }
@@ -871,7 +871,7 @@ export class Operations {
           ensure(!reconcileFinancialData(backup.collections as FinancialData, importedSettings, { requireCosting: backupVersion === 2 }).length, 'النسخة تحتوي فروقات مالية أو مراجع ناقصة. افحصها بإجراء التدقيق قبل الاستعادة.');
           const restoredCollections=Object.fromEntries(names.map(name=>[name,backup.collections[name].map((record:Document)=>({...record,org_id:orgId}))]));
           Object.assign(restoredCollections,remapOpeningCollections(backup.collections,orgId),remapFixedAssets(backup.collections,orgId),await remapTaxConfigurations(backup.collections,orgId),{owner_equity_events:remapEquityEvents(backup.collections,orgId),fx_revaluations:remapFxRevaluations(backup.collections,orgId)});
-          if(hasOpeningSources(restoredCollections))verifyOpeningSources(restoredCollections,orgId);await verifyTaxConfigurationSources(restoredCollections,orgId);
+          if(hasOpeningSources(restoredCollections))verifyOpeningSources(restoredCollections,orgId);
           ensure(!reconcileFinancialData(restoredCollections as FinancialData,importedSettings,{requireCosting:backupVersion===2}).length,'النسخة تحتوي فروقات بعد تطبيع مؤسسة الاستعادة.',409);
           for (const account of backup.collections.financial_accounts) set(`${root}/financial_account_mappings/${account.account_code}`, { id: account.id });
           for (const bill of backup.collections.purchase_bills) { const path = `${root}/purchase_numbers/${bill.supplier_id}.${encodeURIComponent(bill.supplier_reference.toLowerCase())}`; set(path, { id: bill.id, supplier_id: bill.supplier_id, reference: bill.supplier_reference }); }
@@ -910,3 +910,4 @@ export class Operations {
     });
   }
 }
+

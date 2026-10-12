@@ -45,25 +45,30 @@ test('C5.2c capitalizes nonrecoverable inclusive purchase tax without a fake rec
   const entry=snapshot.collections.journal_entries.find(row=>row.reference_id===bill.id)!;
   assert.equal(entry.lines.length,2);assert.equal(entry.lines.find((line:any)=>line.account_code==='1300').debit_usd,115);assert.equal(entry.lines.find((line:any)=>line.account_code==='2110').credit_usd,115);
   assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
+  const returned=(await f.run('purchaseReturn.create',{bill_id:bill.id,date:'2026-10-11',reason:'عكس تكلفة شاملة',lines:[{line_id:'line-1',quantity:1}]},'return-cost')).result,after=await f.ops.snapshot(f.org.id,owner,true),reversal=after.collections.journal_entries.find(row=>row.reference_id===returned.id)!;
+  assert.deepEqual([returned.supplier_credit_usd,returned.inventory_out_usd,returned.recoverable_tax_usd,returned.variance_usd],[115,115,0,0]);assert.equal(reversal.lines.find((line:any)=>line.account_code==='2110').debit_usd,115);assert.equal(reversal.lines.find((line:any)=>line.account_code==='1300').credit_usd,115);assert.equal(reversal.lines.some((line:any)=>line.account_code==='1350'),false);assert.deepEqual(reconcileFinancialData(after.collections as FinancialData,after.settings,{requireCosting:true}),[]);
 });
 
-test('C5.2c rejects client tax, stale policy, damaged versions and unsafe tax returns atomically',async()=>{
+test('C5.2c rejects forged policy but reverses recoverable purchase tax outside WAC variance',async()=>{
   const f=await fixture();await f.run('taxConfiguration.create',f.config('purchase-vat'),'tax');
   await assert.rejects(f.run('purchase.create',{...f.purchase('FORGED','purchase-vat'),tax_amount:1},'forged'),/مشتقة/);
   await assert.rejects(f.run('purchase.create',{...f.purchase('STALE','purchase-vat'),expected_tax_configuration_revision:2},'stale'),/تغير/);
   const docs=f.store.dump();docs[`${f.root}/tax_configuration_versions/purchase-vat-r1`].rate=99;const damaged=new MemoryStore(docs),ops=new Operations(damaged,()=>now);
   await assert.rejects(ops.execute(f.org.id,owner,{action:'purchase.create',operationId:'damaged',data:f.purchase('DAMAGED','purchase-vat')}),/بصمة|يطابق/);
-  const bill=(await f.run('purchase.create',f.purchase('BLOCK-RETURN','purchase-vat'),'buy')).result;
-  await assert.rejects(f.run('purchaseReturn.create',{bill_id:bill.id,date:'2026-10-11',reason:'يتطلب عكس الضريبة',lines:[{line_id:'line-1',quantity:1}]},'return'),/C5\.2c|ضريبية/);
+  const bill=(await f.run('purchase.create',f.purchase('TAX-RETURN','purchase-vat'),'buy')).result,returned=(await f.run('purchaseReturn.create',{bill_id:bill.id,date:'2026-10-11',reason:'عكس ضريبة مستردة',lines:[{line_id:'line-1',quantity:1}]},'return')).result,snapshot=await f.ops.snapshot(f.org.id,owner,true),entry=snapshot.collections.journal_entries.find(row=>row.reference_id===returned.id)!;
+  assert.deepEqual([returned.supplier_credit_sdg,returned.inventory_out_sdg,returned.recoverable_tax_sdg,returned.variance_sdg],[1150,1000,150,0]);
+  assert.equal(entry.lines.find((line:any)=>line.account_code==='2110').debit_sdg,1150);assert.equal(entry.lines.find((line:any)=>line.account_code==='1300').credit_sdg,1000);assert.equal(entry.lines.find((line:any)=>line.account_code==='1350').credit_sdg,150);assert.equal(entry.lines.some((line:any)=>line.account_code==='5910'),false);
+  assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
 });
 
 test('C5.2c restores taxed purchase hashes and keeps AP, tax and inventory reconciled',async()=>{
-  const f=await fixture();await f.run('taxConfiguration.create',f.config('purchase-vat'),'tax');await f.run('purchase.create',f.purchase('RESTORE','purchase-vat'),'buy');
+  const f=await fixture();await f.run('taxConfiguration.create',f.config('purchase-vat'),'tax');const source=(await f.run('purchase.create',f.purchase('RESTORE','purchase-vat'),'buy')).result;await f.run('purchaseReturn.create',{bill_id:source.id,date:'2026-10-11',reason:'مردود محفوظ',lines:[{line_id:'line-1',quantity:1}]},'return');
   const backup=await f.ops.snapshot(f.org.id,owner,true),oldHash=backup.collections.purchase_bills[0].tax_evidence.configuration_version_hash;
   const target={...owner,uid:'purchase-tax-restore'},org=await new Organizations(f.store,undefined,()=>now).create(target,'استعادة شراء ضريبي',INITIAL_SETTINGS,'purchase-tax-restore',true),root=`organizations/${org.id}`;
   await f.store.transaction(async tx=>tx.set(root,{...await tx.get(root),planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01'}));
   await f.ops.execute(org.id,target,{action:'backup.restore',operationId:'restore',data:{backup}});
   const restored=await f.ops.snapshot(org.id,target,true),bill=restored.collections.purchase_bills[0];
   assert.notEqual(bill.tax_evidence.configuration_version_hash,oldHash);assert.equal(bill.tax_evidence.configuration_version_hash,restored.collections.tax_configurations[0].version_hash);
+  assert.equal(restored.collections.purchase_returns[0].recoverable_tax_sdg,150);
   assert.deepEqual(reconcileFinancialData(restored.collections as FinancialData,restored.settings,{requireCosting:true}),[]);
 });

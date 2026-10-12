@@ -31,6 +31,7 @@ import { invoiceQuotaReached } from '../domain/subscriptions';
 interface AppContextType {
   taxConfigurations: TaxConfiguration[];
   saveTaxConfiguration: (data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<TaxConfiguration>;
+  loadTaxReport: (period: {start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['taxReports']>>>;
   fixedAssets: Document[];
   fixedAssetDepreciations: Document[];
   previewFixedAsset: (request: FixedAssetPreviewRequest, expectedOrgId: string) => Promise<FixedAssetPreview>;
@@ -430,6 +431,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     saveTaxConfiguration: (data, updating, expectedOrgId, requestId) => activeOrg.current === expectedOrgId
       ? run<TaxConfiguration>(updating ? 'taxConfiguration.update' : 'taxConfiguration.create', data, requestId)
       : Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح إعداد الضريبة.', 409)),
+    loadTaxReport: async period => {
+      const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
+      const params=new URLSearchParams();if(period.start)params.set('start',period.start);if(period.end)params.set('end',period.end);
+      const report=id===guestId&&!userRef.current?await getGuest().taxReports(id,guestActor,period):await api<Awaited<ReturnType<Operations['taxReports']>>>(`/organizations/${encodeURIComponent(id)}/reports/tax?${params}`);
+      if(id!==activeOrg.current||epoch!==session.current||report.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدث تقرير الضريبة.',409);return report;
+    },
     fixedAssets: rows<Document>('fixed_assets'), fixedAssetDepreciations: rows<Document>('fixed_asset_depreciations'),
     previewFixedAsset: async (request, expectedOrgId) => {
       const id = activeOrg.current, epoch = session.current;

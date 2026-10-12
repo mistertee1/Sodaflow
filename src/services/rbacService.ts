@@ -1,6 +1,8 @@
 import { OrgRole } from '../types';
 
 export type ActionType =
+  | 'tax:read'
+  | 'tax:manage'
   | 'equity:write'
   | 'opening:write'
   | 'opening:settle'
@@ -50,6 +52,7 @@ export type ActionType =
 
 const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
   Owner: new Set<ActionType>([
+    'tax:read', 'tax:manage',
     'equity:write',
     'opening:preview', 'opening:write', 'opening:settle',
     'periods:read', 'periods:manage', 'periods:adjust', 'periods:reopen',
@@ -130,6 +133,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'backup:restore',
   ]),
   Accountant: new Set<ActionType>([
+    'tax:read',
     'opening:preview', 'opening:settle',
     'periods:read', 'periods:manage', 'periods:adjust',
     'payables:read', 'payables:write',

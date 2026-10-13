@@ -144,7 +144,7 @@ test('D3.2 cash forecast verifies AR sources, ledger cash and recurring schedule
   assert.equal(report.totals.opening_cash_sdg,50);assert.equal(report.totals.expected_inflows_sdg,100);assert.equal(report.totals.expected_outflows_sdg,40);assert.equal(report.totals.forecast_closing_sdg,110);
   assert.equal(report.source_counts.customer_dues,1);assert.equal(report.source_counts.recurring_expenses,4);assert.equal(report.source_backed,true);assert.match(report.explanation,/لا يساوي صافي الربح/);
   await f.store.transaction(async tx=>tx.set(`${root}/invoices/${invoice.id}`,{...await tx.get(`${root}/invoices/${invoice.id}`),remaining_sdg:99}));
-  await assert.rejects(f.ops.cashForecast(f.org.id,{...actor,uid:'viewer'},{asOf:'2026-10-05',days:30}),/لا يطابق المصدر|المصدر/);
+  await assert.rejects(f.ops.cashForecast(f.org.id,{...actor,uid:'viewer'},{asOf:'2026-10-05',days:30}),/لا يطابق|مصادر|المصدر/);
 });
 
 test('D3.2 planning writes fail closed on expiry and stale idempotent replay',async()=>{

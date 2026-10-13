@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 32613)
+Total output lines: 971
+
 import { equityCollections, verifyEquitySources, equityBackupCounts, validateEquityBackup, remapEquityEvents } from './ownerEquitySources';
 import { fxRevaluationCollections, verifyFxRevaluationSources, fxRevaluationBackupCounts, validateFxRevaluationBackup, remapFxRevaluations } from './fxRevaluationSources';
 import { fxRevaluationTransaction } from './fxRevaluationTransactions';
@@ -48,12 +51,14 @@ import { branchProfitAndLoss, createDimension, dimensionCollection, dimensionFie
 import { customerProfitability, productProfitability } from './managementProfitability';
 import { budgetVsActual, saveBudget, type BudgetPlan } from './managementBudgets';
 import { cashForecast } from './managementCashForecast';
+import { saveRecurringCashSource, saveScheduledCashSource } from './managementCashSources';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
 export interface OperationResult { result: Document; changes: Change[]; }
 const actions: Record<string, ActionType> = {
   'budget.create':'budget:manage','budget.update':'budget:manage',
+  'recurringCashSource.create':'budget:manage','recurringCashSource.update':'budget:manage','scheduledCashSource.create':'budget:manage','scheduledCashSource.update':'budget:manage',
   'dimension.create':'dimensions:manage','dimension.update':'dimensions:manage',
   'taxConfiguration.create':'tax:manage','taxConfiguration.update':'tax:manage',
   'fixedAsset.register':'journal:create','fixedAsset.depreciate':'periods:adjust',
@@ -77,6 +82,8 @@ const actions: Record<string, ActionType> = {
 };
 export const readPermissions: Record<string, ActionType> = { branches:'dimensions:read',cost_centers:'dimensions:read',projects:'dimensions:read',tax_configurations:'tax:read',tax_configuration_versions:'tax:read',fixed_assets:'journal:read',fixed_asset_depreciations:'journal:read',fx_revaluations:'journal:read', owner_equity_events:'journal:read', ...Object.fromEntries(openingCollections.map(name=>[name,'journal:read' as const])), accounting_periods:'periods:read', audit_archives: 'audit_logs:view', purchase_returns: 'payables:read', supplier_refunds: 'payables:read', credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
 readPermissions.budgets = 'budget:read';
+readPermissions.recurring_cash_sources = 'budget:read';
+readPermissions.scheduled_cash_sources = 'budget:read';
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
@@ -249,7 +256,7 @@ export class Operations {
     return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'budget:read'),'ليس لديك صلاحية عرض الميزانيات.',403);const subscription=await loadSubscription(tx,orgId,org,this.now(),this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');ensure(org.accounting_version===2,'الميزانيات تتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,plan=await tx.get(`${root}/budgets/${identifier(budgetId)}`) as BudgetPlan|undefined;ensure(plan&&plan.org_id===orgId,'الميزانية غير موجودة.',404);return{organizationId:orgId,generatedAt:this.now().toISOString(),...budgetVsActual(plan,await tx.list(`${root}/accounts`) as Account[],await tx.list(`${root}/journal_entries`) as JournalEntry[])};});
   }
   async cashForecastReport(orgId:string,actor:Actor,input:{asOf?:string;days?:number}={}){
-    return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(['reports:advanced','invoices:read','payments:read','payables:read'].every(permission=>hasPermission(role,permission as ActionType)),'ليس لديك صلاحية توقع التدفقات النقدية.',403);const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');ensure(org.accounting_version===2,'توقع التدفقات النقدية يتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,asOf=input.asOf?dateOnly(input.asOf):merchantDay(now,org.settings.timezone||'Africa/Khartoum'),days=Number(input.days||30),receivables=await readOperationalReport(tx,root,'receivables',{end:asOf},asOf),payables=await readPayableReport(tx,root,{end:asOf},asOf);return{organizationId:orgId,generatedAt:now.toISOString(),...cashForecast(asOf,days,receivables.aging,payables.aging)};});
+    return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(['reports:advanced','invoices:read','payments:read','payables:read','budget:read'].every(permission=>hasPermission(role,permission as ActionType)),'ليس لديك صلاحية توقع التدفقات النقدية.',403);const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');ensure(org.accounting_version===2,'توقع التدفقات النقدية يتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,asOf=input.asOf?dateOnly(input.asOf):merchantDay(now,org.settings.timezone||'Africa/Khartoum'),days=Number(input.days||30),receivables=await readOperationalReport(tx,root,'receivables',{end:asOf},asOf),payables=await readPayableReport(tx,root,{end:asOf},asOf);return{organizationId:orgId,generatedAt:now.toISOString(),...cashForecast(asOf,days,receivables.aging,payables.aging,await tx.list(`${root}/recurring_cash_sources`) as never,await tx.list(`${root}/scheduled_cash_sources`) as never)};});
   }
   async execute(orgId: string, actor: Actor, command: Command): Promise<OperationResult> {
     identifier(orgId); identifier(actor.uid); identifier(command.operationId); ensure(command.operationId.length <= 64, 'معرّف العملية طويل جداً.');
@@ -443,6 +450,14 @@ export class Operations {
       let result: Document = {};
       let openingProof: Document | undefined;
       switch (command.action) {
+        case 'recurringCashSource.create': case 'recurringCashSource.update': {
+          ensure(org.accounting_version===2,'مصادر التوقع النقدي تتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');
+          result=await saveRecurringCashSource(tx,root,orgId,actor.uid,iso,command.action,command.data);changes.push({path:`${root}/recurring_cash_sources/${result.id}`,value:result});break;
+        }
+        case 'scheduledCashSource.create': case 'scheduledCashSource.update': {
+          ensure(org.accounting_version===2,'مصادر التوقع النقدي تتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');
+          result=await saveScheduledCashSource(tx,root,orgId,actor.uid,iso,command.action,command.data);changes.push({path:`${root}/scheduled_cash_sources/${result.id}`,value:result});break;
+        }
         case 'budget.create': case 'budget.update': {
           result=await saveBudget(tx,root,orgId,actor.uid,iso,command.action,command.data);
           changes.push({path:`${root}/budgets/${result.id}`,value:result});break;
@@ -458,110 +473,7 @@ export class Operations {
           if(proposed.before)beforeValues.set(`${root}/tax_configurations/${proposed.result.id}`,proposed.before);
           for(const change of proposed.changes)set(change.path,change.value);
           counters.tax_configuration_count=(await tx.list(`${root}/tax_configurations`)).filter(row=>row.id!==proposed.result.id).length+1;
-          counters.tax_configuration_version_count=(await tx.list(`${root}/tax_configuration_versions`)).filter(row=>row.id!==`${proposed.result.id}-r${proposed.result.revision}`).length+1;
-          result=proposed.result;break;
-        }
-        case 'fixedAsset.register': case 'fixedAsset.depreciate': {
-          const proposed=await fixedAssetTransaction(command.action,data,{tx,root,orgId,settings,actor:actor.uid,operationId:command.operationId,now});
-          for(const change of proposed.changes) change.path.includes('/journal_entries/')?await post(change.value as JournalEntry):set(change.path,change.value!);
-          counters.fixed_asset_count=command.action==='fixedAsset.register'?(await tx.list(`${root}/fixed_assets`)).filter(row=>row.id!==proposed.result.id).length+1:(await tx.list(`${root}/fixed_assets`)).length;
-          counters.fixed_asset_depreciation_count=command.action==='fixedAsset.depreciate'?(await tx.list(`${root}/fixed_asset_depreciations`)).filter(row=>row.id!==proposed.result.id).length+1:(await tx.list(`${root}/fixed_asset_depreciations`)).length;
-          result=proposed.result;break;
-        }
-        case 'fxRevaluation.create': {
-          const proposed=await fxRevaluationTransaction(data,{tx,root,orgId,settings,actor:actor.uid,operationId:command.operationId,now});set(`${root}/fx_revaluations/${proposed.event.id}`,proposed.event);await post(proposed.entry);counters.fx_revaluation_count=(await tx.list(`${root}/fx_revaluations`)).filter(row=>row.id!==proposed.event.id).length+1;result=proposed.event;break;
-        }
-        case 'ownerEquity.create': {
-          const proposed=await ownerEquityTransaction(data,{tx,root,orgId,settings,actor:actor.uid,operationId:command.operationId,now});
-          beforeValues.set(`${root}/financial_accounts/${proposed.cash.id}`,proposed.cash);
-          set(`${root}/owner_equity_events/${proposed.event.id}`,proposed.event);await post(proposed.entry);
-          set(`${root}/financial_accounts/${proposed.cash.id}`,proposed.updated);
-          counters.owner_equity_event_count=(await tx.list(`${root}/owner_equity_events`)).filter(row=>row.id!==proposed.event.id).length+1;
-          result=proposed.event;break;
-        }
-
-        case 'opening.commit': case 'openingSettlement.create': {
-          const proposed=await openingTransaction(command.action,data,{tx,root,orgId,version:org.accounting_version!,role,settings:org.settings,now,actor:actor.uid,operationId:command.operationId});
-          for(const [path,value] of proposed.before)beforeValues.set(path,value);
-          for(const change of proposed.changes) {
-            if(change.path.includes('/journal_entries/'))await post(change.value as JournalEntry);
-            else set(change.path,change.value!);
-          }
-          Object.assign(counters,proposed.counters);result=proposed.result;openingProof=proposed.proof;break;
-        }
-
-        case 'period.create': case 'period.softClose': case 'period.close': case 'period.reopen': {
-          result=await periodCommand(command.action,data,{tx,root,orgId,actor:actor.uid,role,iso,operationId:command.operationId,settings,set,required});break;
-        }
-        case 'correctionDocument.export': {
-          result = await readCorrectionDocument(tx, root, data, settings, iso);
-          ensure(new TextEncoder().encode(JSON.stringify(result)).length <= 650000, 'المستند أكبر من حد التصدير؛ يلزم تصدير مضبوط.', 413);
-          break;
-        }
-
-        case 'purchaseReturn.create': case 'supplierRefund.create': {
-          result = await purchaseCorrectionCommand(command.action,data,{tx,root,orgId,actor:actor.uid,iso,operationId:command.operationId,settings,set,required,post,counterAdd}); break;
-        }
-        case 'creditNote.create': case 'customerRefund.create': {
-          result = await salesCorrectionCommand(command.action, data, { tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
-        }
-        case 'bankReconciliation.create': case 'cashCount.create': {
-          const source = await required('financial_accounts', data.financial_account_id); if (source.currency === 'USD') assertFeature(subscription, 'multi_currency');
-          result = await cashReconciliationCommand(command.action, data, { tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
-        }
-        case 'financialAccount.create': case 'financialAccount.update': case 'cashTransfer.create': {
-          if (command.action === 'cashTransfer.create') { const source = await required('financial_accounts', data.from_id); if (source.currency === 'USD') assertFeature(subscription, 'multi_currency'); }
-          result = await cashCommand(command.action, data, { tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
-        }
-        case 'operational.export': {
-          const report = await readOperationalReport(tx, root, data.view, data.query || {}, merchantDay(now, settings.timezone || 'Africa/Khartoum'));
-          result = { organizationId: orgId, generatedAt: iso, view: data.view, ...report };
-          ensure(new TextEncoder().encode(JSON.stringify(result)).length <= 650000, 'حجم التصدير كبير؛ اختر فترة أقصر أو حساباً محدداً.', 413);
-          break;
-        }
-        case 'payables.export': {
-          result = { organizationId: orgId, generatedAt: iso, ...await readPayableReport(tx,root,data.period||{},iso) }; break;
-        }
-        case 'supplier.create': case 'supplier.update': case 'purchase.create': case 'supplierPayment.create': {
-          result = await payableCommand(command.action, data, { tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
-        }
-        case 'customer.create': case 'customer.update': {
-          const updating = command.action.endsWith('update');
-          const id = updating ? identifier(data.id) : `cus-${command.operationId}`;
-          const old = updating ? await required('customers', id) : {};
-          ensure(updating || !await tx.get(`${root}/customers/${id}`), 'معرّف العميل موجود مسبقاً.', 409);
-          const input = updating ? data.updates : data;
-          ensure(input && typeof input === 'object', 'بيانات العميل غير صالحة.');
-          ensure(!['balance_sdg', 'balance_usd'].some(k => input[k] !== undefined && input[k] !== (old[k] || 0)), 'أرصدة العملاء تتغير بالسندات والقيود فقط.');
-          if (!updating) { const count = (await tx.list(`${root}/customers`)).length; ensure(count < plan.max_customers, 'تم بلوغ حد العملاء في الباقة.'); counters.customer_count = count; counterAdd('customer_count', 1); }
-          result = { ...old, ...pick(input, ['name', 'phone', 'email', 'address', 'preferred_currency', 'notes']), ...(!updating ? stamp : {}), id, balance_sdg: old.balance_sdg || 0, balance_usd: old.balance_usd || 0, updated_at: iso };
-          result.phone ??= ''; result.preferred_currency ??= 'SDG';
-          text(result.name, 200, true); text(result.phone ?? '', 100);
-          ensure(['SDG', 'USD'].includes(result.preferred_currency || 'SDG'), 'عملة العميل غير مدعومة.');
-          set(`${root}/customers/${id}`, result); break;
-        }
-        case 'customer.delete': {
-          const customer = await required('customers', data.id);
-          ensure(!(await tx.list(`${root}/opening_lots`)).some(row=>row.kind==='receivable' && row.party_id===data.id) && !(await tx.list(`${root}/opening_batches`)).some(row=>row.quote?.sources?.some((source:Document)=>source.kind==='receivable' && source.source_id===data.id)),'العميل مرتبط بمصدر افتتاحي؛ احتفظ بالسجل بعد التسوية.',409);
-          ensure(!(customer.balance_sdg || customer.balance_usd) && !(await tx.list(`${root}/invoices`)).some(i => i.customer_id === data.id), 'العميل مرتبط بعمليات مالية. احتفظ بسجله.');
-          remove(`${root}/customers/${data.id}`); counterAdd('customer_count', -1); break;
-        }
-        case 'product.create': case 'product.update': {
-          const updating = command.action.endsWith('update'), id = updating ? identifier(data.id) : `prd-${command.operationId}`;
-          const old = updating ? await required('products', id) : {};
-          ensure(updating || !await tx.get(`${root}/products/${id}`), 'معرّف المنتج موجود مسبقاً.', 409);
-          const input = updating ? data.updates : data;
-          ensure(input && typeof input === 'object', 'بيانات المنتج غير صالحة.');
-          ensure(!costFields.some(k => input[k] !== undefined), 'حقول التكلفة تتغير بعملية تكلفة موثقة فقط.');
-          if (input.stock_quantity !== undefined) money(input.stock_quantity, 6);
-          ensure(!updating || input.stock_quantity === undefined || input.stock_quantity === old.stock_quantity, 'تعديل الكمية يتطلب عملية تسوية مخزون.');
-          ensure(!updating || input.track_inventory === undefined || input.track_inventory === old.track_inventory, 'غيّر تتبع المخزون عبر إنشاء منتج مستقل للحفاظ على الجرد.');
-          if (!updating) { const count = (await tx.list(`${root}/products`)).length; ensure(count < plan.max_products, 'تم بلوغ حد المنتجات في الباقة.'); counters.product_count = count; counterAdd('product_count', 1); }
-          result = { ...old, ...pick(input, ['name', 'description', 'unit', 'price_sdg', 'price_usd', 'tax_rate', 'category', 'is_active', 'min_stock_alert', 'track_inventory']), ...(!updating ? { ...stamp, stock_quantity: input.stock_quantity || 0 } : {}), id };
-          text(result.name, 200, true); text(result.unit || '', 50, true);
-          money(result.price_sdg, 0); money(result.price_usd, 2); money(result.tax_rate ?? 0, 4); ensure((result.tax_rate || 0) <= 100, 'نسبة الضريبة غير صالحة.');
-          money(result.stock_quantity ?? 0, 6); money(result.min_stock_alert ?? 0, 6);
-          ensure(typeof result.is_active === 'boolean' && (result.track_inventory === undefined || typeof result.track_inventory === 'boolean'), 'حالة المنتج غير صالحة.');
+     …2613 tokens truncated…nventory === undefined || typeof result.track_inventory === 'boolean'), 'حالة المنتج غير صالحة.');
           let openingValue: Document = {};
           if (!updating && result.track_inventory && org.accounting_version === 2) {
             const quantity = result.stock_quantity;

@@ -5,9 +5,16 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d3-budget-foundation-20261013",
+  "active_branch": "codex/accounting-v2-d3-budget-forecast-ui-20261013",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "d3-budget-forecast-ui-20261013",
+    "acquired_at": "2026-10-13T11:09:24.649Z",
+    "expires_at": "2026-10-13T13:09:24.649Z",
+    "branch": "codex/accounting-v2-d3-budget-forecast-ui-20261013",
+    "purpose": "Implement D3.2 budget UI and source-backed cash forecast",
+    "heartbeat_at": "2026-10-13T11:09:24.649Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1095,9 +1102,9 @@
     },
     {
       "id": "D",
-    "status": "in_progress",
-      "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
-      "pr": 64,
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-d3-budget-forecast-ui-20261013",
+      "pr": null,
       "steps": [
         {
           "id": "D1",
@@ -1225,9 +1232,9 @@
         {
           "id": "D2",
           "scope": "Product/customer profitability and source-supported management reports",
-      "status": "implemented_ci_passed_render_acceptance_pending",
+          "status": "implemented_ci_passed_render_acceptance_pending",
           "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
-      "pr": 64,
+          "pr": 64,
           "substeps": [
             {
               "id": "D2.1",
@@ -1256,26 +1263,26 @@
             {
               "id": "D2.2",
               "scope": "Source-backed customer profitability and management reporting",
-          "status": "implemented_ci_passed_render_acceptance_pending",
+              "status": "implemented_ci_passed_render_acceptance_pending",
               "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
-          "pr": 64,
-          "report": "REPORT_D2_2_CUSTOMER_PROFITABILITY.md",
-          "checks": {
-            "unit_api": 341,
-            "types": "passed",
-            "core": "passed",
-            "build": "passed",
-            "emulator": 35,
-            "ui": 66,
-            "production_audit_vulnerabilities": 0
-          },
-          "ci": {
-            "run_id": 38353477574,
-            "commit_sha": "be84b48d46ca972c14b0bc6ca7177519b14b2cca",
-            "conclusion": "success"
-          },
-          "render_acceptance": "pending_matching_authenticated_staging_commit",
-          "completed_at": "2026-10-13T08:55:00Z"
+              "pr": 64,
+              "report": "REPORT_D2_2_CUSTOMER_PROFITABILITY.md",
+              "checks": {
+                "unit_api": 341,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 66,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38353477574,
+                "commit_sha": "be84b48d46ca972c14b0bc6ca7177519b14b2cca",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-13T08:55:00Z"
             }
           ]
         },
@@ -1283,8 +1290,8 @@
           "id": "D3",
           "scope": "Budgets, budget vs actual and cash forecast",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-d3-budget-foundation-20261013",
-          "pr": 65,
+          "branch": "codex/accounting-v2-d3-budget-forecast-ui-20261013",
+          "pr": null,
           "substeps": [
             {
               "id": "D3.1",
@@ -1294,9 +1301,29 @@
               "pr": 65,
               "code_commit": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
               "report": "REPORT_D3_1_BUDGET_FOUNDATION.md",
-              "local_checks": { "types": "passed", "unit_api": 342, "build": "passed", "emulator": "blocked_java_21_required" },
-              "ci": { "run_id": 38375686205, "commit_sha": "2cd8d94371e422068b8421a6e73ccc43a88da87e", "conclusion": "success", "unit_api": 342, "emulator": 35, "ui": 66, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "unit_api": 342,
+                "build": "passed",
+                "emulator": "blocked_java_21_required"
+              },
+              "ci": {
+                "run_id": 38375686205,
+                "commit_sha": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
+                "conclusion": "success",
+                "unit_api": 342,
+                "emulator": 35,
+                "ui": 66,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D3.2",
+              "scope": "Budget UI and source-backed cash forecast",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-d3-budget-forecast-ui-20261013",
+              "pr": null
             }
           ]
         },
@@ -1439,7 +1466,7 @@
     "D3.2 budget UI and cash forecast",
     "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2 on matching staging commits"
   ],
-  "updated_at": "2026-10-13T10:27:00Z",
+  "updated_at": "2026-10-13T11:09:24.649Z",
   "deferred_requirements": [
     {
       "prd_sections": [

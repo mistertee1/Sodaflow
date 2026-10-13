@@ -440,7 +440,8 @@ export class Operations {
       let openingProof: Document | undefined;
       switch (command.action) {
         case 'budget.create': case 'budget.update': {
-          result=await saveBudget(tx,root,orgId,actor.uid,iso,command.action,command.data);break;
+          result=await saveBudget(tx,root,orgId,actor.uid,iso,command.action,command.data);
+          changes.push({path:`${root}/budgets/${result.id}`,value:result});break;
         }
         case 'dimension.create': case 'dimension.update': {
           ensure(org.accounting_version===2,'الأبعاد الإدارية تتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');

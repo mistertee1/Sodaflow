@@ -8,6 +8,7 @@ import type { TaxConfiguration } from '../domain/taxConfiguration';
 import type { ManagementDimension } from '../domain/managementDimensions';
 import type { DimensionKind } from '../domain/managementDimensions';
 import type { BudgetPlan } from '../domain/managementBudgets';
+import type { RecurringCashSource, ScheduledCashSource } from '../domain/managementCashSources';
 import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
 import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
@@ -32,6 +33,10 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  recurringCashSources:RecurringCashSource[];
+  scheduledCashSources:ScheduledCashSource[];
+  saveRecurringCashSource:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<RecurringCashSource>;
+  saveScheduledCashSource:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<ScheduledCashSource>;
   budgets: BudgetPlan[];
   saveBudget:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<BudgetPlan>;
   loadBudgetReport:(budgetId:string)=>Promise<Awaited<ReturnType<Operations['budgetReport']>>>;
@@ -511,6 +516,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
     branches: rows<ManagementDimension>('branches'), costCenters: rows<ManagementDimension>('cost_centers'), projects: rows<ManagementDimension>('projects'),
     budgets:rows<BudgetPlan>('budgets'),
+    recurringCashSources:rows<RecurringCashSource>('recurring_cash_sources'),scheduledCashSources:rows<ScheduledCashSource>('scheduled_cash_sources'),
+    saveRecurringCashSource:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<RecurringCashSource>(updating?'recurringCashSource.update':'recurringCashSource.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح مصدر التوقع.',409)),
+    saveScheduledCashSource:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<ScheduledCashSource>(updating?'scheduledCashSource.update':'scheduledCashSource.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح مصدر التوقع.',409)),
     saveBudget:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<BudgetPlan>(updating?'budget.update':'budget.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح الميزانية.',409)),
     loadBudgetReport:async budgetId=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const value=id===guestId&&!userRef.current?await getGuest().budgetReport(id,guestActor,budgetId):await api<Awaited<ReturnType<Operations['budgetReport']>>>(`/organizations/${encodeURIComponent(id)}/reports/budget-vs-actual?budgetId=${encodeURIComponent(budgetId)}`);if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return value;},
     loadCashForecast:async input=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams({...input.asOf?{asOf:input.asOf}:{},...input.days?{days:String(input.days)}:{}}),value=id===guestId&&!userRef.current?await getGuest().cashForecastReport(id,guestActor,input):await api<Awaited<ReturnType<Operations['cashForecastReport']>>>(`/organizations/${encodeURIComponent(id)}/reports/cash-forecast?${params}`);if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التوقع.',409);return value;},

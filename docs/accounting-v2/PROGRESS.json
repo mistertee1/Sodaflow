@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d2-customer-profitability-20261013",
+  "active_branch": "codex/accounting-v2-d3-budget-foundation-20261013",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1282,9 +1282,23 @@
         {
           "id": "D3",
           "scope": "Budgets, budget vs actual and cash forecast",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-d3-budget-foundation-20261013",
+          "pr": 65,
+          "substeps": [
+            {
+              "id": "D3.1",
+              "scope": "Protected budget registry and source-backed budget-versus-actual foundation",
+              "status": "implemented_ci_pending_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d3-budget-foundation-20261013",
+              "pr": 65,
+              "code_commit": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
+              "report": "REPORT_D3_1_BUDGET_FOUNDATION.md",
+              "local_checks": { "types": "passed", "unit_api": 342, "build": "passed", "emulator": "blocked_java_21_required" },
+              "ci": { "run_id": 38375686205, "status": "in_progress" },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            }
+          ]
         },
         {
           "id": "D4",
@@ -1420,12 +1434,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_D2_2_CUSTOMER_PROFITABILITY.md",
+  "last_report": "REPORT_D3_1_BUDGET_FOUNDATION.md",
   "next_steps": [
-    "D3 budgets, budget-versus-actual reporting and cash forecast",
+    "D3.2 budget UI and cash forecast after D3.1 CI succeeds",
     "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2 on matching staging commits"
   ],
-  "updated_at": "2026-10-13T08:55:00Z",
+  "updated_at": "2026-10-13T09:22:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1450,7 +1464,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D3",
+  "active_substep": "D3.1",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {

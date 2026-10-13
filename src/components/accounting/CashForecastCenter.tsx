@@ -1,5 +1,6 @@
 import React,{useEffect,useState} from 'react';
 import {useApp} from '../../context/AppContext';
+import {CashSourceManager} from './CashSourceManager';
 
 const today=()=>new Date().toISOString().slice(0,10);
 const money=(value:number)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value);
@@ -7,7 +8,7 @@ const money=(value:number)=>new Intl.NumberFormat('en-US',{maximumFractionDigits
 export const CashForecastCenter:React.FC=()=>{const a=useApp(),[asOf,setAsOf]=useState(today()),[days,setDays]=useState(30),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[report,setReport]=useState<Awaited<ReturnType<typeof a.loadCashForecast>>|null>(null);
 const load=async()=>{if(busy)return;setBusy(true);setMessage('');try{setReport(await a.loadCashForecast({asOf,days}));}catch(error){setReport(null);setMessage(error instanceof Error?error.message:'تعذر تحميل توقع التدفقات النقدية.');}finally{setBusy(false);}};
 useEffect(()=>{void load();},[]);// المؤسسة والجلسة تعيدان تركيب المركز من المفتاح الأب.
-return <section role="region" aria-label="توقع التدفقات النقدية" className="space-y-4">
+return <section role="region" aria-label="توقع التدفقات النقدية" className="space-y-4"><CashSourceManager/>
 <div className="sf-card p-4"><h3 className="font-bold">توقع التدفقات النقدية</h3><p className="text-sm text-sf-muted">توقع موثق من آجال العملاء والموردين، وليس رصيداً بنكياً متوقعاً.</p></div>
 <form aria-label="مرشحات توقع النقد" onSubmit={e=>{e.preventDefault();void load();}} className="sf-card p-4 flex flex-wrap items-end gap-3"><label>تاريخ الأساس<input aria-label="تاريخ أساس التوقع" type="date" required value={asOf} onChange={e=>setAsOf(e.target.value)} className="sf-field block"/></label><label>الأفق بالأيام<input aria-label="أيام التوقع" type="number" min="1" max="365" required value={days} onChange={e=>setDays(Number(e.target.value))} className="sf-field block w-28"/></label><button disabled={busy} className="sf-primary">{busy?'جارٍ التحميل…':'تحديث التوقع'}</button></form>
 {message&&<p role="alert" className="sf-card p-4 text-red-600">{message}</p>}

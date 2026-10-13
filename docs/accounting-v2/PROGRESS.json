@@ -10,10 +10,10 @@
   "lease": {
     "worker": "d3-budget-forecast-ui-20261013",
     "acquired_at": "2026-10-13T11:09:24.649Z",
-    "expires_at": "2026-10-13T13:09:24.649Z",
+    "expires_at": "2026-10-13T18:09:10.760Z",
     "branch": "codex/accounting-v2-d3-budget-forecast-ui-20261013",
     "purpose": "Implement D3.2 budget UI and source-backed cash forecast",
-    "heartbeat_at": "2026-10-13T11:09:24.649Z"
+    "heartbeat_at": "2026-10-13T16:09:10.760Z"
   },
   "milestones": [
     {

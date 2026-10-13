@@ -1289,13 +1289,13 @@
             {
               "id": "D3.1",
               "scope": "Protected budget registry and source-backed budget-versus-actual foundation",
-              "status": "implemented_ci_pending_render_acceptance_pending",
+              "status": "implemented_ci_passed_render_acceptance_pending",
               "branch": "codex/accounting-v2-d3-budget-foundation-20261013",
               "pr": 65,
               "code_commit": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
               "report": "REPORT_D3_1_BUDGET_FOUNDATION.md",
               "local_checks": { "types": "passed", "unit_api": 342, "build": "passed", "emulator": "blocked_java_21_required" },
-              "ci": { "run_id": 38375686205, "status": "in_progress" },
+              "ci": { "run_id": 38375686205, "commit_sha": "2cd8d94371e422068b8421a6e73ccc43a88da87e", "conclusion": "success", "unit_api": 342, "emulator": 35, "ui": 66, "production_audit_vulnerabilities": 0 },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]
@@ -1436,10 +1436,10 @@
   ],
   "last_report": "REPORT_D3_1_BUDGET_FOUNDATION.md",
   "next_steps": [
-    "D3.2 budget UI and cash forecast after D3.1 CI succeeds",
+    "D3.2 budget UI and cash forecast",
     "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2 on matching staging commits"
   ],
-  "updated_at": "2026-10-13T09:22:00Z",
+  "updated_at": "2026-10-13T10:27:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1464,7 +1464,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D3.1",
+  "active_substep": "D3.2",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {
@@ -1690,24 +1690,24 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "d2-customer-profitability-20261013",
-    "acquired_at": "2026-10-13T05:45:40.831Z",
-    "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
-    "released_at": "2026-10-13T08:55:00Z",
-    "pr": 64,
-    "code_commit": "be84b48d46ca972c14b0bc6ca7177519b14b2cca",
-    "status": "D2_2_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-13T08:55:00Z",
+    "worker": "d3-budget-foundation-20261013",
+    "acquired_at": "2026-10-13T09:20:00Z",
+    "branch": "codex/accounting-v2-d3-budget-foundation-20261013",
+    "released_at": "2026-10-13T10:27:00Z",
+    "pr": 65,
+    "code_commit": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
+    "status": "D3_1_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-13T10:27:00Z",
     "ci": {
-      "run_id": 38353477574,
-      "commit_sha": "be84b48d46ca972c14b0bc6ca7177519b14b2cca",
+      "run_id": 38375686205,
+      "commit_sha": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
       "conclusion": "success",
-      "unit_api": 341,
+      "unit_api": 342,
       "emulator": 35,
       "ui": 66,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to D3 budgets, budget-versus-actual reporting and cash forecast; Render acceptance remains independent"
+    "next": "Proceed to D3.2 budget UI and cash forecast; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

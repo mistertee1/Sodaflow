@@ -36,23 +36,23 @@ import { BusinessError, assertOpenPeriod, dateOnly, ensure, identifier, money, t
 import { invoiceFinancials, journal, journalLine, paymentQuote, receiptJournal, receivableCurrency, reverseJournal } from './financial';
 import { clean, type Change, type Document, type Store, type Transaction } from './store';
 import { acquisitionCost, allocateCost, costFields, costState, issueCost, receiveCost, validateCostState, hasIncompleteInvoiceCosts } from './inventoryCost';
-import { payableCommand, payableCollections, readPayableReport } from './payables';
+import { payableCommand, payableCollections, readPayableReport, type PurchaseBill } from './payables';
 import { cashReconciliationCollections, cashReconciliationCommand, cashReconciliationReports, verifyCashSessionHashes } from './cashReconciliation';
 import { cashCollections, cashCommand } from './cashManagement';
-import { purchaseCorrectionCollections, purchaseCorrectionCommand } from './purchaseCorrections';
+import { purchaseCorrectionCollections, purchaseCorrectionCommand, loadPurchaseSource } from './purchaseCorrections';
 import { salesCorrectionCollections, salesCorrectionCommand, loadSalesSource, salesInvoiceCaches, saveSalesCustomer } from './salesCorrections';
 import { classifyAccount } from './accountClassification';
 import { merchantDay, operationalPermissions, readOperationalReport, type LedgerQuery, type ReportPeriod, type OperationalReportTypes } from './operationalReports';
 import { financialCollections, reconcileFinancialData, type FinancialData } from './reconciliation';
 import { branchProfitAndLoss, createDimension, dimensionCollection, dimensionField, dimensionKind, dimensionTags, updateDimension, type ManagementDimension } from './managementDimensions';
 import { customerProfitability, productProfitability } from './managementProfitability';
-import { budgetVsActual, saveBudget, type BudgetPlan } from './managementBudgets';
+import { budgetVsActual, cashForecast, managementPlanningCollections, saveBudget, saveCashForecastSchedule, validateManagementPlanningData, type BudgetPlan, type CashForecastSchedule } from './managementBudgets';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
 export interface OperationResult { result: Document; changes: Change[]; }
 const actions: Record<string, ActionType> = {
-  'budget.create':'budget:manage','budget.update':'budget:manage',
+  'budget.create':'budget:manage','budget.update':'budget:manage','cashForecastSchedule.create':'budget:manage','cashForecastSchedule.update':'budget:manage',
   'dimension.create':'dimensions:manage','dimension.update':'dimensions:manage',
   'taxConfiguration.create':'tax:manage','taxConfiguration.update':'tax:manage',
   'fixedAsset.register':'journal:create','fixedAsset.depreciate':'periods:adjust',
@@ -76,6 +76,7 @@ const actions: Record<string, ActionType> = {
 };
 export const readPermissions: Record<string, ActionType> = { branches:'dimensions:read',cost_centers:'dimensions:read',projects:'dimensions:read',tax_configurations:'tax:read',tax_configuration_versions:'tax:read',fixed_assets:'journal:read',fixed_asset_depreciations:'journal:read',fx_revaluations:'journal:read', owner_equity_events:'journal:read', ...Object.fromEntries(openingCollections.map(name=>[name,'journal:read' as const])), accounting_periods:'periods:read', audit_archives: 'audit_logs:view', purchase_returns: 'payables:read', supplier_refunds: 'payables:read', credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
 readPermissions.budgets = 'budget:read';
+readPermissions.cash_forecast_schedules = 'budget:read';
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
@@ -229,11 +230,11 @@ export class Operations {
       if (backup) { ensure(org.status === 'active', 'المؤسسة متوقفة؛ التصدير المحمي غير متاح.', 403); assertSubscriptionActive(subscription); }
       const collections: Record<string, Document[]> = {};
       for (const [name, permission] of Object.entries(readPermissions)) {
-        const feature = name==='branches'?'branches':['cost_centers','projects'].includes(name)?'advanced_reports':['audit_logs','audit_archives'].includes(name) ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(name) ? 'accounting' : null;
+        const feature = name==='branches'?'branches':['cost_centers','projects'].includes(name)?'advanced_reports':['audit_logs','audit_archives'].includes(name) ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...managementPlanningCollections, ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(name) ? 'accounting' : null;
         const activeSubscription = ['active', 'trial'].includes(subscription.effective_status || subscription.status) && org.status === 'active';
         collections[name] = hasPermission(role, permission) && (backup || !feature || activeSubscription && subscription.features[feature] === true) ? await tx.list(`${root}/${name}`) : [];
       }
-      if (backup) { await verifyTaxConfigurationSources(collections,orgId);verifyFixedAssetSources(collections,orgId);verifyFxRevaluationSources(collections,orgId);verifyEquitySources(collections,orgId); await verifyAuditArchives(collections.audit_archives); await verifyClosedPeriodHashes(collections.accounting_periods,collections.journal_entries,collections); if(hasOpeningSources(collections))verifyOpeningSources(collections,orgId); }
+      if (backup) { validateManagementPlanningData(collections,orgId);await verifyTaxConfigurationSources(collections,orgId);verifyFixedAssetSources(collections,orgId);verifyFxRevaluationSources(collections,orgId);verifyEquitySources(collections,orgId); await verifyAuditArchives(collections.audit_archives); await verifyClosedPeriodHashes(collections.accounting_periods,collections.journal_entries,collections); if(hasOpeningSources(collections))verifyOpeningSources(collections,orgId); }
       const counters = { ...DEFAULT_ORGANIZATION_COUNTERS, ...await tx.get(`${root}/meta/counters`) };
       if (backup) { ensure((counters.audit_archive_count || 0) === collections.audit_archives.length, 'عدد أرشيف التدقيق لا يطابق السجل المحفوظ.', 409); counters.audit_event_count = collections.audit_logs.length; counters.accounting_period_count=collections.accounting_periods.length; Object.assign(counters,openingBackupCounts(collections),equityBackupCounts(collections),fxRevaluationBackupCounts(collections),fixedAssetBackupCounts(collections),taxConfigurationBackupCounts(collections)); }
       const currentMonth = monthKey(this.now(), org.settings.timezone || 'Africa/Khartoum');
@@ -245,7 +246,31 @@ export class Operations {
     });
   }
   async budgetReport(orgId:string,actor:Actor,budgetId:string){
-    return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'budget:read'),'ليس لديك صلاحية عرض الميزانيات.',403);const subscription=await loadSubscription(tx,orgId,org,this.now(),this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');ensure(org.accounting_version===2,'الميزانيات تتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,plan=await tx.get(`${root}/budgets/${identifier(budgetId)}`) as BudgetPlan|undefined;ensure(plan&&plan.org_id===orgId,'الميزانية غير موجودة.',404);return{organizationId:orgId,generatedAt:this.now().toISOString(),...budgetVsActual(plan,await tx.list(`${root}/accounts`) as Account[],await tx.list(`${root}/journal_entries`) as JournalEntry[])};});
+    return this.store.transaction(async tx=>{
+      const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'budget:read'),'ليس لديك صلاحية عرض الميزانيات.',403);
+      const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');ensure(org.accounting_version===2,'الميزانيات تتطلب محاسبة V2.',409);
+      const root=`organizations/${orgId}`,plan=await tx.get(`${root}/budgets/${identifier(budgetId)}`) as BudgetPlan|undefined;ensure(plan&&plan.org_id===orgId,'الميزانية غير موجودة.',404);
+      validateManagementPlanningData({budgets:[plan],cash_forecast_schedules:[]},orgId);
+      return{organizationId:orgId,generatedAt:now.toISOString(),...budgetVsActual(plan,await tx.list(`${root}/accounts`) as Account[],await tx.list(`${root}/journal_entries`) as JournalEntry[])};
+    });
+  }
+  async cashForecast(orgId:string,actor:Actor,query:{asOf?:string;days?:number}={}){
+    return this.store.transaction(async tx=>{
+      const {org,role}=await membership(tx,orgId,actor);
+      ensure(['budget:read','invoices:read','payables:read','journal:read','accounts:read'].every(permission=>hasPermission(role,permission as ActionType)),'ليس لديك صلاحية التنبؤ النقدي.',403);
+      const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');ensure(org.accounting_version===2,'التنبؤ النقدي يتطلب محاسبة V2.',409);
+      const root=`organizations/${orgId}`,asOf=dateOnly(query.asOf||merchantDay(now,org.settings.timezone||'Africa/Khartoum')),days=query.days===undefined?30:Number(query.days);
+      ensure(Number.isSafeInteger(days)&&days>=1&&days<=365,'مدة التنبؤ يجب أن تكون من يوم إلى 365 يوماً.');
+      const invoices=(await tx.list(`${root}/invoices`) as Invoice[]).filter(row=>!['draft','cancelled','void','paid'].includes(row.status));
+      const bills=(await tx.list(`${root}/purchase_bills`) as PurchaseBill[]).filter(row=>row.status!=='paid');
+      const invoiceBalances:Record<string,{sdg:number;usd:number}>={};
+      for(const row of invoices)invoiceBalances[row.id]=(await loadSalesSource(tx,root,row)).balance;
+      const billBalances:Record<string,{sdg:number;usd:number}>={};
+      for(const row of bills)billBalances[row.id]=(await loadPurchaseSource(tx,root,row)).balance;
+      const cash=await readOperationalReport(tx,root,'cash',{end:asOf},asOf),schedules=await tx.list(`${root}/cash_forecast_schedules`) as CashForecastSchedule[];
+      validateManagementPlanningData({budgets:[],cash_forecast_schedules:schedules},orgId);
+      return{organizationId:orgId,generatedAt:now.toISOString(),...cashForecast({as_of:asOf,days,opening_cash:{sdg:cash.closing_sdg,usd:cash.closing_usd},invoices,purchase_bills:bills,schedules,invoice_balances:invoiceBalances,bill_balances:billBalances})};
+    });
   }
   async execute(orgId: string, actor: Actor, command: Command): Promise<OperationResult> {
     identifier(orgId); identifier(actor.uid); identifier(command.operationId); ensure(command.operationId.length <= 64, 'معرّف العملية طويل جداً.');
@@ -278,7 +303,7 @@ export class Operations {
           await this.verifyCostingSecurity(); securityChecked = true;
         }
       };
-      if (org.accounting_version === 2 || ['dimension.create','dimension.update','taxConfiguration.create','taxConfiguration.update','fixedAsset.register','fixedAsset.depreciate','fxRevaluation.create','ownerEquity.create', ...openingActions, 'accounting.activate', 'product.cost.establish', 'inventory.receive', 'purchase.create', 'supplierPayment.create', 'cashTransfer.create', 'bankReconciliation.create', 'cashCount.create', 'creditNote.create', 'customerRefund.create', 'purchaseReturn.create', 'supplierRefund.create'].includes(command.action)) await requireCostAuthority();
+      if (org.accounting_version === 2 || ['budget.create','budget.update','cashForecastSchedule.create','cashForecastSchedule.update','dimension.create','dimension.update','taxConfiguration.create','taxConfiguration.update','fixedAsset.register','fixedAsset.depreciate','fxRevaluation.create','ownerEquity.create', ...openingActions, 'accounting.activate', 'product.cost.establish', 'inventory.receive', 'purchase.create', 'supplierPayment.create', 'cashTransfer.create', 'bankReconciliation.create', 'cashCount.create', 'creditNote.create', 'customerRefund.create', 'purchaseReturn.create', 'supplierRefund.create'].includes(command.action)) await requireCostAuthority();
       if (['bankReconciliation.create', 'cashCount.create'].includes(command.action)) {
         const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
         assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
@@ -355,6 +380,8 @@ export class Operations {
       if(isFx){ensure(org.accounting_version===2,'إعادة تقييم العملة تتطلب محاسبة V2.',409);const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');assertFeature(entitlement,'multi_currency');ensure(['Owner','Accountant'].includes(role),'ترحيل إعادة التقييم متاح للمالك والمحاسب فقط.',403);ensure(periods.length>0,'أنشئ فترة محاسبية أولاً.',409);const date=dateOnly(command.data.date);ensure(date===command.data.date&&date<=merchantDay(now,org.settings.timezone||'Africa/Khartoum'),'تاريخ إعادة التقييم غير صالح أو مستقبلي.',409);guardPeriod(date);}
       const isFixed=command.action==='fixedAsset.register'||command.action==='fixedAsset.depreciate';
       if(isFixed){ensure(org.accounting_version===2,'الأصول الثابتة تتطلب محاسبة V2.',409);const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');ensure(['Owner','Accountant'].includes(role),'إدارة الأصول متاحة للمالك والمحاسب فقط.',403);if(command.action==='fixedAsset.depreciate'){ensure(periods.length>0,'أنشئ فترة محاسبية أولاً.',409);const date=dateOnly(command.data.date);ensure(date===command.data.date&&date<=merchantDay(now,org.settings.timezone||'Africa/Khartoum'),'تاريخ الإهلاك غير صالح أو مستقبلي.',409);guardPeriod(date);}}
+      const isPlanning=['budget.create','budget.update','cashForecastSchedule.create','cashForecastSchedule.update'].includes(command.action);
+      if(isPlanning){const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');ensure(org.accounting_version===2,'التخطيط المالي يتطلب محاسبة V2.',409);}
       const isTaxConfiguration=command.action==='taxConfiguration.create'||command.action==='taxConfiguration.update';
       if(isTaxConfiguration){ensure(org.accounting_version===2,'إعدادات الضرائب تتطلب محاسبة V2.',409);ensure(role==='Owner','إعدادات الضرائب متاحة للمالك فقط.',403);assertRecentOwner(role,actor.authTime,now,'تعديل إعدادات الضرائب');text(command.data.reason,1000,true);const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');}
       const operationPath = `${root}/idempotency/${command.operationId}`;
@@ -362,6 +389,7 @@ export class Operations {
       if (previous) {
         ensure(previous.actor_uid === actor.uid && previous.fingerprint === fingerprint, 'معرّف العملية مستخدم لطلب مختلف.', 409);
         if(command.action.startsWith('period.')) {const current=periods.find(row=>row.id===command.data.id);ensure(current && current.revision===previous.response.result.revision && current.status===previous.response.result.status,'الفترة تغيرت بعد العملية المحفوظة؛ حدث الحالة.',409);}
+        if(isPlanning){const saved=previous.response?.result,collection=command.action.startsWith('budget.')?'budgets':'cash_forecast_schedules',current=saved&&await tx.get(`${root}/${collection}/${saved.id}`);ensure(current&&saved&&current.revision===saved.revision&&current.operation_id===command.operationId,'سجل التخطيط تغير بعد العملية المحفوظة؛ حدّث البيانات بدلاً من إعادة نتيجة قديمة.',409);}
         if(isTaxConfiguration) {const current=await tx.get(`${root}/tax_configurations/${identifier(command.data.id)}`),saved=previous.response?.result;ensure(current && saved && current.revision===saved.revision && current.operation_id===command.operationId,'إعداد الضريبة تغير بعد العملية المحفوظة؛ حدّث البيانات بدلاً من إعادة نتيجة قديمة.',409);const version=await tx.get(`${root}/tax_configuration_versions/${saved.id}-r${saved.revision}`);ensure(version && version.operation_id===command.operationId,'دليل إصدار العملية المحفوظة لم يعد مطابقاً.',409);}
         if(isOpening || isEquity || isFx || isFixed) {
           const current=await tx.get(`${root}/meta/counters`),saved=previous.response?.changes?.find((row:Change)=>row.path===`${root}/meta/counters`)?.value;
@@ -440,7 +468,14 @@ export class Operations {
       let openingProof: Document | undefined;
       switch (command.action) {
         case 'budget.create': case 'budget.update': {
-          result=await saveBudget(tx,root,orgId,actor.uid,iso,command.action,command.data);break;
+          const planningData={...command.data,id:command.data.id||crypto.randomUUID()},path=`${root}/budgets/${identifier(planningData.id)}`;
+          if(command.action==='budget.update')beforeValues.set(path,(await tx.get(path))!);
+          result=await saveBudget(tx,root,orgId,actor.uid,iso,command.operationId,command.action,planningData);set(path,result);break;
+        }
+        case 'cashForecastSchedule.create': case 'cashForecastSchedule.update': {
+          const planningData={...command.data,id:command.data.id||crypto.randomUUID()},path=`${root}/cash_forecast_schedules/${identifier(planningData.id)}`;
+          if(command.action==='cashForecastSchedule.update')beforeValues.set(path,(await tx.get(path))!);
+          result=await saveCashForecastSchedule(tx,root,orgId,actor.uid,iso,command.operationId,command.action,planningData);set(path,result);break;
         }
         case 'dimension.create': case 'dimension.update': {
           ensure(org.accounting_version===2,'الأبعاد الإدارية تتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');
@@ -872,11 +907,11 @@ export class Operations {
           ensure(role === 'Owner', 'استعادة البيانات متاحة للمالك فقط.', 403);
           const backup = data.backup ? { ...data.backup, collections: { ...data.backup.collections } } : data.backup;
           ensure(backup?.schema_version === 3 && backup.collections && backup.settings, 'صيغة النسخة الاحتياطية غير مدعومة.');
-          const names = financialCollections;
+          const names = [...financialCollections,...managementPlanningCollections];
           Object.assign(backup.collections,validateOpeningBackup(backup),validateEquityBackup(backup),validateFxRevaluationBackup(backup),validateFixedAssetBackup(backup),await validateTaxConfigurationBackup(backup));
           if(backup.period_schema_version!==undefined)ensure(backup.period_schema_version===1 && Number.isSafeInteger(backup.counters?.accounting_period_count) && backup.counters.accounting_period_count===(backup.collections.accounting_periods||[]).length,'أدلة عدد الفترات في النسخة ناقصة أو مختلفة.');
           backup.collections.audit_archives = await restoreAuditArchives(backup,orgId,actor.uid,command.operationId,iso);
-          for (const name of [...taxConfigurationCollections,...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections]) if (backup.collections[name] === undefined) backup.collections[name] = [];
+          for (const name of [...managementPlanningCollections,...taxConfigurationCollections,...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections]) if (backup.collections[name] === undefined) backup.collections[name] = [];
           ensure(names.every(n => Array.isArray(backup.collections[n])), 'النسخة ناقصة.');
           ensure(names.reduce((n, key) => n + backup.collections[key].length, 0) + backup.collections.purchase_bills.length + backup.collections.financial_accounts.length <= 440, 'فهرس فواتير المورد يتجاوز حد الاستعادة الذرية.');
           ensure(names.reduce((n, key) => n + backup.collections[key].length, 0) <= 350, 'الاستعادة الذرية تدعم 350 سجلاً. استخدم إجراء ترحيل خادمي للنسخ الأكبر.');
@@ -895,13 +930,13 @@ export class Operations {
             const ids = backup.collections[name].map((record: Document) => { ensure(record && typeof record === 'object' && !Array.isArray(record), 'سجل النسخة غير صالح.'); return identifier(name === 'accounts' ? record.code : record.id); });
             ensure(new Set(ids).size === ids.length, 'معرّفات النسخة مكررة.');
           }
-          if ([...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].some(name => backup.collections[name].length)) { assertFeature(subscription, 'accounting'); await requireCostAuthority(); }
+          if ([...managementPlanningCollections,...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].some(name => backup.collections[name].length)) { assertFeature(subscription, 'accounting'); await requireCostAuthority(); }
           const importedSettings = validateSettings(backup.settings);
           await verifyCashSessionHashes(backup.collections);
-          validatePeriods(backup.collections.accounting_periods,backup.collections.accounting_periods.length?identifier(backup.org?.id):undefined);await verifyClosedPeriodHashes(backup.collections.accounting_periods,backup.collections.journal_entries,backup.collections);
+          validatePeriods(backup.collections.accounting_periods,backup.collections.accounting_periods.length?identifier(backup.org?.id):undefined);validateManagementPlanningData(backup.collections,identifier(backup.org?.id));await verifyClosedPeriodHashes(backup.collections.accounting_periods,backup.collections.journal_entries,backup.collections);
           const backupVersion = backup.org?.accounting_version || 1;
           ensure(backupVersion === 1 || backupVersion === 2, 'إصدار المحاسبة في النسخة غير مدعوم.');
-          ensure(!(backup.collections.fixed_assets.length || backup.collections.accounting_periods.length || backup.collections.purchase_bills.length || backup.collections.supplier_payments.length || backup.collections.internal_transfers.length || backup.collections.bank_reconciliations.length || backup.collections.cash_reconciliations.length || backup.collections.credit_notes.length || backup.collections.customer_refunds.length || backup.collections.purchase_returns.length || backup.collections.supplier_refunds.length || backup.collections.fx_revaluations.length || (backup.collections.owner_equity_events.length || openingCollections.some(name=>backup.collections[name].length))) || backupVersion === 2, 'دفاتر الموردين وإعادة التقييم والأصول تتطلب نسخة محاسبة V2.');
+          ensure(!(managementPlanningCollections.some(name=>backup.collections[name].length) || backup.collections.fixed_assets.length || backup.collections.accounting_periods.length || backup.collections.purchase_bills.length || backup.collections.supplier_payments.length || backup.collections.internal_transfers.length || backup.collections.bank_reconciliations.length || backup.collections.cash_reconciliations.length || backup.collections.credit_notes.length || backup.collections.customer_refunds.length || backup.collections.purchase_returns.length || backup.collections.supplier_refunds.length || backup.collections.fx_revaluations.length || (backup.collections.owner_equity_events.length || openingCollections.some(name=>backup.collections[name].length))) || backupVersion === 2, 'دفاتر الموردين وإعادة التقييم والأصول تتطلب نسخة محاسبة V2.');
           if (backupVersion === 2 || backup.collections.products.some((p: Document) => p.cost_status === 'valued')) await requireCostAuthority();
           ensure(org.accounting_version !== 2 || backupVersion === 2, 'استعادة نسخة قديمة تحتاج ترحيلاً موثقاً قبل مؤسسة V2.');
           for (const customer of backup.collections.customers) { text(customer.name, 200, true); text(customer.phone, 100); ensure(typeof customer.balance_sdg === 'number' && typeof customer.balance_usd === 'number', 'رصيد العميل في النسخة يجب أن يكون رقماً.'); money(Math.abs(customer.balance_sdg), 0); money(Math.abs(customer.balance_usd), 2); }
@@ -913,7 +948,7 @@ export class Operations {
           ensure(!reconcileFinancialData(backup.collections as FinancialData, importedSettings, { requireCosting: backupVersion === 2 }).length, 'النسخة تحتوي فروقات مالية أو مراجع ناقصة. افحصها بإجراء التدقيق قبل الاستعادة.');
           const restoredCollections=Object.fromEntries(names.map(name=>[name,backup.collections[name].map((record:Document)=>({...record,org_id:orgId}))]));
           Object.assign(restoredCollections,remapOpeningCollections(backup.collections,orgId),remapFixedAssets(backup.collections,orgId),await remapTaxConfigurations(backup.collections,orgId),{owner_equity_events:remapEquityEvents(backup.collections,orgId),fx_revaluations:remapFxRevaluations(backup.collections,orgId)});
-          if(hasOpeningSources(restoredCollections))verifyOpeningSources(restoredCollections,orgId);await verifyTaxConfigurationSources(restoredCollections,orgId);
+          validateManagementPlanningData(restoredCollections,orgId);if(hasOpeningSources(restoredCollections))verifyOpeningSources(restoredCollections,orgId);await verifyTaxConfigurationSources(restoredCollections,orgId);
           ensure(!reconcileFinancialData(restoredCollections as FinancialData,importedSettings,{requireCosting:backupVersion===2}).length,'النسخة تحتوي فروقات بعد تطبيع مؤسسة الاستعادة.',409);
           for (const account of backup.collections.financial_accounts) set(`${root}/financial_account_mappings/${account.account_code}`, { id: account.id });
           for (const bill of backup.collections.purchase_bills) { const path = `${root}/purchase_numbers/${bill.supplier_id}.${encodeURIComponent(bill.supplier_reference.toLowerCase())}`; set(path, { id: bill.id, supplier_id: bill.supplier_id, reference: bill.supplier_reference }); }
@@ -931,7 +966,7 @@ export class Operations {
         }
       }
       counters.updated_at = iso; counters.revision = (counters.revision || 0) + 1; set(`${root}/meta/counters`, counters);
-      const auditKeys = ['input','quote','source_balance','prior_journal_ids','last_owner_equity_event_id','batch_id','lot_id','journal_id','line_index','party_id','native_amount','last_opening_batch_id','last_opening_settlement_id','start_date','end_date','revision','previous_status','reopened_by','reopened_at','reopen_reason','changed_by','changed_at','close_evidence','adjusting','adjustment_reason','period_id','invoice_id', 'lines', 'native_currency', 'source_sequence', 'correction_count', 'credit_sdg', 'credit_usd', 'restored_cost_sdg', 'restored_cost_usd', 'credited_amount_sdg', 'credited_amount_usd', 'refunded_amount_sdg', 'refunded_amount_usd', 'credit_balance_sdg', 'credit_balance_usd', 'receivable_due_sdg', 'receivable_due_usd', 'available_credit_sdg', 'available_credit_usd', 'financial_account_id', 'ledger_snapshot', 'statement_opening', 'statement_closing', 'statement_lines', 'matches', 'actual_count', 'difference', 'opening_difference', 'difference_reason', 'reconciliation_sequence', 'last_reconciliation_id', 'account_code', 'kind', 'from_id', 'to_id', 'from_account_code', 'to_account_code', 'amount_sdg', 'amount_usd', 'source_balance_sdg', 'source_balance_usd', 'revision', 'last_transfer_id', 'date', 'reason', 'id', 'code', 'name', 'type', 'nature', 'reporting_group', 'cash_flow_category', 'normal_balance', 'supplier_id', 'bill_id', 'supplier_reference', 'due_date', 'reference_number', 'payment_terms_days', 'credit_limit', 'default_currency', 'phone', 'email', 'address', 'tax_number', 'notes', 'sequence', 'payment_sequence', 'settled_amount_sdg', 'settled_amount_usd', 'cash_amount_sdg', 'cash_amount_usd', 'stock_quantity', ...costFields, 'status', 'accounting_version', 'grand_total_sdg', 'grand_total_usd', 'remaining_sdg', 'remaining_usd', 'paid_amount_sdg', 'paid_amount_usd', 'amount', 'currency', 'payment_account_code', 'expense_account_code', 'cogs_sdg', 'cogs_usd', 'balance_sdg', 'balance_usd'];
+      const auditKeys = ['input','quote','source_balance','prior_journal_ids','last_owner_equity_event_id','batch_id','lot_id','journal_id','line_index','party_id','native_amount','last_opening_batch_id','last_opening_settlement_id','start_date','end_date','revision','previous_status','reopened_by','reopened_at','reopen_reason','changed_by','changed_at','close_evidence','adjusting','adjustment_reason','period_id','invoice_id', 'lines', 'native_currency', 'source_sequence', 'correction_count', 'credit_sdg', 'credit_usd', 'restored_cost_sdg', 'restored_cost_usd', 'credited_amount_sdg', 'credited_amount_usd', 'refunded_amount_sdg', 'refunded_amount_usd', 'credit_balance_sdg', 'credit_balance_usd', 'receivable_due_sdg', 'receivable_due_usd', 'available_credit_sdg', 'available_credit_usd', 'financial_account_id', 'ledger_snapshot', 'statement_opening', 'statement_closing', 'statement_lines', 'matches', 'actual_count', 'difference', 'opening_difference', 'difference_reason', 'reconciliation_sequence', 'last_reconciliation_id', 'account_code', 'kind', 'from_id', 'to_id', 'from_account_code', 'to_account_code', 'amount_sdg', 'amount_usd', 'cadence', 'active', 'source_balance_sdg', 'source_balance_usd', 'revision', 'last_transfer_id', 'date', 'reason', 'id', 'code', 'name', 'type', 'nature', 'reporting_group', 'cash_flow_category', 'normal_balance', 'supplier_id', 'bill_id', 'supplier_reference', 'due_date', 'reference_number', 'payment_terms_days', 'credit_limit', 'default_currency', 'phone', 'email', 'address', 'tax_number', 'notes', 'sequence', 'payment_sequence', 'settled_amount_sdg', 'settled_amount_usd', 'cash_amount_sdg', 'cash_amount_usd', 'stock_quantity', ...costFields, 'status', 'accounting_version', 'grand_total_sdg', 'grand_total_usd', 'remaining_sdg', 'remaining_usd', 'paid_amount_sdg', 'paid_amount_usd', 'amount', 'currency', 'payment_account_code', 'expense_account_code', 'cogs_sdg', 'cogs_usd', 'balance_sdg', 'balance_usd'];
       const taxAuditKeys=['id','configuration_id','revision','name','jurisdiction','direction','rate','calculation','rounding','recoverable','tax_account_code','effective_from','effective_to','active','reason','operation_id'];
       const auditFields=isTaxConfiguration?[...auditKeys,...taxAuditKeys]:auditKeys;
       const previousState = Object.fromEntries(changes.filter(change => beforeValues.has(change.path)).map(change => [change.path, pick(beforeValues.get(change.path)!, auditFields)]));
@@ -942,7 +977,7 @@ export class Operations {
       const visible = changes.filter(c => {
         if (c.path === root || c.path.startsWith(`${root}/meta/`)) return true;
         const collection = c.path.split('/')[2];
-        const feature = collection === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(collection) ? 'accounting' : ['audit_logs','audit_archives'].includes(collection) ? 'audit_trail' : null;
+        const feature = collection === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...managementPlanningCollections, ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(collection) ? 'accounting' : ['audit_logs','audit_archives'].includes(collection) ? 'audit_trail' : null;
         return c.path.startsWith(`${root}/`) && hasPermission(role, readPermissions[collection]) && (!feature || subscription.features[feature] === true);
       });
       const response = clean({ result, changes: visible });

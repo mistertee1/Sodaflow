@@ -1,0 +1,24 @@
+import {test,expect,type Page} from '@playwright/test';
+import {periodGuestFixture} from './helpers/accountingPeriods';
+
+async function seed(page:Page,role:'Owner'|'Accountant'='Owner'){
+  const records=await periodGuestFixture(false,role),root='organizations/local-guest-org';
+  records[`${root}/journal_entries/forecast-cash`]={id:'forecast-cash',org_id:'local-guest-org',date:'2026-10-05',reference_type:'manual',reference_id:'forecast-cash',description:'رصيد نقدي',created_by:'guest',created_at:'2026-10-05T12:00:00.000Z',exchange_rate_used:2000,is_balanced:true,total_debit_sdg:50,total_credit_sdg:50,total_debit_usd:0,total_credit_usd:0,lines:[{account_code:'1110',account_name:'نقد',description:'نقد',debit_sdg:50,credit_sdg:0,debit_usd:0,credit_usd:0},{account_code:'3100',account_name:'رأس المال',description:'رأس المال',debit_sdg:0,credit_sdg:50,debit_usd:0,credit_usd:0}]};
+  records[`${root}/journal_entries/budget-actual`]={id:'budget-actual',org_id:'local-guest-org',date:'2026-10-06',reference_type:'manual',reference_id:'budget-actual',description:'مصروف فعلي',created_by:'guest',created_at:'2026-10-06T12:00:00.000Z',exchange_rate_used:2000,is_balanced:true,total_debit_sdg:40,total_credit_sdg:40,total_debit_usd:0,total_credit_usd:0,lines:[{account_code:'5200',account_name:'إيجار',description:'إيجار',debit_sdg:40,credit_sdg:0,debit_usd:0,credit_usd:0},{account_code:'1110',account_name:'نقد',description:'نقد',debit_sdg:0,credit_sdg:40,debit_usd:0,credit_usd:0}]};
+  await page.addInitScript(value=>{localStorage.setItem('mohasbasd_guest_session','true');localStorage.setItem('sudanese_merchant_has_seen_tour_v2','true');localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(value));},records);
+  await page.setViewportSize({width:390,height:844});await page.goto('/');await page.locator('#tab-accounting').click();await page.getByTestId('budget-forecast-tab').click();
+}
+const rows=(page:Page,name:string)=>page.evaluate(collection=>Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3')||'{}')).filter(([path])=>path.includes(`/${collection}/`)).map(([,row])=>row as any),name);
+
+test('D3.2 Owner manages a budget and schedule then reads both reports on mobile',async({page})=>{
+  await seed(page);const center=page.getByRole('region',{name:'الميزانيات والتنبؤ النقدي'}),form=center.getByRole('form',{name:'حفظ ميزانية'});
+  await form.getByLabel('اسم الميزانية').fill('ميزانية أكتوبر');await form.getByLabel('بداية الميزانية').fill('2026-10-01');await form.getByLabel('نهاية الميزانية').fill('2026-10-31');await form.getByLabel('حالة الميزانية').selectOption('active');await form.getByLabel('حساب بند الميزانية 1').selectOption('5200');await form.getByLabel('مبلغ SDG للبند 1').fill('100');
+  await form.getByRole('button',{name:'حفظ الميزانية'}).evaluate((button:HTMLButtonElement)=>{button.click();button.click();});await expect(center.getByRole('status')).toContainText('تم حفظ الميزانية');
+  expect(await rows(page,'budgets')).toHaveLength(1);await center.getByLabel('ميزانية التقرير').selectOption({label:'ميزانية أكتوبر'});await center.getByRole('button',{name:'عرض المقارنة'}).click();await expect(center.getByRole('region',{name:'نتيجة الميزانية مقابل الفعلي'})).toContainText('60');
+  const schedule=center.getByRole('form',{name:'حفظ بند تنبؤ نقدي'});await schedule.getByLabel('اسم بند التنبؤ').fill('إيجار أسبوعي');await schedule.getByLabel('بداية بند التنبؤ').fill('2026-10-07');await schedule.getByLabel('نهاية بند التنبؤ').fill('2026-10-30');await schedule.getByLabel('تكرار بند التنبؤ').selectOption('weekly');await schedule.getByLabel('مبلغ بند التنبؤ SDG').fill('10');await schedule.getByRole('button',{name:'حفظ بند التنبؤ'}).click();await expect(center.getByRole('status')).toContainText('تم حفظ بند التنبؤ');expect(await rows(page,'cash_forecast_schedules')).toHaveLength(1);
+  const forecast=center.getByRole('form',{name:'تقرير التنبؤ النقدي'});await forecast.getByLabel('تاريخ التنبؤ النقدي').fill('2026-10-05');await forecast.getByLabel('مدة التنبؤ بالأيام').fill('30');await forecast.getByRole('button',{name:'حساب التنبؤ'}).click();const result=center.getByRole('region',{name:'نتيجة التنبؤ النقدي'});await expect(result).toContainText('إيجار أسبوعي');await expect(result).toContainText('40');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
+
+test('D3.2 Accountant reads planning reports without management forms',async({page})=>{
+  await seed(page,'Accountant');const center=page.getByRole('region',{name:'الميزانيات والتنبؤ النقدي'});await expect(center.getByRole('form',{name:'حفظ ميزانية'})).toHaveCount(0);await expect(center.getByRole('form',{name:'حفظ بند تنبؤ نقدي'})).toHaveCount(0);await expect(center.getByRole('form',{name:'تقرير التنبؤ النقدي'})).toBeVisible();
+});

@@ -7,6 +7,7 @@ import type { AccountingPeriod } from '../domain/periodContracts';
 import type { TaxConfiguration } from '../domain/taxConfiguration';
 import type { ManagementDimension } from '../domain/managementDimensions';
 import type { DimensionKind } from '../domain/managementDimensions';
+import type { BudgetPlan, CashForecastSchedule } from '../domain/managementBudgets';
 import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
 import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
@@ -41,6 +42,12 @@ interface AppContextType {
   loadBranchProfitAndLoss: (branchId:string, period:{start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['branchProfitAndLoss']>>>;
   loadProductProfitability: (period:{start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['productProfitability']>>>;
   loadCustomerProfitability: (period:{start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['customerProfitability']>>>;
+  budgets: BudgetPlan[];
+  cashForecastSchedules: CashForecastSchedule[];
+  saveBudget: (data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<BudgetPlan>;
+  saveCashForecastSchedule: (data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<CashForecastSchedule>;
+  loadBudgetReport: (budgetId:string) => Promise<Awaited<ReturnType<Operations['budgetReport']>>>;
+  loadCashForecast: (query:{asOf?:string;days?:number}) => Promise<Awaited<ReturnType<Operations['cashForecast']>>>;
   fixedAssets: Document[];
   fixedAssetDepreciations: Document[];
   previewFixedAsset: (request: FixedAssetPreviewRequest, expectedOrgId: string) => Promise<FixedAssetPreview>;
@@ -526,6 +533,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const params=new URLSearchParams({...period.start?{start:period.start}:{},...period.end?{end:period.end}:{}});
       const report=id===guestId&&!userRef.current?await getGuest().customerProfitability(id,guestActor,period):await api<Awaited<ReturnType<Operations['customerProfitability']>>>(`/organizations/${encodeURIComponent(id)}/reports/customer-profitability?${params}`);
       if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return report;
+    },
+    budgets: rows<BudgetPlan>('budgets'),
+    cashForecastSchedules: rows<CashForecastSchedule>('cash_forecast_schedules'),
+    saveBudget: (data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId
+      ? run<BudgetPlan>(updating?'budget.update':'budget.create',data,requestId)
+      : Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح الميزانية.',409)),
+    saveCashForecastSchedule: (data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId
+      ? run<CashForecastSchedule>(updating?'cashForecastSchedule.update':'cashForecastSchedule.create',data,requestId)
+      : Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح بند التنبؤ.',409)),
+    loadBudgetReport: async budgetId => {
+      const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
+      const report=id===guestId&&!userRef.current?await getGuest().budgetReport(id,guestActor,budgetId):await api<Awaited<ReturnType<Operations['budgetReport']>>>(`/organizations/${encodeURIComponent(id)}/reports/budget-vs-actual?budgetId=${encodeURIComponent(budgetId)}`);
+      if(id!==activeOrg.current||epoch!==session.current||report.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث تقرير الميزانية.',409);return report;
+    },
+    loadCashForecast: async query => {
+      const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
+      const params=new URLSearchParams();if(query.asOf)params.set('asOf',query.asOf);if(query.days!==undefined)params.set('days',String(query.days));
+      const report=id===guestId&&!userRef.current?await getGuest().cashForecast(id,guestActor,query):await api<Awaited<ReturnType<Operations['cashForecast']>>>(`/organizations/${encodeURIComponent(id)}/reports/cash-forecast?${params}`);
+      if(id!==activeOrg.current||epoch!==session.current||report.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التنبؤ النقدي.',409);return report;
     },
     creditNotes: rows<Document>('credit_notes'), customerRefunds: rows<Document>('customer_refunds'),
     createCreditNote: data => run('creditNote.create', data), refundCustomer: data => run('customerRefund.create', data),

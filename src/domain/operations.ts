@@ -46,11 +46,13 @@ import { merchantDay, operationalPermissions, readOperationalReport, type Ledger
 import { financialCollections, reconcileFinancialData, type FinancialData } from './reconciliation';
 import { branchProfitAndLoss, createDimension, dimensionCollection, dimensionField, dimensionKind, dimensionTags, updateDimension, type ManagementDimension } from './managementDimensions';
 import { customerProfitability, productProfitability } from './managementProfitability';
+import { budgetVsActual, saveBudget, type BudgetPlan } from './managementBudgets';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
 export interface OperationResult { result: Document; changes: Change[]; }
 const actions: Record<string, ActionType> = {
+  'budget.create':'budget:manage','budget.update':'budget:manage',
   'dimension.create':'dimensions:manage','dimension.update':'dimensions:manage',
   'taxConfiguration.create':'tax:manage','taxConfiguration.update':'tax:manage',
   'fixedAsset.register':'journal:create','fixedAsset.depreciate':'periods:adjust',
@@ -73,6 +75,7 @@ const actions: Record<string, ActionType> = {
   'invitation.create': 'members:invite', 'invitation.revoke': 'members:invite', 'backup.restore': 'backup:restore',
 };
 export const readPermissions: Record<string, ActionType> = { branches:'dimensions:read',cost_centers:'dimensions:read',projects:'dimensions:read',tax_configurations:'tax:read',tax_configuration_versions:'tax:read',fixed_assets:'journal:read',fixed_asset_depreciations:'journal:read',fx_revaluations:'journal:read', owner_equity_events:'journal:read', ...Object.fromEntries(openingCollections.map(name=>[name,'journal:read' as const])), accounting_periods:'periods:read', audit_archives: 'audit_logs:view', purchase_returns: 'payables:read', supplier_refunds: 'payables:read', credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
+readPermissions.budgets = 'budget:read';
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
@@ -240,6 +243,9 @@ export class Operations {
       counters.lifetime_invoice_count = Math.max(usage?.lifetimeInvoiceCount || 0, counters.invoice_count || 0, collections.invoices.length);
       return { schema_version: 3, ...(backup ? { audit_schema_version: 1, tax_configuration_schema_version:1, period_schema_version: 1, opening_schema_version:1, owner_equity_schema_version:1,fx_revaluation_schema_version:1,fixed_asset_schema_version:1 } : {}), org, role, member, settings: { ...INITIAL_SETTINGS, ...org.settings }, collections, counters, subscription, exported_at: this.now().toISOString() };
     });
+  }
+  async budgetReport(orgId:string,actor:Actor,budgetId:string){
+    return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'budget:read'),'ليس لديك صلاحية عرض الميزانيات.',403);const subscription=await loadSubscription(tx,orgId,org,this.now(),this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');ensure(org.accounting_version===2,'الميزانيات تتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,plan=await tx.get(`${root}/budgets/${identifier(budgetId)}`) as BudgetPlan|undefined;ensure(plan&&plan.org_id===orgId,'الميزانية غير موجودة.',404);return{organizationId:orgId,generatedAt:this.now().toISOString(),...budgetVsActual(plan,await tx.list(`${root}/accounts`) as Account[],await tx.list(`${root}/journal_entries`) as JournalEntry[])};});
   }
   async execute(orgId: string, actor: Actor, command: Command): Promise<OperationResult> {
     identifier(orgId); identifier(actor.uid); identifier(command.operationId); ensure(command.operationId.length <= 64, 'معرّف العملية طويل جداً.');
@@ -433,6 +439,9 @@ export class Operations {
       let result: Document = {};
       let openingProof: Document | undefined;
       switch (command.action) {
+        case 'budget.create': case 'budget.update': {
+          result=await saveBudget(tx,root,orgId,actor.uid,iso,command.action,command.data);break;
+        }
         case 'dimension.create': case 'dimension.update': {
           ensure(org.accounting_version===2,'الأبعاد الإدارية تتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');
           const kind=dimensionKind(data.kind),collection=dimensionCollection(kind),id=identifier(data.id),path=`${root}/${collection}/${id}`,old=await tx.get(path) as ManagementDimension|undefined;

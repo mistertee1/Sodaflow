@@ -1,6 +1,8 @@
 import { OrgRole } from '../types';
 
 export type ActionType =
+  | 'budget:read'
+  | 'budget:manage'
   | 'dimensions:read'
   | 'dimensions:manage'
   | 'tax:read'
@@ -54,6 +56,7 @@ export type ActionType =
 
 const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
   Owner: new Set<ActionType>([
+    'budget:read', 'budget:manage',
     'dimensions:read', 'dimensions:manage',
     'tax:read', 'tax:manage',
     'equity:write',
@@ -98,6 +101,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'backup:restore',
   ]),
   Admin: new Set<ActionType>([
+    'budget:read', 'budget:manage',
     'dimensions:read', 'dimensions:manage',
     'periods:read',
     'payables:read', 'payables:write',
@@ -137,6 +141,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'backup:restore',
   ]),
   Accountant: new Set<ActionType>([
+    'budget:read',
     'dimensions:read',
     'tax:read',
     'opening:preview', 'opening:settle',
@@ -196,6 +201,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'accounts:read',
   ]),
   Viewer: new Set<ActionType>([
+    'budget:read',
     'dimensions:read',
     'periods:read',
     'payables:read',

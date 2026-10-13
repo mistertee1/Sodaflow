@@ -9,11 +9,11 @@
   "overall_status": "in_progress",
   "lease": {
     "worker": "d3-budget-forecast-ui-20261013",
-    "acquired_at": "2026-10-13T11:09:24.649Z",
-    "expires_at": "2026-10-13T18:09:10.760Z",
+    "acquired_at": "2026-10-13T21:16:00Z",
+    "expires_at": "2026-10-13T23:16:00Z",
     "branch": "codex/accounting-v2-d3-budget-forecast-ui-20261013",
-    "purpose": "Implement D3.2 budget UI and source-backed cash forecast",
-    "heartbeat_at": "2026-10-13T16:09:10.760Z"
+    "purpose": "Complete D3.2 CI, PR, report and checkpoint",
+    "heartbeat_at": "2026-10-13T21:16:00Z"
   },
   "milestones": [
     {
@@ -1466,7 +1466,7 @@
     "D3.2 budget UI and cash forecast",
     "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2 on matching staging commits"
   ],
-  "updated_at": "2026-10-13T11:09:24.649Z",
+  "updated_at": "2026-10-13T21:16:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [

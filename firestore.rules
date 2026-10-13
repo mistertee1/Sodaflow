@@ -45,6 +45,7 @@ service cloud.firestore {
           || collection == 'inventory_movements' && feature(orgId, 'inventory_tracking') && role(orgId, ['Owner', 'Admin', 'Accountant', 'Viewer'])
           || collection in ['accounts', 'journal_entries'] && feature(orgId, 'accounting') && role(orgId, ['Owner', 'Admin', 'Accountant', 'Viewer'])
           || collection == 'budgets' && feature(orgId, 'accounting') && role(orgId, ['Owner', 'Admin', 'Accountant', 'Viewer'])
+          || collection in ['recurring_cash_sources', 'scheduled_cash_sources'] && feature(orgId, 'advanced_reports') && role(orgId, ['Owner', 'Admin', 'Accountant', 'Viewer'])
           || collection == 'branches' && feature(orgId, 'branches')
           || collection in ['cost_centers', 'projects'] && feature(orgId, 'advanced_reports')
           || collection == 'audit_logs' && feature(orgId, 'audit_trail') && role(orgId, ['Owner', 'Admin', 'Accountant'])

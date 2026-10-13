@@ -159,6 +159,16 @@ test('D2.1 product profitability uses frozen source revenue/cost and reconstruct
   await assert.rejects(f.ops.productProfitability(f.org.id,owner,{start:'2026-10-06',end:'2026-10-05'}),/بداية الفترة/);
 });
 
+test('D2.2 customer profitability uses frozen margin, reconciled outstanding and weighted payment days',async()=>{
+  const f=await fixture(10);await f.basis(2);await f.run('accounting.activate',{reason:'مطابقة موثقة'},'activate-customer-profit');
+  const sale=(await f.run('invoice.create',{...f.invoice(2),discount_type:'percent',discount_value:10},'customer-profit-sale')).result as Invoice;
+  f.setClock('2026-10-08T12:00:00Z');await f.run('payment.create',{invoice_id:sale.id,amount:8,currency:'USD',exchange_rate_used:2000,payment_method:'cash'},'customer-profit-payment');
+  const report=await f.ops.customerProfitability(f.org.id,owner,{start:'2026-10-01',end:'2026-10-31'}),row=report.rows.find(item=>item.customer_id===f.customer.id)!;
+  assert.equal(row.invoice_count,1);assert.equal(row.sales_usd,18);assert.equal(row.cogs_usd,4);assert.equal(row.gross_profit_usd,14);assert.equal(row.discounts_usd,2);assert.equal(row.returns_usd,0);assert.equal(row.outstanding_usd,10);assert.equal(row.average_payment_days,3);assert.equal(row.costs_complete,true);assert.equal(report.totals.gross_profit_usd,14);
+  await assert.rejects(f.ops.customerProfitability(f.org.id,{...owner,uid:'stranger'},{start:'2026-10-01',end:'2026-10-31'}),/عضوية|صلاحية/);
+  await assert.rejects(f.ops.customerProfitability(f.org.id,owner,{start:'2026-10-31',end:'2026-10-01'}),/بداية الفترة/);
+});
+
 test('C6.1 comparative reports keep independent ranges and cumulative as-of balances',async()=>{
   const f=await fixture();await f.run('account.create',{code:'consulting',name_ar:'استشارات',name_en:'Consulting',type:'REVENUE',nature:'CREDIT',is_active:true},'comparison-account');
   for(const [date,amount] of [['2026-09-10',100],['2026-10-10',160]] as const)await f.run('journal.create',{date,reference_type:'manual',description:'إيراد مقارنة',lines:[journalLine('1110','cash',amount),journalLine('consulting','revenue',0,amount)]},`comparison-${date}`);

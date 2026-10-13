@@ -31,6 +31,12 @@ async function fixture(cost = 20) {
   return { store, org, root, ops, run, customer, product, invoice, cash, sale, note, refund, pay, books };
 }
 
+test('D2.2 customer profitability separates price credits from returns and follows correction/payment sources',async()=>{
+  const f=await fixture();await f.run('creditNote.create',f.note(),'profit-credit');await f.run('payment.create',f.pay(280),'profit-payment');
+  const report=await f.ops.customerProfitability(f.org.id,owner,{start:'2026-10-05',end:'2026-10-07'}),row=report.rows.find(item=>item.customer_id===f.customer.id)!;
+  assert.equal(row.sales_usd,280);assert.equal(row.cogs_usd,60);assert.equal(row.gross_profit_usd,220);assert.equal(row.discounts_usd,20);assert.equal(row.returns_usd,0);assert.equal(row.outstanding_usd,0);assert.equal(row.average_payment_days,2);assert.equal(row.credit_document_count,1);
+});
+
 test('B3 transactional price credit offsets unpaid debt without cash or cost; payment consumes corrected carrying value once', async () => {
   const f = await fixture(), result = await f.run('creditNote.create', f.note(), 'credit'); assert.deepEqual(await f.run('creditNote.create', f.note(), 'credit'), result);
   let s = await f.books(); assert.equal(s.collections.invoices[0].remaining_usd, 280); assert.equal(s.collections.invoices[0].credited_amount_usd, 20); assert.equal(s.collections.products[0].stock_quantity, 7); assert.equal(s.collections.products[0].inventory_value_usd, 140);

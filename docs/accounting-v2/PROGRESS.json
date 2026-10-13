@@ -5,9 +5,16 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d2-profitability-20261012",
+  "active_branch": "codex/accounting-v2-d2-customer-profitability-20261013",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "d2-customer-profitability-20261013",
+    "acquired_at": "2026-10-13T05:45:40.831Z",
+    "expires_at": "2026-10-13T07:45:40.831Z",
+    "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
+    "purpose": "Implement D2.2 source-backed customer profitability and management reporting",
+    "heartbeat_at": "2026-10-13T05:45:40.831Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1096,8 +1103,8 @@
     {
       "id": "D",
       "status": "in_progress",
-      "branch": "codex/accounting-v2-d2-profitability-20261012",
-      "pr": 62,
+      "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
+      "pr": null,
       "steps": [
         {
           "id": "D1",
@@ -1113,8 +1120,20 @@
               "branch": "codex/accounting-v2-d1-dimensions-foundation-20261012",
               "pr": 57,
               "report": "REPORT_D1_1_DIMENSIONS_FOUNDATION.md",
-              "checks": { "unit_api": 337, "types": "passed", "core": "passed", "build": "passed", "emulator": 35, "ui": 60, "production_audit_vulnerabilities": 0 },
-              "ci": { "run_id": 38241877010, "commit_sha": "aa849671b479922fa840e06d17643178d601f813", "conclusion": "success" },
+              "checks": {
+                "unit_api": 337,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 60,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38241877010,
+                "commit_sha": "aa849671b479922fa840e06d17643178d601f813",
+                "conclusion": "success"
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "completed_at": "2026-10-12T11:25:00Z"
             },
@@ -1132,8 +1151,20 @@
                   "branch": "codex/accounting-v2-d1-dimension-ui-20261012",
                   "pr": 59,
                   "report": "REPORT_D1_2A_DIMENSION_POSTING_UI.md",
-                  "checks": { "unit_api": 337, "types": "passed", "core": "passed", "build": "passed", "emulator": 35, "ui": 61, "production_audit_vulnerabilities": 0 },
-                  "ci": { "run_id": 38267464692, "commit_sha": "48f9ffe6dfd3dedebacaaa1454b9daaf4e299194", "conclusion": "success" },
+                  "checks": {
+                    "unit_api": 337,
+                    "types": "passed",
+                    "core": "passed",
+                    "build": "passed",
+                    "emulator": 35,
+                    "ui": 61,
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "ci": {
+                    "run_id": 38267464692,
+                    "commit_sha": "48f9ffe6dfd3dedebacaaa1454b9daaf4e299194",
+                    "conclusion": "success"
+                  },
                   "render_acceptance": "pending_matching_authenticated_staging_commit",
                   "completed_at": "2026-10-12T15:06:00Z"
                 },
@@ -1151,8 +1182,20 @@
                       "branch": "codex/accounting-v2-d1-dimension-master-ui-20261012",
                       "pr": 60,
                       "report": "REPORT_D1_2B1_DIMENSION_MASTER_UI.md",
-                      "checks": { "unit_api": 337, "types": "passed", "core": "passed", "build": "passed", "emulator": 35, "ui": 63, "production_audit_vulnerabilities": 0 },
-                      "ci": { "run_id": 38274107270, "commit_sha": "16070f816372f39f4f8e15259f4965557eddff14", "conclusion": "success" },
+                      "checks": {
+                        "unit_api": 337,
+                        "types": "passed",
+                        "core": "passed",
+                        "build": "passed",
+                        "emulator": 35,
+                        "ui": 63,
+                        "production_audit_vulnerabilities": 0
+                      },
+                      "ci": {
+                        "run_id": 38274107270,
+                        "commit_sha": "16070f816372f39f4f8e15259f4965557eddff14",
+                        "conclusion": "success"
+                      },
                       "render_acceptance": "pending_matching_authenticated_staging_commit",
                       "completed_at": "2026-10-12T16:05:00Z"
                     },
@@ -1163,8 +1206,20 @@
                       "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
                       "pr": 61,
                       "report": "REPORT_D1_2B2_DIMENSION_PROPAGATION_REPORTS.md",
-                      "checks": { "unit_api": 338, "types": "passed", "core": "passed", "build": "passed", "emulator": 35, "ui": 64, "production_audit_vulnerabilities": 0 },
-                      "ci": { "run_id": 38277327002, "commit_sha": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4", "conclusion": "success" },
+                      "checks": {
+                        "unit_api": 338,
+                        "types": "passed",
+                        "core": "passed",
+                        "build": "passed",
+                        "emulator": 35,
+                        "ui": 64,
+                        "production_audit_vulnerabilities": 0
+                      },
+                      "ci": {
+                        "run_id": 38277327002,
+                        "commit_sha": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4",
+                        "conclusion": "success"
+                      },
                       "render_acceptance": "pending_matching_authenticated_staging_commit",
                       "completed_at": "2026-10-12T20:35:00Z"
                     }
@@ -1177,42 +1232,42 @@
         {
           "id": "D2",
           "scope": "Product/customer profitability and source-supported management reports",
-      "status": "in_progress",
-      "branch": "codex/accounting-v2-d2-profitability-20261012",
-      "pr": 62,
-      "substeps": [
-        {
-          "id": "D2.1",
-          "scope": "Source-backed product profitability, returns, inventory value and turnover",
-          "status": "implemented_ci_passed_render_acceptance_pending",
-          "branch": "codex/accounting-v2-d2-profitability-20261012",
-          "pr": 62,
-          "report": "REPORT_D2_1_PRODUCT_PROFITABILITY.md",
-          "checks": {
-            "unit_api": 339,
-            "types": "passed",
-            "core": "passed",
-            "build": "passed",
-            "emulator": 35,
-            "ui": 65,
-            "production_audit_vulnerabilities": 0
-          },
-          "ci": {
-            "run_id": 38310893179,
-            "commit_sha": "28d9e2b73d6c49f68864f1f422ba0b17eeeebeed",
-            "conclusion": "success"
-          },
-          "render_acceptance": "pending_matching_authenticated_staging_commit",
-          "completed_at": "2026-10-13T05:20:00Z"
-        },
-        {
-          "id": "D2.2",
-          "scope": "Source-backed customer profitability and management reporting",
-          "status": "pending",
-          "branch": null,
-          "pr": null
-        }
-      ]
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
+          "pr": null,
+          "substeps": [
+            {
+              "id": "D2.1",
+              "scope": "Source-backed product profitability, returns, inventory value and turnover",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d2-profitability-20261012",
+              "pr": 62,
+              "report": "REPORT_D2_1_PRODUCT_PROFITABILITY.md",
+              "checks": {
+                "unit_api": 339,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 65,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38310893179,
+                "commit_sha": "28d9e2b73d6c49f68864f1f422ba0b17eeeebeed",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-13T05:20:00Z"
+            },
+            {
+              "id": "D2.2",
+              "scope": "Source-backed customer profitability and management reporting",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
+              "pr": null
+            }
+          ]
         },
         {
           "id": "D3",
@@ -1360,7 +1415,7 @@
     "D2.2 source-backed customer profitability and management reporting",
     "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1 on matching staging commits"
   ],
-  "updated_at": "2026-10-13T05:20:00Z",
+  "updated_at": "2026-10-13T05:45:40.831Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1386,7 +1441,7 @@
     }
   ],
   "active_substep": "D2.2",
-  "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+  "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",

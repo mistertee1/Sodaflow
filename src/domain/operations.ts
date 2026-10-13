@@ -23,7 +23,7 @@ import { openingCollections } from './openingCollections';
 import { hasOpeningSources, openingBackupCounts, remapOpeningCollections, validateOpeningBackup } from './openingIntegration';
 import { restoreAuditArchives, verifyAuditArchives } from './auditArchives';
 import { correctionDocumentKind, readCorrectionDocument } from './correctionDocuments';
-import type { Product, Account, Invoice, JournalEntry, MerchantSettings, Organization, OrgRole, OrgSubscription, Payment } from '../types';
+import type { Customer, Product, Account, Invoice, JournalEntry, MerchantSettings, Organization, OrgRole, OrgSubscription, Payment } from '../types';
 import BigNumber from 'bignumber.js';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
 import { INITIAL_SETTINGS } from '../data/initialData';
@@ -45,7 +45,7 @@ import { classifyAccount } from './accountClassification';
 import { merchantDay, operationalPermissions, readOperationalReport, type LedgerQuery, type ReportPeriod, type OperationalReportTypes } from './operationalReports';
 import { financialCollections, reconcileFinancialData, type FinancialData } from './reconciliation';
 import { branchProfitAndLoss, createDimension, dimensionCollection, dimensionField, dimensionKind, dimensionTags, updateDimension, type ManagementDimension } from './managementDimensions';
-import { productProfitability } from './managementProfitability';
+import { customerProfitability, productProfitability } from './managementProfitability';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
@@ -166,6 +166,9 @@ export class Operations {
   }
   async productProfitability(orgId:string,actor:Actor,period:{start?:string;end?:string}={}) {
     return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'reports:advanced')&&hasPermission(role,'products:read'),'ليس لديك صلاحية تقرير ربحية المنتجات.',403);const subscription=await loadSubscription(tx,orgId,org,this.now(),this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');ensure(org.accounting_version===2,'ربحية المنتجات تتطلب محاسبة V2.',409);const root=`organizations/${orgId}`;return{organizationId:orgId,generatedAt:this.now().toISOString(),...productProfitability({orgId,period,products:await tx.list(`${root}/products`) as Product[],invoices:await tx.list(`${root}/invoices`) as Invoice[],creditNotes:await tx.list(`${root}/credit_notes`),entries:await tx.list(`${root}/journal_entries`) as JournalEntry[],inventoryMovements:await tx.list(`${root}/inventory_movements`)})};});
+  }
+  async customerProfitability(orgId:string,actor:Actor,period:{start?:string;end?:string}={}) {
+    return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(['reports:advanced','customers:read','invoices:read','payments:read'].every(permission=>hasPermission(role,permission as ActionType)),'ليس لديك صلاحية تقرير ربحية العملاء.',403);const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');ensure(org.accounting_version===2,'ربحية العملاء تتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,receivables=await readOperationalReport(tx,root,'receivables',period.end?{end:period.end}:{},merchantDay(now,org.settings.timezone||'Africa/Khartoum'));return{organizationId:orgId,generatedAt:now.toISOString(),...customerProfitability({orgId,period,customers:await tx.list(`${root}/customers`) as Customer[],invoices:await tx.list(`${root}/invoices`) as Invoice[],payments:await tx.list(`${root}/payments`) as Payment[],creditNotes:await tx.list(`${root}/credit_notes`),entries:await tx.list(`${root}/journal_entries`) as JournalEntry[],outstanding:receivables.statements})};});
   }
   async payableReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}) {
     return this.store.transaction(async tx => {

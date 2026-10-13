@@ -10,12 +10,14 @@
 ## التحقق
 - TypeScript والبناء ناجحان.
 - 342 اختبار وحدة/API ناجحة.
-- UI المحلي لم يبدأ لعدم وجود Chromium؛ CI `38390389403` هو المرجع الفعلي وما زال قيد التنفيذ عند هذا checkpoint.
+- أصلح CI فجوة مزامنة كانت تحفظ الميزانية في المخزن دون إرجاع تغييرها فوراً إلى لقطة الواجهة، وأضيف إثبات وحدة لتغيير `budgets`.
+- ثُبّت اختبار صور صفحة الدخول بالانتظار حتى اكتمال تحميل الصور مع إبقاء شرط `naturalWidth > 0`.
+- CI `38402011947` ناجح على `c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1`: عدد 342 وحدة/API، و35 Firestore Emulator، و68 UI، وصفر ثغرات production.
 - لم يحدث نشر أو migration أو كتابة إنتاجية. قبول Render مستقل ومعلق.
 
 ## الحفظ
 - base: `codex/accounting-v2-d3-budget-foundation-20261013`
 - branch: `codex/accounting-v2-d3-budget-ui-20261013`
-- code commit: `7ecc3b74a24215a0ab37176fdae4121047279aaa`
-- PR: #66 (draft حتى اكتمال CI)
-- التالي بعد نجاح CI: D3.2b Cash Forecast.
+- code commit: `c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1`
+- PR: #66
+- التالي: D3.2b Cash Forecast.

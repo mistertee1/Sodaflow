@@ -5,9 +5,16 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d3-cash-forecast-ui-20261013",
+  "active_branch": "codex/accounting-v2-d3-cash-sources-20261013",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "d3-cash-sources-20261013",
+    "round_id": "20261013T1831Z-d3.2b.3",
+    "branch": "codex/accounting-v2-d3-cash-sources-20261013",
+    "acquired_at": "2026-10-13T18:31:00Z",
+    "expires_at": "2026-10-13T19:01:00Z",
+    "scope": "D3.2b.3 recurring expense and scheduled payment source registries"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1095,7 +1102,7 @@
     },
     {
       "id": "D",
-    "status": "in_progress",
+      "status": "in_progress",
       "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
       "pr": 64,
       "steps": [
@@ -1225,9 +1232,9 @@
         {
           "id": "D2",
           "scope": "Product/customer profitability and source-supported management reports",
-      "status": "implemented_ci_passed_render_acceptance_pending",
+          "status": "implemented_ci_passed_render_acceptance_pending",
           "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
-      "pr": 64,
+          "pr": 64,
           "substeps": [
             {
               "id": "D2.1",
@@ -1256,26 +1263,26 @@
             {
               "id": "D2.2",
               "scope": "Source-backed customer profitability and management reporting",
-          "status": "implemented_ci_passed_render_acceptance_pending",
+              "status": "implemented_ci_passed_render_acceptance_pending",
               "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
-          "pr": 64,
-          "report": "REPORT_D2_2_CUSTOMER_PROFITABILITY.md",
-          "checks": {
-            "unit_api": 341,
-            "types": "passed",
-            "core": "passed",
-            "build": "passed",
-            "emulator": 35,
-            "ui": 66,
-            "production_audit_vulnerabilities": 0
-          },
-          "ci": {
-            "run_id": 38353477574,
-            "commit_sha": "be84b48d46ca972c14b0bc6ca7177519b14b2cca",
-            "conclusion": "success"
-          },
-          "render_acceptance": "pending_matching_authenticated_staging_commit",
-          "completed_at": "2026-10-13T08:55:00Z"
+              "pr": 64,
+              "report": "REPORT_D2_2_CUSTOMER_PROFITABILITY.md",
+              "checks": {
+                "unit_api": 341,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 66,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38353477574,
+                "commit_sha": "be84b48d46ca972c14b0bc6ca7177519b14b2cca",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-13T08:55:00Z"
             }
           ]
         },
@@ -1294,8 +1301,21 @@
               "pr": 65,
               "code_commit": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
               "report": "REPORT_D3_1_BUDGET_FOUNDATION.md",
-              "local_checks": { "types": "passed", "unit_api": 342, "build": "passed", "emulator": "blocked_java_21_required" },
-              "ci": { "run_id": 38375686205, "commit_sha": "2cd8d94371e422068b8421a6e73ccc43a88da87e", "conclusion": "success", "unit_api": 342, "emulator": 35, "ui": 66, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "unit_api": 342,
+                "build": "passed",
+                "emulator": "blocked_java_21_required"
+              },
+              "ci": {
+                "run_id": 38375686205,
+                "commit_sha": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
+                "conclusion": "success",
+                "unit_api": 342,
+                "emulator": 35,
+                "ui": 66,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1306,8 +1326,21 @@
               "pr": 66,
               "code_commit": "c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1",
               "report": "REPORT_D3_2A_BUDGET_UI.md",
-              "local_checks": { "types": "passed", "unit_api": 342, "build": "passed", "ui": "blocked_chromium_not_installed" },
-              "ci": { "run_id": 38402011947, "commit_sha": "c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1", "conclusion": "success", "unit_api": 342, "emulator": 35, "ui": 68, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "unit_api": 342,
+                "build": "passed",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38402011947,
+                "commit_sha": "c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1",
+                "conclusion": "success",
+                "unit_api": 342,
+                "emulator": 35,
+                "ui": 68,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1318,9 +1351,27 @@
               "pr": 68,
               "code_commit": "9668483ad31192dbfff3a081a5712b409ca7df3d",
               "report": "REPORT_D3_2B_1_CASH_FORECAST_FOUNDATION.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 344, "build": "passed" },
-              "ci": { "run_id": 38435020579, "commit_sha": "9668483ad31192dbfff3a081a5712b409ca7df3d", "conclusion": "success", "unit_api": 344, "emulator": 35, "ui": 68, "production_audit_vulnerabilities": 0 },
-              "coverage": { "customer_due_dates": true, "supplier_due_dates": true, "recurring_expenses": false, "scheduled_payments": false },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 344,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38435020579,
+                "commit_sha": "9668483ad31192dbfff3a081a5712b409ca7df3d",
+                "conclusion": "success",
+                "unit_api": 344,
+                "emulator": 35,
+                "ui": 68,
+                "production_audit_vulnerabilities": 0
+              },
+              "coverage": {
+                "customer_due_dates": true,
+                "supplier_due_dates": true,
+                "recurring_expenses": false,
+                "scheduled_payments": false
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1331,8 +1382,22 @@
               "pr": 69,
               "code_commit": "24b020912e630a418321f6d71922444892e23331",
               "report": "REPORT_D3_2B_2_CASH_FORECAST_UI.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 344, "build": "passed", "ui": "blocked_chromium_not_installed" },
-              "ci": { "run_id": 38443505970, "commit_sha": "24b020912e630a418321f6d71922444892e23331", "conclusion": "success", "unit_api": 344, "emulator": 35, "ui": 70, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 344,
+                "build": "passed",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38443505970,
+                "commit_sha": "24b020912e630a418321f6d71922444892e23331",
+                "conclusion": "success",
+                "unit_api": 344,
+                "emulator": 35,
+                "ui": 70,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]

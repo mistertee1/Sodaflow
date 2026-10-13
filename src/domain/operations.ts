@@ -47,6 +47,7 @@ import { financialCollections, reconcileFinancialData, type FinancialData } from
 import { branchProfitAndLoss, createDimension, dimensionCollection, dimensionField, dimensionKind, dimensionTags, updateDimension, type ManagementDimension } from './managementDimensions';
 import { customerProfitability, productProfitability } from './managementProfitability';
 import { budgetVsActual, saveBudget, type BudgetPlan } from './managementBudgets';
+import { cashForecast } from './managementCashForecast';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
@@ -246,6 +247,9 @@ export class Operations {
   }
   async budgetReport(orgId:string,actor:Actor,budgetId:string){
     return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'budget:read'),'ليس لديك صلاحية عرض الميزانيات.',403);const subscription=await loadSubscription(tx,orgId,org,this.now(),this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');ensure(org.accounting_version===2,'الميزانيات تتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,plan=await tx.get(`${root}/budgets/${identifier(budgetId)}`) as BudgetPlan|undefined;ensure(plan&&plan.org_id===orgId,'الميزانية غير موجودة.',404);return{organizationId:orgId,generatedAt:this.now().toISOString(),...budgetVsActual(plan,await tx.list(`${root}/accounts`) as Account[],await tx.list(`${root}/journal_entries`) as JournalEntry[])};});
+  }
+  async cashForecastReport(orgId:string,actor:Actor,input:{asOf?:string;days?:number}={}){
+    return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(['reports:advanced','invoices:read','payments:read','payables:read'].every(permission=>hasPermission(role,permission as ActionType)),'ليس لديك صلاحية توقع التدفقات النقدية.',403);const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');ensure(org.accounting_version===2,'توقع التدفقات النقدية يتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,asOf=input.asOf?dateOnly(input.asOf):merchantDay(now,org.settings.timezone||'Africa/Khartoum'),days=Number(input.days||30),receivables=await readOperationalReport(tx,root,'receivables',{end:asOf},asOf),payables=await readPayableReport(tx,root,{end:asOf},asOf);return{organizationId:orgId,generatedAt:now.toISOString(),...cashForecast(asOf,days,receivables.aging,payables.aging)};});
   }
   async execute(orgId: string, actor: Actor, command: Command): Promise<OperationResult> {
     identifier(orgId); identifier(actor.uid); identifier(command.operationId); ensure(command.operationId.length <= 64, 'معرّف العملية طويل جداً.');

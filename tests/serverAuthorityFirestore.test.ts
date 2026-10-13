@@ -25,7 +25,8 @@ before(async () => {
   } });
   store = new ResilientStore(gate); cwd = process.cwd(); dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sudaflow-emulator-authority-')); process.chdir(dir);
   const batch = db.batch(); for (const plan of defaultPlatformPlans()) batch.set(db.doc(`plans/${plan.id}`), plan);
-  batch.set(db.doc(`platformAdmins/${admin.uid}`), { active: true, role: 'super_admin' }); await batch.commit();
+  batch.set(db.doc(`platformAdmins/${admin.uid}`), { uid: admin.uid, active: true, role: 'super_admin' });
+  batch.set(db.doc('platformAccess/superAdmin'), { uid: admin.uid, email: admin.email, active: true, mode: 'exclusive', revision: 1 }); await batch.commit();
 });
 after(async () => { if (cwd) process.chdir(cwd); if (dir) fs.rmSync(dir, { recursive: true, force: true }); if (app) await deleteApp(app); });
 async function company(uid: string) {

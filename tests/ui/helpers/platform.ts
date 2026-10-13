@@ -11,12 +11,14 @@ interface PlatformHarness {
   failCompanyRefresh(): void;
   failOverview(): void;
 }
-type Options = { platformRole: 'admin' | 'owner'; verifiedEmail: boolean };
+type Options = { platformRole: 'admin' | 'owner' | 'other_admin'; verifiedEmail: boolean };
 export const test = base.extend<Options & { platform: PlatformHarness }>({
   platformRole: ['admin', { option: true }], verifiedEmail: [true, { option: true }],
   platform: async ({ page, platformRole, verifiedEmail }, use) => {
     const fixture = await platformFixture();
-    const actor: Actor = { ...(platformRole === 'admin' ? fixture.admin : fixture.owner), emailVerified: verifiedEmail };
+    const actor: Actor = { ...(platformRole === 'owner' ? fixture.owner : fixture.admin), emailVerified: verifiedEmail,
+      ...(platformRole === 'other_admin' ? { uid: 'other-platform-admin', email: 'other-admin@example.test' } : {}) };
+    if (platformRole === 'other_admin') await fixture.store.transaction(async tx => tx.set(`platformAdmins/${actor.uid}`, { uid: actor.uid, active: true, role: 'super_admin' }));
     const backend = await servePlatform(fixture, { session: actor });
     const now = Math.floor(Date.now() / 1000);
     const token = [{ alg: 'RS256', typ: 'JWT' }, { aud: 'sodaflow', iss: 'https://securetoken.google.com/sodaflow', sub: actor.uid, user_id: actor.uid, auth_time: now, iat: now, exp: now + 3600, email: actor.email, email_verified: verifiedEmail, superAdmin: actor.superAdmin === true, firebase: { sign_in_provider: 'password' } }].map(v => Buffer.from(JSON.stringify(v)).toString('base64url')).join('.') + '.test-signature';

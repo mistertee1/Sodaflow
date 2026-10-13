@@ -83,6 +83,25 @@ test('revocation with an open editor rejects the save and never reports success'
   await dialog.getByRole('button', { name: 'حفظ التعديل', exact: true }).click(); await expect(dialog.getByRole('alert')).toContainText('غير فعّالة'); await expect(dialog.getByRole('status')).toHaveCount(0); expect(f.store.dump()).toEqual(before);
 });
 
+test('an exclusive policy change with an open editor rejects the save without a success notice', async ({ page, platform }) => {
+  await platform.login(); await page.getByRole('button', { name: 'الشركات', exact: true }).click(); await page.getByRole('button', { name: 'إدارة الاشتراك' }).click();
+  const dialog = page.getByRole('dialog', { name: 'إدارة اشتراك الشركة' }); await dialog.getByLabel('سبب التعديل (إلزامي في سجل العمليات)').fill('يجب رفض التعديل بعد إغلاق السياسة');
+  const f = platform.fixture;
+  await f.store.transaction(async tx => tx.set('platformAccess/superAdmin', { uid: f.admin.uid, email: f.admin.email, mode: 'exclusive', active: false }));
+  const before = f.store.dump(); await dialog.getByRole('button', { name: 'حفظ التعديل', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toContainText('محصور'); await expect(dialog.getByRole('status')).toHaveCount(0); expect(f.store.dump()).toEqual(before);
+});
+
+test.describe('exclusive account isolation', () => {
+  test.use({ platformRole: 'other_admin' });
+  test('another verified claimed administrator with an active registry cannot open the platform', async ({ page, platform }) => {
+    await platform.login(); await expect(page.getByRole('heading', { name: 'تعذر فتح الإدارة' })).toBeVisible();
+    await expect(page.getByRole('alert')).toContainText('محصور');
+    await expect(page.getByRole('navigation', { name: 'أقسام إدارة المنصة' })).toHaveCount(0);
+    expect(platform.requests.every(path => path === '/super-admin/session')).toBe(true); expect(platform.mutations).toEqual([]);
+  });
+});
+
 test.describe('company Owner isolation', () => {
   test.use({ platformRole: 'owner' });
   test('Owner cannot open the commercial platform by visiting its URL', async ({ page, platform }) => {

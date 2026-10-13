@@ -3,7 +3,14 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() { return request.auth != null && request.auth.token.get('email_verified', false) == true; }
     function platformAdmin() {
+      let policy = get(/databases/$(database)/documents/platformAccess/superAdmin).data;
       return signedIn() && request.auth.token.get('superAdmin', false) == true
+        && policy.active == true && policy.mode == 'exclusive'
+        && policy.uid == request.auth.uid && policy.email is string
+        && policy.email == policy.email.lower()
+        && policy.email.matches('[^\\s@]+@[^\\s@]+[.][^\\s@]+')
+        && request.auth.token.get('email', '') is string
+        && request.auth.token.get('email', '').lower() == policy.email
         && get(/databases/$(database)/documents/platformAdmins/$(request.auth.uid)).data.active == true
         && get(/databases/$(database)/documents/platformAdmins/$(request.auth.uid)).data.role == 'super_admin';
     }
@@ -29,6 +36,7 @@ service cloud.firestore {
       let planId = organization(orgId).get('planId', '');
       return subscribed(orgId) && get(/databases/$(database)/documents/plans/$(planId)).data.features.get(name, false) == true;
     }
+    match /platformAccess/{id} { allow read: if id == 'superAdmin' && platformAdmin(); allow write: if false; }
     match /platformAdmins/{uid} { allow read: if signedIn() && request.auth.uid == uid || platformAdmin(); allow write: if false; }
     match /plans/{planId} { allow read: if signedIn() && (resource.data.active == true || platformAdmin()); allow write: if false; }
     match /subscriptionEvents/{eventId} { allow read: if platformAdmin(); allow write: if false; }

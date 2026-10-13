@@ -14,7 +14,10 @@ export async function platformFixture(persist?: (data: Record<string, Record<str
   const organizations = new Organizations(store);
   const org = await organizations.create(owner, 'شركة اختبار', INITIAL_SETTINGS, 'initial', true);
   // Trusted test setup, never an actual Auth claim or production registry write.
-  await store.transaction(async tx => tx.set(`platformAdmins/${admin.uid}`, { active: true, role: 'super_admin' }));
+  await store.transaction(async tx => {
+    tx.set(`platformAdmins/${admin.uid}`, { uid: admin.uid, email: admin.email, active: true, role: 'super_admin' });
+    tx.set('platformAccess/superAdmin', { uid: admin.uid, email: admin.email, active: true, mode: 'exclusive', revision: 1 });
+  });
   const operations = new Operations(store);
   return { owner, admin, org, store, operations, organizations, platform: new PlatformBilling(store) };
 }

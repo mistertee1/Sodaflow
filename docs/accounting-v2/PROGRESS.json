@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+  "active_branch": "codex/accounting-v2-d2-profitability-20261012",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1096,8 +1096,8 @@
     {
       "id": "D",
       "status": "in_progress",
-      "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
-      "pr": 61,
+      "branch": "codex/accounting-v2-d2-profitability-20261012",
+      "pr": 62,
       "steps": [
         {
           "id": "D1",
@@ -1177,9 +1177,42 @@
         {
           "id": "D2",
           "scope": "Product/customer profitability and source-supported management reports",
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-d2-profitability-20261012",
+      "pr": 62,
+      "substeps": [
+        {
+          "id": "D2.1",
+          "scope": "Source-backed product profitability, returns, inventory value and turnover",
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-d2-profitability-20261012",
+          "pr": 62,
+          "report": "REPORT_D2_1_PRODUCT_PROFITABILITY.md",
+          "checks": {
+            "unit_api": 339,
+            "types": "passed",
+            "core": "passed",
+            "build": "passed",
+            "emulator": 35,
+            "ui": 65,
+            "production_audit_vulnerabilities": 0
+          },
+          "ci": {
+            "run_id": 38310893179,
+            "commit_sha": "28d9e2b73d6c49f68864f1f422ba0b17eeeebeed",
+            "conclusion": "success"
+          },
+          "render_acceptance": "pending_matching_authenticated_staging_commit",
+          "completed_at": "2026-10-13T05:20:00Z"
+        },
+        {
+          "id": "D2.2",
+          "scope": "Source-backed customer profitability and management reporting",
           "status": "pending",
           "branch": null,
           "pr": null
+        }
+      ]
         },
         {
           "id": "D3",
@@ -1322,12 +1355,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_D1_2B2_DIMENSION_PROPAGATION_REPORTS.md",
+  "last_report": "REPORT_D2_1_PRODUCT_PROFITABILITY.md",
   "next_steps": [
-    "D2 product/customer profitability and source-supported management reports",
-    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2 on matching staging commits"
+    "D2.2 source-backed customer profitability and management reporting",
+    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1 on matching staging commits"
   ],
-  "updated_at": "2026-10-12T20:35:00Z",
+  "updated_at": "2026-10-13T05:20:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1352,7 +1385,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D2",
+  "active_substep": "D2.2",
   "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
     {
@@ -1519,15 +1552,23 @@
       "released_at": "2026-10-12T20:35:00Z",
       "pr": 61,
       "code_commit": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4"
+    },
+    {
+      "worker": "d2-product-profitability-20261013",
+      "acquired_at": "2026-10-12T21:20:00Z",
+      "branch": "codex/accounting-v2-d2-profitability-20261012",
+      "released_at": "2026-10-13T05:20:00Z",
+      "pr": 62,
+      "code_commit": "28d9e2b73d6c49f68864f1f422ba0b17eeeebeed"
     }
   ],
   "last_lease": {
-    "worker": "d1-dimension-propagation-20261012",
-    "acquired_at": "2026-10-12T16:10:00Z",
-    "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
-    "released_at": "2026-10-12T20:35:00Z",
-    "pr": 61,
-    "code_commit": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4"
+    "worker": "d2-product-profitability-20261013",
+    "acquired_at": "2026-10-12T21:20:00Z",
+    "branch": "codex/accounting-v2-d2-profitability-20261012",
+    "released_at": "2026-10-13T05:20:00Z",
+    "pr": 62,
+    "code_commit": "28d9e2b73d6c49f68864f1f422ba0b17eeeebeed"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1541,7 +1582,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to D2 product/customer profitability and source-supported management reports; retain independent Render acceptance",
+  "next": "Proceed to D2.2 source-backed customer profitability and management reporting; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1562,24 +1603,24 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "d1-dimension-propagation-20261012",
-    "acquired_at": "2026-10-12T16:10:00Z",
-    "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
-    "released_at": "2026-10-12T20:35:00Z",
-    "pr": 61,
-    "code_commit": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4",
-    "status": "D1_2b_2_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-12T20:35:00Z",
+    "worker": "d2-product-profitability-20261013",
+    "acquired_at": "2026-10-12T21:20:00Z",
+    "branch": "codex/accounting-v2-d2-profitability-20261012",
+    "released_at": "2026-10-13T05:20:00Z",
+    "pr": 62,
+    "code_commit": "28d9e2b73d6c49f68864f1f422ba0b17eeeebeed",
+    "status": "D2_1_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-13T05:20:00Z",
     "ci": {
-      "run_id": 38277327002,
-      "commit_sha": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4",
+      "run_id": 38310893179,
+      "commit_sha": "28d9e2b73d6c49f68864f1f422ba0b17eeeebeed",
       "conclusion": "success",
-      "unit_api": 338,
+      "unit_api": 339,
       "emulator": 35,
-      "ui": 64,
+      "ui": 65,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to D2 product/customer profitability and source-supported management reports; Render acceptance remains independent"
+    "next": "Proceed to D2.2 source-backed customer profitability and management reporting; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

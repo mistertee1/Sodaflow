@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d3-budget-foundation-20261013",
+  "active_branch": "codex/accounting-v2-d3-budget-ui-20261013",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1297,6 +1297,18 @@
               "local_checks": { "types": "passed", "unit_api": 342, "build": "passed", "emulator": "blocked_java_21_required" },
               "ci": { "run_id": 38375686205, "commit_sha": "2cd8d94371e422068b8421a6e73ccc43a88da87e", "conclusion": "success", "unit_api": 342, "emulator": 35, "ui": 66, "production_audit_vulnerabilities": 0 },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D3.2a",
+              "scope": "Budget management UI, permissions, source-backed report and reload",
+              "status": "implemented_ci_pending_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d3-budget-ui-20261013",
+              "pr": 66,
+              "code_commit": "7ecc3b74a24215a0ab37176fdae4121047279aaa",
+              "report": "REPORT_D3_2A_BUDGET_UI.md",
+              "local_checks": { "types": "passed", "unit_api": 342, "build": "passed", "ui": "blocked_chromium_not_installed" },
+              "ci": { "run_id": 38390389403, "status": "queued" },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]
         },
@@ -1434,12 +1446,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_D3_1_BUDGET_FOUNDATION.md",
+  "last_report": "REPORT_D3_2A_BUDGET_UI.md",
   "next_steps": [
-    "D3.2 budget UI and cash forecast",
+    "Complete D3.2a CI, then D3.2b cash forecast",
     "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2 on matching staging commits"
   ],
-  "updated_at": "2026-10-13T10:27:00Z",
+  "updated_at": "2026-10-13T11:28:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1464,7 +1476,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D3.2",
+  "active_substep": "D3.2a",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {

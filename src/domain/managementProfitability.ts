@@ -58,7 +58,7 @@ export function customerProfitability(input: {
     const row=rows.get(invoice.customer_id);ensure(row,`العميل ${invoice.customer_id} غير موجود؛ لا يمكن إصدار تقرير ربحيته.`,409);
     const original=input.entries.filter(entry=>entry.reference_type==='invoice'&&entry.reference_id===invoice.id),proof=buildSalesReturnBases(invoice,original,input.orgId);
     invoiceIndex.set(invoice.id,invoice);
-    for(const basis of proof.bases)sources.set(basis.source_id,{customerId:invoice.customer_id,costStatus:proof.cost_statuses[basis.source_id]});
+    for(const basis of proof.bases)sources.set(basis.source_id,{customerId:invoice.customer_id,costStatus:proof.cost_statuses[basis.source_id]||'unknown'});
     if(!inPeriod(invoice.issue_date))continue;
     for(const basis of proof.bases){add(row.sales,basis.components.revenue);if(basis.components.cost)add(row.cogs,basis.components.cost);}
     add(row.discounts,{sdg:invoice.discount_total_sdg,usd:invoice.discount_total_usd});row.invoice_count++;

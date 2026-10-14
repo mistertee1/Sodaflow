@@ -23,9 +23,10 @@ import {
   MAX_IMAGE_FILE_SIZE_BYTES,
 } from '../services/storageService';
 import { Dialog } from './Dialog';
+import { ApprovalDecisionField, approvalRequirement } from './accounting/ApprovalDecisionField';
 
 export const ExpensesView: React.FC = () => {
-  const { accounts, expenses, addExpense, deleteExpense, branches, costCenters, projects, settings, currentUser, currentOrg, isActionAllowed } = useApp();
+  const { accounts, expenses, addExpense, deleteExpense, branches, costCenters, projects, approvalPolicies, userRole, settings, currentUser, currentOrg, isActionAllowed } = useApp();
 
   const submitLock = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,6 +40,7 @@ export const ExpensesView: React.FC = () => {
   const [category, setCategory] = useState('نقل وترحيل');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
+  const [approvalReason,setApprovalReason] = useState('');
   const [branchId, setBranchId] = useState('');
   const [costCenterId, setCostCenterId] = useState('');
   const [projectId, setProjectId] = useState('');
@@ -51,6 +53,7 @@ export const ExpensesView: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rate = settings.default_exchange_rate || 0;
+  const approval = approvalRequirement(approvalPolicies,'expense',currency as 'SDG'|'USD',amount,userRole);
 
   const defaultCategories = [
     'نقل وترحيل',
@@ -130,6 +133,7 @@ export const ExpensesView: React.FC = () => {
       return;
     }
     if (!title.trim() || amount <= 0) return;
+    if (approval && (!approval.allowed || !approvalReason.trim())) { setErrorMessage(approval.allowed?'اكتب سبب اعتماد المصروف.':`المصروف يتطلب اعتماد دور ${approval.tier.required_role}.`); return; }
 
     let finalRate = expenseExchangeRate > 0 ? expenseExchangeRate : (settings.default_exchange_rate || 0);
     if (currency === 'USD') {
@@ -157,6 +161,7 @@ export const ExpensesView: React.FC = () => {
       ...(branchId ? { branch_id: branchId } : {}),
       ...(costCenterId ? { cost_center_id: costCenterId } : {}),
       ...(projectId ? { project_id: projectId } : {}),
+      ...(approval ? { approval_reason: approvalReason.trim() } : {}),
     });
 
     setIsAddModalOpen(false);
@@ -164,6 +169,7 @@ export const ExpensesView: React.FC = () => {
     setAmount(0);
     setReceiptImage(null);
     setNotes('');
+    setApprovalReason('');
     setBranchId(''); setCostCenterId(''); setProjectId('');
     setErrorMessage(null);
     setUploadError(null);
@@ -497,6 +503,7 @@ export const ExpensesView: React.FC = () => {
                   className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
+              <ApprovalDecisionField requirement={approval} reason={approvalReason} setReason={setApprovalReason}/>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-sf-border">
                 <button disabled={isSaving}
@@ -508,7 +515,7 @@ export const ExpensesView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSaving || isUploadingReceipt}
+                  disabled={isSaving || isUploadingReceipt || !!approval&&!approval.allowed}
                   className="px-6 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-xl text-xs font-semibold shadow-lg shadow-sf-action/20 flex items-center gap-2 transition-colors"
                 >
                   <CheckCircle2 className="w-4 h-4 text-sf-on-action" />

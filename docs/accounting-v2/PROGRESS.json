@@ -1416,6 +1416,18 @@
               "local_checks": { "types": "passed", "core": "passed", "unit_api": 356, "build": "passed", "emulator": "blocked_java_21_required", "ui": "blocked_chromium_not_installed" },
               "ci": { "run_id": 38542501544, "commit_sha": "3e423c6fe65f2b0c5d3107d6d7aca05485a8dbf5", "conclusion": "success", "unit_api": 356, "emulator": 35, "ui": 73, "production_audit_vulnerabilities": 0 },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D4.3.3",
+              "scope": "Approval policy management and transaction decision UI, permissions, owner reauthentication, synchronization and reload",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d4-approval-ui-20261014",
+              "pr": 78,
+              "code_commit": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3",
+              "report": "REPORT_D4_3_3_APPROVAL_UI.md",
+              "local_checks": { "types": "passed", "core": "passed", "unit_api": 356, "build": "passed", "emulator": "blocked_java_21_required", "ui": "blocked_chromium_not_installed" },
+              "ci": { "run_id": 38584496221, "commit_sha": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3", "conclusion": "success", "unit_api": 356, "emulator": 35, "ui": 76, "production_audit_vulnerabilities": 0 },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]
         }
@@ -1546,12 +1558,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_D4_3_2_APPROVAL_GATES.md",
+  "last_report": "REPORT_D4_3_3_APPROVAL_UI.md",
   "next_steps": [
-    "Proceed to D4.3.3 approval policy/decision UI, role visibility, synchronization and reload",
-    "Independent authenticated Render acceptance for D4.3.2 and earlier stages on matching staging commits"
+    "Proceed to D5/D6 from the approved roadmap after re-reading current requirements and stacked checkpoints",
+    "Independent authenticated Render acceptance for D4.3.3 and earlier stages on matching staging commits"
   ],
-  "updated_at": "2026-10-14T09:35:00Z",
+  "updated_at": "2026-10-14T14:59:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1828,16 +1840,25 @@
       "released_at": "2026-10-14T05:22:00Z",
       "pr": 75,
       "code_commit": "eb20d28b55f7d07953b73b3adbf2903c96621bdd"
+    },
+    {
+      "worker": "d4-approval-ui-20261014",
+      "round_id": "20261014T1053Z-d4.3.3",
+      "acquired_at": "2026-10-14T10:53:00Z",
+      "branch": "codex/accounting-v2-d4-approval-ui-20261014",
+      "released_at": "2026-10-14T14:59:00Z",
+      "pr": 78,
+      "code_commit": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3"
     }
   ],
   "last_lease": {
-    "worker": "d4-approval-limits-20261014",
-    "round_id": "20261014T0510Z-d4.3.1",
-    "acquired_at": "2026-10-14T05:10:00Z",
-    "branch": "codex/accounting-v2-d4-approval-limits-20261014",
-    "released_at": "2026-10-14T05:22:00Z",
-    "pr": 75,
-    "code_commit": "eb20d28b55f7d07953b73b3adbf2903c96621bdd"
+    "worker": "d4-approval-ui-20261014",
+    "round_id": "20261014T1053Z-d4.3.3",
+    "acquired_at": "2026-10-14T10:53:00Z",
+    "branch": "codex/accounting-v2-d4-approval-ui-20261014",
+    "released_at": "2026-10-14T14:59:00Z",
+    "pr": 78,
+    "code_commit": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1851,7 +1872,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to D4.3.2 atomic discount/expense/refund approval gates and frozen evidence; retain independent Render acceptance",
+  "next": "Proceed to D5/D6 from the approved roadmap after re-reading current requirements; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1872,25 +1893,25 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "d4-approval-limits-20261014",
-    "round_id": "20261014T0510Z-d4.3.1",
-    "acquired_at": "2026-10-14T05:10:00Z",
-    "branch": "codex/accounting-v2-d4-approval-limits-20261014",
-    "released_at": "2026-10-14T05:22:00Z",
-    "pr": 75,
-    "code_commit": "eb20d28b55f7d07953b73b3adbf2903c96621bdd",
-    "status": "D4_3_1_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-14T05:22:00Z",
+    "worker": "d4-approval-ui-20261014",
+    "round_id": "20261014T1053Z-d4.3.3",
+    "acquired_at": "2026-10-14T10:53:00Z",
+    "branch": "codex/accounting-v2-d4-approval-ui-20261014",
+    "released_at": "2026-10-14T14:59:00Z",
+    "pr": 78,
+    "code_commit": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3",
+    "status": "D4_3_3_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-14T14:59:00Z",
     "ci": {
-      "run_id": 38515671820,
-      "commit_sha": "eb20d28b55f7d07953b73b3adbf2903c96621bdd",
+      "run_id": 38584496221,
+      "commit_sha": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3",
       "conclusion": "success",
-      "unit_api": 352,
+      "unit_api": 356,
       "emulator": 35,
-      "ui": 73,
+      "ui": 76,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to D4.3.2 atomic discount/expense/refund approval gates and frozen evidence; Render acceptance remains independent"
+    "next": "Proceed to D5/D6 from the approved roadmap after re-reading requirements; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

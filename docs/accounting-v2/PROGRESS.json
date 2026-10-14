@@ -8,11 +8,11 @@
   "active_branch": "codex/accounting-v2-d4-approval-foundation-20261013",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "d4-approval-foundation-20261013",
-    "acquired_at": "2026-10-14T02:55:00Z",
-    "expires_at": "2026-10-14T12:30:00Z",
+    "worker": "d4-approval-finalize-20261014",
+    "acquired_at": "2026-10-14T14:20:00Z",
+    "expires_at": "2026-10-14T15:20:00Z",
     "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
-    "purpose": "Implement D4.1 protected approval policies and approval requests"
+    "purpose": "Finalize D4.1 CI evidence, checkpoint report and release"
   },
   "milestones": [
     {
@@ -1511,7 +1511,7 @@
     "Confirm D4.1 CI, then implement D4.2 customer credit/payment terms and transaction approval integration/UI",
     "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2/D3.1/D3.2/D4.1 on matching staging commits"
   ],
-  "updated_at": "2026-10-14T09:00:00Z",
+  "updated_at": "2026-10-14T14:20:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [

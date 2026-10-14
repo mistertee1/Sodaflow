@@ -7,7 +7,14 @@
   "active_milestone": "D",
   "active_branch": "codex/accounting-v2-d4-credit-ui-20261014",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "d4-approval-limits-20261014",
+    "round_id": "20261014T0510Z-d4.3.1",
+    "branch": "codex/accounting-v2-d4-approval-limits-20261014",
+    "acquired_at": "2026-10-14T05:10:00Z",
+    "expires_at": "2026-10-14T06:00:00Z",
+    "scope": "D4.3.1 configurable discount, expense and refund approval policy foundation"
+  },
   "milestones": [
     {
       "id": "A1",

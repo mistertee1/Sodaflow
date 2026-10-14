@@ -5,9 +5,15 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d3-budget-forecast-ui-20261013",
+  "active_branch": "codex/accounting-v2-d4-approval-foundation-20261013",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "d4-approval-foundation-20261013",
+    "acquired_at": "2026-10-14T02:55:00Z",
+    "expires_at": "2026-10-14T06:00:00Z",
+    "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
+    "purpose": "Implement D4.1 protected approval policies and approval requests"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1341,9 +1347,25 @@
         {
           "id": "D4",
           "scope": "Customer credit limits and configurable discount/expense/refund approval limits",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
+          "pr": null,
+          "substeps": [
+            {
+              "id": "D4.1",
+              "scope": "Protected approval policy registry and tamper-evident approval request/review foundation",
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
+              "pr": null
+            },
+            {
+              "id": "D4.2",
+              "scope": "Customer credit/payment terms plus invoice discount, expense and refund approval integration and UI",
+              "status": "pending",
+              "branch": null,
+              "pr": null
+            }
+          ]
         }
       ]
     },
@@ -1477,7 +1499,7 @@
     "D4 customer credit limits and configurable approval limits",
     "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2/D3.1/D3.2 on matching staging commits"
   ],
-  "updated_at": "2026-10-13T21:28:00Z",
+  "updated_at": "2026-10-14T02:55:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [

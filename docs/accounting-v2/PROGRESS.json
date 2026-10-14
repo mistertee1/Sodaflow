@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d4-credit-ui-20261014",
+  "active_branch": "codex/accounting-v2-d4-approval-limits-20261014",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1366,8 +1366,8 @@
           "id": "D4",
           "scope": "Customer credit limits and configurable discount/expense/refund approval limits",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-d4-credit-ui-20261014",
-          "pr": 74,
+          "branch": "codex/accounting-v2-d4-approval-limits-20261014",
+          "pr": 75,
           "substeps": [
             {
               "id": "D4.1",
@@ -1391,6 +1391,18 @@
               "report": "REPORT_D4_2_CUSTOMER_CREDIT_UI.md",
               "local_checks": { "types": "passed", "core": "passed", "unit_api": 350, "build": "passed", "ui": "blocked_chromium_not_installed" },
               "ci": { "run_id": 38511786428, "commit_sha": "aae5883451125e3f78295d121d780c28814e8f9f", "conclusion": "success", "unit_api": 350, "emulator": 35, "ui": 73, "production_audit_vulnerabilities": 0 },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D4.3.1",
+              "scope": "Protected configurable discount, expense and refund approval policy foundation",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d4-approval-limits-20261014",
+              "pr": 75,
+              "code_commit": "eb20d28b55f7d07953b73b3adbf2903c96621bdd",
+              "report": "REPORT_D4_3_1_APPROVAL_POLICY_FOUNDATION.md",
+              "local_checks": { "types": "passed", "core": "passed", "unit_api": 352, "build": "passed" },
+              "ci": { "run_id": 38515671820, "commit_sha": "eb20d28b55f7d07953b73b3adbf2903c96621bdd", "conclusion": "success", "unit_api": 352, "emulator": 35, "ui": 73, "production_audit_vulnerabilities": 0 },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]
@@ -1522,12 +1534,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_D4_2_CUSTOMER_CREDIT_UI.md",
+  "last_report": "REPORT_D4_3_1_APPROVAL_POLICY_FOUNDATION.md",
   "next_steps": [
-    "Proceed to D4.3 configurable discount/expense/refund approval foundation",
+    "Proceed to D4.3.2 atomic discount/expense/refund approval gates and frozen evidence",
     "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2 on matching staging commits"
   ],
-  "updated_at": "2026-10-14T04:45:00Z",
+  "updated_at": "2026-10-14T05:22:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1552,7 +1564,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D4.2",
+  "active_substep": "D4.3.1",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {
@@ -1795,16 +1807,25 @@
       "released_at": "2026-10-14T04:45:00Z",
       "pr": 74,
       "code_commit": "aae5883451125e3f78295d121d780c28814e8f9f"
+    },
+    {
+      "worker": "d4-approval-limits-20261014",
+      "round_id": "20261014T0510Z-d4.3.1",
+      "acquired_at": "2026-10-14T05:10:00Z",
+      "branch": "codex/accounting-v2-d4-approval-limits-20261014",
+      "released_at": "2026-10-14T05:22:00Z",
+      "pr": 75,
+      "code_commit": "eb20d28b55f7d07953b73b3adbf2903c96621bdd"
     }
   ],
   "last_lease": {
-    "worker": "d4-credit-ui-20261014",
-    "round_id": "20261014T0210Z-d4.2",
-    "acquired_at": "2026-10-14T02:10:00Z",
-    "branch": "codex/accounting-v2-d4-credit-ui-20261014",
-    "released_at": "2026-10-14T04:45:00Z",
-    "pr": 74,
-    "code_commit": "aae5883451125e3f78295d121d780c28814e8f9f"
+    "worker": "d4-approval-limits-20261014",
+    "round_id": "20261014T0510Z-d4.3.1",
+    "acquired_at": "2026-10-14T05:10:00Z",
+    "branch": "codex/accounting-v2-d4-approval-limits-20261014",
+    "released_at": "2026-10-14T05:22:00Z",
+    "pr": 75,
+    "code_commit": "eb20d28b55f7d07953b73b3adbf2903c96621bdd"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1818,7 +1839,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to D4.3 configurable discount/expense/refund approval foundation; retain independent Render acceptance",
+  "next": "Proceed to D4.3.2 atomic discount/expense/refund approval gates and frozen evidence; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1839,25 +1860,25 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "d4-credit-ui-20261014",
-    "round_id": "20261014T0210Z-d4.2",
-    "acquired_at": "2026-10-14T02:10:00Z",
-    "branch": "codex/accounting-v2-d4-credit-ui-20261014",
-    "released_at": "2026-10-14T04:45:00Z",
-    "pr": 74,
-    "code_commit": "aae5883451125e3f78295d121d780c28814e8f9f",
-    "status": "D4_2_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-14T04:45:00Z",
+    "worker": "d4-approval-limits-20261014",
+    "round_id": "20261014T0510Z-d4.3.1",
+    "acquired_at": "2026-10-14T05:10:00Z",
+    "branch": "codex/accounting-v2-d4-approval-limits-20261014",
+    "released_at": "2026-10-14T05:22:00Z",
+    "pr": 75,
+    "code_commit": "eb20d28b55f7d07953b73b3adbf2903c96621bdd",
+    "status": "D4_3_1_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-14T05:22:00Z",
     "ci": {
-      "run_id": 38511786428,
-      "commit_sha": "aae5883451125e3f78295d121d780c28814e8f9f",
+      "run_id": 38515671820,
+      "commit_sha": "eb20d28b55f7d07953b73b3adbf2903c96621bdd",
       "conclusion": "success",
-      "unit_api": 350,
+      "unit_api": 352,
       "emulator": 35,
       "ui": 73,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to D4.3 configurable discount/expense/refund approval foundation; Render acceptance remains independent"
+    "next": "Proceed to D4.3.2 atomic discount/expense/refund approval gates and frozen evidence; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

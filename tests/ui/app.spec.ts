@@ -153,6 +153,45 @@ test('invoice and receipt UI preserve historical receivable and do not duplicate
   expect(customers[0].balance_sdg).toBe(100000); expect(payments[0].cash_amount_sdg).toBe(150000);
 });
 
+test('D4.2 owner configures customer credit and documents an approved invoice override across reload', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#tab-customers').click();
+  await page.getByTitle('تعديل بيانات العميل').click();
+  const customerDialog = page.getByRole('dialog', { name: 'إضافة أو تعديل عميل' });
+  await expect(customerDialog.getByTestId('credit-limit-fields')).toBeVisible();
+  await customerDialog.locator('input[type="tel"]').fill('0912345678');
+  await customerDialog.getByLabel('حد الائتمان ج.س').fill('100000');
+  await customerDialog.getByLabel('حد الائتمان دولار').fill('50');
+  await customerDialog.getByLabel('سياسة حد الائتمان').selectOption('approval_required');
+  await customerDialog.getByRole('button', { name: 'حفظ التعديلات', exact: true }).click();
+  await expect.poll(() => page.evaluate(() => Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}'))
+    .filter(([path]) => path.includes('/customers/')).map(([, row]) => row as any)[0]?.credit_limit_usd)).toBe(50);
+
+  await page.reload();
+  await page.locator('#tab-customers').click();
+  await expect(page.getByTestId('credit-limit-customer')).toContainText('50.00 USD');
+  await expect(page.getByTestId('credit-limit-customer')).toContainText('اعتماد إلزامي');
+  await page.getByRole('button', { name: 'فاتورة جديدة', exact: true }).last().click();
+  const invoiceForm = page.locator('form').filter({ has: page.getByLabel('عميل الفاتورة') });
+  await invoiceForm.getByRole('button', { name: 'دولار فقط', exact: true }).click();
+  await invoiceForm.getByLabel('منتج البند 1').selectOption('product');
+  await invoiceForm.getByLabel('عملة البند 1').selectOption('USD');
+  await invoiceForm.getByLabel('سعر البند 1').fill('60');
+  await expect(invoiceForm.getByTestId('credit-limit-alert')).toContainText('يتجاوز حد العميل');
+  await invoiceForm.getByRole('button', { name: 'إصدار الفاتورة وحفظها', exact: true }).click();
+  await expect(invoiceForm.getByRole('alert')).toContainText('سبب اعتماد');
+  await invoiceForm.getByLabel('سبب اعتماد تجاوز حد الائتمان').fill('اعتماد المالك لطلب موثق');
+  await invoiceForm.getByRole('button', { name: 'إصدار الفاتورة وحفظها', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'تسجيل دفعة', exact: true })).toBeVisible();
+
+  const invoice = await page.evaluate(() => Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}'))
+    .filter(([path]) => path.includes('/invoices/')).map(([, row]) => row)[0] as any);
+  expect(invoice.credit_decision).toMatchObject({
+    currency: 'USD', limit: 50, exposure_after: 60, exceeded: true,
+    policy: 'approval_required', approved_by: 'guest', approval_reason: 'اعتماد المالك لطلب موثق',
+  });
+});
+
 test('invoice summary excludes voided records and status filters preserve distinct meanings across viewports', async ({ page }) => {
   await seedBrandInvoices(page);
   await page.goto('/'); await page.locator('#tab-invoices').click();

@@ -55,6 +55,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
     costCenters,
     projects,
     isActionAllowed,
+    userRole,
   } = useApp();
 
   const planConfig = getPlanConfig(subscription?.plan);
@@ -92,6 +93,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
 
   // Error State
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [creditApprovalReason, setCreditApprovalReason] = useState('');
 
   // Submission & Idempotency Lock
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,6 +119,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
       setNotes(settings.default_invoice_notes || '');
       setPaymentInstructions(settings.bank_details || '');
       setErrorMessage(null);
+      setCreditApprovalReason('');
 
       const targetCustomer = prefilledCustomer || initialCustomer;
       if (targetCustomer) {
@@ -230,6 +233,14 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   const discountTotalUsd = financials.discount_total_usd;
   const grandTotalSdg = financials.grand_total_sdg;
   const grandTotalUsd = financials.grand_total_usd;
+  const creditCurrency = currencyMode === 'single_usd' ? 'USD' : 'SDG';
+  const creditLimit = creditCurrency === 'USD' ? selectedCustomer?.credit_limit_usd : selectedCustomer?.credit_limit_sdg;
+  const creditBalance = creditCurrency === 'USD' ? selectedCustomer?.balance_usd || 0 : selectedCustomer?.balance_sdg || 0;
+  const creditInvoiceAmount = creditCurrency === 'USD' ? grandTotalUsd : grandTotalSdg;
+  const creditExposure = creditBalance + creditInvoiceAmount;
+  const creditExceeded = creditLimit != null && creditExposure > creditLimit;
+  const creditApprovalRequired = creditExceeded && selectedCustomer?.credit_policy === 'approval_required';
+  const canApproveCredit = userRole === 'Owner' || userRole === 'Admin';
 
   // Quick Customer Creation
   const handleQuickCreateCustomer = async (e: React.FormEvent) => {
@@ -279,6 +290,8 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
       setErrorMessage('يرجى التأكد من ملء وصف وكمية كل بند من بنود الفاتورة.');
       return;
     }
+    if (creditApprovalRequired && !canApproveCredit) { setErrorMessage('تجاوز حد ائتمان العميل يتطلب اعتماد المالك أو المدير.'); return; }
+    if (creditApprovalRequired && !creditApprovalReason.trim()) { setErrorMessage('اكتب سبب اعتماد تجاوز حد الائتمان.'); return; }
 
     const rateValidation = validateExchangeRate(exchangeRate);
     if (items.some(i => i.currency === 'USD') && !rateValidation.isValid) {
@@ -320,6 +333,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
         remaining_usd: grandTotalUsd,
         notes,
         payment_instructions: paymentInstructions,
+        ...(creditApprovalRequired ? { credit_limit_override_reason: creditApprovalReason.trim() } : {}),
         ...(branchId ? { branch_id: branchId } : {}),
         ...(costCenterId ? { cost_center_id: costCenterId } : {}),
         ...(projectId ? { project_id: projectId } : {}),
@@ -395,6 +409,10 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
               <span>{errorMessage}</span>
             </div>
           )}
+          {creditExceeded && <div data-testid="credit-limit-alert" className="p-3 bg-sf-warning-bg/50 border border-sf-warning/60 rounded-xl text-sf-warning text-xs space-y-2">
+            <div className="flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0"/><span>التعرض بعد الفاتورة {formatMoney(creditExposure, creditCurrency, settings)} يتجاوز حد العميل {formatMoney(creditLimit!, creditCurrency, settings)}. {creditApprovalRequired ? 'يلزم اعتماد.' : 'سيُحفظ التحذير مع الفاتورة.'}</span></div>
+            {creditApprovalRequired && canApproveCredit && <textarea aria-label="سبب اعتماد تجاوز حد الائتمان" value={creditApprovalReason} onChange={e=>setCreditApprovalReason(e.target.value)} rows={2} className="w-full bg-sf-surface border border-sf-warning rounded-lg p-2 text-sf-text" placeholder="سبب الاعتماد الموثق" />}
+          </div>}
 
           {/* Section 1: Customer & Dates */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-sf-raised p-4 rounded-xl border border-sf-border">

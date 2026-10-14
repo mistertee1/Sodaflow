@@ -1354,9 +1354,19 @@
             {
               "id": "D4.1",
               "scope": "Protected approval policy registry and tamper-evident approval request/review foundation",
-              "status": "in_progress",
+              "status": "implemented_local_checks_passed_ci_pending",
               "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
-              "pr": null
+              "pr": null,
+              "report": "REPORT_D4_1_APPROVAL_FOUNDATION.md",
+              "checks": {
+                "types": "passed",
+                "unit_api": 349,
+                "core": "passed",
+                "build": "passed",
+                "emulator": "blocked_java_21_required",
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
               "id": "D4.2",
@@ -1494,12 +1504,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_D3_2_BUDGET_FORECAST_UI.md",
+  "last_report": "REPORT_D4_1_APPROVAL_FOUNDATION.md",
   "next_steps": [
-    "D4 customer credit limits and configurable approval limits",
-    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2/D3.1/D3.2 on matching staging commits"
+    "Confirm D4.1 CI, then implement D4.2 customer credit/payment terms and transaction approval integration/UI",
+    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2/D3.1/D3.2/D4.1 on matching staging commits"
   ],
-  "updated_at": "2026-10-14T08:45:00Z",
+  "updated_at": "2026-10-14T09:00:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1524,7 +1534,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D4",
+  "active_substep": "D4.2",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {

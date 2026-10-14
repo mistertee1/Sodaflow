@@ -48,12 +48,14 @@ import { branchProfitAndLoss, createDimension, dimensionCollection, dimensionFie
 import { customerProfitability, productProfitability } from './managementProfitability';
 import { budgetVsActual, saveBudget, type BudgetPlan } from './managementBudgets';
 import { cashForecast } from './managementCashForecast';
+import { saveRecurringCashSource, saveScheduledCashSource } from './managementCashSources';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
 export interface OperationResult { result: Document; changes: Change[]; }
 const actions: Record<string, ActionType> = {
   'budget.create':'budget:manage','budget.update':'budget:manage',
+  'recurringCashSource.create':'budget:manage','recurringCashSource.update':'budget:manage','scheduledCashSource.create':'budget:manage','scheduledCashSource.update':'budget:manage',
   'dimension.create':'dimensions:manage','dimension.update':'dimensions:manage',
   'taxConfiguration.create':'tax:manage','taxConfiguration.update':'tax:manage',
   'fixedAsset.register':'journal:create','fixedAsset.depreciate':'periods:adjust',
@@ -77,6 +79,8 @@ const actions: Record<string, ActionType> = {
 };
 export const readPermissions: Record<string, ActionType> = { branches:'dimensions:read',cost_centers:'dimensions:read',projects:'dimensions:read',tax_configurations:'tax:read',tax_configuration_versions:'tax:read',fixed_assets:'journal:read',fixed_asset_depreciations:'journal:read',fx_revaluations:'journal:read', owner_equity_events:'journal:read', ...Object.fromEntries(openingCollections.map(name=>[name,'journal:read' as const])), accounting_periods:'periods:read', audit_archives: 'audit_logs:view', purchase_returns: 'payables:read', supplier_refunds: 'payables:read', credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
 readPermissions.budgets = 'budget:read';
+readPermissions.recurring_cash_sources = 'budget:read';
+readPermissions.scheduled_cash_sources = 'budget:read';
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
@@ -249,7 +253,7 @@ export class Operations {
     return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'budget:read'),'ليس لديك صلاحية عرض الميزانيات.',403);const subscription=await loadSubscription(tx,orgId,org,this.now(),this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');ensure(org.accounting_version===2,'الميزانيات تتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,plan=await tx.get(`${root}/budgets/${identifier(budgetId)}`) as BudgetPlan|undefined;ensure(plan&&plan.org_id===orgId,'الميزانية غير موجودة.',404);return{organizationId:orgId,generatedAt:this.now().toISOString(),...budgetVsActual(plan,await tx.list(`${root}/accounts`) as Account[],await tx.list(`${root}/journal_entries`) as JournalEntry[])};});
   }
   async cashForecastReport(orgId:string,actor:Actor,input:{asOf?:string;days?:number}={}){
-    return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(['reports:advanced','invoices:read','payments:read','payables:read'].every(permission=>hasPermission(role,permission as ActionType)),'ليس لديك صلاحية توقع التدفقات النقدية.',403);const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');ensure(org.accounting_version===2,'توقع التدفقات النقدية يتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,asOf=input.asOf?dateOnly(input.asOf):merchantDay(now,org.settings.timezone||'Africa/Khartoum'),days=Number(input.days||30),receivables=await readOperationalReport(tx,root,'receivables',{end:asOf},asOf),payables=await readPayableReport(tx,root,{end:asOf},asOf);return{organizationId:orgId,generatedAt:now.toISOString(),...cashForecast(asOf,days,receivables.aging,payables.aging)};});
+    return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(['reports:advanced','invoices:read','payments:read','payables:read','budget:read'].every(permission=>hasPermission(role,permission as ActionType)),'ليس لديك صلاحية توقع التدفقات النقدية.',403);const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');ensure(org.accounting_version===2,'توقع التدفقات النقدية يتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,asOf=input.asOf?dateOnly(input.asOf):merchantDay(now,org.settings.timezone||'Africa/Khartoum'),days=Number(input.days||30),receivables=await readOperationalReport(tx,root,'receivables',{end:asOf},asOf),payables=await readPayableReport(tx,root,{end:asOf},asOf);return{organizationId:orgId,generatedAt:now.toISOString(),...cashForecast(asOf,days,receivables.aging,payables.aging,await tx.list(`${root}/recurring_cash_sources`) as never,await tx.list(`${root}/scheduled_cash_sources`) as never)};});
   }
   async execute(orgId: string, actor: Actor, command: Command): Promise<OperationResult> {
     identifier(orgId); identifier(actor.uid); identifier(command.operationId); ensure(command.operationId.length <= 64, 'معرّف العملية طويل جداً.');
@@ -443,6 +447,14 @@ export class Operations {
       let result: Document = {};
       let openingProof: Document | undefined;
       switch (command.action) {
+        case 'recurringCashSource.create': case 'recurringCashSource.update': {
+          ensure(org.accounting_version===2,'مصادر التوقع النقدي تتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');
+          result=await saveRecurringCashSource(tx,root,orgId,actor.uid,iso,command.action,command.data);changes.push({path:`${root}/recurring_cash_sources/${result.id}`,value:result});break;
+        }
+        case 'scheduledCashSource.create': case 'scheduledCashSource.update': {
+          ensure(org.accounting_version===2,'مصادر التوقع النقدي تتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');
+          result=await saveScheduledCashSource(tx,root,orgId,actor.uid,iso,command.action,command.data);changes.push({path:`${root}/scheduled_cash_sources/${result.id}`,value:result});break;
+        }
         case 'budget.create': case 'budget.update': {
           result=await saveBudget(tx,root,orgId,actor.uid,iso,command.action,command.data);
           changes.push({path:`${root}/budgets/${result.id}`,value:result});break;

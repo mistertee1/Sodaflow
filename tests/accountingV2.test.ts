@@ -144,9 +144,24 @@ test('D3.2b cash forecast includes overdue and due balances without inventing un
   assert.equal(report.end_date,'2026-11-04');
   assert.deepEqual(report.rows.map(row=>[row.date,row.source_type,row.source_id]),[['2026-10-05','customer_due','invoice-overdue'],['2026-10-06','supplier_due','bill-due'],['2026-10-20','customer_due','invoice-future']]);
   assert.deepEqual(report.totals,{inflow_sdg:300,inflow_usd:3,outflow_sdg:80,outflow_usd:.8,net_sdg:220,net_usd:2.2});
-  assert.deepEqual(report.coverage,{customer_due_dates:true,supplier_due_dates:true,recurring_expenses:false,scheduled_payments:false});
+  assert.deepEqual(report.coverage,{customer_due_dates:true,supplier_due_dates:true,recurring_expenses:true,scheduled_payments:true});
   assert.throws(()=>cashForecast('2026-10-05',0,[],[]),/فترة التوقع/);
   assert.throws(()=>cashForecast('2026-10-05',366,[],[]),/فترة التوقع/);
+});
+
+test('D3.2b.3 protected forecast sources are revisioned, backed up and included without posting journals',async()=>{
+  const f=await fixture(),root=`organizations/${f.org.id}`,now='2026-10-05T12:00:00.000Z';
+  await f.store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01'});tx.set('plans/Enterprise',defaultPlatformPlans(now).find(plan=>plan.id==='Enterprise')!);tx.set(`${root}/members/accountant`,{uid:'accountant',role:'Accountant',status:'active'});});
+  const rent=(await f.run('recurringCashSource.create',{id:'rent',name:'الإيجار',frequency:'monthly',next_date:'2026-10-10',end_date:'2026-12-10',amount_sdg:1000,amount_usd:0,status:'active'},'forecast-rent')).result;
+  const receipt=(await f.run('scheduledCashSource.create',{id:'grant',name:'دفعة تمويل',due_date:'2026-10-12',direction:'inflow',amount_sdg:0,amount_usd:50,party_name:'ممّول',reference:'GR-1',status:'scheduled'},'forecast-grant')).result;
+  assert.equal(rent.revision,1);assert.equal(receipt.revision,1);assert.equal((await f.store.transaction(tx=>tx.list(`${root}/journal_entries`))).length,0);
+  const report=await f.ops.cashForecastReport(f.org.id,actor,{asOf:'2026-10-05',days:40});
+  assert.deepEqual(report.rows.filter(row=>['recurring_expense','scheduled_payment'].includes(row.source_type)).map(row=>[row.date,row.source_type,row.source_id]),[['2026-10-10','recurring_expense','rent'],['2026-10-12','scheduled_payment','grant'],['2026-11-10','recurring_expense','rent']]);
+  assert.equal(report.totals.outflow_sdg,2000);assert.equal(report.totals.inflow_usd,50);
+  await assert.rejects(f.ops.execute(f.org.id,{...actor,uid:'accountant'},{action:'recurringCashSource.update',operationId:'forecast-forbidden',data:{id:'rent',expected_revision:1,name:'مرفوض',frequency:'monthly',next_date:'2026-10-10',amount_sdg:1,status:'active'}}),/صلاحية/);
+  await f.run('recurringCashSource.update',{id:'rent',expected_revision:1,name:'الإيجار المعدل',frequency:'monthly',next_date:'2026-10-10',amount_sdg:1200,status:'paused'},'forecast-rent-update');
+  await assert.rejects(f.run('recurringCashSource.update',{id:'rent',expected_revision:1,name:'قديم',frequency:'monthly',next_date:'2026-10-10',amount_sdg:1,status:'active'},'forecast-rent-stale'),/جلسة أخرى/);
+  const backup=await f.ops.snapshot(f.org.id,actor,true);assert.equal(backup.collections.recurring_cash_sources.length,1);assert.equal(backup.collections.scheduled_cash_sources.length,1);
 });
 
 test('D3.2b cash forecast is enterprise V2 and permission protected',async()=>{

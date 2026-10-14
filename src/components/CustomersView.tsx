@@ -44,6 +44,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     counters,
     subscription,
     isActionAllowed,
+    userRole,
   } = useApp();
 
   const planConfig = getPlanConfig(subscription?.plan);
@@ -67,6 +68,10 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   const [address, setAddress] = useState('');
   const [preferredCurrency, setPreferredCurrency] = useState<Currency>('SDG');
   const [notes, setNotes] = useState('');
+  const [creditLimitSdg, setCreditLimitSdg] = useState('');
+  const [creditLimitUsd, setCreditLimitUsd] = useState('');
+  const [creditPolicy, setCreditPolicy] = useState<'warning' | 'approval_required'>('warning');
+  const canManageCredit = userRole === 'Owner' || userRole === 'Admin';
 
   const safeCustomers = Array.isArray(customers) ? customers : [];
   const filteredCustomers = safeCustomers.filter(
@@ -86,6 +91,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     setAddress('');
     setPreferredCurrency('SDG');
     setNotes('');
+    setCreditLimitSdg(''); setCreditLimitUsd(''); setCreditPolicy('warning');
     setIsAddModalOpen(true);
   };
 
@@ -98,6 +104,9 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     setAddress(c.address || '');
     setPreferredCurrency(c.preferred_currency);
     setNotes(c.notes || '');
+    setCreditLimitSdg(c.credit_limit_sdg == null ? '' : String(c.credit_limit_sdg));
+    setCreditLimitUsd(c.credit_limit_usd == null ? '' : String(c.credit_limit_usd));
+    setCreditPolicy(c.credit_policy || 'warning');
     setIsAddModalOpen(true);
   };
 
@@ -124,6 +133,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
           address: address.trim() || '',
           preferred_currency: preferredCurrency,
           notes: notes.trim() || '',
+          ...(canManageCredit ? { credit_limit_sdg: creditLimitSdg === '' ? null : Number(creditLimitSdg), credit_limit_usd: creditLimitUsd === '' ? null : Number(creditLimitUsd), credit_policy: creditPolicy } : {}),
         });
       } else {
         await addCustomer({
@@ -135,6 +145,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
           balance_sdg: 0,
           balance_usd: 0,
           notes: notes.trim() || '',
+          ...(canManageCredit ? { credit_limit_sdg: creditLimitSdg === '' ? null : Number(creditLimitSdg), credit_limit_usd: creditLimitUsd === '' ? null : Number(creditLimitUsd), credit_policy: creditPolicy } : {}),
         });
       }
 
@@ -280,6 +291,11 @@ ${settings.phone}`;
                       </button>
                     </div>
                   </div>
+                  {(cust.credit_limit_sdg != null || cust.credit_limit_usd != null) && (
+                    <div className="text-xs text-sf-muted mb-3" data-testid={`credit-limit-${cust.id}`}>
+                      حد الائتمان: {cust.credit_limit_sdg == null ? 'غير محدد ج.س' : formatMoney(cust.credit_limit_sdg, 'SDG', settings)} · {cust.credit_limit_usd == null ? 'غير محدد $' : formatMoney(cust.credit_limit_usd, 'USD', settings)} · {cust.credit_policy === 'approval_required' ? 'اعتماد إلزامي' : 'تحذير'}
+                    </div>
+                  )}
 
                   {/* Balance Display (Dual Currency) */}
                   <div className="bg-sf-raised rounded-xl p-3 border border-sf-border my-3 flex items-center justify-between">
@@ -438,6 +454,12 @@ ${settings.phone}`;
                   className="w-full bg-sf-raised border border-sf-border rounded-xl p-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
+
+              {canManageCredit && <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 rounded-xl border border-sf-border bg-sf-raised" data-testid="credit-limit-fields">
+                <div><label className="block font-semibold text-sf-text mb-1 text-xs">حد الائتمان ج.س</label><input aria-label="حد الائتمان ج.س" type="number" min="0" step="1" value={creditLimitSdg} onChange={e=>setCreditLimitSdg(e.target.value)} className="w-full bg-sf-surface border border-sf-border rounded-xl px-3 py-2 text-xs" placeholder="بلا حد" /></div>
+                <div><label className="block font-semibold text-sf-text mb-1 text-xs">حد الائتمان دولار</label><input aria-label="حد الائتمان دولار" type="number" min="0" step="0.01" value={creditLimitUsd} onChange={e=>setCreditLimitUsd(e.target.value)} className="w-full bg-sf-surface border border-sf-border rounded-xl px-3 py-2 text-xs" placeholder="بلا حد" /></div>
+                <div><label className="block font-semibold text-sf-text mb-1 text-xs">عند التجاوز</label><select aria-label="سياسة حد الائتمان" value={creditPolicy} onChange={e=>setCreditPolicy(e.target.value as typeof creditPolicy)} className="w-full bg-sf-surface border border-sf-border rounded-xl px-3 py-2 text-xs"><option value="warning">تحذير فقط</option><option value="approval_required">اعتماد إلزامي</option></select></div>
+              </div>}
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-sf-border">
                 <button disabled={isSaving}

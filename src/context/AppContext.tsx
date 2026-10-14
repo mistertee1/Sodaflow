@@ -135,7 +135,7 @@ interface AppContextType {
   activateAccountingV2: (reason: string) => Promise<void>;
   updateProductStock: (id: string, newStock: number, reason?: string, cost?: CostInput) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
-  createInvoice: (invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>) => Promise<Invoice>;
+  createInvoice: (invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'> & { credit_limit_override_reason?: string }) => Promise<Invoice>;
   updateInvoice: (id: string, updates: Partial<Invoice>) => Promise<void>;
   voidInvoice: (id: string, reason?: string) => Promise<void>;
   deleteInvoice: (id: string) => Promise<void>;

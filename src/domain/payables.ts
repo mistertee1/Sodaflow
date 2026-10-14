@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import { openingBalancesByParty, openingLineAllocations, readOpeningData } from './openingIntegration';
-import type { Account, Invoice, JournalEntry, MerchantSettings, Product } from '../types';
+import type { Account, Invoice, JournalEntry, MerchantSettings, OrgRole, Product } from '../types';
 import type { Document, Transaction } from './store';
 import { acquisitionCost, receiveCost, validateCostState } from './inventoryCost';
 import { assertOpenPeriod, dateOnly, ensure, identifier, money, text, validateJournal } from './validation';
@@ -20,6 +20,7 @@ export interface PurchaseBill { branch_id?: string; cost_center_id?: string; pro
 export interface SupplierPayment { sequence: number; id: string; bill_id: string; supplier_id: string; amount: number; currency: 'SDG' | 'USD'; exchange_rate_used: number; payment_date: string; payment_method: string; payment_account_code: string; reference_number: string; notes: string; settled_amount_sdg: number; settled_amount_usd: number; cash_amount_sdg: number; cash_amount_usd: number; journal_id: string; org_id: string; created_at: string; }
 export interface PayableContext {
   tx: Transaction; root: string; orgId: string; actor: string; iso: string; operationId: string; settings: MerchantSettings;
+  role?: OrgRole;
   set: (path: string, value: Document) => void; required: (collection: string, id: string) => Promise<Document>;
   post: (entry: JournalEntry) => Promise<void>; counterAdd: (key: string, delta: number) => void;
 }

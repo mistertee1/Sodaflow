@@ -71,3 +71,13 @@ export function approvalDecision(policy: ApprovalPolicy, value: number, actorRol
   if (approved) Object.assign(evidence, { approved_by: identifier(actorUid), approved_by_role: actorRole, approval_reason: text(reason, 500, true) });
   return evidence;
 }
+
+export async function approvalGate(tx: Transaction, root: string, subject: ApprovalSubject, currency: ApprovalCurrency, value: number, actorRole: OrgRole, actorUid: string, reason?: unknown) {
+  const matches = (await tx.list(`${root}/approval_policies`)).filter(row => row.active === true && row.subject === subject && row.currency === currency);
+  ensure(matches.length <= 1, 'توجد أكثر من سياسة اعتماد نشطة لنفس النوع والعملة.', 409);
+  if (!matches.length || value <= 0) return undefined;
+  const policy = validateApprovalPolicy(matches[0], matches[0].org_id);
+  const evidence = approvalDecision(policy, value, actorRole, actorUid, reason);
+  ensure(evidence.approved === true, `هذه العملية تتطلب اعتماد دور ${evidence.required_role}.`, 403);
+  return evidence;
+}

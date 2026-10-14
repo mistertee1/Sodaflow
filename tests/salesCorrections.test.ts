@@ -66,6 +66,12 @@ test('B3 paid invoice credits create distinct source and customer credit; actual
   const cash = await f.ops.operationalReport(f.org.id, owner, 'cash', { start: '2026-10-07', end: '2026-10-07' }); assert.equal(cash.outflow_usd, 20); assert.equal(cash.inflow_usd, 300);
   const audit = f.store.dump()[`${f.root}/audit_logs/audit-refund`]; assert.equal(audit.actor_role, 'Owner'); assert.equal(audit.reason, 'رد مثبت'); assert.equal(audit.previous_state[`${f.root}/invoices/${f.invoice.id}`].credit_balance_usd, 20);
 });
+test('D4.3.2 customer refund approval is atomic and frozen on the refund document',async()=>{
+  const f=await fixture();await f.run('payment.create',f.pay(),'pay');await f.run('creditNote.create',f.note(),'credit');
+  await f.store.transaction(async tx=>tx.set(`${f.root}/approval_policies/refund-usd`,{schema_version:1,id:'refund-usd',org_id:f.org.id,revision:3,subject:'customer_refund',currency:'USD',active:true,tiers:[{max_value:10,required_role:'Accountant'},{max_value:null,required_role:'Owner'}],created_at:'2026-10-01T00:00:00.000Z',created_by:owner.uid,updated_at:'2026-10-01T00:00:00.000Z',updated_by:owner.uid,operation_id:'seed'}));
+  const before=f.store.dump();await assert.rejects(f.run('customerRefund.create',f.refund(),'no-reason'),/النص المطلوب/);assert.deepEqual(f.store.dump(),before);
+  const saved=(await f.run('customerRefund.create',{...f.refund(),approval_reason:'رد معتمد للعميل'},'approved')).result;assert.equal(saved.approval_evidence.policy_revision,3);assert.equal(saved.approval_evidence.value,20);assert.equal(saved.approval_evidence.approved_by,owner.uid);
+});
 
 test('B3 concurrent overreturns and overrefunds serialize; identical retries never duplicate source, stock or journal', async () => {
   const f = await fixture(); await f.run('payment.create', f.pay(), 'pay');

@@ -9,6 +9,7 @@ import type { ManagementDimension } from '../domain/managementDimensions';
 import type { DimensionKind } from '../domain/managementDimensions';
 import type { BudgetPlan } from '../domain/managementBudgets';
 import type { RecurringCashSource, ScheduledCashSource } from '../domain/managementCashSources';
+import type { ApprovalPolicy } from '../domain/approvalPolicies';
 import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
 import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
@@ -33,6 +34,8 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  approvalPolicies: ApprovalPolicy[];
+  saveApprovalPolicy:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<ApprovalPolicy>;
   recurringCashSources:RecurringCashSource[];
   scheduledCashSources:ScheduledCashSource[];
   saveRecurringCashSource:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<RecurringCashSource>;
@@ -516,6 +519,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
     branches: rows<ManagementDimension>('branches'), costCenters: rows<ManagementDimension>('cost_centers'), projects: rows<ManagementDimension>('projects'),
     budgets:rows<BudgetPlan>('budgets'),
+    approvalPolicies:rows<ApprovalPolicy>('approval_policies'),
+    saveApprovalPolicy:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<ApprovalPolicy>(updating?'approvalPolicy.update':'approvalPolicy.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح سياسة الاعتماد.',409)),
     recurringCashSources:rows<RecurringCashSource>('recurring_cash_sources'),scheduledCashSources:rows<ScheduledCashSource>('scheduled_cash_sources'),
     saveRecurringCashSource:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<RecurringCashSource>(updating?'recurringCashSource.update':'recurringCashSource.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح مصدر التوقع.',409)),
     saveScheduledCashSource:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<ScheduledCashSource>(updating?'scheduledCashSource.update':'scheduledCashSource.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح مصدر التوقع.',409)),

@@ -26,6 +26,7 @@ import {
 } from '../lib/currency';
 import { getPlanConfig, isUnlimited } from '../lib/plans';
 import { Dialog } from './Dialog';
+import { ApprovalDecisionField, approvalRequirement } from './accounting/ApprovalDecisionField';
 
 interface InvoiceFormModalProps {
   isOpen: boolean;
@@ -54,6 +55,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
     branches,
     costCenters,
     projects,
+    approvalPolicies,
     isActionAllowed,
     userRole,
   } = useApp();
@@ -94,6 +96,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   // Error State
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [creditApprovalReason, setCreditApprovalReason] = useState('');
+  const [discountApprovalReason,setDiscountApprovalReason] = useState('');
 
   // Submission & Idempotency Lock
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -231,6 +234,8 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   const taxTotalUsd = financials.tax_total_usd;
   const discountTotalSdg = financials.discount_total_sdg;
   const discountTotalUsd = financials.discount_total_usd;
+  const effectiveDiscountRate = Math.max(0,...items.map(item=>Number(item.discount_percent)||0),discountType==='percent'?discountValue:(subtotalSdg+discountTotalSdg)>0?discountTotalSdg*100/(subtotalSdg+discountTotalSdg):0);
+  const discountApproval = approvalRequirement(approvalPolicies,'discount','PERCENT',effectiveDiscountRate,userRole);
   const grandTotalSdg = financials.grand_total_sdg;
   const grandTotalUsd = financials.grand_total_usd;
   const creditCurrency = currencyMode === 'single_usd' ? 'USD' : 'SDG';
@@ -292,6 +297,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
     }
     if (creditApprovalRequired && !canApproveCredit) { setErrorMessage('تجاوز حد ائتمان العميل يتطلب اعتماد المالك أو المدير.'); return; }
     if (creditApprovalRequired && !creditApprovalReason.trim()) { setErrorMessage('اكتب سبب اعتماد تجاوز حد الائتمان.'); return; }
+    if(discountApproval&&(!discountApproval.allowed||!discountApprovalReason.trim())){setErrorMessage(discountApproval.allowed?'اكتب سبب اعتماد الخصم.':`الخصم يتطلب اعتماد دور ${discountApproval.tier.required_role}.`);return;}
 
     const rateValidation = validateExchangeRate(exchangeRate);
     if (items.some(i => i.currency === 'USD') && !rateValidation.isValid) {
@@ -334,6 +340,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
         notes,
         payment_instructions: paymentInstructions,
         ...(creditApprovalRequired ? { credit_limit_override_reason: creditApprovalReason.trim() } : {}),
+        ...(discountApproval ? { approval_reason: discountApprovalReason.trim() } : {}),
         ...(branchId ? { branch_id: branchId } : {}),
         ...(costCenterId ? { cost_center_id: costCenterId } : {}),
         ...(projectId ? { project_id: projectId } : {}),
@@ -801,6 +808,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   </span>
                 </div>
               )}
+              <ApprovalDecisionField requirement={discountApproval} reason={discountApprovalReason} setReason={setDiscountApprovalReason}/>
 
               {taxTotalSdg > 0 && (
                 <div className="flex items-center justify-between text-xs text-sf-text">
@@ -838,7 +846,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || isInvoiceLimitReached}
+              disabled={isSubmitting || isInvoiceLimitReached || !!discountApproval&&!discountApproval.allowed}
               className={`px-6 py-2 text-xs font-semibold rounded-lg shadow-lg transition-all flex items-center gap-2 ${
                 isInvoiceLimitReached
                   ? 'bg-sf-raised text-sf-muted cursor-not-allowed border border-sf-border'

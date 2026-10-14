@@ -5,17 +5,19 @@ import { Dialog } from './Dialog';
 import { formatMoney } from '../lib/currency';
 import { receivableCurrency } from '../domain/financial';
 import { merchantDay } from '../domain/operationalReports';
+import { ApprovalDecisionField, approvalRequirement } from './accounting/ApprovalDecisionField';
 
 export function SalesCorrectionModal({ invoice, mode, onClose }: { invoice: Invoice; mode: 'credit' | 'refund'; onClose: () => void }) {
-  const { settings, financialAccounts, createCreditNote, refundCustomer } = useApp();
+  const { settings, financialAccounts, approvalPolicies, userRole, createCreditNote, refundCustomer } = useApp();
   const [kind, setKind] = useState<'price_credit' | 'sales_return'>('price_credit');
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [date, setDate] = useState(() => merchantDay(new Date(), settings.timezone || 'Africa/Khartoum'));
-  const [reason, setReason] = useState(''), [error, setError] = useState(''), [busy, setBusy] = useState(false);
+  const [reason, setReason] = useState(''), [approvalReason,setApprovalReason] = useState(''), [error, setError] = useState(''), [busy, setBusy] = useState(false);
   const [accountId, setAccountId] = useState(''), [amount, setAmount] = useState(''), [rate, setRate] = useState(String(invoice.exchange_rate_used));
   const submitting = useRef(false), native = receivableCurrency(invoice);
   const accounts = financialAccounts.filter(account => account.status === 'active');
   const account = accounts.find(account => account.id === accountId);
+  const approval = approvalRequirement(approvalPolicies,'customer_refund',(account?.currency||native) as 'SDG'|'USD',Number(amount)||0,userRole);
   async function submit(event: React.FormEvent) {
     event.preventDefault(); if (submitting.current) return;
     submitting.current = true; setBusy(true); setError('');
@@ -25,7 +27,8 @@ export function SalesCorrectionModal({ invoice, mode, onClose }: { invoice: Invo
         if (!lines.length) throw new Error('أدخل مبلغ التصحيح أو كمية المردود لبند واحد على الأقل.');
         await createCreditNote({ invoice_id: invoice.id, kind, date, reason, lines });
       } else {
-        await refundCustomer({ invoice_id: invoice.id, date, reason, financial_account_id: accountId, amount: Number(amount), exchange_rate_used: Number(rate) });
+        if(approval&&(!approval.allowed||!approvalReason.trim()))throw new Error(approval.allowed?'اكتب سبب اعتماد رد العميل.':`رد العميل يتطلب اعتماد دور ${approval.tier.required_role}.`);
+        await refundCustomer({ invoice_id: invoice.id, date, reason, financial_account_id: accountId, amount: Number(amount), exchange_rate_used: Number(rate),...(approval?{approval_reason:approvalReason.trim()}:{}) });
       }
       onClose();
     } catch (failure) { setError(failure instanceof Error ? failure.message : 'تعذر حفظ العملية.'); }
@@ -56,8 +59,9 @@ export function SalesCorrectionModal({ invoice, mode, onClose }: { invoice: Invo
         <label className="block space-y-1">سعر الصرف عند الدفع<input aria-label="سعر الصرف عند الرد" required type="number" min="0" step="0.00000001" value={rate} onChange={event => setRate(event.target.value)} className={field} /></label>
       </div>}
       <label className="block space-y-1">سبب العملية<textarea aria-label="سبب التصحيح أو الرد" required maxLength={500} value={reason} onChange={event => setReason(event.target.value)} className={field} /></label>
+      {mode==='refund'&&<ApprovalDecisionField requirement={approval} reason={approvalReason} setReason={setApprovalReason}/>}
       {error && <p role="alert" className="text-red-600 text-sm">{error}</p>}
-      <div className="flex flex-wrap gap-2"><button type="submit" disabled={busy || mode === 'refund' && !account} className="sf-action">{busy ? 'جاري الحفظ…' : mode === 'credit' ? 'ترحيل الإشعار الدائن' : 'ترحيل الرد النقدي'}</button><button type="button" disabled={busy} onClick={onClose} className="sf-secondary">إغلاق</button></div>
+      <div className="flex flex-wrap gap-2"><button type="submit" disabled={busy || mode === 'refund' && (!account || !!approval&&!approval.allowed)} className="sf-action">{busy ? 'جاري الحفظ…' : mode === 'credit' ? 'ترحيل الإشعار الدائن' : 'ترحيل الرد النقدي'}</button><button type="button" disabled={busy} onClick={onClose} className="sf-secondary">إغلاق</button></div>
     </form>
   </Dialog>;
 }

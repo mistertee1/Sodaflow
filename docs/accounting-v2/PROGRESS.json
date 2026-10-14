@@ -7,14 +7,7 @@
   "active_milestone": "D",
   "active_branch": "codex/accounting-v2-d4-credit-ui-20261014",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "d4-credit-ui-20261014",
-    "round_id": "20261014T0210Z-d4.2",
-    "branch": "codex/accounting-v2-d4-credit-ui-20261014",
-    "acquired_at": "2026-10-14T02:10:00Z",
-    "expires_at": "2026-10-14T03:00:00Z",
-    "scope": "D4.2 customer credit limit UI, warning, approval reason, synchronization and reload"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -1373,8 +1366,8 @@
           "id": "D4",
           "scope": "Customer credit limits and configurable discount/expense/refund approval limits",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-d4-credit-limits-20261014",
-          "pr": 73,
+          "branch": "codex/accounting-v2-d4-credit-ui-20261014",
+          "pr": 74,
           "substeps": [
             {
               "id": "D4.1",
@@ -1386,6 +1379,18 @@
               "report": "REPORT_D4_1_CUSTOMER_CREDIT_LIMITS.md",
               "local_checks": { "types": "passed", "core": "passed", "unit_api": 350, "build": "passed" },
               "ci": { "run_id": 38491828955, "commit_sha": "736168470fdef5addc4bdea494634ca159cea5bb", "conclusion": "success", "unit_api": 350, "emulator": 35, "ui": 72, "production_audit_vulnerabilities": 0 },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D4.2",
+              "scope": "Owner/Admin credit-limit UI, invoice warning, protected override reason, synchronization and reload",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d4-credit-ui-20261014",
+              "pr": 74,
+              "code_commit": "aae5883451125e3f78295d121d780c28814e8f9f",
+              "report": "REPORT_D4_2_CUSTOMER_CREDIT_UI.md",
+              "local_checks": { "types": "passed", "core": "passed", "unit_api": 350, "build": "passed", "ui": "blocked_chromium_not_installed" },
+              "ci": { "run_id": 38511786428, "commit_sha": "aae5883451125e3f78295d121d780c28814e8f9f", "conclusion": "success", "unit_api": 350, "emulator": 35, "ui": 73, "production_audit_vulnerabilities": 0 },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]
@@ -1517,12 +1522,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_D4_1_CUSTOMER_CREDIT_LIMITS.md",
+  "last_report": "REPORT_D4_2_CUSTOMER_CREDIT_UI.md",
   "next_steps": [
-    "Proceed to D4.2 credit-limit UI and then configurable discount/expense/refund approval limits",
+    "Proceed to D4.3 configurable discount/expense/refund approval foundation",
     "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2 on matching staging commits"
   ],
-  "updated_at": "2026-10-14T00:55:00Z",
+  "updated_at": "2026-10-14T04:45:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1547,7 +1552,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D4.1",
+  "active_substep": "D4.2",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {
@@ -1781,16 +1786,25 @@
       "released_at": "2026-10-14T00:55:00Z",
       "pr": 73,
       "code_commit": "736168470fdef5addc4bdea494634ca159cea5bb"
+    },
+    {
+      "worker": "d4-credit-ui-20261014",
+      "round_id": "20261014T0210Z-d4.2",
+      "acquired_at": "2026-10-14T02:10:00Z",
+      "branch": "codex/accounting-v2-d4-credit-ui-20261014",
+      "released_at": "2026-10-14T04:45:00Z",
+      "pr": 74,
+      "code_commit": "aae5883451125e3f78295d121d780c28814e8f9f"
     }
   ],
   "last_lease": {
-    "worker": "d4-credit-limits-20261014",
-    "round_id": "20261014T0040Z-d4.1",
-    "acquired_at": "2026-10-14T00:40:00Z",
-    "branch": "codex/accounting-v2-d4-credit-limits-20261014",
-    "released_at": "2026-10-14T00:55:00Z",
-    "pr": 73,
-    "code_commit": "736168470fdef5addc4bdea494634ca159cea5bb"
+    "worker": "d4-credit-ui-20261014",
+    "round_id": "20261014T0210Z-d4.2",
+    "acquired_at": "2026-10-14T02:10:00Z",
+    "branch": "codex/accounting-v2-d4-credit-ui-20261014",
+    "released_at": "2026-10-14T04:45:00Z",
+    "pr": 74,
+    "code_commit": "aae5883451125e3f78295d121d780c28814e8f9f"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1804,7 +1818,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to D3 budgets, budget-versus-actual reporting and cash forecast; retain independent Render acceptance",
+  "next": "Proceed to D4.3 configurable discount/expense/refund approval foundation; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1825,25 +1839,25 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "d4-credit-limits-20261014",
-    "round_id": "20261014T0040Z-d4.1",
-    "acquired_at": "2026-10-14T00:40:00Z",
-    "branch": "codex/accounting-v2-d4-credit-limits-20261014",
-    "released_at": "2026-10-14T00:55:00Z",
-    "pr": 73,
-    "code_commit": "736168470fdef5addc4bdea494634ca159cea5bb",
-    "status": "D4_1_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-14T00:55:00Z",
+    "worker": "d4-credit-ui-20261014",
+    "round_id": "20261014T0210Z-d4.2",
+    "acquired_at": "2026-10-14T02:10:00Z",
+    "branch": "codex/accounting-v2-d4-credit-ui-20261014",
+    "released_at": "2026-10-14T04:45:00Z",
+    "pr": 74,
+    "code_commit": "aae5883451125e3f78295d121d780c28814e8f9f",
+    "status": "D4_2_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-14T04:45:00Z",
     "ci": {
-      "run_id": 38491828955,
-      "commit_sha": "736168470fdef5addc4bdea494634ca159cea5bb",
+      "run_id": 38511786428,
+      "commit_sha": "aae5883451125e3f78295d121d780c28814e8f9f",
       "conclusion": "success",
       "unit_api": 350,
       "emulator": 35,
-      "ui": 72,
+      "ui": 73,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to D4.2 credit-limit UI and then configurable discount/expense/refund approval limits; Render acceptance remains independent"
+    "next": "Proceed to D4.3 configurable discount/expense/refund approval foundation; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

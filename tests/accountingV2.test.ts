@@ -10,6 +10,7 @@ import { classifyAccount } from '../src/domain/accountClassification';
 import { journal, journalLine } from '../src/domain/financial';
 import { reconcileFinancialData, type FinancialData } from '../src/domain/reconciliation';
 import { defaultPlatformPlans } from '../src/lib/plans';
+import { cashForecast } from '../src/domain/managementCashForecast';
 
 const actor = { uid: 'owner', email: 'owner@example.com', emailVerified: true };
 const entry = (id: string, date: string, lines: JournalEntry['lines']) => journal(id, 'org', 'owner', date, 'manual', id, id, lines, 2000);
@@ -130,4 +131,28 @@ test('D3.1 protected budgets enforce permissions, revision and source-backed var
   const before=f.store.dump();await assert.rejects(f.ops.execute(f.org.id,{...actor,uid:'accountant'},{action:'budget.update',operationId:'budget-forbidden',data:{id:plan.id,expected_revision:1,name:'مرفوض',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:120,amount_usd:0}]}}),/صلاحية/);assert.deepEqual(f.store.dump(),before);
   await f.run('budget.update',{id:plan.id,expected_revision:1,name:'ميزانية التشغيل المعدلة',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:120,amount_usd:0}]},'budget-update');
   await assert.rejects(f.run('budget.update',{id:plan.id,expected_revision:1,name:'قديم',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:1,amount_usd:0}]},'budget-stale'),/جلسة أخرى/);
+});
+
+test('D3.2b cash forecast includes overdue and due balances without inventing unsourced schedules',()=>{
+  const report=cashForecast('2026-10-05',30,[
+    {id:'ar-overdue',source_id:'invoice-overdue',source_reference:'INV-001',customer_name:'عميل متأخر',due_date:'2026-10-01',remaining_sdg:100,remaining_usd:1},
+    {id:'ar-future',source_id:'invoice-future',source_reference:'INV-002',customer_name:'عميل آجل',due_date:'2026-10-20',remaining_sdg:200,remaining_usd:2},
+    {id:'ar-outside',source_id:'invoice-outside',source_reference:'INV-003',customer_name:'خارج الأفق',due_date:'2026-11-10',remaining_sdg:900,remaining_usd:9},
+  ],[
+    {id:'ap-due',source_id:'bill-due',reference:'BILL-001',supplier_name:'مورد',due_date:'2026-10-06',remaining_sdg:80,remaining_usd:.8},
+  ]);
+  assert.equal(report.end_date,'2026-11-04');
+  assert.deepEqual(report.rows.map(row=>[row.date,row.source_type,row.source_id]),[['2026-10-05','customer_due','invoice-overdue'],['2026-10-06','supplier_due','bill-due'],['2026-10-20','customer_due','invoice-future']]);
+  assert.deepEqual(report.totals,{inflow_sdg:300,inflow_usd:3,outflow_sdg:80,outflow_usd:.8,net_sdg:220,net_usd:2.2});
+  assert.deepEqual(report.coverage,{customer_due_dates:true,supplier_due_dates:true,recurring_expenses:false,scheduled_payments:false});
+  assert.throws(()=>cashForecast('2026-10-05',0,[],[]),/فترة التوقع/);
+  assert.throws(()=>cashForecast('2026-10-05',366,[],[]),/فترة التوقع/);
+});
+
+test('D3.2b cash forecast is enterprise V2 and permission protected',async()=>{
+  const f=await fixture(),root=`organizations/${f.org.id}`,now='2026-10-05T12:00:00.000Z';
+  await f.store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01'});tx.set('plans/Enterprise',defaultPlatformPlans(now).find(plan=>plan.id==='Enterprise')!);tx.set(`${root}/members/viewer`,{uid:'viewer',role:'Viewer',status:'active'});});
+  const report=await f.ops.cashForecastReport(f.org.id,actor,{asOf:'2026-10-05',days:30});
+  assert.equal(report.horizon_days,30);assert.deepEqual(report.rows,[]);
+  await assert.rejects(f.ops.cashForecastReport(f.org.id,{...actor,uid:'viewer'},{asOf:'2026-10-05',days:30}),/صلاحية/);
 });

@@ -5,16 +5,9 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d4-approval-limits-20261014",
+  "active_branch": "codex/accounting-v2-d4-approval-gates-20261014",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "d4-approval-gates-20261014",
-    "round_id": "20261014T0925Z-d4.3.2",
-    "branch": "codex/accounting-v2-d4-approval-gates-20261014",
-    "acquired_at": "2026-10-14T09:25:00Z",
-    "expires_at": "2026-10-14T10:15:00Z",
-    "scope": "D4.3.2 atomic invoice, expense and refund approval gates with frozen evidence"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -1411,6 +1404,18 @@
               "local_checks": { "types": "passed", "core": "passed", "unit_api": 352, "build": "passed" },
               "ci": { "run_id": 38515671820, "commit_sha": "eb20d28b55f7d07953b73b3adbf2903c96621bdd", "conclusion": "success", "unit_api": 352, "emulator": 35, "ui": 73, "production_audit_vulnerabilities": 0 },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D4.3.2",
+              "scope": "Atomic invoice-discount, expense and customer/supplier refund approval gates with frozen evidence",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d4-approval-gates-20261014",
+              "pr": 77,
+              "code_commit": "3e423c6fe65f2b0c5d3107d6d7aca05485a8dbf5",
+              "report": "REPORT_D4_3_2_APPROVAL_GATES.md",
+              "local_checks": { "types": "passed", "core": "passed", "unit_api": 356, "build": "passed", "emulator": "blocked_java_21_required", "ui": "blocked_chromium_not_installed" },
+              "ci": { "run_id": 38542501544, "commit_sha": "3e423c6fe65f2b0c5d3107d6d7aca05485a8dbf5", "conclusion": "success", "unit_api": 356, "emulator": 35, "ui": 73, "production_audit_vulnerabilities": 0 },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]
         }
@@ -1541,12 +1546,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_D4_3_1_APPROVAL_POLICY_FOUNDATION.md",
+  "last_report": "REPORT_D4_3_2_APPROVAL_GATES.md",
   "next_steps": [
-    "Proceed to D4.3.2 atomic discount/expense/refund approval gates and frozen evidence",
-    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2 on matching staging commits"
+    "Proceed to D4.3.3 approval policy/decision UI, role visibility, synchronization and reload",
+    "Independent authenticated Render acceptance for D4.3.2 and earlier stages on matching staging commits"
   ],
-  "updated_at": "2026-10-14T05:22:00Z",
+  "updated_at": "2026-10-14T09:35:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [

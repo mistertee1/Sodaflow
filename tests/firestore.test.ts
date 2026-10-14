@@ -443,3 +443,22 @@ test('C5.2a real Firestore serializes tax revisions, proves version history and 
     assert.deepEqual((await db.doc(`${root}/meta/counters`).get()).data(), counters); assert.equal((await db.doc(`${root}/idempotency/tax-fs-tampered`).get()).exists, false);
   } finally {await deleteApp(app);}
 });
+
+
+test('D3.2 planning rules allow tenant accounting reads and deny every direct write or foreign read',async()=>{
+  const orgId='planning-rules-org',root=`organizations/${orgId}`;
+  await env.withSecurityRulesDisabled(async context=>{
+    const db=context.firestore(),subscription={...createDefaultSubscription(orgId),...getPlanConfig('Enterprise'),plan:'Enterprise',org_id:orgId};
+    await setDoc(doc(db,'organizations',orgId),{id:orgId,owner_uid:'planning-owner',status:'active',schema_version:3,settings:INITIAL_SETTINGS,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01',subscriptionEndMillis:Date.parse('2027-01-01')});
+    await setDoc(doc(db,`${root}/meta/subscription`),subscription);
+    await setDoc(doc(db,`${root}/members/planning-viewer`),{uid:'planning-viewer',org_id:orgId,role:'Viewer',status:'active'});
+    await setDoc(doc(db,`${root}/budgets/budget`),{id:'budget',org_id:orgId,name:'ميزانية',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',revision:1,lines:[]});
+    await setDoc(doc(db,`${root}/cash_forecast_schedules/rent`),{id:'rent',org_id:orgId,name:'إيجار',kind:'recurring_expense',start_date:'2026-10-01',end_date:'2026-12-31',cadence:'monthly',amount_sdg:100,amount_usd:0,active:true,revision:1});
+  });
+  for(const uid of ['planning-owner','planning-viewer']){
+    const client=env.authenticatedContext(uid,{email_verified:true}).firestore();
+    for(const name of ['budgets','cash_forecast_schedules']){await assertSucceeds(getDocs(collection(client,`${root}/${name}`)));await assertFails(setDoc(doc(client,`${root}/${name}/forged`),{id:'forged',org_id:orgId}));}
+  }
+  const foreign=env.authenticatedContext('planning-foreign',{email_verified:true}).firestore();
+  for(const name of ['budgets','cash_forecast_schedules'])await assertFails(getDocs(collection(foreign,`${root}/${name}`)));
+});

@@ -131,3 +131,29 @@ test('D3.1 protected budgets enforce permissions, revision and source-backed var
   await f.run('budget.update',{id:plan.id,expected_revision:1,name:'ميزانية التشغيل المعدلة',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:120,amount_usd:0}]},'budget-update');
   await assert.rejects(f.run('budget.update',{id:plan.id,expected_revision:1,name:'قديم',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:1,amount_usd:0}]},'budget-stale'),/جلسة أخرى/);
 });
+
+
+test('D3.2 cash forecast verifies AR sources, ledger cash and recurring schedules',async()=>{
+  const f=await fixture(),root=`organizations/${f.org.id}`,now='2026-10-05T12:00:00.000Z';
+  await f.store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01'});tx.set('plans/Enterprise',defaultPlatformPlans(now).find(plan=>plan.id==='Enterprise')!);tx.set(`${root}/members/viewer`,{uid:'viewer',role:'Viewer',status:'active'});});
+  await f.run('journal.create',{reference_type:'manual',description:'رصيد نقدي',date:'2026-10-05',lines:[journalLine('1110','نقد',50,0,0,0),journalLine('3100','رأس مال',0,50,0,0)]},'forecast-cash');
+  const customer=(await f.run('customer.create',{name:'عميل التنبؤ',phone:'',preferred_currency:'SDG'},'forecast-customer')).result;
+  const service=(await f.run('product.create',{name:'خدمة التنبؤ',unit:'خدمة',price_sdg:100,price_usd:0,tax_rate:0,is_active:true,track_inventory:false,stock_quantity:0},'forecast-service')).result;
+  const invoice=(await f.run('invoice.create',{customer_id:customer.id,issue_date:'2026-10-05',due_date:'2026-10-10',currency_mode:'single_sdg',exchange_rate_used:0,discount_type:'fixed',discount_value:0,items:[{product_id:service.id,description:'خدمة',unit:'خدمة',quantity:1,unit_price:100,currency:'SDG',tax_rate:0,discount_percent:0}]},'forecast-invoice')).result;
+  await f.run('cashForecastSchedule.create',{id:'rent-weekly',name:'إيجار أسبوعي',kind:'recurring_expense',start_date:'2026-10-07',end_date:'2026-10-30',cadence:'weekly',amount_sdg:10,amount_usd:0,active:true},'forecast-schedule');
+  const report=await f.ops.cashForecast(f.org.id,{...actor,uid:'viewer'},{asOf:'2026-10-05',days:30});
+  assert.equal(report.totals.opening_cash_sdg,50);assert.equal(report.totals.expected_inflows_sdg,100);assert.equal(report.totals.expected_outflows_sdg,40);assert.equal(report.totals.forecast_closing_sdg,110);
+  assert.equal(report.source_counts.customer_dues,1);assert.equal(report.source_counts.recurring_expenses,4);assert.equal(report.source_backed,true);assert.match(report.explanation,/لا يساوي صافي الربح/);
+  await f.store.transaction(async tx=>tx.set(`${root}/invoices/${invoice.id}`,{...await tx.get(`${root}/invoices/${invoice.id}`),remaining_sdg:99}));
+  await assert.rejects(f.ops.cashForecast(f.org.id,{...actor,uid:'viewer'},{asOf:'2026-10-05',days:30}),/لا يطابق|مصادر|المصدر/);
+});
+
+test('D3.2 planning writes fail closed on expiry and stale idempotent replay',async()=>{
+  const f=await fixture(),root=`organizations/${f.org.id}`,now='2026-10-05T12:00:00.000Z';
+  await f.store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01'});tx.set('plans/Enterprise',defaultPlatformPlans(now).find(plan=>plan.id==='Enterprise')!);});
+  const plan=(await f.run('budget.create',{id:'forecast-budget',name:'ميزانية',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:100,amount_usd:0}]},'forecast-budget-create')).result;
+  await f.run('budget.update',{id:plan.id,expected_revision:1,name:'ميزانية معدلة',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:120,amount_usd:0}]},'forecast-budget-update');
+  await assert.rejects(f.run('budget.create',{id:'forecast-budget',name:'ميزانية',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:100,amount_usd:0}]},'forecast-budget-create'),/تغير بعد العملية المحفوظة/);
+  await f.store.transaction(async tx=>tx.set(root,{...await tx.get(root),subscriptionStatus:'expired',subscriptionEnd:'2026-10-04'}));
+  const before=f.store.dump();await assert.rejects(f.run('cashForecastSchedule.create',{id:'blocked-plan',name:'مرفوض',kind:'scheduled_payment',start_date:'2026-10-10',end_date:null,cadence:'once',amount_sdg:1,amount_usd:0,active:true},'blocked-plan'),/الاشتراك/);assert.deepEqual(f.store.dump(),before);
+});

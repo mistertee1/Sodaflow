@@ -47,8 +47,9 @@
     "tests/fixedAssets.test.ts",
     "tests/fixedAssetTransactions.test.ts",
     "tests/ui/fixedAssets.spec.ts",
-    "tests/taxConfiguration.test.ts"
+    "tests/taxConfiguration.test.ts",
     "tests/serverAuthority.test.ts",
-    "tests/serverAuthorityFirestore.test.ts"
+    "tests/serverAuthorityFirestore.test.ts",
+    "tests/platformAdminBootstrap.test.ts"
   ]
 }

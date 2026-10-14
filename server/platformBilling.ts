@@ -8,6 +8,7 @@ import { loadSubscription } from '../src/domain/subscriptions';
 import { defaultPlatformPlans } from '../src/lib/plans';
 import type { Organization, PlatformPlan, SubscriptionEvent, SubscriptionStatus } from '../src/types';
 import { resolveSubscription } from './subscriptions';
+import { assertExclusivePlatformAdmin } from './platformAdminAccess';
 
 const dayMs = 86400000;
 const states: SubscriptionStatus[] = ['trial', 'active', 'suspended', 'expired', 'cancelled'];
@@ -44,8 +45,7 @@ export class PlatformBilling {
     ensure(actor.emailVerified === true, 'أكّد بريدك الإلكتروني قبل إدارة المنصة.', 403);
     if (actor.superAdmin !== true) throw new BusinessError('هذا الحساب لا يملك صلاحية إدارة المنصة.', 403, 'super_admin_required');
     const read = async (transaction: Transaction) => {
-      const admin = await transaction.get(`platformAdmins/${identifier(actor.uid)}`);
-      ensure(admin?.active === true && admin.role === 'super_admin', 'صلاحية إدارة المنصة غير فعّالة لهذا الحساب.', 403);
+      await assertExclusivePlatformAdmin(transaction, actor);
     };
     if (tx) await read(tx); else await this.store.transaction(read);
   }

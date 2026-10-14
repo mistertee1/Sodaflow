@@ -2,13 +2,32 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-11T07:03:13.585Z",
-  "activeRunId": null,
-  "leaseUntil": null,
+  "updatedAt": "2026-10-13T13:35:08.564918+00:00",
+  "activeRunId": "super-admin-exclusive-account-20261013",
+  "leaseUntil": "2026-10-13T15:15:53.734297+00:00",
   "automationId": "6ac35722234c819194e0535527c23124",
   "currentStage": 5,
-  "workBranch": "codex/super-admin-render-authority-20261010",
-  "ownedPaths": [],
+  "workBranch": "codex/super-admin-exclusive-account-20261013",
+  "ownedPaths": [
+    "server/platformAdminAccess.ts",
+    "server/platformAdminBootstrap.ts",
+    "server/platformBilling.ts",
+    "scripts/bootstrap-platform-admin.ts",
+    "firestore.rules (platform authorization only)",
+    "server/accountingRulesHash.ts (generated fingerprint)",
+    "tests/platformAdmin.test.ts",
+    "tests/platformFirestore.test.ts",
+    "tests/helpers/platform.ts",
+    "tests/serverAuthority.test.ts",
+    "tests/serverAuthorityFirestore.test.ts",
+    "tests/ui/helpers/platform.ts",
+    "tests/ui/super-admin.spec.ts",
+    "package.json (retain merged test commands)",
+    "tsconfig.core.json (syntax and test include only)",
+    ".env.example",
+    ".github/workflows/deploy-firebase-rules.yml",
+    "docs/super-admin/**"
+  ],
   "stages": [
     {
       "id": 0,
@@ -139,20 +158,25 @@
           "id": "5b",
           "status": "blocked_external",
           "scope": "Production activation with correct Firebase credentials/customer data, explicit verified admin UID and reviewed recovery/migration/release"
+        },
+        {
+          "id": "5c",
+          "status": "implemented_acceptance_pending",
+          "scope": "Explicit exclusive Super Admin email/UID policy and reviewed technical bootstrap"
         }
       ]
     }
   ],
   "productionValidated": false,
   "lastCompletedStage": 4,
-  "unmergedWorkBranch": "codex/super-admin-render-authority-20261010",
+  "unmergedWorkBranch": "codex/super-admin-exclusive-account-20261013",
   "lastSourceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
   "sourceStagesComplete": true,
-  "status": "blocked_external",
-  "resumeFrom": "production_activation_requirements",
-  "lastReport": "docs/super-admin/REPORT_RENDER_AUTHORITY.md",
+  "status": "in_progress",
+  "resumeFrom": "exclusive_admin_ci_acceptance",
+  "lastReport": "docs/super-admin/REPORT_EXCLUSIVE_ADMIN_20261013.md",
   "productionReadiness": {
-    "checkedAt": "2026-10-11T06:46:39.621967Z",
+    "checkedAt": "2026-10-13T13:31:36Z",
     "provider": "Render",
     "workspaceId": "tea-db20pccs728c73ald730",
     "serviceId": "srv-db4lfrvavr4c73fn1hl0",
@@ -177,10 +201,13 @@
       "overview": 401,
       "companies": 401
     },
-    "httpHealth": 200
+    "httpHealth": 200,
+    "selectedAdministratorEmailApproved": true,
+    "latestDeployId": "dep-db7341psrm7s73bs37bg",
+    "latestDeployCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0"
   },
-  "observedMainSha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
-  "workBaseSha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+  "observedMainSha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
+  "workBaseSha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "userMergesOnly": true,
   "dependencies": [
     {
@@ -316,14 +343,12 @@
     }
   ],
   "coordination": {
-    "checkedAt": "2026-10-11T06:47:26.837Z",
-    "accountingPullRequest": 48,
-    "accountingBranch": "codex/accounting-v2-c5-tax-config-transactions-20261011",
-    "accountingLeaseUntil": "2026-10-11T07:25:00Z",
-    "ownedPathsUnchanged": true,
-    "note": "Active accounting PR48 modifies tax configuration, operations, types, package and dedicated tax tests. The app.spec brand asset assertion is not among its changed paths; only that assertion is adjusted, without altering invoice/correction tests or product branding.",
-    "accountingPullRequestFilesReviewed": true,
-    "brandTestPathNotChangedByActiveAccountingPr": true
+    "checkedAt": "2026-10-13T13:15:53.734297+00:00",
+    "openAccountingPullRequests": [
+      65,
+      66
+    ],
+    "note": "PR65 changes platform-adjacent rules/hash, but only adds tenant budget reads. This stage changes platform authorization at the top and regenerates the fingerprint; no tenant financial rule removal. PR66 UI and AppContext paths remain untouched. Neither changes package or tsconfig at the observed snapshots. No other Super Admin lease active."
   },
   "lastOwnedPaths": [
     "docs/super-admin/**",
@@ -381,16 +406,11 @@
     }
   ],
   "lastRun": {
-    "id": "super-admin-render-verification-20261011-0647",
-    "status": "source_acceptance_complete_production_blocked",
-    "endedAt": "2026-10-11T07:03:13.585Z",
-    "branch": "codex/super-admin-render-authority-20261010",
-    "pr": 49,
-    "acceptedSourceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
-    "renderDeploy": "dep-db5j66dckfvc73adgthg",
-    "githubRun": 38119689684,
-    "productionWrites": 0,
-    "userMergedOnly": true
+    "id": "super-admin-exclusive-account-20261013",
+    "status": "in_progress",
+    "startedAt": "2026-10-13T13:15:53.734297+00:00",
+    "branch": "codex/super-admin-exclusive-account-20261013",
+    "productionWrites": 0
   },
   "leaseHistory": [
     {
@@ -401,5 +421,45 @@
       "reason": "Independent source and isolated acceptance complete; production activation requires external credentials/UID/data/release review."
     }
   ],
-  "automationState": "paused_external_requirements"
+  "automationState": "paused_external_requirements",
+  "exclusiveAccount": {
+    "emailExplicitlyApproved": true,
+    "uidVerified": false,
+    "passwordStored": false,
+    "authProbe": "INVALID_LOGIN_CREDENTIALS",
+    "productionActivated": false,
+    "protectedEnvironmentKey": "SUPER_ADMIN_EMAIL",
+    "renderConfigured": true,
+    "authProbeAttempts": 1,
+    "productionSourceDeployed": false,
+    "validation": {
+      "localCheck": "passed",
+      "localUnitLines": [
+        "ℹ tests 363",
+        "ℹ pass 363",
+        "ℹ fail 0",
+        "ℹ skipped 0"
+      ],
+      "productionDependencyAudit": "passed_zero",
+      "localEmulator": "blocked_java_below_21",
+      "localChromium": "download_blocked_invalid_archive",
+      "githubCI": "pending",
+      "productionFinancialTestWrites": 0
+    }
+  },
+  "baselineIssues": [
+    "tsconfig.core.json missing comma at line51",
+    "Duplicate package scripts silently drop merged accounting unit/rules test entries"
+  ],
+  "currentSubstep": "5c",
+  "productionConfigurationChange": {
+    "key": "SUPER_ADMIN_EMAIL",
+    "replaceExistingEnvironment": false,
+    "passwordStored": false,
+    "unexpectedDeploymentObserved": true,
+    "deployId": "dep-db7341psrm7s73bs37bg",
+    "sourceCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0",
+    "newSourceDeployed": false,
+    "note": "Connector environment update was followed by an API redeploy of the existing source. The legacy local .data file was not accessible for inspection or recovery; no data-loss claim is made. No further production write or deploy is attempted."
+  }
 }

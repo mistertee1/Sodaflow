@@ -71,7 +71,7 @@ test('a failed cloud commit rolls back and the same registration retries remotel
 
 test('existing local subscription/quota/registry cannot override cloud authority after a denied read', async () => isolated(async file => {
   const root = 'organizations/org-authority-owner';
-  const local = { [root]: { id: 'org-authority-owner', planId: 'Free', subscriptionStatus: 'active' }, [`${root}/meta/usage`]: { lifetimeInvoiceCount: 0 }, [`platformAdmins/${admin.uid}`]: { active: true, role: 'super_admin' } };
+  const local = { 'platformAccess/superAdmin': { mode: 'exclusive', active: true, uid: admin.uid, email: admin.email }, [root]: { id: 'org-authority-owner', planId: 'Free', subscriptionStatus: 'active' }, [`${root}/meta/usage`]: { lifetimeInvoiceCount: 0 }, [`platformAdmins/${admin.uid}`]: { active: true, role: 'super_admin' } };
   fs.mkdirSync(path.dirname(file)); fs.writeFileSync(file, JSON.stringify(local)); const before = fs.readFileSync(file, 'utf8');
   const r = remote({ [root]: { id: 'org-authority-owner', planId: 'Professional', subscriptionStatus: 'expired' }, [`${root}/meta/usage`]: { lifetimeInvoiceCount: 100 } });
   const store = new ResilientStore(r.db), denied = Object.assign(new Error('permission denied'), { code: 7 });
@@ -90,8 +90,8 @@ test('malformed local persistence cannot bootstrap an empty company or affect a 
 }));
 
 test('a revoked platform admin cannot use a stale local active registry', async () => isolated(async file => {
-  fs.mkdirSync(path.dirname(file)); fs.writeFileSync(file, JSON.stringify({ [`platformAdmins/${admin.uid}`]: { active: true, role: 'super_admin' } }));
-  const r = remote({ [`platformAdmins/${admin.uid}`]: { active: false, role: 'super_admin' } });
+  fs.mkdirSync(path.dirname(file)); fs.writeFileSync(file, JSON.stringify({ 'platformAccess/superAdmin': { mode: 'exclusive', active: true, uid: admin.uid, email: admin.email }, [`platformAdmins/${admin.uid}`]: { active: true, role: 'super_admin' } }));
+  const r = remote({ 'platformAccess/superAdmin': { mode: 'exclusive', active: true, uid: admin.uid, email: admin.email }, [`platformAdmins/${admin.uid}`]: { active: false, role: 'super_admin' } });
   await assert.rejects(new PlatformBilling(new ResilientStore(r.db)).assertAdmin(admin), (e: unknown) => (e as { status: number }).status === 403);
   assert.equal(r.persisted.dump()[`platformAdmins/${admin.uid}`].active, false);
 }));

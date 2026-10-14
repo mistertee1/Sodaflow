@@ -6,6 +6,10 @@ on:
         description: 'Optional exact verified Firebase UID for technical Super Admin bootstrap'
         required: false
         type: string
+      super_admin_email:
+        description: 'Exact verified mailbox, required when bootstrapping the exclusive administrator'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -47,6 +51,10 @@ jobs:
         if: inputs.super_admin_uid != ''
         env:
           SUPER_ADMIN_UID: ${{ inputs.super_admin_uid }}
-        run: npm run billing:bootstrap -- "$SUPER_ADMIN_UID" --apply
+          SUPER_ADMIN_EMAIL: ${{ inputs.super_admin_email }}
+        run: |
+          node --import tsx scripts/bootstrap-platform-admin.ts --uid "$SUPER_ADMIN_UID" > "$RUNNER_TEMP/platform-admin-preview.json"
+          REVIEW_HASH=$(node --input-type=module -e 'import fs from "node:fs"; console.log(JSON.parse(fs.readFileSync(process.argv[1], "utf8")).reviewHash)' "$RUNNER_TEMP/platform-admin-preview.json")
+          node --import tsx scripts/bootstrap-platform-admin.ts --uid "$SUPER_ADMIN_UID" --apply --review-hash "$REVIEW_HASH"
       - name: Deploy Firestore rules and indexes
         run: npm run deploy:firebase:rules

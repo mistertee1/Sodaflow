@@ -49,6 +49,7 @@ import { customerProfitability, productProfitability } from './managementProfita
 import { budgetVsActual, saveBudget, type BudgetPlan } from './managementBudgets';
 import { cashForecast } from './managementCashForecast';
 import { saveRecurringCashSource, saveScheduledCashSource } from './managementCashSources';
+import { authorizeCreditDecision, customerCreditDecision } from './customerCredit';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
@@ -544,12 +545,16 @@ export class Operations {
           ensure(updating || !await tx.get(`${root}/customers/${id}`), 'معرّف العميل موجود مسبقاً.', 409);
           const input = updating ? data.updates : data;
           ensure(input && typeof input === 'object', 'بيانات العميل غير صالحة.');
+          if (['credit_limit_sdg','credit_limit_usd','credit_policy'].some(k => input[k] !== undefined)) ensure(role === 'Owner' || role === 'Admin', 'إعداد حد الائتمان متاح للمالك أو المدير فقط.', 403);
           ensure(!['balance_sdg', 'balance_usd'].some(k => input[k] !== undefined && input[k] !== (old[k] || 0)), 'أرصدة العملاء تتغير بالسندات والقيود فقط.');
           if (!updating) { const count = (await tx.list(`${root}/customers`)).length; ensure(count < plan.max_customers, 'تم بلوغ حد العملاء في الباقة.'); counters.customer_count = count; counterAdd('customer_count', 1); }
-          result = { ...old, ...pick(input, ['name', 'phone', 'email', 'address', 'preferred_currency', 'notes']), ...(!updating ? stamp : {}), id, balance_sdg: old.balance_sdg || 0, balance_usd: old.balance_usd || 0, updated_at: iso };
+          result = { ...old, ...pick(input, ['name', 'phone', 'email', 'address', 'preferred_currency', 'notes', 'credit_limit_sdg', 'credit_limit_usd', 'credit_policy']), ...(!updating ? stamp : {}), id, balance_sdg: old.balance_sdg || 0, balance_usd: old.balance_usd || 0, updated_at: iso };
           result.phone ??= ''; result.preferred_currency ??= 'SDG';
           text(result.name, 200, true); text(result.phone ?? '', 100);
           ensure(['SDG', 'USD'].includes(result.preferred_currency || 'SDG'), 'عملة العميل غير مدعومة.');
+          if (result.credit_limit_sdg !== undefined && result.credit_limit_sdg !== null) money(result.credit_limit_sdg, 0);
+          if (result.credit_limit_usd !== undefined && result.credit_limit_usd !== null) money(result.credit_limit_usd, 2);
+          ensure(['warning','approval_required'].includes(result.credit_policy || 'warning'), 'سياسة حد الائتمان غير صالحة.');
           set(`${root}/customers/${id}`, result); break;
         }
         case 'customer.delete': {
@@ -664,6 +669,9 @@ export class Operations {
             subtotal_sdg:safeAdd(taxEvidence.sdg.base,baseFinancials.discount_total_sdg,0),subtotal_usd:safeAdd(taxEvidence.usd.base,baseFinancials.discount_total_usd,2),
             tax_total_sdg:taxEvidence.sdg.tax,tax_total_usd:taxEvidence.usd.tax,grand_total_sdg:taxEvidence.sdg.total,grand_total_usd:taxEvidence.usd.total,
             remaining_sdg:taxEvidence.sdg.total,remaining_usd:taxEvidence.usd.total} : baseFinancials;
+          const creditCurrency = data.currency_mode === 'single_usd' ? 'USD' : 'SDG';
+          const creditAmount = creditCurrency === 'USD' ? financials.grand_total_usd : financials.grand_total_sdg;
+          const creditDecision = authorizeCreditDecision(customerCreditDecision(customer as Customer, creditCurrency, creditAmount), role, actor.uid, data.credit_limit_override_reason);
           const month = monthKey(now, settings.timezone || 'Africa/Khartoum');
           // Legacy counters are repaired from authoritative documents inside the same transaction.
           const existing = counters.invoice_month === month ? undefined : await tx.list(`${root}/invoices`);
@@ -681,7 +689,7 @@ export class Operations {
           ensure(Number.isSafeInteger(number) && number <= 999999999, 'تسلسل الفواتير يحتاج مراجعة.');
           const id = `inv-${command.operationId}`;
           const dimensions=dimensionTags(data);
-          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...dimensions, ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
+          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...dimensions, ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), credit_decision: creditDecision, paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as unknown as Invoice;
           invoice.receivable_currency = receivableCurrency(invoice);
           let cogsSdg = 0, cogsUsd = 0;
           for (const item of invoice.items) item.cost_status = item.product_id ? 'unknown' : 'not_tracked';

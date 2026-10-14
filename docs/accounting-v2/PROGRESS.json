@@ -7,7 +7,14 @@
   "active_milestone": "D",
   "active_branch": "codex/accounting-v2-d4-approval-limits-20261014",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "d4-approval-gates-20261014",
+    "round_id": "20261014T0925Z-d4.3.2",
+    "branch": "codex/accounting-v2-d4-approval-gates-20261014",
+    "acquired_at": "2026-10-14T09:25:00Z",
+    "expires_at": "2026-10-14T10:15:00Z",
+    "scope": "D4.3.2 atomic invoice, expense and refund approval gates with frozen evidence"
+  },
   "milestones": [
     {
       "id": "A1",

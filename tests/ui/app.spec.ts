@@ -159,6 +159,7 @@ test('D4.2 owner configures customer credit and documents an approved invoice ov
   await page.getByTitle('تعديل بيانات العميل').click();
   const customerDialog = page.getByRole('dialog', { name: 'إضافة أو تعديل عميل' });
   await expect(customerDialog.getByTestId('credit-limit-fields')).toBeVisible();
+  await customerDialog.locator('input[type="tel"]').fill('0912345678');
   await customerDialog.getByLabel('حد الائتمان ج.س').fill('100000');
   await customerDialog.getByLabel('حد الائتمان دولار').fill('50');
   await customerDialog.getByLabel('سياسة حد الائتمان').selectOption('approval_required');

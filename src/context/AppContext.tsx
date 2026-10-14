@@ -8,7 +8,6 @@ import type { TaxConfiguration } from '../domain/taxConfiguration';
 import type { ManagementDimension } from '../domain/managementDimensions';
 import type { DimensionKind } from '../domain/managementDimensions';
 import type { BudgetPlan, CashForecastSchedule } from '../domain/managementBudgets';
-import type { BudgetPlan } from '../domain/managementBudgets';
 import { reauthenticateOwner, type OwnerAuthMethod } from '../services/ownerReauthentication';
 import type { CorrectionDocument, CorrectionDocumentKind } from '../domain/correctionDocuments';
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
@@ -33,9 +32,6 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
-  budgets: BudgetPlan[];
-  saveBudget:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<BudgetPlan>;
-  loadBudgetReport:(budgetId:string)=>Promise<Awaited<ReturnType<Operations['budgetReport']>>>;
   branches: ManagementDimension[];
   costCenters: ManagementDimension[];
   projects: ManagementDimension[];
@@ -516,9 +512,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.exported_at ? state.member?.status || (state.role === 'Owner' ? 'active' : 'unknown') : 'unknown', orgMembers: rows<OrgMember>('members'),
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
     branches: rows<ManagementDimension>('branches'), costCenters: rows<ManagementDimension>('cost_centers'), projects: rows<ManagementDimension>('projects'),
-    budgets:rows<BudgetPlan>('budgets'),
-    saveBudget:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<BudgetPlan>(updating?'budget.update':'budget.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح الميزانية.',409)),
-    loadBudgetReport:async budgetId=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const value=id===guestId&&!userRef.current?await getGuest().budgetReport(id,guestActor,budgetId):await api<Awaited<ReturnType<Operations['budgetReport']>>>(`/organizations/${encodeURIComponent(id)}/reports/budget-vs-actual?budgetId=${encodeURIComponent(budgetId)}`);if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return value;},
     saveDimension: (kind, data, updating, expectedOrgId, requestId) => {
       if (activeOrg.current !== expectedOrgId) return Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح إدارة الأبعاد.', 409));
       return run<ManagementDimension>(updating ? 'dimension.update' : 'dimension.create', { ...data, kind }, requestId);

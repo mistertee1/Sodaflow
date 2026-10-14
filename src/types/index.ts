@@ -42,6 +42,9 @@ export interface OrgInvitation {
 }
 
 export interface OrganizationCounters {
+  approval_policy_count?: number;
+  approval_policy_version_count?: number;
+  approval_request_count?: number;
   fx_revaluation_count?: number;
   audit_archive_count?: number;
   audit_event_count?: number;
@@ -75,6 +78,9 @@ export interface OrganizationCounters {
 }
 
 export const DEFAULT_ORGANIZATION_COUNTERS: OrganizationCounters = {
+  approval_policy_count: 0,
+  approval_policy_version_count: 0,
+  approval_request_count: 0,
   audit_archive_count: 0,
   invoice_count: 0,
   customer_count: 0,

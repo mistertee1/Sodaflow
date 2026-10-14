@@ -462,3 +462,23 @@ test('D3.2 planning rules allow tenant accounting reads and deny every direct wr
   const foreign=env.authenticatedContext('planning-foreign',{email_verified:true}).firestore();
   for(const name of ['budgets','cash_forecast_schedules'])await assertFails(getDocs(collection(foreign,`${root}/${name}`)));
 });
+
+test('D4.1 approval policies, immutable versions and requests are API-only for every tenant role',async()=>{
+  const orgId='approval-rules-org',root=`organizations/${orgId}`;
+  await env.withSecurityRulesDisabled(async context=>{
+    const db=context.firestore();
+    await setDoc(doc(db,'organizations',orgId),{id:orgId,owner_uid:'approval-rules-owner',status:'active',schema_version:3,settings:INITIAL_SETTINGS,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01',subscriptionEndMillis:Date.parse('2027-01-01')});
+    await setDoc(doc(db,`${root}/members/approval-rules-admin`),{uid:'approval-rules-admin',org_id:orgId,role:'Admin',status:'active'});
+    await setDoc(doc(db,`${root}/approval_policies/commercial`),{id:'commercial',org_id:orgId,revision:1,active:true});
+    await setDoc(doc(db,`${root}/approval_policy_versions/commercial-r1`),{id:'commercial',configuration_id:'commercial',org_id:orgId,revision:1});
+    await setDoc(doc(db,`${root}/approval_requests/request`),{id:'request',org_id:orgId,status:'pending',revision:1});
+  });
+  for(const uid of ['approval-rules-owner','approval-rules-admin','approval-rules-foreign']){
+    const client=env.authenticatedContext(uid,{email_verified:true}).firestore();
+    for(const name of ['approval_policies','approval_policy_versions','approval_requests']){
+      await assertFails(getDocs(collection(client,`${root}/${name}`)));
+      await assertFails(getDoc(doc(client,`${root}/${name}/${name==='approval_requests'?'request':'commercial'}`)));
+      await assertFails(setDoc(doc(client,`${root}/${name}/forged`),{id:'forged',org_id:orgId}));
+    }
+  }
+});

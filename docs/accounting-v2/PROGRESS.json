@@ -1358,12 +1358,14 @@
               "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
               "pr": null,
               "report": "REPORT_D4_1_APPROVAL_FOUNDATION.md",
+              "integrated_predecessor_head": "6a1fd1796258cc735b9238bfbd58837c4f6d8c8c",
               "checks": {
                 "types": "passed",
                 "unit_api": 349,
                 "core": "passed",
                 "build": "passed",
                 "emulator": "blocked_java_21_required",
+                "ui": "blocked_chromium_not_installed",
                 "production_audit_vulnerabilities": 0
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit"

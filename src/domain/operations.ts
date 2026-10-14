@@ -50,11 +50,13 @@ import { budgetVsActual, saveBudget, type BudgetPlan } from './managementBudgets
 import { cashForecast } from './managementCashForecast';
 import { saveRecurringCashSource, saveScheduledCashSource } from './managementCashSources';
 import { authorizeCreditDecision, customerCreditDecision } from './customerCredit';
+import { saveApprovalPolicy } from './approvalPolicies';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
 export interface OperationResult { result: Document; changes: Change[]; }
 const actions: Record<string, ActionType> = {
+  'approvalPolicy.create':'approvals:manage','approvalPolicy.update':'approvals:manage',
   'budget.create':'budget:manage','budget.update':'budget:manage',
   'recurringCashSource.create':'budget:manage','recurringCashSource.update':'budget:manage','scheduledCashSource.create':'budget:manage','scheduledCashSource.update':'budget:manage',
   'dimension.create':'dimensions:manage','dimension.update':'dimensions:manage',
@@ -79,6 +81,7 @@ const actions: Record<string, ActionType> = {
   'invitation.create': 'members:invite', 'invitation.revoke': 'members:invite', 'backup.restore': 'backup:restore',
 };
 export const readPermissions: Record<string, ActionType> = { branches:'dimensions:read',cost_centers:'dimensions:read',projects:'dimensions:read',tax_configurations:'tax:read',tax_configuration_versions:'tax:read',fixed_assets:'journal:read',fixed_asset_depreciations:'journal:read',fx_revaluations:'journal:read', owner_equity_events:'journal:read', ...Object.fromEntries(openingCollections.map(name=>[name,'journal:read' as const])), accounting_periods:'periods:read', audit_archives: 'audit_logs:view', purchase_returns: 'payables:read', supplier_refunds: 'payables:read', credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
+readPermissions.approval_policies = 'approvals:read';
 readPermissions.budgets = 'budget:read';
 readPermissions.recurring_cash_sources = 'budget:read';
 readPermissions.scheduled_cash_sources = 'budget:read';
@@ -366,6 +369,8 @@ export class Operations {
       if(isFixed){ensure(org.accounting_version===2,'الأصول الثابتة تتطلب محاسبة V2.',409);const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');ensure(['Owner','Accountant'].includes(role),'إدارة الأصول متاحة للمالك والمحاسب فقط.',403);if(command.action==='fixedAsset.depreciate'){ensure(periods.length>0,'أنشئ فترة محاسبية أولاً.',409);const date=dateOnly(command.data.date);ensure(date===command.data.date&&date<=merchantDay(now,org.settings.timezone||'Africa/Khartoum'),'تاريخ الإهلاك غير صالح أو مستقبلي.',409);guardPeriod(date);}}
       const isTaxConfiguration=command.action==='taxConfiguration.create'||command.action==='taxConfiguration.update';
       if(isTaxConfiguration){ensure(org.accounting_version===2,'إعدادات الضرائب تتطلب محاسبة V2.',409);ensure(role==='Owner','إعدادات الضرائب متاحة للمالك فقط.',403);assertRecentOwner(role,actor.authTime,now,'تعديل إعدادات الضرائب');text(command.data.reason,1000,true);const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');}
+      const isApprovalPolicy=command.action==='approvalPolicy.create'||command.action==='approvalPolicy.update';
+      if(isApprovalPolicy){ensure(org.accounting_version===2,'سياسات الاعتماد تتطلب محاسبة V2.',409);ensure(role==='Owner','إدارة سياسات الاعتماد متاحة للمالك فقط.',403);assertRecentOwner(role,actor.authTime,now,'تعديل سياسات الاعتماد');text(command.data.reason,1000,true);const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');}
       const operationPath = `${root}/idempotency/${command.operationId}`;
       const previous = await tx.get(operationPath);
       if (previous) {
@@ -448,6 +453,11 @@ export class Operations {
       let result: Document = {};
       let openingProof: Document | undefined;
       switch (command.action) {
+        case 'approvalPolicy.create': case 'approvalPolicy.update': {
+          const proposed=await saveApprovalPolicy(tx,root,orgId,actor.uid,iso,command.operationId,command.action,data);
+          if(proposed.before)beforeValues.set(`${root}/approval_policies/${proposed.result.id}`,proposed.before);
+          changes.push({path:`${root}/approval_policies/${proposed.result.id}`,value:proposed.result});result=proposed.result;break;
+        }
         case 'recurringCashSource.create': case 'recurringCashSource.update': {
           ensure(org.accounting_version===2,'مصادر التوقع النقدي تتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');
           result=await saveRecurringCashSource(tx,root,orgId,actor.uid,iso,command.action,command.data);changes.push({path:`${root}/recurring_cash_sources/${result.id}`,value:result});break;

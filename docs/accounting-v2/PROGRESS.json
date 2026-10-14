@@ -5,9 +5,16 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d3-cash-sources-ui-20261013",
+  "active_branch": "codex/accounting-v2-d4-credit-limits-20261014",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "d4-credit-limits-20261014",
+    "round_id": "20261014T0040Z-d4.1",
+    "branch": "codex/accounting-v2-d4-credit-limits-20261014",
+    "acquired_at": "2026-10-14T00:40:00Z",
+    "expires_at": "2026-10-14T01:25:00Z",
+    "scope": "D4.1 customer credit limit foundation and protected invoice gate"
+  },
   "milestones": [
     {
       "id": "A1",

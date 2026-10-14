@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { buildAccountingHealth } from '../src/domain/accountingHealth';
+import { financialCollections, type FinancialData } from '../src/domain/reconciliation';
+import { INITIAL_SETTINGS } from '../src/data/initialData';
+
+const empty=()=>Object.fromEntries(financialCollections.map(name=>[name,[]])) as FinancialData;
+test('E1.1 reports explicit passed checks without an opaque score',()=>{const report=buildAccountingHealth(empty(),INITIAL_SETTINGS,'2026-10-14');assert.deepEqual(report.summary,{issues:0,warnings:0,passed_checks:6,failed_checks:0});assert.equal('score' in report,false);assert.ok(report.checks.every(check=>check.status==='passed'));});
+test('E1.1 exposes actionable overdue, credit and cash warnings',()=>{const data=empty();data.invoices.push({id:'i1',invoice_number:'INV-1',status:'sent',due_date:'2026-10-01',remaining_sdg:10,remaining_usd:0});data.purchase_bills.push({id:'b1',supplier_reference:'SUP-1',status:'open',due_date:'2026-10-02',remaining_sdg:0,remaining_usd:2});data.customers.push({id:'c1',name:'عميل',balance_sdg:150,credit_limit_sdg:100,balance_usd:0,credit_limit_usd:null});data.cash_reconciliations.push({id:'r1',difference:5});const report=buildAccountingHealth(data,INITIAL_SETTINGS,'2026-10-14');for(const code of ['customer_overdue','supplier_overdue','credit_limit_exceeded','cash_discrepancy'])assert.ok(report.items.some(row=>row.code===code));assert.equal(report.summary.warnings,4);assert.ok(report.items.every(row=>row.action.length>10));});
+test('E1.1 elevates reconciliation findings as issues and never mutates sources',()=>{const data=empty();data.journal_entries.push({id:'broken',date:'2026-10-01',lines:[{account_code:'9999',debit_sdg:1,credit_sdg:0,debit_usd:0,credit_usd:0}]});const frozen=structuredClone(data),report=buildAccountingHealth(data,INITIAL_SETTINGS,'2026-10-14');assert.ok(report.summary.issues>0);assert.ok(report.checks.some(check=>check.status==='failed'));assert.deepEqual(data,frozen);});

@@ -44,6 +44,7 @@ import { salesCorrectionCollections, salesCorrectionCommand, loadSalesSource, sa
 import { classifyAccount } from './accountClassification';
 import { merchantDay, operationalPermissions, readOperationalReport, type LedgerQuery, type ReportPeriod, type OperationalReportTypes } from './operationalReports';
 import { financialCollections, reconcileFinancialData, type FinancialData } from './reconciliation';
+import { buildAccountingHealth } from './accountingHealth';
 import { branchProfitAndLoss, createDimension, dimensionCollection, dimensionField, dimensionKind, dimensionTags, updateDimension, type ManagementDimension } from './managementDimensions';
 import { customerProfitability, productProfitability } from './managementProfitability';
 import { budgetVsActual, saveBudget, type BudgetPlan } from './managementBudgets';
@@ -172,6 +173,9 @@ export class Operations {
       const reports=(range:{start?:string;end?:string})=>({trialBalance:calculateTrialBalance(accounts,entries,range),incomeStatement:{...calculateIncomeStatement(entries,accounts,range),costs_complete:!hasIncompleteInvoiceCosts(invoices,products,entries,range)},balanceSheet:calculateBalanceSheet(accounts,entries,range),cashFlow:calculateCashFlowStatement(accounts,entries,range)});
       const current=reports(period);return {organizationId:orgId,generatedAt:this.now().toISOString(),period,...current,...(comparison?{comparison:{period:comparison,...reports(comparison)}}:{})};
     });
+  }
+  async accountingHealth(orgId:string,actor:Actor,asOfInput?:string){
+    return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'reports:advanced')&&hasPermission(role,'journal:read'),'ليس لديك صلاحية مركز صحة المحاسبة.',403);const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');ensure(org.accounting_version===2,'مركز صحة المحاسبة يتطلب محاسبة V2.',409);const asOf=asOfInput?dateOnly(asOfInput):merchantDay(now,org.settings.timezone||'Africa/Khartoum'),data=await readOpeningFinancialData(tx,`organizations/${orgId}`,orgId);return{organizationId:orgId,generatedAt:now.toISOString(),...buildAccountingHealth(data,org.settings,asOf)};});
   }
   async branchProfitAndLoss(orgId:string,actor:Actor,branchId:string,period:{start?:string;end?:string}={}) {
     return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'reports:advanced')&&hasPermission(role,'dimensions:read'),'ليس لديك صلاحية تقرير الفرع.',403);const subscription=await loadSubscription(tx,orgId,org,this.now(),this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');assertFeature(subscription,'branches');ensure(org.accounting_version===2,'تقارير الفروع تتطلب محاسبة V2.',409);const branch=await tx.get(`organizations/${orgId}/branches/${identifier(branchId)}`) as ManagementDimension|undefined;ensure(branch&&branch.org_id===orgId,'الفرع غير موجود.',404);const accounts=await tx.list(`organizations/${orgId}/accounts`) as Account[],entries=await tx.list(`organizations/${orgId}/journal_entries`) as JournalEntry[];return{organizationId:orgId,generatedAt:this.now().toISOString(),...branchProfitAndLoss(accounts,entries,branch,period)};});

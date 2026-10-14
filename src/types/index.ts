@@ -248,6 +248,9 @@ export interface Customer {
   preferred_currency: Currency;
   balance_sdg: number;
   balance_usd: number;
+  credit_limit_sdg?: number | null;
+  credit_limit_usd?: number | null;
+  credit_policy?: 'warning' | 'approval_required';
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -304,6 +307,10 @@ export interface InvoiceItem {
 }
 
 export interface Invoice {
+  credit_decision?: {
+    currency: 'SDG' | 'USD'; balance_before: number; invoice_amount: number; exposure_after: number;
+    limit: number | null; exceeded: boolean; policy: 'warning' | 'approval_required'; approved_by?: string; approval_reason?: string;
+  };
   tax_evidence?: Record<string, any>;
   source_event_sequence?: number;
   correction_count?: number;

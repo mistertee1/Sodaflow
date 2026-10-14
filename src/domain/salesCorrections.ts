@@ -14,6 +14,7 @@ import { classifyAccount, type ReportingGroup } from './accountClassification';
 import { getDefaultChartOfAccounts } from '../services/accountingService';
 import { accountLedger } from './operationalReports';
 import { validateTaxConfigurationVersions } from './taxConfigurationTransactions';
+import { approvalGate } from './approvalPolicies';
 
 export const salesCorrectionCollections = ['credit_notes', 'customer_refunds'] as const;
 const books = ['sdg', 'usd'] as const;
@@ -210,9 +211,10 @@ export async function salesCorrectionCommand(action: string, data: Document, c: 
     state.balance = add(state.balance, negate(credit)); state.credited = add(state.credited, credit); state.correctionCount++;
     c.set(`${c.root}/credit_notes/${id}`, result); c.counterAdd('credit_note_count', 1);
   } else {
-    ensure(action === 'customerRefund.create' && Object.keys(data).every(key => ['invoice_id', 'date', 'reason', 'financial_account_id', 'amount', 'exchange_rate_used'].includes(key)), 'طلب الرد النقدي غير صالح.');
+    ensure(action === 'customerRefund.create' && Object.keys(data).every(key => ['invoice_id', 'date', 'reason', 'financial_account_id', 'amount', 'exchange_rate_used', 'approval_reason'].includes(key)), 'طلب الرد النقدي غير صالح.');
     ensure(state.balance.sdg <= 0 && state.balance.usd <= 0, 'لا يوجد رصيد مصدر دائن قابل للرد في الدفترين.', 409);
     const account = await c.required('financial_accounts', data.financial_account_id); validateFinancialAccount(account, state.accounts);
+    const approvalEvidence = await approvalGate(c.tx, c.root, 'customer_refund', account.currency, data.amount, c.role!, c.actor, data.approval_reason);
     ensure(account.status === 'active' && state.accounts.find(row => row.code === account.account_code)?.is_active, 'حساب الرد غير نشط.');
     ensure((await c.tx.get(`${c.root}/financial_account_mappings/${account.account_code}`))?.id === account.id, 'ربط حساب الرد يحتاج مراجعة.', 409);
     const available = negate(state.balance), quote = quoteCreditRefund(available, state.native, data.amount, account.currency, data.exchange_rate_used ?? invoice.exchange_rate_used);
@@ -225,7 +227,7 @@ export async function salesCorrectionCommand(action: string, data: Document, c: 
     ensure(!await c.tx.get(`${c.root}/customer_refunds/${id}`), 'معرّف الرد موجود؛ لا يجوز استبدال مستند مالي.', 409);
     validatePostingAccounts(creditRefundLines(quote, account.account_code), state.accounts, true);
     await c.post(journal(journalId, c.orgId, c.actor, date, 'customer_refund', id, `رد نقدي ${invoice.invoice_number}: ${reason}`, creditRefundLines(quote, account.account_code), rate));
-    result = { ...stamp, id, financial_account_id: account.id, payment_account_code: account.account_code, currency: account.currency, amount: data.amount, exchange_rate_used: rate, available_credit_sdg: available.sdg, available_credit_usd: available.usd, settled_amount_sdg: quote.settled.sdg, settled_amount_usd: quote.settled.usd, cash_amount_sdg: quote.cash.sdg, cash_amount_usd: quote.cash.usd, journal_id: journalId };
+    result = { ...stamp, id, financial_account_id: account.id, payment_account_code: account.account_code, currency: account.currency, amount: data.amount, exchange_rate_used: rate, available_credit_sdg: available.sdg, available_credit_usd: available.usd, settled_amount_sdg: quote.settled.sdg, settled_amount_usd: quote.settled.usd, cash_amount_sdg: quote.cash.sdg, cash_amount_usd: quote.cash.usd, journal_id: journalId, ...(approvalEvidence?{approval_evidence:approvalEvidence}:{}) };
     state.balance = add(state.balance, quote.settled); state.refunded = add(state.refunded, quote.settled);
     c.set(`${c.root}/customer_refunds/${id}`, result); c.counterAdd('customer_refund_count', 1);
     c.set(`${c.root}/financial_accounts/${account.id}`, { ...account, revision: (account.revision || 0) + 1, last_refund_id: id, updated_at: c.iso });

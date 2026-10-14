@@ -1,5 +1,6 @@
 import test from 'node:test';
 import './approvalPolicies.test';
+import './approvalGates.test';
 import assert from 'node:assert/strict';
 import { authorizeCreditDecision, customerCreditDecision } from '../src/domain/customerCredit';
 import type { Customer } from '../src/types';

@@ -50,7 +50,7 @@ import { budgetVsActual, saveBudget, type BudgetPlan } from './managementBudgets
 import { cashForecast } from './managementCashForecast';
 import { saveRecurringCashSource, saveScheduledCashSource } from './managementCashSources';
 import { authorizeCreditDecision, customerCreditDecision } from './customerCredit';
-import { saveApprovalPolicy } from './approvalPolicies';
+import { approvalGate, saveApprovalPolicy } from './approvalPolicies';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
@@ -523,10 +523,10 @@ export class Operations {
         }
 
         case 'purchaseReturn.create': case 'supplierRefund.create': {
-          result = await purchaseCorrectionCommand(command.action,data,{tx,root,orgId,actor:actor.uid,iso,operationId:command.operationId,settings,set,required,post,counterAdd}); break;
+          result = await purchaseCorrectionCommand(command.action,data,{tx,root,orgId,actor:actor.uid,role,iso,operationId:command.operationId,settings,set,required,post,counterAdd}); break;
         }
         case 'creditNote.create': case 'customerRefund.create': {
-          result = await salesCorrectionCommand(command.action, data, { tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
+          result = await salesCorrectionCommand(command.action, data, { tx, root, orgId, actor: actor.uid, role, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
         }
         case 'bankReconciliation.create': case 'cashCount.create': {
           const source = await required('financial_accounts', data.financial_account_id); if (source.currency === 'USD') assertFeature(subscription, 'multi_currency');
@@ -679,6 +679,8 @@ export class Operations {
             subtotal_sdg:safeAdd(taxEvidence.sdg.base,baseFinancials.discount_total_sdg,0),subtotal_usd:safeAdd(taxEvidence.usd.base,baseFinancials.discount_total_usd,2),
             tax_total_sdg:taxEvidence.sdg.tax,tax_total_usd:taxEvidence.usd.tax,grand_total_sdg:taxEvidence.sdg.total,grand_total_usd:taxEvidence.usd.total,
             remaining_sdg:taxEvidence.sdg.total,remaining_usd:taxEvidence.usd.total} : baseFinancials;
+          const discountRates = [0, ...baseFinancials.items.map(item => item.discount_percent || 0), ...(data.discount_type === 'percent' ? [data.discount_value || 0] : (['sdg','usd'] as const).filter(book => baseFinancials[`subtotal_${book}`] + baseFinancials[`discount_total_${book}`] > 0).map(book => new BigNumber(baseFinancials[`discount_total_${book}`]).times(100).dividedBy(new BigNumber(baseFinancials[`subtotal_${book}`]).plus(baseFinancials[`discount_total_${book}`])).decimalPlaces(4).toNumber()))];
+          const discountApproval = await approvalGate(tx, root, 'discount', 'PERCENT', discountRates.length ? Math.max(...discountRates) : 0, role, actor.uid, data.approval_reason);
           const creditCurrency = data.currency_mode === 'single_usd' ? 'USD' : 'SDG';
           const creditAmount = creditCurrency === 'USD' ? financials.grand_total_usd : financials.grand_total_sdg;
           const creditDecision = authorizeCreditDecision(customerCreditDecision(customer as Customer, creditCurrency, creditAmount), role, actor.uid, data.credit_limit_override_reason);
@@ -699,7 +701,7 @@ export class Operations {
           ensure(Number.isSafeInteger(number) && number <= 999999999, 'تسلسل الفواتير يحتاج مراجعة.');
           const id = `inv-${command.operationId}`;
           const dimensions=dimensionTags(data);
-          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...dimensions, ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), credit_decision: creditDecision, paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as unknown as Invoice;
+          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...dimensions, ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), ...(discountApproval?{approval_evidence:discountApproval}:{}), credit_decision: creditDecision, paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as unknown as Invoice;
           invoice.receivable_currency = receivableCurrency(invoice);
           let cogsSdg = 0, cogsUsd = 0;
           for (const item of invoice.items) item.cost_status = item.product_id ? 'unknown' : 'not_tracked';
@@ -812,13 +814,14 @@ export class Operations {
         }
         case 'expense.create': {
           assertOpenPeriod(data.date, settings); ensure(['SDG', 'USD'].includes(data.currency), 'عملة المصروف غير مدعومة.'); money(data.amount, data.currency === 'USD' ? 2 : 0, true); text(data.title, 200, true);
+          const expenseApproval = await approvalGate(tx, root, 'expense', data.currency, data.amount, role, actor.uid, data.approval_reason);
           ensure(data.kind === undefined || data.kind === 'expense', 'مشتريات المخزون تُسجّل بعملية شراء مستقلة.');
           const category = text(data.category || '', 200).trim().toLowerCase();
           ensure(!/(بضاعة|توريدات|مشتريات|inventory|merchandise|stock purchase)/i.test(category), 'مشتريات المخزون ليست مصروفاً تشغيلياً؛ استخدم عملية شراء.');
           const method = data.payment_method || 'cash';
           ensure(['cash', 'bankak', 'fawry', 'bank_transfer', 'other', 'on_credit', 'custom'].includes(method), 'طريقة سداد المصروف غير صالحة.');
           ensure(method !== 'custom' || data.payment_account_code, 'اختر حساب السداد المخصص.');
-          result = { ...pick(data, ['title', 'category', 'amount', 'currency', 'exchange_rate_used', 'date', 'notes', 'receipt_image', 'payment_account_code', 'expense_account_code', 'branch_id', 'cost_center_id', 'project_id']), payment_method: method, ...stamp, id: `exp-${command.operationId}` };
+          result = { ...pick(data, ['title', 'category', 'amount', 'currency', 'exchange_rate_used', 'date', 'notes', 'receipt_image', 'payment_account_code', 'expense_account_code', 'branch_id', 'cost_center_id', 'project_id']), ...(expenseApproval?{approval_evidence:expenseApproval}:{}), payment_method: method, ...stamp, id: `exp-${command.operationId}` };
           if (org.accounting_version === 2 && method === 'on_credit' && (!result.payment_account_code || result.payment_account_code === '2110')) result.payment_account_code = '2140';
           const entry = generateExpenseJournalEntry(result as any, orgId, actor.uid);
           for (const [index, line] of entry.lines.entries()) {

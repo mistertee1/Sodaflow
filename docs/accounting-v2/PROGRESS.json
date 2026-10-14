@@ -5,9 +5,16 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d4-credit-limits-20261014",
+  "active_branch": "codex/accounting-v2-d4-credit-ui-20261014",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "d4-credit-ui-20261014",
+    "round_id": "20261014T0210Z-d4.2",
+    "branch": "codex/accounting-v2-d4-credit-ui-20261014",
+    "acquired_at": "2026-10-14T02:10:00Z",
+    "expires_at": "2026-10-14T03:00:00Z",
+    "scope": "D4.2 customer credit limit UI, warning, approval reason, synchronization and reload"
+  },
   "milestones": [
     {
       "id": "A1",

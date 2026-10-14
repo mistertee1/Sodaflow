@@ -119,3 +119,14 @@ test('D1 dimensions are protected, journal tags require active masters and branc
   await assert.rejects(f.run('invoice.create',{customer_id:customer.id,issue_date:'2026-10-05',currency_mode:'single_sdg',exchange_rate_used:0,discount_type:'fixed',discount_value:0,items:[{product_id:service.id,description:'مرفوض',unit:'خدمة',quantity:1,unit_price:1,currency:'SDG',tax_rate:0,discount_percent:0}],project_id:'contract-a'},'inactive-invoice'),/غير موجود أو غير نشط/);
   const snapshot=await f.ops.snapshot(f.org.id,{...actor,uid:'accountant'});assert.equal(snapshot.collections.branches.length,1);assert.equal(snapshot.collections.cost_centers.length,1);assert.equal(snapshot.collections.projects.length,1);
 });
+
+test('D3.1 protected budgets enforce permissions, revision and source-backed variance',async()=>{
+  const f=await fixture(),root=`organizations/${f.org.id}`,now='2026-10-05T12:00:00.000Z';
+  await f.store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01'});tx.set('plans/Enterprise',defaultPlatformPlans(now).find(plan=>plan.id==='Enterprise')!);tx.set(`${root}/members/accountant`,{uid:'accountant',role:'Accountant',status:'active'});tx.set(`${root}/members/viewer`,{uid:'viewer',role:'Viewer',status:'active'});});
+  const plan=(await f.run('budget.create',{id:'operating-2026',name:'ميزانية التشغيل',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:100,amount_usd:10}]},'budget-create')).result;
+  await f.run('journal.create',{reference_type:'manual',description:'مصروف فعلي',date:'2026-10-05',lines:[journalLine('5200','مصروف',40,0,4,0),journalLine('1110','نقد',0,40,0,4)]},'budget-actual');
+  const report=await f.ops.budgetReport(f.org.id,{...actor,uid:'viewer'},plan.id);assert.equal(report.rows[0].actual_sdg,40);assert.equal(report.rows[0].variance_sdg,60);assert.equal(report.rows[0].variance_percent_sdg,60);
+  const before=f.store.dump();await assert.rejects(f.ops.execute(f.org.id,{...actor,uid:'accountant'},{action:'budget.update',operationId:'budget-forbidden',data:{id:plan.id,expected_revision:1,name:'مرفوض',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:120,amount_usd:0}]}}),/صلاحية/);assert.deepEqual(f.store.dump(),before);
+  await f.run('budget.update',{id:plan.id,expected_revision:1,name:'ميزانية التشغيل المعدلة',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:120,amount_usd:0}]},'budget-update');
+  await assert.rejects(f.run('budget.update',{id:plan.id,expected_revision:1,name:'قديم',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:1,amount_usd:0}]},'budget-stale'),/جلسة أخرى/);
+});

@@ -1,0 +1,17 @@
+import React,{useEffect,useState} from 'react';
+import {useApp} from '../../context/AppContext';
+
+const today=()=>new Date().toISOString().slice(0,10);
+const money=(value:number)=>new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value);
+
+export const CashForecastCenter:React.FC=()=>{const a=useApp(),[asOf,setAsOf]=useState(today()),[days,setDays]=useState(30),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[report,setReport]=useState<Awaited<ReturnType<typeof a.loadCashForecast>>|null>(null);
+const load=async()=>{if(busy)return;setBusy(true);setMessage('');try{setReport(await a.loadCashForecast({asOf,days}));}catch(error){setReport(null);setMessage(error instanceof Error?error.message:'تعذر تحميل توقع التدفقات النقدية.');}finally{setBusy(false);}};
+useEffect(()=>{void load();},[]);// المؤسسة والجلسة تعيدان تركيب المركز من المفتاح الأب.
+return <section role="region" aria-label="توقع التدفقات النقدية" className="space-y-4">
+<div className="sf-card p-4"><h3 className="font-bold">توقع التدفقات النقدية</h3><p className="text-sm text-sf-muted">توقع موثق من آجال العملاء والموردين، وليس رصيداً بنكياً متوقعاً.</p></div>
+<form aria-label="مرشحات توقع النقد" onSubmit={e=>{e.preventDefault();void load();}} className="sf-card p-4 flex flex-wrap items-end gap-3"><label>تاريخ الأساس<input aria-label="تاريخ أساس التوقع" type="date" required value={asOf} onChange={e=>setAsOf(e.target.value)} className="sf-field block"/></label><label>الأفق بالأيام<input aria-label="أيام التوقع" type="number" min="1" max="365" required value={days} onChange={e=>setDays(Number(e.target.value))} className="sf-field block w-28"/></label><button disabled={busy} className="sf-primary">{busy?'جارٍ التحميل…':'تحديث التوقع'}</button></form>
+{message&&<p role="alert" className="sf-card p-4 text-red-600">{message}</p>}
+{report&&<><div className="grid sm:grid-cols-3 gap-3"><article className="sf-card p-4"><span className="text-sm text-sf-muted">داخل</span><strong className="block">{money(report.totals.inflow_sdg)} SDG</strong><span>{money(report.totals.inflow_usd)} USD</span></article><article className="sf-card p-4"><span className="text-sm text-sf-muted">خارج</span><strong className="block">{money(report.totals.outflow_sdg)} SDG</strong><span>{money(report.totals.outflow_usd)} USD</span></article><article className="sf-card p-4"><span className="text-sm text-sf-muted">الصافي</span><strong className="block">{money(report.totals.net_sdg)} SDG</strong><span>{money(report.totals.net_usd)} USD</span></article></div>
+<div className="sf-card p-4 text-sm" role="note"><strong>حدود التغطية:</strong> آجال العملاء والموردين مشمولة. المصروفات الدورية والمدفوعات المجدولة غير مشمولة حتى تُسجّل كمصادر موثقة.</div>
+<div className="sf-card overflow-auto"><table className="w-full whitespace-nowrap text-right"><thead><tr><th>التاريخ</th><th>المصدر</th><th>المرجع</th><th>الطرف</th><th>داخل SDG</th><th>خارج SDG</th><th>داخل USD</th><th>خارج USD</th></tr></thead><tbody>{report.rows.length===0?<tr><td colSpan={8} className="p-4">لا توجد استحقاقات داخل الأفق المحدد.</td></tr>:report.rows.map(row=><tr key={`${row.source_type}-${row.source_id}`}><td>{row.date}</td><td>{row.source_type==='customer_due'?'استحقاق عميل':'استحقاق مورد'}</td><td>{row.reference}</td><td>{row.party_name||'—'}</td><td>{money(row.inflow_sdg)}</td><td>{money(row.outflow_sdg)}</td><td>{money(row.inflow_usd)}</td><td>{money(row.outflow_usd)}</td></tr>)}</tbody></table></div></>}
+</section>};

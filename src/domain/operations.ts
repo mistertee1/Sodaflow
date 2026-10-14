@@ -476,6 +476,8 @@ export class Operations {
           const planningData={...command.data,id:command.data.id||crypto.randomUUID()},path=`${root}/cash_forecast_schedules/${identifier(planningData.id)}`;
           if(command.action==='cashForecastSchedule.update')beforeValues.set(path,(await tx.get(path))!);
           result=await saveCashForecastSchedule(tx,root,orgId,actor.uid,iso,command.operationId,command.action,planningData);set(path,result);break;
+          result=await saveBudget(tx,root,orgId,actor.uid,iso,command.action,command.data);
+          changes.push({path:`${root}/budgets/${result.id}`,value:result});break;
         }
         case 'dimension.create': case 'dimension.update': {
           ensure(org.accounting_version===2,'الأبعاد الإدارية تتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');

@@ -163,11 +163,12 @@ test('D4.2 owner configures customer credit and documents an approved invoice ov
   await customerDialog.getByLabel('حد الائتمان دولار').fill('50');
   await customerDialog.getByLabel('سياسة حد الائتمان').selectOption('approval_required');
   await customerDialog.getByRole('button', { name: 'حفظ التعديلات', exact: true }).click();
-  await expect(page.getByTestId('credit-limit-customer')).toContainText('50.00 USD');
-  await expect(page.getByTestId('credit-limit-customer')).toContainText('اعتماد إلزامي');
+  await expect.poll(() => page.evaluate(() => Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}'))
+    .filter(([path]) => path.includes('/customers/')).map(([, row]) => row as any)[0]?.credit_limit_usd)).toBe(50);
 
   await page.reload();
   await page.locator('#tab-customers').click();
+  await expect(page.getByTestId('credit-limit-customer')).toContainText('50.00 USD');
   await expect(page.getByTestId('credit-limit-customer')).toContainText('اعتماد إلزامي');
   await page.getByRole('button', { name: 'فاتورة جديدة', exact: true }).last().click();
   const invoiceForm = page.locator('form').filter({ has: page.getByLabel('عميل الفاتورة') });

@@ -1387,7 +1387,33 @@
               "scope": "Customer credit/payment terms plus invoice discount, expense and refund approval integration and UI",
               "status": "in_progress",
               "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
-              "pr": null
+              "pr": null,
+              "substeps": [
+                {
+                  "id": "D4.2a",
+                  "scope": "Customer credit/payment terms and exact single-use transaction approval enforcement",
+                  "status": "implemented_local_checks_passed_ci_pending",
+                  "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
+                  "pr": null,
+                  "report": "REPORT_D4_2A_CREDIT_APPROVAL_INTEGRATION.md",
+                  "checks": {
+                    "types": "passed",
+                    "unit_api": 351,
+                    "core": "passed",
+                    "build": "passed",
+                    "emulator": "blocked_local_java_21_required_ci_pending",
+                    "ui": "blocked_local_chromium_not_installed_ci_pending"
+                  },
+                  "completed_at": "2026-10-15T11:39:00Z"
+                },
+                {
+                  "id": "D4.2b",
+                  "scope": "Responsive customer terms, approval request and reviewer inbox UI",
+                  "status": "pending",
+                  "branch": null,
+                  "pr": null
+                }
+              ]
             }
           ]
         }
@@ -1518,12 +1544,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_D4_1_APPROVAL_FOUNDATION.md",
+  "last_report": "REPORT_D4_2A_CREDIT_APPROVAL_INTEGRATION.md",
   "next_steps": [
-    "Implement D4.2 customer credit/payment terms and transaction approval consumption/UI integration",
-    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2/D3.1/D3.2/D4.1 on matching staging commits"
+    "Verify D4.2a in CI, then implement D4.2b responsive customer terms and approval workflow UI on a child branch",
+    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2/D3.1/D3.2/D4.1/D4.2a on matching staging commits"
   ],
-  "updated_at": "2026-10-15T06:25:00Z",
+  "updated_at": "2026-10-15T11:39:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1548,7 +1574,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D4.2",
+  "active_substep": "D4.2b",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {

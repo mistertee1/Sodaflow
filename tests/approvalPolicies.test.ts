@@ -100,3 +100,30 @@ test('D4.1 approval backup verifies hashes, counts and tenant remap before atomi
   const targetOps=new Operations(f.store,()=>now),before=f.store.dump();await assert.rejects(targetOps.execute(target.id,targetOwner,{action:'backup.restore',operationId:'corrupt-restore',data:{backup:corrupt}}),/بصمة/);assert.deepEqual(f.store.dump(),before);
   await targetOps.execute(target.id,targetOwner,{action:'backup.restore',operationId:'valid-restore',data:{backup}});const restored=await targetOps.snapshot(target.id,targetOwner,true);assert.equal(restored.collections.approval_requests[0].org_id,target.id);assert.equal(restored.collections.approval_policies[0].org_id,target.id);await validateApprovalData(restored.collections,target.id);
 });
+
+test('D4.2 customer terms and exact operation approvals are enforced and consumed atomically',async()=>{
+  const f=await fixture(),sales=member('sales','Sales'),admin=member('admin','Admin'),accountant=member('accountant','Accountant');
+  const policy=(await f.run(owner,'approvalPolicy.create',policyInput(),'integration-policy')).result;
+  const customer=(await f.run(owner,'customer.create',{name:'عميل ائتماني',phone:'',preferred_currency:'SDG',payment_terms_days:15,credit_limit_sdg:500,credit_limit_usd:null},'credit-customer')).result;
+  const invoice={customer_id:customer.id,issue_date:'2026-10-14',currency_mode:'single_sdg',exchange_rate_used:0,discount_type:'fixed',discount_value:0,items:[{description:'خدمة',unit:'خدمة',quantity:1,unit_price:1000,currency:'SDG',tax_rate:0,discount_percent:0}]};
+  const before=f.store.dump();
+  await assert.rejects(f.run(sales,'invoice.create',invoice,'credit-sale'),/credit_limit/);assert.deepEqual(f.store.dump(),before);
+  const requestResult=(await f.run(sales,'approvalRequest.createForOperation',{policy_id:policy.id,target_action:'invoice.create',target_operation_id:'credit-sale',reason:'تجاوز مدروس للحد',command_data:invoice},'credit-request')).result;
+  assert.equal(requestResult.requests.length,1);const request=requestResult.requests[0];assert.equal(request.kind,'credit_limit');assert.equal(request.overage_sdg,500);
+  await f.run(admin,'approvalRequest.approve',{id:request.id,expected_revision:1,reason:'العميل موثوق'},'credit-review');
+  const command={...invoice,approval_request_ids:[request.id]},issued=(await f.run(sales,'invoice.create',command,'credit-sale')).result;
+  assert.equal(issued.due_date,'2026-10-29');assert.equal(issued.payment_terms_days,15);assert.equal(issued.approval_evidence[0].request_id,request.id);
+  assert.deepEqual((await f.run(sales,'invoice.create',command,'credit-sale')).result,issued);
+  const consumed=await f.store.transaction(tx=>tx.get(`${f.root}/approval_requests/${request.id}`));assert.equal(consumed.consumed_operation_id,'credit-sale');assert.match(consumed.consumption_hash,/^[a-f0-9]{64}$/);
+  await assert.rejects(f.run(sales,'invoice.create',{...invoice,approval_request_ids:[request.id]},'different-sale'),/لا يطابق|استهلك|تتطلب موافقة/);
+  await assert.rejects(f.run(owner,'invoice.update',{id:issued.id,updates:{due_date:'2026-10-30'}},'override-terms'),/شروط السداد/);
+
+  const expense={title:'حملة كبيرة',category:'تسويق',amount:200000,currency:'SDG',date:'2026-10-14'};
+  await assert.rejects(f.run(accountant,'expense.create',expense,'large-expense'),/expense/);
+  const expenseRequest=(await f.run(accountant,'approvalRequest.createForOperation',{policy_id:policy.id,target_action:'expense.create',target_operation_id:'large-expense',reason:'ميزانية الحملة',command_data:expense},'expense-request')).result.requests[0];
+  assert.equal(expenseRequest.required_role,'Admin');await f.run(admin,'approvalRequest.approve',{id:expenseRequest.id,expected_revision:1,reason:'ضمن الميزانية'},'expense-review');
+  const savedExpense=(await f.run(accountant,'expense.create',{...expense,approval_request_ids:[expenseRequest.id]},'large-expense')).result;
+  assert.equal(savedExpense.approval_evidence[0].request_id,expenseRequest.id);
+  const backup=await f.ops.snapshot(f.org.id,owner,true);await validateApprovalData(backup.collections,f.org.id);
+  const corrupt=structuredClone(backup.collections);corrupt.approval_requests.find((row:any)=>row.id===expenseRequest.id).consumption_hash='0'.repeat(64);await assert.rejects(validateApprovalData(corrupt,f.org.id),/استهلاك/);
+});

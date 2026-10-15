@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "E",
-  "active_branch": "codex/accounting-v2-e2-assistance-ui-20261015",
+  "active_branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1661,9 +1661,9 @@
         {
           "id": "E2",
           "scope": "Reviewable reconciliation/account/close assistance and anomaly rules",
-          "status": "in_progress",
-          "branch": "codex/accounting-v2-e2-assistance-ui-20261015",
-          "pr": 82,
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
+          "pr": 84,
           "substeps": [
             {
               "id": "E2.1",
@@ -1712,6 +1712,32 @@
                 "unit_api": 362,
                 "emulator": 35,
                 "ui": 80,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "E2.3",
+              "scope": "Reviewable deterministic expense-account suggestions and latest ended-period close assistance",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
+              "pr": 84,
+              "code_commit": "1a3e6c0dcdcc389a39525f1162c9df4f21daa51c",
+              "report": "REPORT_E2_3_SMART_SUGGESTIONS_CLOSE_ASSISTANCE.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 365,
+                "build": "passed",
+                "ui": "ci_only_local_chromium_missing"
+              },
+              "ci": {
+                "run_id": 38736425041,
+                "commit_sha": "1a3e6c0dcdcc389a39525f1162c9df4f21daa51c",
+                "conclusion": "success",
+                "unit_api": 365,
+                "emulator": 35,
+                "ui": 81,
                 "production_audit_vulnerabilities": 0
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
@@ -1823,12 +1849,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_E2_2_ACCOUNTING_ASSISTANCE_UI.md",
+  "last_report": "REPORT_E2_3_SMART_SUGGESTIONS_CLOSE_ASSISTANCE.md",
   "next_steps": [
-    "Proceed to E2.3 reviewable smart account suggestions and close assistance foundation",
+    "Proceed to E3 deterministic Owner financial summary and recurring expense/journal draft reminders",
     "Independent authenticated Render acceptance for E1 and E2 on matching staging commits"
   ],
-  "updated_at": "2026-10-15T11:37:00Z",
+  "updated_at": "2026-10-15T12:47:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1853,7 +1879,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "E2.3",
+  "active_substep": "E3",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {
@@ -2150,16 +2176,25 @@
       "released_at": "2026-10-15T11:37:00Z",
       "pr": 82,
       "code_commit": "79b58707c674b4d739d1682cf84ab302c1901aca"
+    },
+    {
+      "worker": "e2-smart-suggestions-20261015",
+      "round_id": "20261015T1226Z-e2.3",
+      "acquired_at": "2026-10-15T12:26:00Z",
+      "branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
+      "released_at": "2026-10-15T12:47:00Z",
+      "pr": 84,
+      "code_commit": "1a3e6c0dcdcc389a39525f1162c9df4f21daa51c"
     }
   ],
   "last_lease": {
-    "worker": "e2-assistance-ui-20261015",
-    "round_id": "20261015T0840Z-e2.2",
-    "acquired_at": "2026-10-15T08:40:00Z",
-    "branch": "codex/accounting-v2-e2-assistance-ui-20261015",
-    "released_at": "2026-10-15T11:37:00Z",
-    "pr": 82,
-    "code_commit": "79b58707c674b4d739d1682cf84ab302c1901aca"
+    "worker": "e2-smart-suggestions-20261015",
+    "round_id": "20261015T1226Z-e2.3",
+    "acquired_at": "2026-10-15T12:26:00Z",
+    "branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
+    "released_at": "2026-10-15T12:47:00Z",
+    "pr": 84,
+    "code_commit": "1a3e6c0dcdcc389a39525f1162c9df4f21daa51c"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -2173,7 +2208,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to E2.3 reviewable smart account suggestions and close assistance foundation; retain independent Render acceptance",
+  "next": "Proceed to E3 deterministic Owner financial summary and recurring expense/journal draft reminders; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2194,25 +2229,25 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "e2-assistance-ui-20261015",
-    "round_id": "20261015T0840Z-e2.2",
-    "acquired_at": "2026-10-15T08:40:00Z",
-    "branch": "codex/accounting-v2-e2-assistance-ui-20261015",
-    "released_at": "2026-10-15T11:37:00Z",
-    "pr": 82,
-    "code_commit": "79b58707c674b4d739d1682cf84ab302c1901aca",
-    "status": "E2_2_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-15T11:37:00Z",
+    "worker": "e2-smart-suggestions-20261015",
+    "round_id": "20261015T1226Z-e2.3",
+    "acquired_at": "2026-10-15T12:26:00Z",
+    "branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
+    "released_at": "2026-10-15T12:47:00Z",
+    "pr": 84,
+    "code_commit": "1a3e6c0dcdcc389a39525f1162c9df4f21daa51c",
+    "status": "E2_3_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-15T12:47:00Z",
     "ci": {
-      "run_id": 38707312840,
-      "commit_sha": "79b58707c674b4d739d1682cf84ab302c1901aca",
+      "run_id": 38736425041,
+      "commit_sha": "1a3e6c0dcdcc389a39525f1162c9df4f21daa51c",
       "conclusion": "success",
-      "unit_api": 362,
+      "unit_api": 365,
       "emulator": 35,
-      "ui": 80,
+      "ui": 81,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to E2.3 reviewable smart account suggestions and close assistance foundation; Render acceptance remains independent"
+    "next": "Proceed to E3 deterministic Owner financial summary and recurring expense/journal draft reminders; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

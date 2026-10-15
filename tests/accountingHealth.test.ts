@@ -1,4 +1,5 @@
 import test from 'node:test';
+import './accountingAssistance.test';
 import assert from 'node:assert/strict';
 import { buildAccountingHealth } from '../src/domain/accountingHealth';
 import { financialCollections, type FinancialData } from '../src/domain/reconciliation';

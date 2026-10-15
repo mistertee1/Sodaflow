@@ -7,7 +7,15 @@
   "active_milestone": "Excel1",
   "active_branch": "codex/accounting-v2-excel1-quick-exports-20261015",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel1-quick-exports-20261015",
+    "round_id": "20261015T174213Z-excel1.1",
+    "base_branch": "codex/accounting-v2-e3-owner-summary-20261015",
+    "acquired_at": "2026-10-15T17:42:13Z",
+    "expires_at": "2026-10-16T03:59:08Z",
+    "branch": "codex/accounting-v2-excel1-quick-exports-20261015",
+    "purpose": "Implement Excel1.1 quick/master XLSX exports, numeric integrity and permission masking"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1876,7 +1884,7 @@
     "Proceed to Excel1.1 quick/master exports with numeric integrity and authorized sensitive masking",
     "Independent authenticated Render acceptance for E1-E3 on matching staging commits"
   ],
-  "updated_at": "2026-10-15T16:52:00Z",
+  "updated_at": "2026-10-15T21:59:08Z",
   "deferred_requirements": [
     {
       "prd_sections": [

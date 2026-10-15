@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "E",
-  "active_branch": "codex/accounting-v2-e1-health-foundation-20261014",
+  "active_branch": "codex/accounting-v2-e1-health-ui-20261014",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1436,15 +1436,15 @@
     {
       "id": "E",
       "status": "in_progress",
-      "branch": "codex/accounting-v2-e1-health-foundation-20261014",
-      "pr": 79,
+      "branch": "codex/accounting-v2-e1-health-ui-20261014",
+      "pr": 80,
       "steps": [
         {
           "id": "E1",
           "scope": "Accounting health center and actionable financial alerts",
-          "status": "in_progress",
-          "branch": "codex/accounting-v2-e1-health-foundation-20261014",
-          "pr": 79,
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-e1-health-ui-20261014",
+          "pr": 80,
           "substeps": [
             {
               "id": "E1.1",
@@ -1456,6 +1456,18 @@
               "report": "REPORT_E1_1_ACCOUNTING_HEALTH_FOUNDATION.md",
               "local_checks": { "types": "passed", "core": "passed", "unit_api": 359, "build": "passed" },
               "ci": { "run_id": 38588892339, "commit_sha": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab", "conclusion": "success", "unit_api": 359, "emulator": 35, "ui": 76, "production_audit_vulnerabilities": 0 },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "E1.2",
+              "scope": "Accounting health and alerts UI, permissions, synchronization and reload",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-e1-health-ui-20261014",
+              "pr": 80,
+              "code_commit": "9aa4a42dd71a9c59963c918b012deb79654bb7b2",
+              "report": "REPORT_E1_2_ACCOUNTING_HEALTH_UI.md",
+              "local_checks": { "types": "passed", "core": "passed", "unit_api": 359, "build": "passed", "ui": "blocked_chromium_not_installed" },
+              "ci": { "run_id": 38691436659, "commit_sha": "9aa4a42dd71a9c59963c918b012deb79654bb7b2", "conclusion": "success", "unit_api": 359, "emulator": 35, "ui": 78, "production_audit_vulnerabilities": 0 },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]
@@ -1572,12 +1584,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_E1_1_ACCOUNTING_HEALTH_FOUNDATION.md",
+  "last_report": "REPORT_E1_2_ACCOUNTING_HEALTH_UI.md",
   "next_steps": [
-    "Proceed to E1.2 accounting health and alerts UI, permissions, synchronization and reload",
+    "Proceed to E2 reviewable reconciliation/account/close assistance and anomaly rules",
     "Independent authenticated Render acceptance for E1.1 and earlier stages on matching staging commits"
   ],
-  "updated_at": "2026-10-14T15:31:00Z",
+  "updated_at": "2026-10-15T06:23:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1602,7 +1614,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "E1.1",
+  "active_substep": "E2",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {
@@ -1872,16 +1884,25 @@
       "released_at": "2026-10-14T15:31:00Z",
       "pr": 79,
       "code_commit": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab"
+    },
+    {
+      "worker": "e1-health-ui-20261014",
+      "round_id": "20261015T0615Z-e1.2-resume",
+      "acquired_at": "2026-10-15T06:15:00Z",
+      "branch": "codex/accounting-v2-e1-health-ui-20261014",
+      "released_at": "2026-10-15T06:23:00Z",
+      "pr": 80,
+      "code_commit": "9aa4a42dd71a9c59963c918b012deb79654bb7b2"
     }
   ],
   "last_lease": {
-    "worker": "e1-health-foundation-20261014",
-    "round_id": "20261014T1520Z-e1.1",
-    "acquired_at": "2026-10-14T15:20:00Z",
-    "branch": "codex/accounting-v2-e1-health-foundation-20261014",
-    "released_at": "2026-10-14T15:31:00Z",
-    "pr": 79,
-    "code_commit": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab"
+    "worker": "e1-health-ui-20261014",
+    "round_id": "20261015T0615Z-e1.2-resume",
+    "acquired_at": "2026-10-15T06:15:00Z",
+    "branch": "codex/accounting-v2-e1-health-ui-20261014",
+    "released_at": "2026-10-15T06:23:00Z",
+    "pr": 80,
+    "code_commit": "9aa4a42dd71a9c59963c918b012deb79654bb7b2"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1895,7 +1916,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to E1.2 accounting health and alerts UI; retain independent Render acceptance",
+  "next": "Proceed to E2 reviewable reconciliation/account/close assistance and anomaly rules; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1916,25 +1937,25 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "e1-health-foundation-20261014",
-    "round_id": "20261014T1520Z-e1.1",
-    "acquired_at": "2026-10-14T15:20:00Z",
-    "branch": "codex/accounting-v2-e1-health-foundation-20261014",
-    "released_at": "2026-10-14T15:31:00Z",
-    "pr": 79,
-    "code_commit": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab",
-    "status": "E1_1_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-14T15:31:00Z",
+    "worker": "e1-health-ui-20261014",
+    "round_id": "20261015T0615Z-e1.2-resume",
+    "acquired_at": "2026-10-15T06:15:00Z",
+    "branch": "codex/accounting-v2-e1-health-ui-20261014",
+    "released_at": "2026-10-15T06:23:00Z",
+    "pr": 80,
+    "code_commit": "9aa4a42dd71a9c59963c918b012deb79654bb7b2",
+    "status": "E1_2_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-15T06:23:00Z",
     "ci": {
-      "run_id": 38588892339,
-      "commit_sha": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab",
+      "run_id": 38691436659,
+      "commit_sha": "9aa4a42dd71a9c59963c918b012deb79654bb7b2",
       "conclusion": "success",
       "unit_api": 359,
       "emulator": 35,
-      "ui": 76,
+      "ui": 78,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to E1.2 accounting health and alerts UI; Render acceptance remains independent"
+    "next": "Proceed to E2 reviewable reconciliation/account/close assistance and anomaly rules; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

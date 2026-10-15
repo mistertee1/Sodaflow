@@ -10,6 +10,7 @@ import { CustomerProfitabilityCenter } from './accounting/CustomerProfitabilityC
 import { BudgetCenter } from './accounting/BudgetCenter';
 import { CashForecastCenter } from './accounting/CashForecastCenter';
 import { ApprovalPolicyCenter } from './accounting/ApprovalPolicyCenter';
+import { AccountingHealthCenter } from './accounting/AccountingHealthCenter';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { api } from '../services/businessApi';
 import type { Operations } from '../domain/operations';
@@ -94,7 +95,7 @@ export const AccountingView: React.FC = () => {
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<
-    'opening' | 'equity' | 'fx' | 'assets' | 'tax' | 'dimensions' | 'profitability' | 'budgets' | 'approvals' | 'forecast' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
+    'opening' | 'equity' | 'fx' | 'assets' | 'tax' | 'dimensions' | 'profitability' | 'budgets' | 'approvals' | 'forecast' | 'health' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
   >('coa');
   const [reportStart, setReportStart] = useState('');
   const [reportEnd, setReportEnd] = useState('');
@@ -468,6 +469,7 @@ export const AccountingView: React.FC = () => {
           {isActionAllowed('budget:read') && <button data-testid="budget-center-tab" onClick={() => setActiveSubTab('budgets')} aria-pressed={activeSubTab === 'budgets'} className="sf-secondary shrink-0 whitespace-nowrap">الميزانيات</button>}
           {isActionAllowed('approvals:read') && <button data-testid="approval-policy-tab" onClick={() => setActiveSubTab('approvals')} aria-pressed={activeSubTab === 'approvals'} className="sf-secondary shrink-0 whitespace-nowrap">حدود الاعتماد</button>}
           {isActionAllowed('reports:advanced') && isActionAllowed('payables:read') && <button data-testid="cash-forecast-tab" onClick={() => setActiveSubTab('forecast')} aria-pressed={activeSubTab === 'forecast'} className="sf-secondary shrink-0 whitespace-nowrap">توقع النقد</button>}
+          {isActionAllowed('reports:advanced') && isActionAllowed('journal:read') && <button data-testid="accounting-health-tab" onClick={() => setActiveSubTab('health')} aria-pressed={activeSubTab === 'health'} className="sf-secondary shrink-0 whitespace-nowrap">صحة المحاسبة</button>}
           {isActionAllowed('payables:read') && <button onClick={() => setActiveSubTab('payables')} aria-pressed={activeSubTab === 'payables'} className="sf-secondary shrink-0 whitespace-nowrap">الموردون والمشتريات</button>}
           <button
             onClick={() => setActiveSubTab('coa')}
@@ -961,6 +963,7 @@ export const AccountingView: React.FC = () => {
       {activeSubTab === 'budgets' && <BudgetCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'approvals' && <ApprovalPolicyCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'forecast' && <CashForecastCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
+      {activeSubTab === 'health' && <AccountingHealthCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'payables' && <PayablesCenter />}
 
       {activeSubTab === 'period_lock' && <AccountingPeriodsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}

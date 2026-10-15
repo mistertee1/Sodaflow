@@ -7,13 +7,7 @@
   "active_milestone": "D",
   "active_branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "d4-credit-approval-integration-20261015",
-    "acquired_at": "2026-10-15T06:25:00Z",
-    "expires_at": "2026-10-15T12:25:00Z",
-    "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
-    "purpose": "Implement D4.2 customer credit/payment terms, approval consumption and UI"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -1387,23 +1381,37 @@
               "scope": "Customer credit/payment terms plus invoice discount, expense and refund approval integration and UI",
               "status": "in_progress",
               "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
-              "pr": null,
+              "pr": 83,
               "substeps": [
                 {
                   "id": "D4.2a",
                   "scope": "Customer credit/payment terms and exact single-use transaction approval enforcement",
-                  "status": "implemented_local_checks_passed_ci_pending",
+                  "status": "implemented_ci_passed_render_acceptance_pending",
                   "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
-                  "pr": null,
+                  "pr": 83,
+                  "code_commit": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
                   "report": "REPORT_D4_2A_CREDIT_APPROVAL_INTEGRATION.md",
                   "checks": {
                     "types": "passed",
                     "unit_api": 351,
                     "core": "passed",
                     "build": "passed",
-                    "emulator": "blocked_local_java_21_required_ci_pending",
-                    "ui": "blocked_local_chromium_not_installed_ci_pending"
+                    "emulator": 37,
+                    "emulator_status": "passed_in_ci",
+                    "ui": 70,
+                    "ui_status": "passed_in_ci",
+                    "production_audit_vulnerabilities": 0
                   },
+                  "ci": {
+                    "run_id": 38729306149,
+                    "commit_sha": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
+                    "conclusion": "success",
+                    "unit_api": 351,
+                    "emulator": 37,
+                    "ui": 70,
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "render_acceptance": "pending_matching_authenticated_staging_commit",
                   "completed_at": "2026-10-15T11:39:00Z"
                 },
                 {
@@ -1546,10 +1554,10 @@
   ],
   "last_report": "REPORT_D4_2A_CREDIT_APPROVAL_INTEGRATION.md",
   "next_steps": [
-    "Verify D4.2a in CI, then implement D4.2b responsive customer terms and approval workflow UI on a child branch",
+    "Implement D4.2b responsive customer terms and approval workflow UI on a child branch based on PR #83",
     "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2/D3.1/D3.2/D4.1/D4.2a on matching staging commits"
   ],
-  "updated_at": "2026-10-15T11:39:00Z",
+  "updated_at": "2026-10-15T11:49:20Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1781,15 +1789,26 @@
       "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
       "status": "expired_before_metadata_publish",
       "code_commit": "e16a0e00c2f404eff3d5f1c5efb6c29a99a873d8"
+    },
+    {
+      "worker": "d4-credit-approval-integration-20261015",
+      "acquired_at": "2026-10-15T06:25:00Z",
+      "released_at": "2026-10-15T11:49:20Z",
+      "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
+      "pr": 83,
+      "code_commit": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
+      "status": "D4_2a_implemented_ci_passed_render_acceptance_pending",
+      "next_branch": "codex/accounting-v2-d4-approval-ui-20261015"
     }
   ],
   "last_lease": {
-    "worker": "d4-approval-finalize-20261014",
-    "acquired_at": "2026-10-14T14:20:00Z",
-    "expires_at": "2026-10-14T15:20:00Z",
-    "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
-    "status": "expired_before_metadata_publish",
-    "code_commit": "e16a0e00c2f404eff3d5f1c5efb6c29a99a873d8"
+    "worker": "d4-credit-approval-integration-20261015",
+    "acquired_at": "2026-10-15T06:25:00Z",
+    "released_at": "2026-10-15T11:49:20Z",
+    "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
+    "pr": 83,
+    "code_commit": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
+    "status": "released_after_D4_2a_ci_passed"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1803,7 +1822,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to D4.2 customer credit/payment terms and approval consumption/UI integration; retain independent Render acceptance",
+  "next": "Proceed to D4.2b responsive customer terms and approval workflow UI from PR #83; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1824,24 +1843,23 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "d4-approval-foundation-20261013",
-    "acquired_at": "2026-10-14T02:55:00Z",
-    "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
-    "pr": 76,
-    "code_commit": "e16a0e00c2f404eff3d5f1c5efb6c29a99a873d8",
-    "merged_commit": "fbd55cba17c5691bc27efcee11f5a62b18266b55",
-    "status": "D4_1_implemented_ci_passed_user_merged_render_acceptance_pending",
-    "ended_at": "2026-10-14T19:08:37Z",
+    "worker": "d4-credit-approval-integration-20261015",
+    "acquired_at": "2026-10-15T06:25:00Z",
+    "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
+    "pr": 83,
+    "code_commit": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
+    "status": "D4_2a_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-15T11:49:20Z",
     "ci": {
-      "run_id": 38538610379,
-      "commit_sha": "e16a0e00c2f404eff3d5f1c5efb6c29a99a873d8",
+      "run_id": 38729306149,
+      "commit_sha": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
       "conclusion": "success",
-      "unit_api": 349,
+      "unit_api": 351,
       "emulator": 37,
       "ui": 70,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to D4.2 customer credit/payment terms and approval consumption/UI integration; Render acceptance remains independent"
+    "next": "Proceed to D4.2b UI from PR #83; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

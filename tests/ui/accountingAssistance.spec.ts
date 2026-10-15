@@ -23,3 +23,13 @@ test('E2.2 Accountant can read assistance while Viewer cannot discover it',async
   await open(page,'Accountant');await expect(page.getByTestId('accounting-assistance-tab')).toBeVisible();await page.getByTestId('accounting-assistance-tab').click();await expect(page.getByRole('region',{name:'مساعد المحاسبة'})).toContainText('مهام المراجعة');
   await page.evaluate(()=>localStorage.clear());await open(page,'Viewer');await expect(page.getByTestId('accounting-assistance-tab')).toHaveCount(0);
 });
+
+test('E2.3 assistance exposes review-only account and close guidance',async({page})=>{
+  const records=await periodGuestFixture(true,'Owner'),org=records.organization.id;
+  records.collections.expenses=[{id:'expense-rent',org_id:org,title:'إيجار أكتوبر',category:'إيجار',amount:500,currency:'SDG',date:'2026-10-10',created_at:'2026-10-10T08:00:00Z'}];
+  await page.addInitScript(records=>{localStorage.setItem('mohasbasd_guest_session','true');localStorage.setItem('sudanese_merchant_has_seen_tour_v2','true');localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records));},records);
+  await page.goto('/');await page.locator('#tab-accounting').click();await page.getByTestId('accounting-assistance-tab').click();const center=page.getByRole('region',{name:'مساعد المحاسبة'});
+  await expect(center.getByLabel('اقتراحات الحسابات')).toContainText('5200');
+  await expect(center.getByLabel('مساعدة الإقفال')).toContainText('لا ينفذ هذا المساعد الإقفال');
+  await expect(center.getByRole('button')).toHaveCount(1);
+});

@@ -25,8 +25,9 @@ test('E2.2 Accountant can read assistance while Viewer cannot discover it',async
 });
 
 test('E2.3 assistance exposes review-only account and close guidance',async({page})=>{
-  const records=await periodGuestFixture(true,'Owner'),org=records.organization.id;
-  records.collections.expenses=[{id:'expense-rent',org_id:org,title:'إيجار أكتوبر',category:'إيجار',amount:500,currency:'SDG',date:'2026-10-10',created_at:'2026-10-10T08:00:00Z'}];
+  const records=await periodGuestFixture(true,'Owner'),org='local-guest-org',root=`organizations/${org}`;
+  records[`${root}/expenses/expense-rent`]={id:'expense-rent',org_id:org,title:'إيجار أكتوبر',category:'إيجار',amount:500,currency:'SDG',date:'2026-10-10',created_at:'2026-10-10T08:00:00Z'};
+  records[`${root}/accounting_periods/sep-2026`]={id:'sep-2026',org_id:org,schema_version:1,start_date:'2026-09-01',end_date:'2026-09-30',status:'OPEN',revision:1,created_by:'guest',created_at:'2026-09-01T00:00:00Z',operation_id:'period-seed'};
   await page.addInitScript(records=>{localStorage.setItem('mohasbasd_guest_session','true');localStorage.setItem('sudanese_merchant_has_seen_tour_v2','true');localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records));},records);
   await page.goto('/');await page.locator('#tab-accounting').click();await page.getByTestId('accounting-assistance-tab').click();const center=page.getByRole('region',{name:'مساعد المحاسبة'});
   await expect(center.getByLabel('اقتراحات الحسابات')).toContainText('5200');

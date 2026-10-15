@@ -5,9 +5,17 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "E",
-  "active_branch": "codex/accounting-v2-e2-assistance-ui-20261015",
+  "active_branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker_id": "e2-smart-suggestions-20261015",
+    "round_id": "20261015T1226Z-e2.3",
+    "branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
+    "base_branch": "codex/accounting-v2-e2-assistance-ui-20261015",
+    "base_commit": "688eab726bf224a2743e64d78a0d939980b4b17f",
+    "acquired_at": "2026-10-15T12:26:00Z",
+    "expires_at": "2026-10-15T14:00:00Z"
+  },
   "milestones": [
     {
       "id": "A1",

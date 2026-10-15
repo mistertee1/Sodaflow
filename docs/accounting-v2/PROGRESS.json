@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "E",
-  "active_branch": "codex/accounting-v2-e1-health-ui-20261014",
+  "active_branch": "codex/accounting-v2-e2-assistance-foundation-20261015",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1095,7 +1095,7 @@
     },
     {
       "id": "D",
-    "status": "in_progress",
+      "status": "in_progress",
       "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
       "pr": 64,
       "steps": [
@@ -1225,9 +1225,9 @@
         {
           "id": "D2",
           "scope": "Product/customer profitability and source-supported management reports",
-      "status": "implemented_ci_passed_render_acceptance_pending",
+          "status": "implemented_ci_passed_render_acceptance_pending",
           "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
-      "pr": 64,
+          "pr": 64,
           "substeps": [
             {
               "id": "D2.1",
@@ -1256,26 +1256,26 @@
             {
               "id": "D2.2",
               "scope": "Source-backed customer profitability and management reporting",
-          "status": "implemented_ci_passed_render_acceptance_pending",
+              "status": "implemented_ci_passed_render_acceptance_pending",
               "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
-          "pr": 64,
-          "report": "REPORT_D2_2_CUSTOMER_PROFITABILITY.md",
-          "checks": {
-            "unit_api": 341,
-            "types": "passed",
-            "core": "passed",
-            "build": "passed",
-            "emulator": 35,
-            "ui": 66,
-            "production_audit_vulnerabilities": 0
-          },
-          "ci": {
-            "run_id": 38353477574,
-            "commit_sha": "be84b48d46ca972c14b0bc6ca7177519b14b2cca",
-            "conclusion": "success"
-          },
-          "render_acceptance": "pending_matching_authenticated_staging_commit",
-          "completed_at": "2026-10-13T08:55:00Z"
+              "pr": 64,
+              "report": "REPORT_D2_2_CUSTOMER_PROFITABILITY.md",
+              "checks": {
+                "unit_api": 341,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 66,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38353477574,
+                "commit_sha": "be84b48d46ca972c14b0bc6ca7177519b14b2cca",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-13T08:55:00Z"
             }
           ]
         },
@@ -1294,8 +1294,21 @@
               "pr": 65,
               "code_commit": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
               "report": "REPORT_D3_1_BUDGET_FOUNDATION.md",
-              "local_checks": { "types": "passed", "unit_api": 342, "build": "passed", "emulator": "blocked_java_21_required" },
-              "ci": { "run_id": 38375686205, "commit_sha": "2cd8d94371e422068b8421a6e73ccc43a88da87e", "conclusion": "success", "unit_api": 342, "emulator": 35, "ui": 66, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "unit_api": 342,
+                "build": "passed",
+                "emulator": "blocked_java_21_required"
+              },
+              "ci": {
+                "run_id": 38375686205,
+                "commit_sha": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
+                "conclusion": "success",
+                "unit_api": 342,
+                "emulator": 35,
+                "ui": 66,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1306,8 +1319,21 @@
               "pr": 66,
               "code_commit": "c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1",
               "report": "REPORT_D3_2A_BUDGET_UI.md",
-              "local_checks": { "types": "passed", "unit_api": 342, "build": "passed", "ui": "blocked_chromium_not_installed" },
-              "ci": { "run_id": 38402011947, "commit_sha": "c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1", "conclusion": "success", "unit_api": 342, "emulator": 35, "ui": 68, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "unit_api": 342,
+                "build": "passed",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38402011947,
+                "commit_sha": "c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1",
+                "conclusion": "success",
+                "unit_api": 342,
+                "emulator": 35,
+                "ui": 68,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1318,9 +1344,27 @@
               "pr": 68,
               "code_commit": "9668483ad31192dbfff3a081a5712b409ca7df3d",
               "report": "REPORT_D3_2B_1_CASH_FORECAST_FOUNDATION.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 344, "build": "passed" },
-              "ci": { "run_id": 38435020579, "commit_sha": "9668483ad31192dbfff3a081a5712b409ca7df3d", "conclusion": "success", "unit_api": 344, "emulator": 35, "ui": 68, "production_audit_vulnerabilities": 0 },
-              "coverage": { "customer_due_dates": true, "supplier_due_dates": true, "recurring_expenses": false, "scheduled_payments": false },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 344,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38435020579,
+                "commit_sha": "9668483ad31192dbfff3a081a5712b409ca7df3d",
+                "conclusion": "success",
+                "unit_api": 344,
+                "emulator": 35,
+                "ui": 68,
+                "production_audit_vulnerabilities": 0
+              },
+              "coverage": {
+                "customer_due_dates": true,
+                "supplier_due_dates": true,
+                "recurring_expenses": false,
+                "scheduled_payments": false
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1331,8 +1375,22 @@
               "pr": 69,
               "code_commit": "24b020912e630a418321f6d71922444892e23331",
               "report": "REPORT_D3_2B_2_CASH_FORECAST_UI.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 344, "build": "passed", "ui": "blocked_chromium_not_installed" },
-              "ci": { "run_id": 38443505970, "commit_sha": "24b020912e630a418321f6d71922444892e23331", "conclusion": "success", "unit_api": 344, "emulator": 35, "ui": 70, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 344,
+                "build": "passed",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38443505970,
+                "commit_sha": "24b020912e630a418321f6d71922444892e23331",
+                "conclusion": "success",
+                "unit_api": 344,
+                "emulator": 35,
+                "ui": 70,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1343,9 +1401,27 @@
               "pr": 70,
               "code_commit": "216dce2cf246835f1d492a6d71c7e23764c4737e",
               "report": "REPORT_D3_2B_3_CASH_SOURCE_REGISTRIES.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 345, "build": "passed" },
-              "ci": { "run_id": 38448393430, "commit_sha": "216dce2cf246835f1d492a6d71c7e23764c4737e", "conclusion": "success", "unit_api": 345, "emulator": 35, "ui": 70, "production_audit_vulnerabilities": 0 },
-              "coverage": { "customer_due_dates": true, "supplier_due_dates": true, "recurring_expenses": true, "scheduled_payments": true },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 345,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38448393430,
+                "commit_sha": "216dce2cf246835f1d492a6d71c7e23764c4737e",
+                "conclusion": "success",
+                "unit_api": 345,
+                "emulator": 35,
+                "ui": 70,
+                "production_audit_vulnerabilities": 0
+              },
+              "coverage": {
+                "customer_due_dates": true,
+                "supplier_due_dates": true,
+                "recurring_expenses": true,
+                "scheduled_payments": true
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1356,8 +1432,21 @@
               "pr": 72,
               "code_commit": "b0abf3ef03ab29dde6a94be66346c8f8d9acc294",
               "report": "REPORT_D3_2B_4_CASH_SOURCE_UI.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 345, "build": "passed" },
-              "ci": { "run_id": 38486656648, "commit_sha": "b0abf3ef03ab29dde6a94be66346c8f8d9acc294", "conclusion": "success", "unit_api": 345, "emulator": 35, "ui": 72, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 345,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38486656648,
+                "commit_sha": "b0abf3ef03ab29dde6a94be66346c8f8d9acc294",
+                "conclusion": "success",
+                "unit_api": 345,
+                "emulator": 35,
+                "ui": 72,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]
@@ -1377,8 +1466,21 @@
               "pr": 73,
               "code_commit": "736168470fdef5addc4bdea494634ca159cea5bb",
               "report": "REPORT_D4_1_CUSTOMER_CREDIT_LIMITS.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 350, "build": "passed" },
-              "ci": { "run_id": 38491828955, "commit_sha": "736168470fdef5addc4bdea494634ca159cea5bb", "conclusion": "success", "unit_api": 350, "emulator": 35, "ui": 72, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 350,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38491828955,
+                "commit_sha": "736168470fdef5addc4bdea494634ca159cea5bb",
+                "conclusion": "success",
+                "unit_api": 350,
+                "emulator": 35,
+                "ui": 72,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1389,8 +1491,22 @@
               "pr": 74,
               "code_commit": "aae5883451125e3f78295d121d780c28814e8f9f",
               "report": "REPORT_D4_2_CUSTOMER_CREDIT_UI.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 350, "build": "passed", "ui": "blocked_chromium_not_installed" },
-              "ci": { "run_id": 38511786428, "commit_sha": "aae5883451125e3f78295d121d780c28814e8f9f", "conclusion": "success", "unit_api": 350, "emulator": 35, "ui": 73, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 350,
+                "build": "passed",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38511786428,
+                "commit_sha": "aae5883451125e3f78295d121d780c28814e8f9f",
+                "conclusion": "success",
+                "unit_api": 350,
+                "emulator": 35,
+                "ui": 73,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1401,8 +1517,21 @@
               "pr": 75,
               "code_commit": "eb20d28b55f7d07953b73b3adbf2903c96621bdd",
               "report": "REPORT_D4_3_1_APPROVAL_POLICY_FOUNDATION.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 352, "build": "passed" },
-              "ci": { "run_id": 38515671820, "commit_sha": "eb20d28b55f7d07953b73b3adbf2903c96621bdd", "conclusion": "success", "unit_api": 352, "emulator": 35, "ui": 73, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 352,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38515671820,
+                "commit_sha": "eb20d28b55f7d07953b73b3adbf2903c96621bdd",
+                "conclusion": "success",
+                "unit_api": 352,
+                "emulator": 35,
+                "ui": 73,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1413,8 +1542,23 @@
               "pr": 77,
               "code_commit": "3e423c6fe65f2b0c5d3107d6d7aca05485a8dbf5",
               "report": "REPORT_D4_3_2_APPROVAL_GATES.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 356, "build": "passed", "emulator": "blocked_java_21_required", "ui": "blocked_chromium_not_installed" },
-              "ci": { "run_id": 38542501544, "commit_sha": "3e423c6fe65f2b0c5d3107d6d7aca05485a8dbf5", "conclusion": "success", "unit_api": 356, "emulator": 35, "ui": 73, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 356,
+                "build": "passed",
+                "emulator": "blocked_java_21_required",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38542501544,
+                "commit_sha": "3e423c6fe65f2b0c5d3107d6d7aca05485a8dbf5",
+                "conclusion": "success",
+                "unit_api": 356,
+                "emulator": 35,
+                "ui": 73,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1425,8 +1569,23 @@
               "pr": 78,
               "code_commit": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3",
               "report": "REPORT_D4_3_3_APPROVAL_UI.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 356, "build": "passed", "emulator": "blocked_java_21_required", "ui": "blocked_chromium_not_installed" },
-              "ci": { "run_id": 38584496221, "commit_sha": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3", "conclusion": "success", "unit_api": 356, "emulator": 35, "ui": 76, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 356,
+                "build": "passed",
+                "emulator": "blocked_java_21_required",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38584496221,
+                "commit_sha": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3",
+                "conclusion": "success",
+                "unit_api": 356,
+                "emulator": 35,
+                "ui": 76,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]
@@ -1454,8 +1613,21 @@
               "pr": 79,
               "code_commit": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab",
               "report": "REPORT_E1_1_ACCOUNTING_HEALTH_FOUNDATION.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 359, "build": "passed" },
-              "ci": { "run_id": 38588892339, "commit_sha": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab", "conclusion": "success", "unit_api": 359, "emulator": 35, "ui": 76, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 359,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38588892339,
+                "commit_sha": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab",
+                "conclusion": "success",
+                "unit_api": 359,
+                "emulator": 35,
+                "ui": 76,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             },
             {
@@ -1466,8 +1638,22 @@
               "pr": 80,
               "code_commit": "9aa4a42dd71a9c59963c918b012deb79654bb7b2",
               "report": "REPORT_E1_2_ACCOUNTING_HEALTH_UI.md",
-              "local_checks": { "types": "passed", "core": "passed", "unit_api": 359, "build": "passed", "ui": "blocked_chromium_not_installed" },
-              "ci": { "run_id": 38691436659, "commit_sha": "9aa4a42dd71a9c59963c918b012deb79654bb7b2", "conclusion": "success", "unit_api": 359, "emulator": 35, "ui": 78, "production_audit_vulnerabilities": 0 },
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 359,
+                "build": "passed",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38691436659,
+                "commit_sha": "9aa4a42dd71a9c59963c918b012deb79654bb7b2",
+                "conclusion": "success",
+                "unit_api": 359,
+                "emulator": 35,
+                "ui": 78,
+                "production_audit_vulnerabilities": 0
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]
@@ -1475,9 +1661,36 @@
         {
           "id": "E2",
           "scope": "Reviewable reconciliation/account/close assistance and anomaly rules",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-e2-assistance-foundation-20261015",
+          "pr": 81,
+          "substeps": [
+            {
+              "id": "E2.1",
+              "scope": "Review-only assistance report and deterministic anomaly rules foundation",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-e2-assistance-foundation-20261015",
+              "pr": 81,
+              "code_commit": "f2563de47f67310957b82f0f3c55aa34739849f1",
+              "report": "REPORT_E2_1_ACCOUNTING_ASSISTANCE_FOUNDATION.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 362,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38701895360,
+                "commit_sha": "f2563de47f67310957b82f0f3c55aa34739849f1",
+                "conclusion": "success",
+                "unit_api": 362,
+                "emulator": 35,
+                "ui": 78,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            }
+          ]
         },
         {
           "id": "E3",
@@ -1584,12 +1797,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_E1_2_ACCOUNTING_HEALTH_UI.md",
+  "last_report": "REPORT_E2_1_ACCOUNTING_ASSISTANCE_FOUNDATION.md",
   "next_steps": [
-    "Proceed to E2 reviewable reconciliation/account/close assistance and anomaly rules",
+    "Proceed to E2.2 reviewable assistance UI, permissions, synchronization and reload",
     "Independent authenticated Render acceptance for E1.1 and earlier stages on matching staging commits"
   ],
-  "updated_at": "2026-10-15T06:23:00Z",
+  "updated_at": "2026-10-15T08:01:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1614,7 +1827,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "E2",
+  "active_substep": "E2.2",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {
@@ -1893,16 +2106,25 @@
       "released_at": "2026-10-15T06:23:00Z",
       "pr": 80,
       "code_commit": "9aa4a42dd71a9c59963c918b012deb79654bb7b2"
+    },
+    {
+      "worker": "e2-assistance-foundation-20261015",
+      "round_id": "20261015T0750Z-e2.1",
+      "acquired_at": "2026-10-15T07:50:00Z",
+      "branch": "codex/accounting-v2-e2-assistance-foundation-20261015",
+      "released_at": "2026-10-15T08:01:00Z",
+      "pr": 81,
+      "code_commit": "f2563de47f67310957b82f0f3c55aa34739849f1"
     }
   ],
   "last_lease": {
-    "worker": "e1-health-ui-20261014",
-    "round_id": "20261015T0615Z-e1.2-resume",
-    "acquired_at": "2026-10-15T06:15:00Z",
-    "branch": "codex/accounting-v2-e1-health-ui-20261014",
-    "released_at": "2026-10-15T06:23:00Z",
-    "pr": 80,
-    "code_commit": "9aa4a42dd71a9c59963c918b012deb79654bb7b2"
+    "worker": "e2-assistance-foundation-20261015",
+    "round_id": "20261015T0750Z-e2.1",
+    "acquired_at": "2026-10-15T07:50:00Z",
+    "branch": "codex/accounting-v2-e2-assistance-foundation-20261015",
+    "released_at": "2026-10-15T08:01:00Z",
+    "pr": 81,
+    "code_commit": "f2563de47f67310957b82f0f3c55aa34739849f1"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1916,7 +2138,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to E2 reviewable reconciliation/account/close assistance and anomaly rules; retain independent Render acceptance",
+  "next": "Proceed to E2.2 reviewable assistance UI, permissions, synchronization and reload; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1937,25 +2159,25 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "e1-health-ui-20261014",
-    "round_id": "20261015T0615Z-e1.2-resume",
-    "acquired_at": "2026-10-15T06:15:00Z",
-    "branch": "codex/accounting-v2-e1-health-ui-20261014",
-    "released_at": "2026-10-15T06:23:00Z",
-    "pr": 80,
-    "code_commit": "9aa4a42dd71a9c59963c918b012deb79654bb7b2",
-    "status": "E1_2_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-15T06:23:00Z",
+    "worker": "e2-assistance-foundation-20261015",
+    "round_id": "20261015T0750Z-e2.1",
+    "acquired_at": "2026-10-15T07:50:00Z",
+    "branch": "codex/accounting-v2-e2-assistance-foundation-20261015",
+    "released_at": "2026-10-15T08:01:00Z",
+    "pr": 81,
+    "code_commit": "f2563de47f67310957b82f0f3c55aa34739849f1",
+    "status": "E2_1_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-15T08:01:00Z",
     "ci": {
-      "run_id": 38691436659,
-      "commit_sha": "9aa4a42dd71a9c59963c918b012deb79654bb7b2",
+      "run_id": 38701895360,
+      "commit_sha": "f2563de47f67310957b82f0f3c55aa34739849f1",
       "conclusion": "success",
-      "unit_api": 359,
+      "unit_api": 362,
       "emulator": 35,
       "ui": 78,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to E2 reviewable reconciliation/account/close assistance and anomaly rules; Render acceptance remains independent"
+    "next": "Proceed to E2.2 reviewable assistance UI, permissions, synchronization and reload; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

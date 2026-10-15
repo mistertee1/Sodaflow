@@ -29,7 +29,7 @@ import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
 import { INITIAL_SETTINGS } from '../data/initialData';
 import { createDefaultSubscription, subscriptionLimits } from '../lib/plans';
 import { loadSubscription, assertSubscriptionActive, assertFeature, invoiceQuotaReached } from './subscriptions';
-import { safeAdd, safeSub } from '../lib/currency';
+import { safeAdd, safeDiv, safeMul, safeSub } from '../lib/currency';
 import { getDefaultChartOfAccounts, generateExpenseJournalEntry, calculateTrialBalance, calculateIncomeStatement, calculateBalanceSheet, calculateCashFlowStatement, getAccountCodeForPaymentMethod } from '../services/accountingService';
 import { hasPermission, type ActionType } from '../services/rbacService';
 import { BusinessError, assertOpenPeriod, dateOnly, ensure, identifier, money, text, validateJournal, validateSettings } from './validation';
@@ -47,13 +47,13 @@ import { financialCollections, reconcileFinancialData, type FinancialData } from
 import { branchProfitAndLoss, createDimension, dimensionCollection, dimensionField, dimensionKind, dimensionTags, updateDimension, type ManagementDimension } from './managementDimensions';
 import { customerProfitability, productProfitability } from './managementProfitability';
 import { budgetVsActual, cashForecast, managementPlanningCollections, saveBudget, saveCashForecastSchedule, validateManagementPlanningData, type BudgetPlan, type CashForecastSchedule } from './managementBudgets';
-import { approvalCollections, createApprovalRequest, remapApprovalData, reviewApprovalRequest, saveApprovalPolicy, validateApprovalData, type ApprovalPolicy, type ApprovalRequest } from './approvalPolicies';
+import { approvalCollections, authorizeOperationApprovals, createApprovalRequest, createOperationApprovalRequests, remapApprovalData, reviewApprovalRequest, saveApprovalPolicy, validateApprovalData, type ApprovableAction, type ApprovalPolicy, type ApprovalRequest, type ApprovalRequirement } from './approvalPolicies';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
 export interface OperationResult { result: Document; changes: Change[]; }
 const actions: Record<string, ActionType> = {
-  'approvalPolicy.create':'approvals:manage','approvalPolicy.update':'approvals:manage','approvalRequest.create':'approvals:request','approvalRequest.approve':'approvals:review','approvalRequest.reject':'approvals:review',
+  'approvalPolicy.create':'approvals:manage','approvalPolicy.update':'approvals:manage','approvalRequest.create':'approvals:request','approvalRequest.createForOperation':'approvals:request','approvalRequest.approve':'approvals:review','approvalRequest.reject':'approvals:review',
   'budget.create':'budget:manage','budget.update':'budget:manage','cashForecastSchedule.create':'budget:manage','cashForecastSchedule.update':'budget:manage',
   'dimension.create':'dimensions:manage','dimension.update':'dimensions:manage',
   'taxConfiguration.create':'tax:manage','taxConfiguration.update':'tax:manage',
@@ -330,7 +330,7 @@ export class Operations {
           await this.verifyCostingSecurity(); securityChecked = true;
         }
       };
-      if (org.accounting_version === 2 || ['approvalPolicy.create','approvalPolicy.update','approvalRequest.create','approvalRequest.approve','approvalRequest.reject','budget.create','budget.update','cashForecastSchedule.create','cashForecastSchedule.update','dimension.create','dimension.update','taxConfiguration.create','taxConfiguration.update','fixedAsset.register','fixedAsset.depreciate','fxRevaluation.create','ownerEquity.create', ...openingActions, 'accounting.activate', 'product.cost.establish', 'inventory.receive', 'purchase.create', 'supplierPayment.create', 'cashTransfer.create', 'bankReconciliation.create', 'cashCount.create', 'creditNote.create', 'customerRefund.create', 'purchaseReturn.create', 'supplierRefund.create'].includes(command.action)) await requireCostAuthority();
+      if (org.accounting_version === 2 || ['approvalPolicy.create','approvalPolicy.update','approvalRequest.create','approvalRequest.createForOperation','approvalRequest.approve','approvalRequest.reject','budget.create','budget.update','cashForecastSchedule.create','cashForecastSchedule.update','dimension.create','dimension.update','taxConfiguration.create','taxConfiguration.update','fixedAsset.register','fixedAsset.depreciate','fxRevaluation.create','ownerEquity.create', ...openingActions, 'accounting.activate', 'product.cost.establish', 'inventory.receive', 'purchase.create', 'supplierPayment.create', 'cashTransfer.create', 'bankReconciliation.create', 'cashCount.create', 'creditNote.create', 'customerRefund.create', 'purchaseReturn.create', 'supplierRefund.create'].includes(command.action)) await requireCostAuthority();
       if (['bankReconciliation.create', 'cashCount.create'].includes(command.action)) {
         const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
         assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
@@ -410,7 +410,7 @@ export class Operations {
       const isPlanning=['budget.create','budget.update','cashForecastSchedule.create','cashForecastSchedule.update'].includes(command.action);
       if(isPlanning){const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');ensure(org.accounting_version===2,'التخطيط المالي يتطلب محاسبة V2.',409);}
       const isApprovalPolicy=command.action==='approvalPolicy.create'||command.action==='approvalPolicy.update';
-      const isApprovalRequest=command.action==='approvalRequest.create'||command.action==='approvalRequest.approve'||command.action==='approvalRequest.reject';
+      const isApprovalRequest=command.action==='approvalRequest.create'||command.action==='approvalRequest.createForOperation'||command.action==='approvalRequest.approve'||command.action==='approvalRequest.reject';
       if(isApprovalPolicy||isApprovalRequest){const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');ensure(org.accounting_version===2,'الموافقات المالية تتطلب محاسبة V2.',409);}
       if(isApprovalPolicy){ensure(role==='Owner','إدارة سياسة الموافقات متاحة للمالك فقط.',403);assertRecentOwner(role,actor.authTime,now,'تعديل سياسة الموافقات');text(command.data.reason,1000,true);}
       const isTaxConfiguration=command.action==='taxConfiguration.create'||command.action==='taxConfiguration.update';
@@ -422,7 +422,15 @@ export class Operations {
         if(command.action.startsWith('period.')) {const current=periods.find(row=>row.id===command.data.id);ensure(current && current.revision===previous.response.result.revision && current.status===previous.response.result.status,'الفترة تغيرت بعد العملية المحفوظة؛ حدث الحالة.',409);}
         if(isPlanning){const saved=previous.response?.result,collection=command.action.startsWith('budget.')?'budgets':'cash_forecast_schedules',current=saved&&await tx.get(`${root}/${collection}/${saved.id}`);ensure(current&&saved&&current.revision===saved.revision&&current.operation_id===command.operationId,'سجل التخطيط تغير بعد العملية المحفوظة؛ حدّث البيانات بدلاً من إعادة نتيجة قديمة.',409);}
         if(isApprovalPolicy){const saved=previous.response?.result,current=saved&&await tx.get(`${root}/approval_policies/${saved.id}`),version=saved&&await tx.get(`${root}/approval_policy_versions/${saved.id}-r${saved.revision}`);ensure(current&&saved&&current.revision===saved.revision&&current.operation_id===command.operationId&&version?.version_hash===saved.version_hash,'سياسة الموافقات تغيرت بعد العملية المحفوظة؛ حدّث البيانات.',409);}
-        if(isApprovalRequest){const saved=previous.response?.result,current=saved&&await tx.get(`${root}/approval_requests/${saved.id}`);ensure(current&&saved&&current.revision===saved.revision&&(command.action==='approvalRequest.create'?current.request_hash===saved.request_hash:current.review_hash===saved.review_hash),'طلب الموافقة تغير بعد العملية المحفوظة؛ حدّث البيانات.',409);}
+        if(isApprovalRequest){
+          const saved=previous.response?.result;
+          if(command.action==='approvalRequest.createForOperation'){
+            ensure(Array.isArray(saved?.requests)&&saved.requests.length>0,'نتيجة طلب موافقات العملية المحفوظة غير صالحة.',409);
+            for(const request of saved.requests){const current=await tx.get(`${root}/approval_requests/${request.id}`);ensure(current&&current.revision===request.revision&&current.request_hash===request.request_hash&&!current.consumed_at,'تغير طلب موافقة العملية أو استُهلك؛ حدّث الحالة.',409);}
+          }else{
+            const current=saved&&await tx.get(`${root}/approval_requests/${saved.id}`);ensure(current&&saved&&current.revision===saved.revision&&(command.action==='approvalRequest.create'?current.request_hash===saved.request_hash:current.review_hash===saved.review_hash)&&!current.consumed_at,'طلب الموافقة تغير أو استُهلك بعد العملية المحفوظة؛ حدّث البيانات.',409);
+          }
+        }
         if(isTaxConfiguration) {const current=await tx.get(`${root}/tax_configurations/${identifier(command.data.id)}`),saved=previous.response?.result;ensure(current && saved && current.revision===saved.revision && current.operation_id===command.operationId,'إعداد الضريبة تغير بعد العملية المحفوظة؛ حدّث البيانات بدلاً من إعادة نتيجة قديمة.',409);const version=await tx.get(`${root}/tax_configuration_versions/${saved.id}-r${saved.revision}`);ensure(version && version.operation_id===command.operationId,'دليل إصدار العملية المحفوظة لم يعد مطابقاً.',409);}
         if(isOpening || isEquity || isFx || isFixed) {
           const current=await tx.get(`${root}/meta/counters`),saved=previous.response?.changes?.find((row:Change)=>row.path===`${root}/meta/counters`)?.value;
@@ -465,6 +473,54 @@ export class Operations {
       const required = async (collection: string, id: string) => {
         const record = await tx.get(`${root}/${collection}/${identifier(id)}`);
         ensure(record, 'السجل المطلوب غير موجود.', 404); beforeValues.set(`${root}/${collection}/${id}`, record); return record;
+      };
+      const deriveApprovalRequirements = async (action: ApprovableAction, target: Document): Promise<ApprovalRequirement[]> => {
+        const requirements: ApprovalRequirement[] = [];
+        if (action === 'invoice.create') {
+          const customer = await required('customers', target.customer_id) as Customer;
+          const baseFinancials = invoiceFinancials(target, settings);
+          let financials = baseFinancials;
+          if (target.tax_configuration_id !== undefined || target.expected_tax_configuration_revision !== undefined) {
+            ensure(target.tax_configuration_id && target.expected_tax_configuration_revision, 'معرف وإصدار إعداد الضريبة مطلوبان معاً.');
+            const current = await required('tax_configurations', target.tax_configuration_id);
+            await validateTaxConfigurationVersions(tx, root, orgId, current);
+            const configuration = pick(current, ['schema_version','id','org_id','revision','name','jurisdiction','direction','rate','calculation','rounding','recoverable','tax_account_code','effective_from','effective_to','active']);
+            const quote = salesTaxSourceQuote({configuration_id:target.tax_configuration_id,expected_configuration_revision:target.expected_tax_configuration_revision,issue_date:target.issue_date,currency_mode:target.currency_mode,exchange_rate_used:target.exchange_rate_used||0,discount_type:target.discount_type,discount_value:target.discount_value||0,items:target.items}, {org_id:orgId,configurations:[configuration as any],accounts:await tx.list(`${root}/accounts`) as Account[]}, settings);
+            financials = {...baseFinancials,
+              subtotal_sdg:safeAdd(quote.sdg.base,baseFinancials.discount_total_sdg,0),subtotal_usd:safeAdd(quote.usd.base,baseFinancials.discount_total_usd,2),
+              tax_total_sdg:quote.sdg.tax,tax_total_usd:quote.usd.tax,grand_total_sdg:quote.sdg.total,grand_total_usd:quote.usd.total,
+              remaining_sdg:quote.sdg.total,remaining_usd:quote.usd.total};
+          }
+          const lineDiscount = Math.max(0, ...financials.items.map(item => item.discount_percent || 0));
+          const globalDiscount = target.discount_type === 'percent'
+            ? Number(target.discount_value || 0)
+            : Math.max(
+              financials.subtotal_sdg > 0 ? new BigNumber(financials.discount_total_sdg).times(100).dividedBy(financials.subtotal_sdg).decimalPlaces(4).toNumber() : 0,
+              financials.subtotal_usd > 0 ? new BigNumber(financials.discount_total_usd).times(100).dividedBy(financials.subtotal_usd).decimalPlaces(4).toNumber() : 0,
+            );
+          const discount = Math.max(lineDiscount, globalDiscount);
+          if (discount > 0) requirements.push({ kind: 'discount', discount_percent: discount, amount_sdg: 0, amount_usd: 0, overage_sdg: 0, overage_usd: 0 });
+          const overageSdg = typeof customer.credit_limit_sdg === 'number' ? Math.max(0, safeSub(safeAdd(customer.balance_sdg || 0, financials.remaining_sdg, 0), customer.credit_limit_sdg, 0)) : 0;
+          const overageUsd = typeof customer.credit_limit_usd === 'number' ? Math.max(0, safeSub(safeAdd(customer.balance_usd || 0, financials.remaining_usd, 2), customer.credit_limit_usd, 2)) : 0;
+          if (overageSdg > 0 || overageUsd > 0) requirements.push({ kind: 'credit_limit', discount_percent: 0, amount_sdg: 0, amount_usd: 0, overage_sdg: overageSdg, overage_usd: overageUsd });
+        } else if (action === 'expense.create') {
+          ensure(['SDG', 'USD'].includes(target.currency), 'عملة المصروف غير مدعومة.');
+          const amount = money(target.amount, target.currency === 'USD' ? 2 : 0, true), rate = Number(target.exchange_rate_used || 0);
+          ensure(target.currency === 'SDG' || rate > 0, 'المصروف بالدولار يتطلب سعر صرف موجباً.');
+          requirements.push({ kind: 'expense', discount_percent: 0, amount_sdg: target.currency === 'SDG' ? amount : safeMul(amount, rate, 0), amount_usd: target.currency === 'USD' ? amount : rate > 0 ? safeDiv(amount, rate, 2) : 0, overage_sdg: 0, overage_usd: 0 });
+        } else {
+          const account = await required('financial_accounts', target.financial_account_id);
+          ensure(['SDG', 'USD'].includes(account.currency), 'عملة حساب الرد غير صالحة.');
+          const amount = money(target.amount, account.currency === 'USD' ? 2 : 0, true), rate = Number(target.exchange_rate_used || 0);
+          ensure(account.currency === 'SDG' || rate > 0, 'الرد بالدولار يتطلب سعر صرف موجباً.');
+          requirements.push({ kind: 'refund', discount_percent: 0, amount_sdg: account.currency === 'SDG' ? amount : safeMul(amount, rate, 0), amount_usd: account.currency === 'USD' ? amount : rate > 0 ? safeDiv(amount, rate, 2) : 0, overage_sdg: 0, overage_usd: 0 });
+        }
+        return requirements;
+      };
+      const authorizeApproval = async (action: ApprovableAction, target: Document, operationId: string) => {
+        const authorized = await authorizeOperationApprovals(tx, root, orgId, actor.uid, role, iso, action, operationId, target, await deriveApprovalRequirements(action, target));
+        for (const update of authorized.updates) { beforeValues.set(update.path, update.before); set(update.path, update.result); }
+        return authorized.evidence;
       };
       const post = async (entry: JournalEntry) => {
         guardPeriod(entry.date);
@@ -512,6 +568,16 @@ export class Operations {
           const requestData={...data,id:data.id||`approval-${command.operationId}`};
           const proposed=await createApprovalRequest(tx,root,orgId,actor.uid,role,iso,command.operationId,requestData);
           set(proposed.path,proposed.result);counters.approval_request_count=(await tx.list(`${root}/approval_requests`)).filter(row=>row.id!==proposed.result.id).length+1;result=proposed.result;break;
+        }
+        case 'approvalRequest.createForOperation': {
+          ensure(['invoice.create','expense.create','customerRefund.create'].includes(data.target_action), 'العملية المطلوبة لا تدعم مسار الموافقات.');
+          const targetAction=data.target_action as ApprovableAction;
+          ensure(hasPermission(role,actions[targetAction]),'ليست لديك صلاحية تنفيذ العملية المطلوب اعتمادها.',403);
+          ensure(data.command_data && typeof data.command_data==='object' && !Array.isArray(data.command_data) && data.command_data.approval_request_ids===undefined,'بيانات العملية المطلوب اعتمادها غير صالحة.');
+          const proposed=await createOperationApprovalRequests(tx,root,orgId,actor.uid,role,iso,command.operationId,data,await deriveApprovalRequirements(targetAction,data.command_data));
+          for(const request of proposed.requests)set(`${root}/approval_requests/${request.id}`,request);
+          counters.approval_request_count=(await tx.list(`${root}/approval_requests`)).filter(row=>!proposed.requests.some(request=>request.id===row.id)).length+proposed.requests.length;
+          result={requests:proposed.requests,target_action:proposed.target_action,target_operation_id:proposed.target_operation_id,command_hash:proposed.command_hash};break;
         }
         case 'approvalRequest.approve': case 'approvalRequest.reject': {
           const proposed=await reviewApprovalRequest(tx,root,orgId,actor.uid,role,iso,command.operationId,{...data,decision:command.action.endsWith('approve')?'approved':'rejected'});
@@ -583,7 +649,9 @@ export class Operations {
           result = await purchaseCorrectionCommand(command.action,data,{tx,root,orgId,actor:actor.uid,iso,operationId:command.operationId,settings,set,required,post,counterAdd}); break;
         }
         case 'creditNote.create': case 'customerRefund.create': {
-          result = await salesCorrectionCommand(command.action, data, { tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
+          ensure(data.approval_evidence===undefined,'دليل الموافقة يولده الخادم فقط.');
+          const approvalEvidence=command.action==='customerRefund.create'?await authorizeApproval('customerRefund.create',data,command.operationId):[];
+          result = await salesCorrectionCommand(command.action, approvalEvidence.length?{...data,approval_evidence:approvalEvidence}:data, { tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
         }
         case 'bankReconciliation.create': case 'cashCount.create': {
           const source = await required('financial_accounts', data.financial_account_id); if (source.currency === 'USD') assertFeature(subscription, 'multi_currency');
@@ -614,10 +682,13 @@ export class Operations {
           ensure(input && typeof input === 'object', 'بيانات العميل غير صالحة.');
           ensure(!['balance_sdg', 'balance_usd'].some(k => input[k] !== undefined && input[k] !== (old[k] || 0)), 'أرصدة العملاء تتغير بالسندات والقيود فقط.');
           if (!updating) { const count = (await tx.list(`${root}/customers`)).length; ensure(count < plan.max_customers, 'تم بلوغ حد العملاء في الباقة.'); counters.customer_count = count; counterAdd('customer_count', 1); }
-          result = { ...old, ...pick(input, ['name', 'phone', 'email', 'address', 'preferred_currency', 'notes']), ...(!updating ? stamp : {}), id, balance_sdg: old.balance_sdg || 0, balance_usd: old.balance_usd || 0, updated_at: iso };
+          result = { ...old, ...pick(input, ['name', 'phone', 'email', 'address', 'preferred_currency', 'payment_terms_days', 'credit_limit_sdg', 'credit_limit_usd', 'notes']), ...(!updating ? stamp : {}), id, balance_sdg: old.balance_sdg || 0, balance_usd: old.balance_usd || 0, updated_at: iso };
           result.phone ??= ''; result.preferred_currency ??= 'SDG';
           text(result.name, 200, true); text(result.phone ?? '', 100);
           ensure(['SDG', 'USD'].includes(result.preferred_currency || 'SDG'), 'عملة العميل غير مدعومة.');
+          ensure(result.payment_terms_days===undefined||result.payment_terms_days===null||Number.isSafeInteger(result.payment_terms_days)&&result.payment_terms_days>=0&&result.payment_terms_days<=3650,'شروط سداد العميل يجب أن تكون عدداً صحيحاً بين صفر و3650 يوماً.');
+          if(result.credit_limit_sdg!==undefined&&result.credit_limit_sdg!==null)money(result.credit_limit_sdg,0);
+          if(result.credit_limit_usd!==undefined&&result.credit_limit_usd!==null)money(result.credit_limit_usd,2);
           set(`${root}/customers/${id}`, result); break;
         }
         case 'customer.delete': {
@@ -732,6 +803,13 @@ export class Operations {
             subtotal_sdg:safeAdd(taxEvidence.sdg.base,baseFinancials.discount_total_sdg,0),subtotal_usd:safeAdd(taxEvidence.usd.base,baseFinancials.discount_total_usd,2),
             tax_total_sdg:taxEvidence.sdg.tax,tax_total_usd:taxEvidence.usd.tax,grand_total_sdg:taxEvidence.sdg.total,grand_total_usd:taxEvidence.usd.total,
             remaining_sdg:taxEvidence.sdg.total,remaining_usd:taxEvidence.usd.total} : baseFinancials;
+          const approvalEvidence=await authorizeApproval('invoice.create',data,command.operationId);
+          let dueDate=data.due_date;
+          if(Number.isSafeInteger(customer.payment_terms_days)){
+            const issue=dateOnly(data.issue_date),expected=new Date(`${issue}T00:00:00.000Z`);expected.setUTCDate(expected.getUTCDate()+customer.payment_terms_days);
+            const contractual=expected.toISOString().slice(0,10);
+            ensure(!dueDate||dateOnly(dueDate)===contractual,'تاريخ الاستحقاق يجب أن يطابق شروط سداد العميل.',409);dueDate=contractual;
+          }
           const month = monthKey(now, settings.timezone || 'Africa/Khartoum');
           // Legacy counters are repaired from authoritative documents inside the same transaction.
           const existing = counters.invoice_month === month ? undefined : await tx.list(`${root}/invoices`);
@@ -749,7 +827,7 @@ export class Operations {
           ensure(Number.isSafeInteger(number) && number <= 999999999, 'تسلسل الفواتير يحتاج مراجعة.');
           const id = `inv-${command.operationId}`;
           const dimensions=dimensionTags(data);
-          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...dimensions, ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
+          const invoice: Invoice = { ...pick(data, ['issue_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...(dueDate?{due_date:dueDate}:{}), ...(Number.isSafeInteger(customer.payment_terms_days)?{payment_terms_days:customer.payment_terms_days}:{}), ...(approvalEvidence.length?{approval_evidence:approvalEvidence}:{}), ...dimensions, ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
           invoice.receivable_currency = receivableCurrency(invoice);
           let cogsSdg = 0, cogsUsd = 0;
           for (const item of invoice.items) item.cost_status = item.product_id ? 'unknown' : 'not_tracked';
@@ -829,6 +907,7 @@ export class Operations {
           ensure(data.updates && typeof data.updates === 'object' && !Array.isArray(data.updates), 'بيانات التعديل غير صالحة.');
           ensure(Object.keys(data.updates || {}).every(k => ['notes', 'payment_instructions', 'due_date'].includes(k)), 'الفاتورة المُرحّلة ثابتة. التعديل متاح للملاحظات والاستحقاق فقط.');
           if (data.updates.due_date) ensure(dateOnly(data.updates.due_date) >= dateOnly(invoice.issue_date), 'تاريخ الاستحقاق غير صالح.');
+          if(Number.isSafeInteger(invoice.payment_terms_days)&&data.updates.due_date){const expected=new Date(`${dateOnly(invoice.issue_date)}T00:00:00.000Z`);expected.setUTCDate(expected.getUTCDate()+invoice.payment_terms_days);ensure(dateOnly(data.updates.due_date)===expected.toISOString().slice(0,10),'لا يمكن تجاوز شروط السداد المجمدة على الفاتورة.',409);}
           result = { ...invoice, ...data.updates, updated_at: iso }; set(`${root}/invoices/${data.id}`, result); break;
         }
         case 'invoice.void': {
@@ -868,7 +947,8 @@ export class Operations {
           const method = data.payment_method || 'cash';
           ensure(['cash', 'bankak', 'fawry', 'bank_transfer', 'other', 'on_credit', 'custom'].includes(method), 'طريقة سداد المصروف غير صالحة.');
           ensure(method !== 'custom' || data.payment_account_code, 'اختر حساب السداد المخصص.');
-          result = { ...pick(data, ['title', 'category', 'amount', 'currency', 'exchange_rate_used', 'date', 'notes', 'receipt_image', 'payment_account_code', 'expense_account_code', 'branch_id', 'cost_center_id', 'project_id']), payment_method: method, ...stamp, id: `exp-${command.operationId}` };
+          const approvalEvidence=await authorizeApproval('expense.create',data,command.operationId);
+          result = { ...pick(data, ['title', 'category', 'amount', 'currency', 'exchange_rate_used', 'date', 'notes', 'receipt_image', 'payment_account_code', 'expense_account_code', 'branch_id', 'cost_center_id', 'project_id']), ...(approvalEvidence.length?{approval_evidence:approvalEvidence}:{}), payment_method: method, ...stamp, id: `exp-${command.operationId}`, operation_id:command.operationId };
           if (org.accounting_version === 2 && method === 'on_credit' && (!result.payment_account_code || result.payment_account_code === '2110')) result.payment_account_code = '2140';
           const entry = generateExpenseJournalEntry(result as any, orgId, actor.uid);
           for (const [index, line] of entry.lines.entries()) {
@@ -990,7 +1070,7 @@ export class Operations {
           ensure(!(approvalCollections.some(name=>backup.collections[name].length) || managementPlanningCollections.some(name=>backup.collections[name].length) || backup.collections.fixed_assets.length || backup.collections.accounting_periods.length || backup.collections.purchase_bills.length || backup.collections.supplier_payments.length || backup.collections.internal_transfers.length || backup.collections.bank_reconciliations.length || backup.collections.cash_reconciliations.length || backup.collections.credit_notes.length || backup.collections.customer_refunds.length || backup.collections.purchase_returns.length || backup.collections.supplier_refunds.length || backup.collections.fx_revaluations.length || (backup.collections.owner_equity_events.length || openingCollections.some(name=>backup.collections[name].length))) || backupVersion === 2, 'دفاتر الموردين وإعادة التقييم والأصول والموافقات تتطلب نسخة محاسبة V2.');
           if (backupVersion === 2 || backup.collections.products.some((p: Document) => p.cost_status === 'valued')) await requireCostAuthority();
           ensure(org.accounting_version !== 2 || backupVersion === 2, 'استعادة نسخة قديمة تحتاج ترحيلاً موثقاً قبل مؤسسة V2.');
-          for (const customer of backup.collections.customers) { text(customer.name, 200, true); text(customer.phone, 100); ensure(typeof customer.balance_sdg === 'number' && typeof customer.balance_usd === 'number', 'رصيد العميل في النسخة يجب أن يكون رقماً.'); money(Math.abs(customer.balance_sdg), 0); money(Math.abs(customer.balance_usd), 2); }
+          for (const customer of backup.collections.customers) { text(customer.name, 200, true); text(customer.phone, 100); ensure(typeof customer.balance_sdg === 'number' && typeof customer.balance_usd === 'number', 'رصيد العميل في النسخة يجب أن يكون رقماً.'); money(Math.abs(customer.balance_sdg), 0); money(Math.abs(customer.balance_usd), 2); ensure(customer.payment_terms_days===undefined||customer.payment_terms_days===null||Number.isSafeInteger(customer.payment_terms_days)&&customer.payment_terms_days>=0&&customer.payment_terms_days<=3650,'شروط سداد العميل في النسخة غير صالحة.'); if(customer.credit_limit_sdg!==undefined&&customer.credit_limit_sdg!==null)money(customer.credit_limit_sdg,0);if(customer.credit_limit_usd!==undefined&&customer.credit_limit_usd!==null)money(customer.credit_limit_usd,2); }
           for (const product of backup.collections.products) { text(product.name, 200, true); text(product.unit, 50, true); money(product.price_sdg, 0); money(product.price_usd, 2); money(product.stock_quantity ?? 0, 6); ensure(typeof product.is_active === 'boolean', 'حالة المنتج غير صالحة.'); }
           for (const invoice of backup.collections.invoices) { ensure(['sent', 'paid', 'partially_paid', 'overdue', 'void'].includes(invoice.status), 'حالة الفاتورة غير قابلة للاستعادة.'); dateOnly(invoice.created_at); }
           for (const payment of backup.collections.payments) ensure(['SDG', 'USD'].includes(payment.currency) && ['cash', 'bankak', 'fawry', 'bank_transfer', 'other'].includes(payment.payment_method), 'سند النسخة غير صالح.');
@@ -1018,6 +1098,7 @@ export class Operations {
       }
       counters.updated_at = iso; counters.revision = (counters.revision || 0) + 1; set(`${root}/meta/counters`, counters);
       const auditKeys = ['input','policy_id','policy_revision','policy_version_id','policy_version_hash','discount','expense','refund','credit_limit','subject_type','subject_id','discount_percent','overage_sdg','overage_usd','payload','required_role','requested_by','requested_role','requested_at','request_hash','reviewed_by','reviewer_role','reviewed_at','review_reason','review_hash','quote','source_balance','prior_journal_ids','last_owner_equity_event_id','batch_id','lot_id','journal_id','line_index','party_id','native_amount','last_opening_batch_id','last_opening_settlement_id','start_date','end_date','revision','previous_status','reopened_by','reopened_at','reopen_reason','changed_by','changed_at','close_evidence','adjusting','adjustment_reason','period_id','invoice_id', 'lines', 'native_currency', 'source_sequence', 'correction_count', 'credit_sdg', 'credit_usd', 'restored_cost_sdg', 'restored_cost_usd', 'credited_amount_sdg', 'credited_amount_usd', 'refunded_amount_sdg', 'refunded_amount_usd', 'credit_balance_sdg', 'credit_balance_usd', 'receivable_due_sdg', 'receivable_due_usd', 'available_credit_sdg', 'available_credit_usd', 'financial_account_id', 'ledger_snapshot', 'statement_opening', 'statement_closing', 'statement_lines', 'matches', 'actual_count', 'difference', 'opening_difference', 'difference_reason', 'reconciliation_sequence', 'last_reconciliation_id', 'account_code', 'kind', 'from_id', 'to_id', 'from_account_code', 'to_account_code', 'amount_sdg', 'amount_usd', 'cadence', 'active', 'source_balance_sdg', 'source_balance_usd', 'revision', 'last_transfer_id', 'date', 'reason', 'id', 'code', 'name', 'type', 'nature', 'reporting_group', 'cash_flow_category', 'normal_balance', 'supplier_id', 'bill_id', 'supplier_reference', 'due_date', 'reference_number', 'payment_terms_days', 'credit_limit', 'default_currency', 'phone', 'email', 'address', 'tax_number', 'notes', 'sequence', 'payment_sequence', 'settled_amount_sdg', 'settled_amount_usd', 'cash_amount_sdg', 'cash_amount_usd', 'stock_quantity', ...costFields, 'status', 'accounting_version', 'grand_total_sdg', 'grand_total_usd', 'remaining_sdg', 'remaining_usd', 'paid_amount_sdg', 'paid_amount_usd', 'amount', 'currency', 'payment_account_code', 'expense_account_code', 'cogs_sdg', 'cogs_usd', 'balance_sdg', 'balance_usd'];
+      auditKeys.push('consumed_by','consumed_at','consumed_action','consumed_operation_id','consumption_hash','approval_evidence');
       const taxAuditKeys=['id','configuration_id','revision','name','jurisdiction','direction','rate','calculation','rounding','recoverable','tax_account_code','effective_from','effective_to','active','reason','operation_id'];
       const auditFields=isTaxConfiguration?[...auditKeys,...taxAuditKeys]:auditKeys;
       const previousState = Object.fromEntries(changes.filter(change => beforeValues.has(change.path)).map(change => [change.path, pick(beforeValues.get(change.path)!, auditFields)]));

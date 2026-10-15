@@ -254,6 +254,9 @@ export interface Customer {
   preferred_currency: Currency;
   balance_sdg: number;
   balance_usd: number;
+  payment_terms_days?: number | null;
+  credit_limit_sdg?: number | null;
+  credit_limit_usd?: number | null;
   notes?: string;
   created_at: string;
   updated_at: string;

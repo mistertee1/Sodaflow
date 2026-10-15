@@ -5,6 +5,16 @@ import { ensure, identifier, money, text } from './validation';
 export const approvalCollections = ['approval_policies', 'approval_policy_versions', 'approval_requests'] as const;
 export type ApprovalKind = 'discount' | 'expense' | 'refund' | 'credit_limit';
 export type ApprovalRequiredRole = 'Sales' | 'Accountant' | 'Admin' | 'Owner';
+export type ApprovableAction = 'invoice.create' | 'expense.create' | 'customerRefund.create';
+
+export interface ApprovalRequirement {
+  kind: ApprovalKind;
+  discount_percent: number;
+  amount_sdg: number;
+  amount_usd: number;
+  overage_sdg: number;
+  overage_usd: number;
+}
 
 export interface ApprovalMoneyThresholds {
   accountant_max_sdg: number;
@@ -67,6 +77,11 @@ export interface ApprovalRequest {
   review_reason?: string;
   review_operation_id?: string;
   review_hash?: string;
+  consumed_by?: string;
+  consumed_at?: string;
+  consumed_action?: ApprovableAction;
+  consumed_operation_id?: string;
+  consumption_hash?: string;
 }
 
 const stable = (value: unknown): string => Array.isArray(value)
@@ -271,6 +286,140 @@ export function canApprove(role: OrgRole, required: ApprovalRequiredRole) {
   return role === 'Owner' || role === 'Admin' && required !== 'Owner' || role === 'Accountant' && required === 'Accountant' || role === 'Sales' && required === 'Sales';
 }
 
+const approvableAction = (value: unknown): ApprovableAction => {
+  ensure(['invoice.create', 'expense.create', 'customerRefund.create'].includes(String(value)), 'العملية المطلوبة لا تدعم مسار الموافقات.');
+  return value as ApprovableAction;
+};
+
+const commandDataWithoutApproval = (data: Document) => Object.fromEntries(
+  Object.entries(data).filter(([key]) => key !== 'approval_request_ids'),
+);
+
+export const approvalCommandHash = (action: ApprovableAction, operationId: string, data: Document) => sha256({
+  action: approvableAction(action),
+  operation_id: identifier(operationId),
+  data: commandDataWithoutApproval(data),
+});
+
+const requirementInput = (requirement: ApprovalRequirement) => ({
+  kind: requirement.kind,
+  discount_percent: requirement.discount_percent,
+  amount_sdg: requirement.amount_sdg,
+  amount_usd: requirement.amount_usd,
+  overage_sdg: requirement.overage_sdg,
+  overage_usd: requirement.overage_usd,
+});
+
+const validateRequirement = (value: ApprovalRequirement) => {
+  ensure(['discount', 'expense', 'refund', 'credit_limit'].includes(value.kind), 'متطلب الموافقة غير صالح.');
+  const parsed = parseRequestInput({
+    id: 'requirement', policy_id: 'policy', subject_type: 'operation', subject_id: 'operation', reason: 'requirement', payload: {}, ...value,
+  });
+  return requirementInput(parsed);
+};
+
+export async function createOperationApprovalRequests(
+  tx: Transaction,
+  root: string,
+  orgId: string,
+  actor: string,
+  role: OrgRole,
+  now: string,
+  operationId: string,
+  data: Document,
+  requirements: ApprovalRequirement[],
+) {
+  allowed(data, ['policy_id', 'target_action', 'target_operation_id', 'reason', 'command_data'], 'طلب موافقة العملية');
+  const policyId = identifier(data.policy_id), targetAction = approvableAction(data.target_action), targetOperationId = identifier(data.target_operation_id);
+  ensure(data.command_data && typeof data.command_data === 'object' && !Array.isArray(data.command_data), 'بيانات العملية المطلوب اعتمادها غير صالحة.');
+  const reason = text(data.reason, 1000, true), commandHash = await approvalCommandHash(targetAction, targetOperationId, data.command_data);
+  const unique = new Map<ApprovalKind, ApprovalRequirement>();
+  for (const requirement of requirements.map(validateRequirement)) {
+    ensure(!unique.has(requirement.kind), 'تكرر نوع متطلب الموافقة للعملية نفسها.'); unique.set(requirement.kind, requirement);
+  }
+  ensure(unique.size > 0, 'العملية لا تتطلب موافقة وفق القيم الحالية.', 409);
+  const requests: ApprovalRequest[] = [];
+  for (const requirement of unique.values()) {
+    const proposed = await createApprovalRequest(tx, root, orgId, actor, role, now, operationId, {
+      id: `approval-${targetOperationId}-${requirement.kind}`,
+      policy_id: policyId,
+      subject_type: targetAction.replace('.', '_'),
+      subject_id: targetOperationId,
+      reason,
+      ...requirement,
+      payload: { target_action: targetAction, target_operation_id: targetOperationId, command_hash: commandHash },
+    });
+    requests.push(proposed.result);
+  }
+  return { requests, paths: requests.map(request => `${root}/approval_requests/${request.id}`), target_action: targetAction, target_operation_id: targetOperationId, command_hash: commandHash };
+}
+
+const consumptionHash = (request: ApprovalRequest) => sha256({
+  request_hash: request.request_hash,
+  review_hash: request.review_hash,
+  consumed_by: request.consumed_by,
+  consumed_at: request.consumed_at,
+  consumed_action: request.consumed_action,
+  consumed_operation_id: request.consumed_operation_id,
+});
+
+export async function authorizeOperationApprovals(
+  tx: Transaction,
+  root: string,
+  orgId: string,
+  actor: string,
+  role: OrgRole,
+  now: string,
+  action: ApprovableAction,
+  operationId: string,
+  data: Document,
+  requirements: ApprovalRequirement[],
+) {
+  const parsed = requirements.map(validateRequirement), ids = data.approval_request_ids ?? [];
+  ensure(Array.isArray(ids) && ids.length <= 4 && ids.every(id => typeof id === 'string'), 'معرّفات الموافقات غير صالحة.');
+  ensure(new Set(ids).size === ids.length, 'معرّفات الموافقات مكررة.');
+  const commandHash = await approvalCommandHash(action, operationId, data);
+  const supplied = new Map<string, ApprovalRequest>();
+  for (const raw of ids) {
+    const id = identifier(raw), request = await tx.get(`${root}/approval_requests/${id}`) as ApprovalRequest | undefined;
+    ensure(request && request.org_id === orgId, 'طلب الموافقة المرفق غير موجود.', 404); supplied.set(id, request);
+  }
+  const activePolicies = (await tx.list(`${root}/approval_policies`) as ApprovalPolicy[]).filter(policy => policy.active);
+  ensure(activePolicies.length <= 1, 'توجد أكثر من سياسة موافقات نشطة.', 409);
+  const activePolicy = activePolicies[0];
+  let activeVersion: ApprovalPolicyVersion | undefined;
+  if (activePolicy) {
+    ensure(activePolicy.org_id === orgId && activePolicy.version_hash === await approvalPolicyHash(activePolicy), 'بصمة سياسة الموافقات النشطة غير مطابقة.', 409);
+    activeVersion = await tx.get(`${root}/approval_policy_versions/${activePolicy.id}-r${activePolicy.revision}`) as ApprovalPolicyVersion | undefined;
+    ensure(activeVersion && activeVersion.org_id === orgId && activeVersion.configuration_id === activePolicy.id && activeVersion.version_hash === activePolicy.version_hash && await approvalPolicyHash(activeVersion) === activeVersion.version_hash, 'الإصدار النشط لسياسة الموافقات غير مطابق.', 409);
+  }
+  const used = new Set<string>(), updates: { path: string; before: ApprovalRequest; result: ApprovalRequest }[] = [], evidence: Document[] = [];
+  for (const requirement of parsed) {
+    let matched: ApprovalRequest | undefined;
+    for (const [id, request] of supplied) {
+      if (used.has(id) || request.kind !== requirement.kind) continue;
+      const payload = request.payload || {};
+      if (request.requested_by === actor && request.subject_id === operationId && payload.target_action === action && payload.target_operation_id === operationId && payload.command_hash === commandHash && stable(requirementInput(request)) === stable(requirement)) { matched = request; used.add(id); break; }
+    }
+    if (!matched) {
+      if (!activeVersion || canApprove(role, requiredApprovalRole(activeVersion, requirement))) continue;
+      ensure(false, `العملية تتطلب موافقة ${requirement.kind} معتمدة ومطابقة.`, 409);
+    }
+    ensure(matched.status === 'approved' && !matched.consumed_at && matched.revision === 2, 'طلب الموافقة غير معتمد أو استُهلك مسبقاً.', 409);
+    ensure(matched.request_hash === await approvalRequestHash(matched), 'بصمة طلب الموافقة المرفق غير مطابقة.', 409);
+    const version = await tx.get(`${root}/approval_policy_versions/${matched.policy_version_id}`) as ApprovalPolicyVersion | undefined;
+    ensure(version && version.org_id === orgId && version.version_hash === matched.policy_version_hash && await approvalPolicyHash(version) === version.version_hash, 'إصدار سياسة الموافقة المرفقة غير مطابق.', 409);
+    ensure(matched.required_role === requiredApprovalRole(version, requirement), 'دور الموافقة المرفقة لا يطابق العملية الحالية.', 409);
+    ensure(matched.review_hash === await reviewHash(matched) && matched.reviewed_by && matched.reviewed_by !== actor, 'قرار الموافقة المرفق غير صالح أو يخرق فصل المهام.', 409);
+    const result: ApprovalRequest = { ...matched, consumed_by: actor, consumed_at: now, consumed_action: action, consumed_operation_id: operationId };
+    result.consumption_hash = await consumptionHash(result);
+    updates.push({ path: `${root}/approval_requests/${matched.id}`, before: matched, result });
+    evidence.push({ request_id: matched.id, request_hash: matched.request_hash, review_hash: matched.review_hash, consumption_hash: result.consumption_hash, policy_version_hash: matched.policy_version_hash, required_role: matched.required_role, reviewed_by: matched.reviewed_by });
+  }
+  ensure(used.size === supplied.size, 'أُرفق طلب موافقة لا يطابق أي متطلب للعملية.', 409);
+  return { evidence, updates };
+}
+
 export async function createApprovalRequest(tx: Transaction, root: string, orgId: string, actor: string, role: OrgRole, now: string, operationId: string, data: Document) {
   const parsed = parseRequestInput(data), policy = await tx.get(`${root}/approval_policies/${parsed.policy_id}`) as ApprovalPolicy | undefined;
   ensure(policy && policy.org_id === orgId && policy.active, 'سياسة الموافقات المطلوبة غير موجودة أو غير نشطة.', 409);
@@ -363,6 +512,24 @@ export async function validateApprovalData(data: Record<string, Document[]>, org
       identifier(request.reviewed_by!);identifier(request.review_operation_id);timestamp(request.reviewed_at,'تاريخ مراجعة الموافقة');text(request.review_reason||'',1000,request.status==='rejected');
       ensure(request.review_hash === await reviewHash(request), 'بصمة قرار الموافقة غير مطابقة.');
     }
+    if (request.consumed_at) {
+      ensure(request.status === 'approved' && !!request.consumed_by && !!request.consumed_action && !!request.consumed_operation_id, 'استهلاك طلب الموافقة غير مكتمل.');
+      identifier(request.consumed_by);identifier(request.consumed_operation_id);timestamp(request.consumed_at,'تاريخ استهلاك الموافقة');approvableAction(request.consumed_action);
+      ensure(request.consumed_by === request.requested_by, 'لا يجوز استهلاك الموافقة بواسطة مستخدم آخر.');
+      ensure(request.consumption_hash === await consumptionHash(request), 'بصمة استهلاك الموافقة غير مطابقة.');
+    } else ensure(!request.consumed_by && !request.consumed_action && !request.consumed_operation_id && !request.consumption_hash, 'طلب الموافقة يحتوي دليلاً جزئياً للاستهلاك.');
+  }
+  const sourceFor = (request: ApprovalRequest) => request.consumed_action === 'invoice.create'
+    ? (data.invoices || []).find(row => row.id === `inv-${request.consumed_operation_id}`)
+    : request.consumed_action === 'expense.create'
+      ? (data.expenses || []).find(row => row.id === `exp-${request.consumed_operation_id}`)
+      : (data.customer_refunds || []).find(row => row.id === `refund-${request.consumed_operation_id}`);
+  const matchesEvidence = (evidence: Document, request: ApprovalRequest) => evidence.request_id===request.id&&evidence.request_hash===request.request_hash&&evidence.review_hash===request.review_hash&&evidence.consumption_hash===request.consumption_hash&&evidence.policy_version_hash===request.policy_version_hash&&evidence.required_role===request.required_role&&evidence.reviewed_by===request.reviewed_by;
+  for(const request of requests.filter(row=>row.consumed_at)){
+    const source=sourceFor(request);ensure(source&&Array.isArray(source.approval_evidence)&&source.approval_evidence.filter((evidence:Document)=>matchesEvidence(evidence,request)).length===1,'مصدر استهلاك الموافقة مفقود أو لا يطابق دليل العملية.');
+  }
+  for(const [action,rows] of [['invoice.create',data.invoices||[]],['expense.create',data.expenses||[]],['customerRefund.create',data.customer_refunds||[]]] as const)for(const row of rows)for(const evidence of row.approval_evidence||[]){
+    const request=requests.find(saved=>saved.id===evidence.request_id);ensure(request&&request.consumed_action===action&&request.consumed_operation_id===row.operation_id&&matchesEvidence(evidence,request),'دليل موافقة العملية يتيم أو غير مطابق.');
   }
 }
 

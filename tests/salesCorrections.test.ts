@@ -8,6 +8,13 @@ import { createApi } from '../server/api';
 import { INITIAL_SETTINGS } from '../src/data/initialData';
 import { reconcileFinancialData, type FinancialData } from '../src/domain/reconciliation';
 const owner: Actor = { uid: 'correction-owner', email: 'correction@example.com', emailVerified: true };
+const approvalPolicy = {
+  id:'refund-policy',name:'سياسة الردود',active:true,reason:'حماية الردود النقدية',
+  discount:{sales_max_percent:5,admin_max_percent:15},
+  expense:{accountant_max_sdg:100000,accountant_max_usd:100,admin_max_sdg:1000000,admin_max_usd:1000},
+  refund:{accountant_max_sdg:10000,accountant_max_usd:10,admin_max_sdg:500000,admin_max_usd:100},
+  credit_limit:{required_role:'Admin'},
+};
 
 async function fixture(cost = 20) {
   const store = new MemoryStore(), org = await new Organizations(store).create(owner, 'تصحيحات', INITIAL_SETTINGS, 'setup', true), root = `organizations/${org.id}`;
@@ -65,6 +72,22 @@ test('B3 paid invoice credits create distinct source and customer credit; actual
   const report = await f.ops.operationalReport(f.org.id, owner, 'receivables', { end: '2026-10-07' }); assert.equal(report.total_usd, 0); assert.equal(report.unallocated_sdg, 0);
   const cash = await f.ops.operationalReport(f.org.id, owner, 'cash', { start: '2026-10-07', end: '2026-10-07' }); assert.equal(cash.outflow_usd, 20); assert.equal(cash.inflow_usd, 300);
   const audit = f.store.dump()[`${f.root}/audit_logs/audit-refund`]; assert.equal(audit.actor_role, 'Owner'); assert.equal(audit.reason, 'رد مثبت'); assert.equal(audit.previous_state[`${f.root}/invoices/${f.invoice.id}`].credit_balance_usd, 20);
+});
+
+test('D4.2 a matching approved refund is consumed once by the original requester',async()=>{
+  const f=await fixture(),accountant:Actor={uid:'refund-accountant',email:'accountant@example.com',emailVerified:true},admin:Actor={uid:'refund-admin',email:'admin@example.com',emailVerified:true};
+  await f.store.transaction(async tx=>{tx.set(`${f.root}/members/${accountant.uid}`,{uid:accountant.uid,org_id:f.org.id,role:'Accountant',status:'active'});tx.set(`${f.root}/members/${admin.uid}`,{uid:admin.uid,org_id:f.org.id,role:'Admin',status:'active'});});
+  const policyOwner={...owner,authTime:Math.floor(new Date('2026-10-07T12:00:00Z').getTime()/1000)};
+  const policy=(await f.run('approvalPolicy.create',approvalPolicy,'refund-policy-create',policyOwner)).result;
+  await f.run('payment.create',f.pay(),'refund-pay');await f.run('creditNote.create',f.note('price_credit',[{line_id:'line-1',amount:100}]),'refund-credit');
+  const refund=f.refund(80);
+  await assert.rejects(f.run('customerRefund.create',refund,'approved-refund',accountant),/refund/);
+  const request=(await f.run('approvalRequest.createForOperation',{policy_id:policy.id,target_action:'customerRefund.create',target_operation_id:'approved-refund',reason:'رد مستحق للعميل',command_data:refund},'refund-request',accountant)).result.requests[0];
+  assert.equal(request.required_role,'Admin');await f.run('approvalRequest.approve',{id:request.id,expected_revision:1,reason:'تحققنا من الإشعار'},'refund-review',admin);
+  const result=(await f.run('customerRefund.create',{...refund,approval_request_ids:[request.id]},'approved-refund',accountant)).result;
+  assert.equal(result.approval_evidence[0].request_id,request.id);assert.equal(result.settled_amount_usd,80);
+  const consumed=f.store.dump()[`${f.root}/approval_requests/${request.id}`];assert.equal(consumed.consumed_by,accountant.uid);assert.equal(consumed.consumed_operation_id,'approved-refund');
+  await assert.rejects(f.run('customerRefund.create',{...f.refund(20),approval_request_ids:[request.id]},'reuse-refund',accountant),/تتطلب موافقة|استهلك|لا يطابق/);
 });
 
 test('B3 concurrent overreturns and overrefunds serialize; identical retries never duplicate source, stock or journal', async () => {

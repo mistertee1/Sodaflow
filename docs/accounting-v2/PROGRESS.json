@@ -5,15 +5,9 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-d4-approval-foundation-20261013",
+  "active_branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "d4-approval-finalize-20261014",
-    "acquired_at": "2026-10-14T14:20:00Z",
-    "expires_at": "2026-10-14T15:20:00Z",
-    "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
-    "purpose": "Finalize D4.1 CI evidence, checkpoint report and release"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -1348,15 +1342,15 @@
           "id": "D4",
           "scope": "Customer credit limits and configurable discount/expense/refund approval limits",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
+          "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
           "pr": null,
           "substeps": [
             {
               "id": "D4.1",
               "scope": "Protected approval policy registry and tamper-evident approval request/review foundation",
-              "status": "implemented_local_checks_passed_ci_pending",
+              "status": "implemented_ci_passed_user_merged_render_acceptance_pending",
               "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
-              "pr": null,
+              "pr": 76,
               "report": "REPORT_D4_1_APPROVAL_FOUNDATION.md",
               "integrated_predecessor_head": "6a1fd1796258cc735b9238bfbd58837c4f6d8c8c",
               "checks": {
@@ -1368,14 +1362,66 @@
                 "ui": "blocked_chromium_not_installed",
                 "production_audit_vulnerabilities": 0
               },
-              "render_acceptance": "pending_matching_authenticated_staging_commit"
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "code_commit": "e16a0e00c2f404eff3d5f1c5efb6c29a99a873d8",
+              "merged_commit": "fbd55cba17c5691bc27efcee11f5a62b18266b55",
+              "merged_at": "2026-10-14T19:08:37Z",
+              "ci": {
+                "run_id": 38538610379,
+                "commit_sha": "e16a0e00c2f404eff3d5f1c5efb6c29a99a873d8",
+                "conclusion": "success",
+                "unit_api": 349,
+                "emulator": 37,
+                "ui": 70,
+                "production_audit_vulnerabilities": 0
+              }
             },
             {
               "id": "D4.2",
               "scope": "Customer credit/payment terms plus invoice discount, expense and refund approval integration and UI",
-              "status": "pending",
-              "branch": null,
-              "pr": null
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
+              "pr": 83,
+              "substeps": [
+                {
+                  "id": "D4.2a",
+                  "scope": "Customer credit/payment terms and exact single-use transaction approval enforcement",
+                  "status": "implemented_ci_passed_render_acceptance_pending",
+                  "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
+                  "pr": 83,
+                  "code_commit": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
+                  "report": "REPORT_D4_2A_CREDIT_APPROVAL_INTEGRATION.md",
+                  "checks": {
+                    "types": "passed",
+                    "unit_api": 351,
+                    "core": "passed",
+                    "build": "passed",
+                    "emulator": 37,
+                    "emulator_status": "passed_in_ci",
+                    "ui": 70,
+                    "ui_status": "passed_in_ci",
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "ci": {
+                    "run_id": 38729306149,
+                    "commit_sha": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
+                    "conclusion": "success",
+                    "unit_api": 351,
+                    "emulator": 37,
+                    "ui": 70,
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "render_acceptance": "pending_matching_authenticated_staging_commit",
+                  "completed_at": "2026-10-15T11:39:00Z"
+                },
+                {
+                  "id": "D4.2b",
+                  "scope": "Responsive customer terms, approval request and reviewer inbox UI",
+                  "status": "pending",
+                  "branch": null,
+                  "pr": null
+                }
+              ]
             }
           ]
         }
@@ -1506,12 +1552,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_D4_1_APPROVAL_FOUNDATION.md",
+  "last_report": "REPORT_D4_2A_CREDIT_APPROVAL_INTEGRATION.md",
   "next_steps": [
-    "Confirm D4.1 CI, then implement D4.2 customer credit/payment terms and transaction approval integration/UI",
-    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2/D3.1/D3.2/D4.1 on matching staging commits"
+    "Implement D4.2b responsive customer terms and approval workflow UI on a child branch based on PR #83",
+    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1/C5.3.2/C6/D1.1/D1.2a/D1.2b.1/D1.2b.2/D2.1/D2.2/D3.1/D3.2/D4.1/D4.2a on matching staging commits"
   ],
-  "updated_at": "2026-10-14T14:20:00Z",
+  "updated_at": "2026-10-15T11:49:20Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1536,7 +1582,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D4.2",
+  "active_substep": "D4.2b",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {
@@ -1727,15 +1773,42 @@
       "released_at": "2026-10-13T21:28:00Z",
       "pr": 71,
       "code_commit": "911107bc495e97e511ae198ba58accd1f55ae3db"
+    },
+    {
+      "worker": "d4-approval-foundation-20261013",
+      "acquired_at": "2026-10-14T02:55:00Z",
+      "expires_at": "2026-10-14T12:30:00Z",
+      "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
+      "status": "expired_after_code_and_ci_completed",
+      "code_commit": "e16a0e00c2f404eff3d5f1c5efb6c29a99a873d8"
+    },
+    {
+      "worker": "d4-approval-finalize-20261014",
+      "acquired_at": "2026-10-14T14:20:00Z",
+      "expires_at": "2026-10-14T15:20:00Z",
+      "branch": "codex/accounting-v2-d4-approval-foundation-20261013",
+      "status": "expired_before_metadata_publish",
+      "code_commit": "e16a0e00c2f404eff3d5f1c5efb6c29a99a873d8"
+    },
+    {
+      "worker": "d4-credit-approval-integration-20261015",
+      "acquired_at": "2026-10-15T06:25:00Z",
+      "released_at": "2026-10-15T11:49:20Z",
+      "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
+      "pr": 83,
+      "code_commit": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
+      "status": "D4_2a_implemented_ci_passed_render_acceptance_pending",
+      "next_branch": "codex/accounting-v2-d4-approval-ui-20261015"
     }
   ],
   "last_lease": {
-    "worker": "d3-budget-forecast-ui-20261013",
-    "acquired_at": "2026-10-13T21:16:00Z",
-    "branch": "codex/accounting-v2-d3-budget-forecast-ui-20261013",
-    "released_at": "2026-10-13T21:28:00Z",
-    "pr": 71,
-    "code_commit": "911107bc495e97e511ae198ba58accd1f55ae3db"
+    "worker": "d4-credit-approval-integration-20261015",
+    "acquired_at": "2026-10-15T06:25:00Z",
+    "released_at": "2026-10-15T11:49:20Z",
+    "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
+    "pr": 83,
+    "code_commit": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
+    "status": "released_after_D4_2a_ci_passed"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -1749,7 +1822,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to D4 customer credit limits and configurable approval limits; retain independent Render acceptance",
+  "next": "Proceed to D4.2b responsive customer terms and approval workflow UI from PR #83; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -1770,24 +1843,23 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "d3-budget-forecast-ui-20261013",
-    "acquired_at": "2026-10-13T21:16:00Z",
-    "branch": "codex/accounting-v2-d3-budget-forecast-ui-20261013",
-    "released_at": "2026-10-13T21:28:00Z",
-    "pr": 71,
-    "code_commit": "911107bc495e97e511ae198ba58accd1f55ae3db",
-    "status": "D3_2_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-13T21:28:00Z",
+    "worker": "d4-credit-approval-integration-20261015",
+    "acquired_at": "2026-10-15T06:25:00Z",
+    "branch": "codex/accounting-v2-d4-credit-approval-integration-20261015",
+    "pr": 83,
+    "code_commit": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
+    "status": "D4_2a_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-15T11:49:20Z",
     "ci": {
-      "run_id": 38470088695,
-      "commit_sha": "911107bc495e97e511ae198ba58accd1f55ae3db",
+      "run_id": 38729306149,
+      "commit_sha": "ea7d021fb887b5ddaaf71fd79f6508eff4ace929",
       "conclusion": "success",
-      "unit_api": 344,
-      "emulator": 36,
-      "ui": 68,
+      "unit_api": 351,
+      "emulator": 37,
+      "ui": 70,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to D4 customer credit limits and configurable approval limits; Render acceptance remains independent"
+    "next": "Proceed to D4.2b UI from PR #83; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

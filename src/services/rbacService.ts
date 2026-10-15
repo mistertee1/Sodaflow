@@ -47,6 +47,10 @@ export type ActionType =
   | 'expenses:delete'
   | 'reports:view'
   | 'reports:advanced'
+  | 'export:customers'
+  | 'export:suppliers'
+  | 'export:products'
+  | 'export:invoices'
   | 'accounts:read'
   | 'accounts:create'
   | 'accounts:update'
@@ -94,6 +98,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'expenses:delete',
     'reports:view',
     'reports:advanced',
+    'export:customers', 'export:suppliers', 'export:products', 'export:invoices',
     'accounts:read',
     'accounts:create',
     'accounts:update',
@@ -135,6 +140,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'expenses:delete',
     'reports:view',
     'reports:advanced',
+    'export:customers', 'export:suppliers', 'export:products', 'export:invoices',
     'accounts:read',
     'accounts:create',
     'accounts:update',
@@ -171,6 +177,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'expenses:delete',
     'reports:view',
     'reports:advanced',
+    'export:customers', 'export:suppliers', 'export:products', 'export:invoices',
     'accounts:read',
     'accounts:create',
     'accounts:update',
@@ -192,6 +199,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'payments:read',
     'payments:create',
     'reports:view',
+    'export:customers', 'export:invoices',
     'accounts:read',
   ]),
   Cashier: new Set<ActionType>([

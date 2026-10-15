@@ -5,9 +5,17 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel1",
-  "active_branch": "codex/accounting-v2-excel1-quick-exports-20261015",
+  "active_branch": "codex/accounting-v2-excel1-import-preview-20261015",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel1-import-preview-20261015",
+    "round_id": "20261015T220222Z-excel1.2",
+    "base_branch": "codex/accounting-v2-excel1-quick-exports-20261015",
+    "acquired_at": "2026-10-15T22:02:22Z",
+    "expires_at": "2026-10-16T03:02:22Z",
+    "branch": "codex/accounting-v2-excel1-import-preview-20261015",
+    "purpose": "Implement Excel1.2 templates, staged mapping, validation, duplicate detection and dry-run preview"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1791,8 +1799,8 @@
         {
           "id": "Excel1.2",
           "scope": "Customer/supplier/product templates, staging, mapping, validation, duplicate detection and preview",
-          "status": "pending",
-          "branch": null,
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-excel1-import-preview-20261015",
           "pr": null
         }
       ]
@@ -1876,7 +1884,7 @@
     "Proceed to Excel1.1 quick/master exports with numeric integrity and authorized sensitive masking",
     "Independent authenticated Render acceptance for E1-E3 on matching staging commits"
   ],
-  "updated_at": "2026-10-15T16:52:00Z",
+  "updated_at": "2026-10-15T22:02:22Z",
   "deferred_requirements": [
     {
       "prd_sections": [

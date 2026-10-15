@@ -5,9 +5,18 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "E",
-  "active_branch": "codex/accounting-v2-e2-assistance-foundation-20261015",
+  "active_branch": "codex/accounting-v2-e2-assistance-ui-20261015",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "e2-assistance-ui-20261015",
+    "round_id": "20261015T0840Z-e2.2",
+    "acquired_at": "2026-10-15T08:40:00Z",
+    "expires_at": "2026-10-15T10:10:00Z",
+    "branch": "codex/accounting-v2-e2-assistance-ui-20261015",
+    "base_branch": "codex/accounting-v2-e2-assistance-foundation-20261015",
+    "base_commit": "ae6e2d078337c96a5d2cebe82a0e4546e7a2e95b",
+    "scope": "E2.2 assistance UI, permissions, synchronization and reload"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1802,7 +1811,7 @@
     "Proceed to E2.2 reviewable assistance UI, permissions, synchronization and reload",
     "Independent authenticated Render acceptance for E1.1 and earlier stages on matching staging commits"
   ],
-  "updated_at": "2026-10-15T08:01:00Z",
+  "updated_at": "2026-10-15T08:40:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [

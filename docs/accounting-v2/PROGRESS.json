@@ -9,9 +9,9 @@
   "overall_status": "in_progress",
   "lease": {
     "worker": "e1-health-ui-20261014",
-    "round_id": "20261014T1610Z-e1.2",
-    "acquired_at": "2026-10-14T16:10:00Z",
-    "expires_at": "2026-10-14T17:00:00Z",
+    "round_id": "20261015T0615Z-e1.2-resume",
+    "acquired_at": "2026-10-15T06:15:00Z",
+    "expires_at": "2026-10-15T07:05:00Z",
     "branch": "codex/accounting-v2-e1-health-ui-20261014",
     "base_branch": "codex/accounting-v2-e1-health-foundation-20261014",
     "base_commit": "1a6a2333f4f69671b3100fd4db1a18efada57e37",

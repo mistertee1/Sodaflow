@@ -4,18 +4,10 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "Excel1",
-  "active_branch": "codex/accounting-v2-excel1-import-preview-20261015",
+  "active_milestone": "Excel2",
+  "active_branch": null,
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "excel1-import-preview-resume-20261016",
-    "round_id": "20261016T033000Z-excel1.2-resume",
-    "base_branch": "codex/accounting-v2-excel1-quick-exports-20261015",
-    "acquired_at": "2026-10-16T03:30:00Z",
-    "expires_at": "2026-10-16T08:30:00Z",
-    "branch": "codex/accounting-v2-excel1-import-preview-20261015",
-    "purpose": "Implement Excel1.2 templates, staged mapping, validation, duplicate detection and dry-run preview"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -1775,9 +1767,9 @@
     },
     {
       "id": "Excel1",
-      "status": "in_progress",
-      "branch": "codex/accounting-v2-excel1-quick-exports-20261015",
-      "pr": 86,
+      "status": "implemented_ci_passed_render_acceptance_pending",
+      "branch": "codex/accounting-v2-excel1-import-preview-20261015",
+      "pr": 88,
       "steps": [
         {
           "id": "Excel1.1",
@@ -1799,9 +1791,31 @@
         {
           "id": "Excel1.2",
           "scope": "Customer/supplier/product templates, staging, mapping, validation, duplicate detection and preview",
-          "status": "in_progress",
+          "status": "implemented_ci_passed_render_acceptance_pending",
           "branch": "codex/accounting-v2-excel1-import-preview-20261015",
-          "pr": null
+          "pr": 88,
+          "code_commit": "a3a63c5f33f4fd551fbfbd3b0acffb5cc0525d35",
+          "report": "REPORT_EXCEL1_2_IMPORT_PREVIEW.md",
+          "local_checks": {
+            "types": "passed",
+            "core": "passed",
+            "excel_import": 4,
+            "unit_api": 370,
+            "build": "passed",
+            "production_audit_vulnerabilities": 0,
+            "ui": "ci_only_local_chromium_missing"
+          },
+          "ci": {
+            "run_id": 38846133119,
+            "commit_sha": "a3a63c5f33f4fd551fbfbd3b0acffb5cc0525d35",
+            "conclusion": "success",
+            "excel_import": 4,
+            "unit_api": 370,
+            "emulator": 35,
+            "ui": 85,
+            "production_audit_vulnerabilities": 0
+          },
+          "render_acceptance": "pending_matching_authenticated_staging_commit"
         }
       ]
     },
@@ -1909,8 +1923,8 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel1.2",
-  "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
+  "active_substep": "Excel2.1",
+  "observed_main_sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",
@@ -2224,28 +2238,41 @@
       "released_at": "2026-10-15T16:52:00Z",
       "pr": 85,
       "code_commit": "bfbbfdd2e07b91907308a115f68a938cf6ca049d"
+    },
+    {
+      "worker": "excel1-import-preview-resume-20261016",
+      "round_id": "20261016T033000Z-excel1.2-resume",
+      "base_branch": "codex/accounting-v2-excel1-quick-exports-20261015",
+      "acquired_at": "2026-10-16T03:30:00Z",
+      "branch": "codex/accounting-v2-excel1-import-preview-20261015",
+      "released_at": "2026-10-16T03:41:00Z",
+      "pr": 88,
+      "code_commit": "a3a63c5f33f4fd551fbfbd3b0acffb5cc0525d35",
+      "status": "Excel1.2_implemented_ci_passed_render_acceptance_pending"
     }
   ],
   "last_lease": {
-    "worker": "codex-automation",
-    "round_id": "20261015T174802Z-excel1.1",
-    "acquired_at": "2026-10-15T17:48:02Z",
-    "branch": "codex/accounting-v2-excel1-quick-exports-20261015",
-    "released_at": "2026-10-15T18:04:00Z",
-    "pr": 86,
-    "code_commit": "c8e85358c4481349f632179c5a4eaa1b580fd33d",
-    "status": "Excel1.1_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-15T18:04:00Z",
+    "worker": "excel1-import-preview-resume-20261016",
+    "round_id": "20261016T033000Z-excel1.2-resume",
+    "base_branch": "codex/accounting-v2-excel1-quick-exports-20261015",
+    "acquired_at": "2026-10-16T03:30:00Z",
+    "branch": "codex/accounting-v2-excel1-import-preview-20261015",
+    "released_at": "2026-10-16T03:41:00Z",
+    "pr": 88,
+    "code_commit": "a3a63c5f33f4fd551fbfbd3b0acffb5cc0525d35",
+    "status": "Excel1.2_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-16T03:41:00Z",
     "ci": {
-      "run_id": 38781698086,
-      "commit_sha": "c8e85358c4481349f632179c5a4eaa1b580fd33d",
+      "run_id": 38846133119,
+      "commit_sha": "a3a63c5f33f4fd551fbfbd3b0acffb5cc0525d35",
       "conclusion": "success",
+      "excel_import": 4,
       "unit_api": 370,
       "emulator": 35,
-      "ui": 83,
+      "ui": 85,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to Excel1.2 import templates, staging, mapping, validation, duplicate detection and preview; Render acceptance remains independent"
+    "next": "Proceed to Excel2.1 accounting export and reconciled accountant workbook from the Excel1.2 branch; Render acceptance remains independent"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -2259,7 +2286,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to Excel1.2 import templates, staging, mapping, validation, duplicate detection and preview; retain independent Render acceptance",
+  "next": "Proceed to Excel2.1 accounting export and reconciled accountant workbook from the Excel1.2 branch; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2280,25 +2307,26 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "codex-automation",
-    "round_id": "20261015T174802Z-excel1.1",
-    "acquired_at": "2026-10-15T17:48:02Z",
-    "branch": "codex/accounting-v2-excel1-quick-exports-20261015",
-    "released_at": "2026-10-15T18:04:00Z",
-    "pr": 86,
-    "code_commit": "c8e85358c4481349f632179c5a4eaa1b580fd33d",
-    "status": "Excel1.1_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-15T18:04:00Z",
+    "worker": "excel1-import-preview-resume-20261016",
+    "round_id": "20261016T033000Z-excel1.2-resume",
+    "acquired_at": "2026-10-16T03:30:00Z",
+    "branch": "codex/accounting-v2-excel1-import-preview-20261015",
+    "released_at": "2026-10-16T03:41:00Z",
+    "pr": 88,
+    "code_commit": "a3a63c5f33f4fd551fbfbd3b0acffb5cc0525d35",
+    "status": "Excel1.2_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-16T03:41:00Z",
     "ci": {
-      "run_id": 38781698086,
-      "commit_sha": "c8e85358c4481349f632179c5a4eaa1b580fd33d",
+      "run_id": 38846133119,
+      "commit_sha": "a3a63c5f33f4fd551fbfbd3b0acffb5cc0525d35",
       "conclusion": "success",
+      "excel_import": 4,
       "unit_api": 370,
       "emulator": 35,
-      "ui": 83,
+      "ui": 85,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to Excel1.2 import templates, staging, mapping, validation, duplicate detection and preview; Render acceptance remains independent"
+    "next": "Proceed to Excel2.1 accounting export and reconciled accountant workbook from the Excel1.2 branch; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

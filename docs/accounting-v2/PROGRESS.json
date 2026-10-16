@@ -5,9 +5,16 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel2",
-  "active_branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
+  "active_branch": "codex/accounting-v2-excel3-company-portability-20261016",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel3-company-portability-20261016",
+    "round_id": "20261016T161500Z-excel3.1",
+    "base_branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
+    "acquired_at": "2026-10-16T16:15:00Z",
+    "expires_at": "2026-10-16T17:15:00Z",
+    "branch": "codex/accounting-v2-excel3-company-portability-20261016"
+  },
   "milestones": [
     {
       "id": "A1",

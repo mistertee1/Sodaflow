@@ -133,6 +133,11 @@ interface AppContextType {
   isActionAllowed: (action: ActionType) => boolean;
   createMasterExport: (module: MasterExportModule) => Promise<{workbook_base64:string;mime_type:string;filename:string;record_count:number;masked_fields:string[]}>;
   createAccountingExport: (period:{start?:string;end?:string}) => Promise<{workbook_base64:string;mime_type:string;filename:string;record_count:number;line_count:number}>;
+  exportPresets: Document[];
+  dataTransferHistory: Document[];
+  saveExportPreset: (input:{id?:string;name:string;kind:'company'|'accounting'|'master';module?:MasterExportModule;period?:{start?:string;end?:string}}) => Promise<Document>;
+  deleteExportPreset: (id:string) => Promise<void>;
+  createCompanyExport: (presetId?:string) => Promise<{json:string;filename:string;byte_size:number;collection_counts:Record<string,number>}>;
   stageMasterImport: (input: MasterImportInput) => Promise<Document>;
   // Actions
   updateSettings: (newSettings: Partial<MerchantSettings>, reason?: string, expectedOrgId?: string) => Promise<void>;
@@ -454,6 +459,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const full = id === guestId ? await getGuest().snapshot(id, guestActor, true) : await firebaseSnapshot(id, true);
     return JSON.stringify(full, null, 2);
   };
+  const createCompanyExport = async (presetId?:string) => {
+    const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('اختر مؤسسة أولاً.');
+    const full=id===guestId?await getGuest().snapshot(id,guestActor,true):await firebaseSnapshot(id,true);
+    if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد التصدير.',409);
+    const json=JSON.stringify(full,null,2),byte_size=new TextEncoder().encode(json).length; if(byte_size>900000)throw new BusinessError('التصدير المباشر الكامل محدود بـ900KB؛ استخدم مهمة التصدير الكبيرة.',413);
+    const collection_counts=Object.fromEntries(Object.entries(full.collections).map(([name,records])=>[name,(records as Document[]).length])),filename=`sudaflow-company-${id}-${new Date().toISOString().slice(0,10)}.json`;
+    await run('companyExport.record',{schema_version:3,byte_size,collection_counts,filename,...presetId?{preset_id:presetId}:{}});return{json,filename,byte_size,collection_counts};
+  };
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
   const nothing = async () => {};
   const value: AppContextType = {
@@ -586,7 +599,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     saveBankReconciliation: data => run('bankReconciliation.create', data),
     recordCashCount: data => run('cashCount.create', data),
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
-    isActionAllowed, createMasterExport: module => run('masterExport.create',{module}), createAccountingExport:period=>run('accountingExport.create',{period}), stageMasterImport: input => run('masterImport.stage',input as unknown as Document), switchOrganization, createNewOrg,
+    isActionAllowed, createMasterExport: module => run('masterExport.create',{module}), createAccountingExport:period=>run('accountingExport.create',{period}),
+    exportPresets:rows<Document>('export_presets'),dataTransferHistory:rows<Document>('audit_logs').filter(row=>['DATA_EXPORT_CREATED','DATA_IMPORT_STARTED'].includes(row.event_type)).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
+    saveExportPreset:input=>run('exportPreset.save',input),deleteExportPreset:async id=>{await run('exportPreset.delete',{id});},createCompanyExport,
+    stageMasterImport: input => run('masterImport.stage',input as unknown as Document), switchOrganization, createNewOrg,
     inviteMember: async (email, role) => { await run('invitation.create', { email, role }); },
     updateMemberRole: async (uid, role) => { await run('member.update', { uid, role }); },
     removeMember: async uid => { await run('member.remove', { uid }); },

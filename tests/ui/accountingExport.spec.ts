@@ -17,3 +17,11 @@ test('Excel2.1 accountant downloads the scoped dual-book workbook and export sur
 });
 
 test('Excel2.1 viewer cannot discover accountant export',async({page})=>{await open(page,'Viewer');await expect(page.getByTestId('data-export-tab')).toHaveCount(0);});
+
+test('Excel3.1 owner exports the full company package, saves a preset and sees transfer history after reload',async({page},testInfo)=>{
+  await open(page,'Owner');await page.getByTestId('data-export-tab').click();const center=page.getByTestId('data-export-center');
+  await center.getByLabel('اسم إعداد التصدير').fill('نسخة شهرية');await center.getByLabel('نوع إعداد التصدير').selectOption('company');await center.getByRole('button',{name:'حفظ الإعداد'}).click();await expect(center).toContainText('نسخة شهرية — company');
+  const waiting=page.waitForEvent('download');await center.getByRole('button',{name:'تصدير الشركة كاملة'}).click();const download=await waiting,path=testInfo.outputPath('company.json');await download.saveAs(path);const json=JSON.parse(await readFile(path,'utf8'));
+  expect(json.schema_version).toBe(3);expect(json.org.id).toBe('local-guest-org');await expect(center.getByRole('status')).toContainText('تم تجهيز حزمة الشركة الكاملة');await expect(center.getByTestId('data-transfer-history')).toContainText('company');
+  await page.reload();await page.locator('#tab-accounting').click();await page.getByTestId('data-export-tab').click();await expect(page.getByTestId('export-presets')).toContainText('نسخة شهرية');await expect(page.getByTestId('data-transfer-history')).toContainText('DATA_EXPORT_CREATED');
+});

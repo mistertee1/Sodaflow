@@ -7,6 +7,7 @@ import { openingBooksFixture, settleOpeningBooks } from '../fixtures/openingBook
 import { INITIAL_SETTINGS } from '../../src/data/initialData';
 import { createDefaultSubscription, getPlanConfig } from '../../src/lib/plans';
 import { periodGuestFixture } from './helpers/accountingPeriods';
+import ExcelJS from 'exceljs';
 
 async function seedBrandInvoices(page: Page, longInvoice = false) {
   await page.addInitScript(({ longInvoice }) => {
@@ -499,9 +500,9 @@ test('B2 mobile bank matching and cash counts preserve evidence, require differe
   }
   const center=page.getByRole('region',{name:'النقدية والبنوك',exact:true});await center.getByLabel('بداية التقرير التشغيلي').fill('2026-10-01');await center.getByLabel('نهاية التقرير التشغيلي').fill('2026-10-05');
   await page.getByRole('button',{name:'مطابقة كشف بنك',exact:true}).click();let dialog=page.getByRole('dialog',{name:'مطابقة كشف بنك',exact:true});await dialog.getByLabel('حساب المطابقة').selectOption({label:'بنك المطابقة (SDG)'});await dialog.getByLabel('بداية المطابقة').fill('2026-10-01');await dialog.getByLabel('نهاية المطابقة').fill('2026-10-05');await expect(dialog).toContainText('5,000');await dialog.getByLabel('ختامي كشف البنك').fill('5000');
-  for (const [index,date,direction,amount,match] of [[1,'2026-10-01','inflow','6000','opening-reconcile:0'],[2,'2026-10-03','outflow','1000','bank-out:1']] as const) {
-    await dialog.getByRole('button',{name:'إضافة حركة كشف',exact:true}).click();await dialog.getByLabel(`تاريخ حركة ${index}`).fill(date);await dialog.getByLabel(`اتجاه حركة ${index}`).selectOption(direction);await dialog.getByLabel(`مبلغ حركة ${index}`).fill(amount);await dialog.getByLabel(`مطابقة حركة ${index}`).selectOption(match);
-  }
+  const workbook=new ExcelJS.Workbook();workbook.addWorksheet('Instructions').addRow(['التعليمات']);const statement=workbook.addWorksheet('Statement');statement.addRow(['id','date','direction','amount','reference','description']);statement.addRow(['statement-open','2026-10-01','inflow',6000,'OPEN','افتتاحي الكشف']);statement.addRow(['statement-out','2026-10-03','outflow',1000,'OUT','صرف مثبت']);const bytes=Buffer.from(await workbook.xlsx.writeBuffer()),beforeImport=await page.evaluate(()=>localStorage.getItem('sudaflow_guest_transactions_v3'));
+  await dialog.getByLabel('رفع كشف البنك').setInputFiles({name:'bank.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:bytes});await expect(dialog.getByRole('status')).toContainText('تمت قراءة 2 حركة');await expect(dialog.getByTestId('bank-import-evidence')).toContainText('فرق الختامي: 0 SDG');expect(await page.evaluate(()=>localStorage.getItem('sudaflow_guest_transactions_v3'))).toBe(beforeImport);
+  await dialog.getByLabel('مطابقة حركة 1').selectOption('opening-reconcile:0');await dialog.getByLabel('مطابقة حركة 2').selectOption('bank-out:1');
   await dialog.locator('form').evaluate(form=>{(form as HTMLFormElement).requestSubmit();(form as HTMLFormElement).requestSubmit();});await expect(dialog).toHaveCount(0);
   const rec=page.getByRole('region',{name:'مطابقة البنك وجرد الصندوق',exact:true});await expect(rec.getByRole('cell',{name:'مطابق',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'جرد صندوق',exact:true}).click();dialog=page.getByRole('dialog',{name:'جرد صندوق',exact:true});await dialog.getByLabel('حساب المطابقة').selectOption({label:'صندوق الجرد (SDG)'});await dialog.getByLabel('نهاية المطابقة').fill('2026-10-05');await expect(dialog).toContainText('1,000');await dialog.getByLabel('النقد الفعلي').fill('980');await dialog.getByRole('button',{name:'حفظ إثبات المطابقة',exact:true}).click();await expect(dialog.getByRole('alert')).toBeVisible();await expect(dialog.getByLabel('النقد الفعلي')).toHaveValue('980');await dialog.getByLabel('سبب فرق المطابقة').fill('نقص عشرين موثق عند الجرد');await dialog.getByRole('button',{name:'حفظ إثبات المطابقة',exact:true}).click();await expect(dialog).toHaveCount(0);await expect(rec.getByRole('cell',{name:'يحتاج تسوية',exact:true})).toBeVisible();

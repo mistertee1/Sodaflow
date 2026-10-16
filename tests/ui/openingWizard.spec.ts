@@ -57,7 +57,7 @@ test('Excel2.2b imports official opening workbook into protected preview without
 });
 
 test('Excel2.2b hides opening workbook import from unauthorized viewer', async ({ page }) => {
-  await seed(page, 'Viewer', false); await expect(page.locator('#tab-accounting')).toHaveCount(0); await expect(page.getByLabel('رفع ملف الأرصدة')).toHaveCount(0);
+  await seed(page, 'Viewer', false); await page.locator('#tab-accounting').click(); await expect(page.getByRole('button', { name: 'الأرصدة الافتتاحية والسداد', exact: true })).toHaveCount(0); await expect(page.getByLabel('رفع ملف الأرصدة')).toHaveCount(0);
   expect(Object.keys(await records(page)).filter(path => path.includes('/opening_batches/'))).toHaveLength(0);
 });
 

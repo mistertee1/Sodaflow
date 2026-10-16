@@ -52,8 +52,8 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 46 | Sales Returns | A-E / release gate |
 | 47 | Purchase Returns | A-E / release gate |
 | 48 | Refunds | A-E / release gate |
-| 49 | Bank Reconciliation | A-E / release gate |
-| 50 | Statement Import | Excel2.3a CSV/XLSX template, strict local staging preview, SHA-256 and balance validation; protected UI/manual matching remains Excel2.3b |
+| 49 | Bank Reconciliation | Excel2.3b protected statement upload, explicit manual ledger matching and existing atomic reconciliation save; CI passed; Render acceptance pending |
+| 50 | Statement Import | Excel2.3a strict CSV/XLSX parser plus Excel2.3b protected no-write upload UI, SHA-256 evidence and manual matching; CI passed; Render acceptance pending |
 | 51 | Cash Reconciliation | A-E / release gate |
 | 52 | Multi-Currency Strategy | A-E / release gate |
 | 53 | Future Multi-Currency Architecture | A-E / release gate |
@@ -157,23 +157,23 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 151 | Blocking Errors | Excel2.3a also blocks bank schema/extension/hash/formula/unsafe-text/date/direction/precision/duplicate/volume violations before matching |
 | 152 | Warnings | Excel 1-4 |
 | 153 | Auto-fixable Issues | Excel 1-4 |
-| 154 | Import Preview | Excel2.2b loads the official workbook into the reviewable C2 draft and existing protected preview; Owner commit still requires reauthentication |
+| 154 | Import Preview | Excel2.2b loads opening workbooks into protected preview; Excel2.3b loads bank rows, totals, closing difference and hash into the reviewable matching draft without writes |
 | 155 | Error Export | Excel 1-4 |
 | 156 | Duplicate Detection | Excel 1-4 |
 | 157 | Duplicate Handling | Excel 1-4 |
 | 158 | Import Session | Excel 1-4 |
 | 159 | Import Session Metadata | Excel 1-4 |
 | 160 | Duplicate File Detection | Excel 1-4 |
-| 161 | Import Staging | Excel2.3a creates a client-local bank statement staging preview only; server staging remains later |
-| 162 | Dry Run | Excel2.3a computes inflow/outflow/closing difference without financial writes or automatic matching |
+| 161 | Import Staging | Excel2.3a/2.3b keep the bank statement in client-local review state until explicit atomic reconciliation save; server staging remains later |
+| 162 | Dry Run | Excel2.3a/2.3b compute inflow/outflow/closing difference and populate unmatched rows without financial writes or automatic matching |
 | 163 | Large Import Jobs | Excel 1-4 |
 | 164 | Import Progress | Excel 1-4 |
 | 165 | Import Idempotency | Excel 1-4 |
 | 166 | Undo Import | Excel 1-4 |
 | 167 | Import Rollback Rules | Excel 1-4 |
-| 168 | Import Permissions | Excel1.2 master permissions; Excel2.2b requires opening:preview and hides accounting/import from Viewer; financial commit remains Owner-only |
+| 168 | Import Permissions | Excel1.2 master permissions; Excel2.2b requires opening:preview; Excel2.3b reuses protected bank reconciliation access and hides accounting/import from Viewer |
 | 169 | Opening Balance Import Security | Excel2.2a strict parser plus Excel2.2b session/org guards, review preview and existing Owner reauthentication/atomic commit |
-| 170 | Post-import Reconciliation | Excel2.2b hands off to existing C2 atomic journals/sources and reload synchronization; Render acceptance remains pending |
+| 170 | Post-import Reconciliation | Excel2.2b hands off to C2 opening journals; Excel2.3b requires explicit row matching then uses existing atomic bank reconciliation save and reload synchronization; Render acceptance pending |
 | 171 | Accounting Import Block | Excel 1-4 |
 | 172 | Historical Invoice Import | Excel 1-4 |
 | 173 | Advanced Accountant Import | Excel 1-4 |

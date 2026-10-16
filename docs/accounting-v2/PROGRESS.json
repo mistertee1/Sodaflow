@@ -8,11 +8,11 @@
   "active_branch": "codex/accounting-v2-excel1-import-preview-20261015",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "excel1-import-preview-20261015",
-    "round_id": "20261015T220222Z-excel1.2",
+    "worker": "excel1-import-preview-resume-20261016",
+    "round_id": "20261016T033000Z-excel1.2-resume",
     "base_branch": "codex/accounting-v2-excel1-quick-exports-20261015",
-    "acquired_at": "2026-10-15T22:02:22Z",
-    "expires_at": "2026-10-16T03:02:22Z",
+    "acquired_at": "2026-10-16T03:30:00Z",
+    "expires_at": "2026-10-16T08:30:00Z",
     "branch": "codex/accounting-v2-excel1-import-preview-20261015",
     "purpose": "Implement Excel1.2 templates, staged mapping, validation, duplicate detection and dry-run preview"
   },
@@ -1884,7 +1884,7 @@
     "Proceed to Excel1.1 quick/master exports with numeric integrity and authorized sensitive masking",
     "Independent authenticated Render acceptance for E1-E3 on matching staging commits"
   ],
-  "updated_at": "2026-10-15T22:02:22Z",
+  "updated_at": "2026-10-16T03:30:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1909,7 +1909,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel1.1",
+  "active_substep": "Excel1.2",
   "observed_main_sha": "2107489fc43a6af0d8e096bde56caed4bafb64b3",
   "lease_history": [
     {

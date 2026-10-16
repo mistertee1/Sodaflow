@@ -4,7 +4,7 @@ import { INITIAL_SETTINGS } from '../../src/data/initialData';
 import { createDefaultSubscription, getPlanConfig } from '../../src/lib/plans';
 import ExcelJS from 'exceljs';
 
-async function seed(page: Page, role = 'Owner') {
+async function seed(page: Page, role = 'Owner', openAccounting = true) {
   const org = 'local-guest-org', root = `organizations/${org}`, { data } = freshOpeningBooksFixture(org, 'guest');
   const records: Record<string, any> = {
     [root]: { id: org, owner_uid: role === 'Owner' ? 'guest' : 'other-owner', name: 'متجر اختبار الأرصدة', status: 'active', accounting_version: 2, settings: INITIAL_SETTINGS },
@@ -18,8 +18,7 @@ async function seed(page: Page, role = 'Owner') {
     localStorage.setItem('mohasbasd_guest_session', 'true'); localStorage.setItem('sudanese_merchant_has_seen_tour_v2', 'true');
     if (!localStorage.getItem('sudaflow_guest_transactions_v3')) localStorage.setItem('sudaflow_guest_transactions_v3', JSON.stringify(records));
   }, records);
-  await page.goto('/'); await page.locator('#tab-accounting').click();
-  await page.getByRole('button', { name: 'الأرصدة الافتتاحية والسداد', exact: true }).click();
+  await page.goto('/'); if (openAccounting) { await page.locator('#tab-accounting').click(); await page.getByRole('button', { name: 'الأرصدة الافتتاحية والسداد', exact: true }).click(); }
 }
 async function prepare(page: Page) {
   const center = page.getByRole('region', { name: 'الأرصدة الافتتاحية والسداد', exact: true });
@@ -58,7 +57,7 @@ test('Excel2.2b imports official opening workbook into protected preview without
 });
 
 test('Excel2.2b hides opening workbook import from unauthorized viewer', async ({ page }) => {
-  await seed(page, 'Viewer'); const center = page.getByRole('region', { name: 'الأرصدة الافتتاحية والسداد', exact: true }); await expect(center.getByLabel('رفع ملف الأرصدة')).toHaveCount(0);
+  await seed(page, 'Viewer', false); await expect(page.locator('#tab-accounting')).toHaveCount(0); await expect(page.getByLabel('رفع ملف الأرصدة')).toHaveCount(0);
   expect(Object.keys(await records(page)).filter(path => path.includes('/opening_batches/'))).toHaveLength(0);
 });
 

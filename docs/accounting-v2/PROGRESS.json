@@ -7,7 +7,15 @@
   "active_milestone": "Excel2",
   "active_branch": "codex/accounting-v2-excel2-opening-import-20261016",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel2-opening-ui-20261016",
+    "round_id": "20261016T105500Z-excel2.2b",
+    "base_branch": "codex/accounting-v2-excel2-opening-import-20261016",
+    "acquired_at": "2026-10-16T10:55:00Z",
+    "expires_at": "2026-10-16T13:55:00Z",
+    "branch": "codex/accounting-v2-excel2-opening-ui-20261016",
+    "purpose": "Implement Excel2.2b protected opening workbook UI, preview handoff, permissions and reload synchronization"
+  },
   "milestones": [
     {
       "id": "A1",

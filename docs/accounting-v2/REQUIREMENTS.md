@@ -146,18 +146,18 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 140 | Customer Import Template | Excel 1-4 |
 | 141 | Supplier Import Template | Excel 1-4 |
 | 142 | Product Import Template | Excel 1-4 |
-| 143 | Opening Balances Import Principle | Excel 1-4 |
-| 144 | Opening AR | Excel 1-4 |
-| 145 | Opening AP | Excel 1-4 |
-| 146 | Opening Inventory | Excel 1-4 |
-| 147 | Opening Cash & Bank | Excel 1-4 |
+| 143 | Opening Balances Import Principle | Excel2.2a parser/template maps only into the protected opening preview contract; no financial write; UI/commit/reconciliation pending Excel2.2b |
+| 144 | Opening AR | Excel2.2a official receivables sheet, currency/date/due/source validation and protected preview mapping; commit/UI pending |
+| 145 | Opening AP | Excel2.2a official payables sheet, currency/date/due/source validation and protected preview mapping; commit/UI pending |
+| 146 | Opening Inventory | Excel2.2a official inventory sheet with product, quantity, native unit-cost precision and duplicate validation; commit/UI pending |
+| 147 | Opening Cash & Bank | Excel2.2a official cash sheet with account/currency/date validation and preview mapping; commit/UI pending |
 | 148 | Column Mapping | Excel 1-4 |
 | 149 | Mapping Presets | Excel 1-4 |
-| 150 | Import Validation Levels | Excel 1-4 |
-| 151 | Blocking Errors | Excel 1-4 |
+| 150 | Import Validation Levels | Excel1.2 master staging plus Excel2.2a strict opening workbook validation; warning/auto-fix policy remains later |
+| 151 | Blocking Errors | Excel2.2a blocks schema/sheet/formula/currency/date/precision/duplicate/capital/volume violations before preview |
 | 152 | Warnings | Excel 1-4 |
 | 153 | Auto-fixable Issues | Excel 1-4 |
-| 154 | Import Preview | Excel 1-4 |
+| 154 | Import Preview | Excel2.2a produces existing protected OpeningInput/OpeningTerms preview input; operational UI and authorized commit pending Excel2.2b |
 | 155 | Error Export | Excel 1-4 |
 | 156 | Duplicate Detection | Excel 1-4 |
 | 157 | Duplicate Handling | Excel 1-4 |

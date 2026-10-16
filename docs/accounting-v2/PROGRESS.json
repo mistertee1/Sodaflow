@@ -5,17 +5,9 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel2",
-  "active_branch": "codex/accounting-v2-excel2-opening-import-20261016",
+  "active_branch": "codex/accounting-v2-excel2-opening-ui-20261016",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "excel2-opening-ui-20261016",
-    "round_id": "20261016T105500Z-excel2.2b",
-    "base_branch": "codex/accounting-v2-excel2-opening-import-20261016",
-    "acquired_at": "2026-10-16T10:55:00Z",
-    "expires_at": "2026-10-16T13:55:00Z",
-    "branch": "codex/accounting-v2-excel2-opening-ui-20261016",
-    "purpose": "Implement Excel2.2b protected opening workbook UI, preview handoff, permissions and reload synchronization"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -1854,9 +1846,9 @@
         {
           "id": "Excel2.2",
           "scope": "Safe opening inventory/AR/AP/cash/capital imports and post-import reconciliation",
-          "status": "in_progress",
-          "branch": "codex/accounting-v2-excel2-opening-import-20261016",
-          "pr": 90,
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-excel2-opening-ui-20261016",
+          "pr": 91,
           "parts": [
             {
               "id": "Excel2.2a",
@@ -1871,6 +1863,23 @@
                 "unit_api": 370,
                 "emulator": 35,
                 "ui": 87,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "Excel2.2b",
+              "scope": "Protected opening workbook UI, permission gates, preview/Owner commit handoff and reload synchronization",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "code_commit": "e1a79a73a59cf5d8a562715e9a653878c94ad155",
+              "ci": {
+                "run_id": 38892964897,
+                "conclusion": "success",
+                "opening_import": 4,
+                "pretest": 8,
+                "unit_api": 370,
+                "emulator": 35,
+                "ui": 89,
                 "production_audit_vulnerabilities": 0
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
@@ -1931,12 +1940,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_EXCEL2_2A_OPENING_IMPORT_PREVIEW.md",
+  "last_report": "REPORT_EXCEL2_2B_OPENING_IMPORT_UI.md",
   "next_steps": [
     "Proceed to Excel1.1 quick/master exports with numeric integrity and authorized sensitive masking",
     "Independent authenticated Render acceptance for E1-E3 on matching staging commits"
   ],
-  "updated_at": "2026-10-16T09:27:00Z",
+  "updated_at": "2026-10-16T11:27:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -1961,7 +1970,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel2.2b",
+  "active_substep": "Excel2.3",
   "observed_main_sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
   "lease_history": [
     {
@@ -2309,31 +2318,42 @@
       "pr": 90,
       "code_commit": "a3723872aa9fe9a04ca13acd097f182eba59276e",
       "status": "Excel2.2a_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel2-opening-ui-20261016",
+      "round_id": "20261016T105500Z-excel2.2b",
+      "base_branch": "codex/accounting-v2-excel2-opening-import-20261016",
+      "acquired_at": "2026-10-16T10:55:00Z",
+      "branch": "codex/accounting-v2-excel2-opening-ui-20261016",
+      "released_at": "2026-10-16T11:27:00Z",
+      "pr": 91,
+      "code_commit": "e1a79a73a59cf5d8a562715e9a653878c94ad155",
+      "status": "Excel2.2b_implemented_ci_passed_render_acceptance_pending"
     }
   ],
   "last_lease": {
-    "worker": "excel2-opening-import-20261016",
-    "round_id": "20261016T081000Z-excel2.2a",
-    "base_branch": "codex/accounting-v2-excel2-accountant-export-20261016",
-    "acquired_at": "2026-10-16T08:10:00Z",
-    "branch": "codex/accounting-v2-excel2-opening-import-20261016",
-    "released_at": "2026-10-16T09:27:00Z",
-    "pr": 90,
-    "code_commit": "a3723872aa9fe9a04ca13acd097f182eba59276e",
-    "status": "Excel2.2a_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-16T09:27:00Z",
+    "worker": "excel2-opening-ui-20261016",
+    "round_id": "20261016T105500Z-excel2.2b",
+    "base_branch": "codex/accounting-v2-excel2-opening-import-20261016",
+    "acquired_at": "2026-10-16T10:55:00Z",
+    "branch": "codex/accounting-v2-excel2-opening-ui-20261016",
+    "released_at": "2026-10-16T11:27:00Z",
+    "pr": 91,
+    "code_commit": "e1a79a73a59cf5d8a562715e9a653878c94ad155",
+    "status": "Excel2.2b_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-16T11:27:00Z",
     "ci": {
-      "run_id": 38879574813,
-      "commit_sha": "a3723872aa9fe9a04ca13acd097f182eba59276e",
+      "run_id": 38892964897,
+      "commit_sha": "e1a79a73a59cf5d8a562715e9a653878c94ad155",
       "conclusion": "success",
       "opening_import": 4,
       "pretest": 8,
       "unit_api": 370,
       "emulator": 35,
-      "ui": 87,
+      "ui": 89,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to Excel2.2b protected opening import UI, permission gates, preview/Owner commit handoff, reload synchronization and post-import reconciliation; Render acceptance remains independent"
+    "next": "Proceed to Excel2.3 bank statement CSV/XLSX staging and manual matching import; Render acceptance remains independent"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -2347,7 +2367,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to Excel2.2b protected opening import UI, permission gates, preview/Owner commit handoff, reload synchronization and post-import reconciliation from PR90; retain independent Render acceptance",
+  "next": "Proceed to Excel2.3 bank statement CSV/XLSX staging and manual matching import from PR91; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2368,27 +2388,27 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "excel2-opening-import-20261016",
-    "round_id": "20261016T081000Z-excel2.2a",
-    "acquired_at": "2026-10-16T08:10:00Z",
-    "branch": "codex/accounting-v2-excel2-opening-import-20261016",
-    "released_at": "2026-10-16T09:27:00Z",
-    "pr": 90,
-    "code_commit": "a3723872aa9fe9a04ca13acd097f182eba59276e",
-    "status": "Excel2.2a_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-16T09:27:00Z",
+    "worker": "excel2-opening-ui-20261016",
+    "round_id": "20261016T105500Z-excel2.2b",
+    "acquired_at": "2026-10-16T10:55:00Z",
+    "branch": "codex/accounting-v2-excel2-opening-ui-20261016",
+    "released_at": "2026-10-16T11:27:00Z",
+    "pr": 91,
+    "code_commit": "e1a79a73a59cf5d8a562715e9a653878c94ad155",
+    "status": "Excel2.2b_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-16T11:27:00Z",
     "ci": {
-      "run_id": 38879574813,
-      "commit_sha": "a3723872aa9fe9a04ca13acd097f182eba59276e",
+      "run_id": 38892964897,
+      "commit_sha": "e1a79a73a59cf5d8a562715e9a653878c94ad155",
       "conclusion": "success",
       "opening_import": 4,
       "pretest": 8,
       "unit_api": 370,
       "emulator": 35,
-      "ui": 87,
+      "ui": 89,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to Excel2.2b protected opening import UI, permission gates, preview/Owner commit handoff, reload synchronization and post-import reconciliation; Render acceptance remains independent"
+    "next": "Proceed to Excel2.3 bank statement CSV/XLSX staging and manual matching import; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

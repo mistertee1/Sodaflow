@@ -146,7 +146,7 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 140 | Customer Import Template | Excel 1-4 |
 | 141 | Supplier Import Template | Excel 1-4 |
 | 142 | Product Import Template | Excel 1-4 |
-| 143 | Opening Balances Import Principle | Excel2.2a parser/template maps only into the protected opening preview contract; no financial write; UI/commit/reconciliation pending Excel2.2b |
+| 143 | Opening Balances Import Principle | Excel2.2a parser/template + Excel2.2b protected UI map into existing preview/Owner commit; upload itself performs no financial write; Render acceptance pending |
 | 144 | Opening AR | Excel2.2a official receivables sheet, currency/date/due/source validation and protected preview mapping; commit/UI pending |
 | 145 | Opening AP | Excel2.2a official payables sheet, currency/date/due/source validation and protected preview mapping; commit/UI pending |
 | 146 | Opening Inventory | Excel2.2a official inventory sheet with product, quantity, native unit-cost precision and duplicate validation; commit/UI pending |
@@ -157,7 +157,7 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 151 | Blocking Errors | Excel2.2a blocks schema/sheet/formula/currency/date/precision/duplicate/capital/volume violations before preview |
 | 152 | Warnings | Excel 1-4 |
 | 153 | Auto-fixable Issues | Excel 1-4 |
-| 154 | Import Preview | Excel2.2a produces existing protected OpeningInput/OpeningTerms preview input; operational UI and authorized commit pending Excel2.2b |
+| 154 | Import Preview | Excel2.2b loads the official workbook into the reviewable C2 draft and existing protected preview; Owner commit still requires reauthentication |
 | 155 | Error Export | Excel 1-4 |
 | 156 | Duplicate Detection | Excel 1-4 |
 | 157 | Duplicate Handling | Excel 1-4 |
@@ -171,9 +171,9 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 165 | Import Idempotency | Excel 1-4 |
 | 166 | Undo Import | Excel 1-4 |
 | 167 | Import Rollback Rules | Excel 1-4 |
-| 168 | Import Permissions | Excel 1-4 |
-| 169 | Opening Balance Import Security | Excel 1-4 |
-| 170 | Post-import Reconciliation | Excel 1-4 |
+| 168 | Import Permissions | Excel1.2 master permissions; Excel2.2b requires opening:preview and hides accounting/import from Viewer; financial commit remains Owner-only |
+| 169 | Opening Balance Import Security | Excel2.2a strict parser plus Excel2.2b session/org guards, review preview and existing Owner reauthentication/atomic commit |
+| 170 | Post-import Reconciliation | Excel2.2b hands off to existing C2 atomic journals/sources and reload synchronization; Render acceptance remains pending |
 | 171 | Accounting Import Block | Excel 1-4 |
 | 172 | Historical Invoice Import | Excel 1-4 |
 | 173 | Advanced Accountant Import | Excel 1-4 |

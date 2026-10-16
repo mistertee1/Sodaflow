@@ -5,9 +5,17 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel2",
-  "active_branch": "codex/accounting-v2-excel2-opening-ui-20261016",
+  "active_branch": "codex/accounting-v2-excel2-bank-statement-ui-20261016",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel2-bank-statement-ui-20261016",
+    "round_id": "20261016T142447Z-excel2.3b",
+    "base_branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
+    "acquired_at": "2026-10-16T14:24:47Z",
+    "expires_at": "2026-10-16T17:24:47Z",
+    "branch": "codex/accounting-v2-excel2-bank-statement-ui-20261016",
+    "purpose": "Implement Excel2.3b protected bank statement upload UI, staging evidence and manual reconciliation handoff"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1948,23 +1956,13 @@
   "updated_at": "2026-10-16T11:27:00Z",
   "deferred_requirements": [
     {
-      "prd_sections": [
-        86,
-        87
-      ],
+      "prd_sections": [86, 87],
       "scope": "Source attachments beyond existing expense receipts, reviewed evidence metadata and audit linkage",
       "status": "pending",
       "planned_stage": "C/D"
     },
     {
-      "prd_sections": [
-        94,
-        95,
-        96,
-        97,
-        179,
-        182
-      ],
+      "prd_sections": [94, 95, 96, 97, 179, 182],
       "scope": "Complete accounting/Excel commercial release candidate with zero differences, repeated restore and user acceptance",
       "status": "pending",
       "planned_stage": "final_acceptance"
@@ -2358,13 +2356,7 @@
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
     "main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
-    "open_accounting_prs": [
-      43,
-      44,
-      45,
-      46,
-      47
-    ],
+    "open_accounting_prs": [43, 44, 45, 46, 47],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
   "next": "Proceed to Excel2.3 bank statement CSV/XLSX staging and manual matching import from PR91; retain independent Render acceptance",

@@ -53,7 +53,7 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 47 | Purchase Returns | A-E / release gate |
 | 48 | Refunds | A-E / release gate |
 | 49 | Bank Reconciliation | A-E / release gate |
-| 50 | Statement Import | A-E / release gate |
+| 50 | Statement Import | Excel2.3a CSV/XLSX template, strict local staging preview, SHA-256 and balance validation; protected UI/manual matching remains Excel2.3b |
 | 51 | Cash Reconciliation | A-E / release gate |
 | 52 | Multi-Currency Strategy | A-E / release gate |
 | 53 | Future Multi-Currency Architecture | A-E / release gate |
@@ -153,8 +153,8 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 147 | Opening Cash & Bank | Excel2.2a official cash sheet with account/currency/date validation and preview mapping; commit/UI pending |
 | 148 | Column Mapping | Excel 1-4 |
 | 149 | Mapping Presets | Excel 1-4 |
-| 150 | Import Validation Levels | Excel1.2 master staging plus Excel2.2a strict opening workbook validation; warning/auto-fix policy remains later |
-| 151 | Blocking Errors | Excel2.2a blocks schema/sheet/formula/currency/date/precision/duplicate/capital/volume violations before preview |
+| 150 | Import Validation Levels | Excel1.2 master staging, Excel2.2 opening validation and Excel2.3a strict bank statement preview; warning/auto-fix policy remains later |
+| 151 | Blocking Errors | Excel2.3a also blocks bank schema/extension/hash/formula/unsafe-text/date/direction/precision/duplicate/volume violations before matching |
 | 152 | Warnings | Excel 1-4 |
 | 153 | Auto-fixable Issues | Excel 1-4 |
 | 154 | Import Preview | Excel2.2b loads the official workbook into the reviewable C2 draft and existing protected preview; Owner commit still requires reauthentication |
@@ -164,8 +164,8 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 158 | Import Session | Excel 1-4 |
 | 159 | Import Session Metadata | Excel 1-4 |
 | 160 | Duplicate File Detection | Excel 1-4 |
-| 161 | Import Staging | Excel 1-4 |
-| 162 | Dry Run | Excel 1-4 |
+| 161 | Import Staging | Excel2.3a creates a client-local bank statement staging preview only; server staging remains later |
+| 162 | Dry Run | Excel2.3a computes inflow/outflow/closing difference without financial writes or automatic matching |
 | 163 | Large Import Jobs | Excel 1-4 |
 | 164 | Import Progress | Excel 1-4 |
 | 165 | Import Idempotency | Excel 1-4 |

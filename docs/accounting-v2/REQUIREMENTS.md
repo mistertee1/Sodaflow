@@ -113,26 +113,26 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 107 | Final Product Goal | A-E / release gate |
 | 108 | Commercial Positioning After Completion | A-E / release gate |
 | 109 | Next Engineering Step | A-E / release gate |
-| 110 | Excel Export & Data Portability | Excel 1-4 |
-| 111 | Export Modes | Excel 1-4 |
+| 110 | Excel Export & Data Portability | Excel1.1/Excel2.1 implemented; full portability remains Excel3 |
+| 111 | Export Modes | Quick exports Excel1.1; accountant package Excel2.1; remaining modes Excel3-4 |
 | 112 | Full Company Workbook Structure | Excel 1-4 |
 | 113 | Invoice Export Structure | Excel 1-4 |
-| 114 | Raw Data vs Report Sheets | Excel 1-4 |
+| 114 | Raw Data vs Report Sheets | Excel2.1 accountant workbook includes journal raw sheets and financial report sheets |
 | 115 | Pivot-ready Excel | Excel 1-4 |
-| 116 | Excel Numeric Integrity | Excel 1-4 |
-| 117 | Multi-currency Export | Excel 1-4 |
-| 118 | Export Summary Sheet | Excel 1-4 |
-| 119 | Data Dictionary Sheet | Excel 1-4 |
-| 120 | Reconciliation Sheet | Excel 1-4 |
+| 116 | Excel Numeric Integrity | Excel1.1/Excel2.1 numeric cells and formula-safe exports implemented |
+| 117 | Multi-currency Export | Excel2.1 journal lines preserve independent SDG/USD numeric books |
+| 118 | Export Summary Sheet | Excel2.1 implemented with schema, tenant, period and counts |
+| 119 | Data Dictionary Sheet | Excel2.1 implemented for accountant workbook |
+| 120 | Reconciliation Sheet | Excel2.1 includes bank/cash reconciliation evidence |
 | 121 | Opening / Movement / Closing Columns | Excel 1-4 |
-| 122 | Export Filters | Excel 1-4 |
+| 122 | Export Filters | Excel2.1 date period implemented; column selection/presets remain Excel3 |
 | 123 | Export Column Selection | Excel 1-4 |
 | 124 | Saved Export Presets | Excel 1-4 |
-| 125 | Accountant Package | Excel 1-4 |
+| 125 | Accountant Package | Excel2.1 implemented; large-job delivery remains Excel3.2 |
 | 126 | Auditor Package | Excel 1-4 |
-| 127 | Export Permissions | Excel 1-4 |
+| 127 | Export Permissions | Excel1.1 module permissions and Excel2.1 accounting permission implemented |
 | 128 | Sensitive Data Masking | Excel 1-4 |
-| 129 | Export Audit Log | Excel 1-4 |
+| 129 | Export Audit Log | Excel1.1/Excel2.1 DATA_EXPORT_CREATED implemented |
 | 130 | Large Export Architecture | Excel 1-4 |
 | 131 | Temporary Export Files | Excel 1-4 |
 | 132 | Data Portability Package | Excel 1-4 |

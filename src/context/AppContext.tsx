@@ -132,6 +132,7 @@ interface AppContextType {
   reactivateMember: (memberUid: string) => Promise<void>;
   isActionAllowed: (action: ActionType) => boolean;
   createMasterExport: (module: MasterExportModule) => Promise<{workbook_base64:string;mime_type:string;filename:string;record_count:number;masked_fields:string[]}>;
+  createAccountingExport: (period:{start?:string;end?:string}) => Promise<{workbook_base64:string;mime_type:string;filename:string;record_count:number;line_count:number}>;
   stageMasterImport: (input: MasterImportInput) => Promise<Document>;
   // Actions
   updateSettings: (newSettings: Partial<MerchantSettings>, reason?: string, expectedOrgId?: string) => Promise<void>;
@@ -585,7 +586,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     saveBankReconciliation: data => run('bankReconciliation.create', data),
     recordCashCount: data => run('cashCount.create', data),
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
-    isActionAllowed, createMasterExport: module => run('masterExport.create',{module}), stageMasterImport: input => run('masterImport.stage',input as unknown as Document), switchOrganization, createNewOrg,
+    isActionAllowed, createMasterExport: module => run('masterExport.create',{module}), createAccountingExport:period=>run('accountingExport.create',{period}), stageMasterImport: input => run('masterImport.stage',input as unknown as Document), switchOrganization, createNewOrg,
     inviteMember: async (email, role) => { await run('invitation.create', { email, role }); },
     updateMemberRole: async (uid, role) => { await run('member.update', { uid, role }); },
     removeMember: async uid => { await run('member.remove', { uid }); },

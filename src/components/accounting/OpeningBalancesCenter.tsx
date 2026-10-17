@@ -4,6 +4,7 @@ import { operationId } from '../../services/businessApi';
 import type { OpeningInput } from '../../domain/openingBalances';
 import type { OpeningTerms } from '../../domain/openingSources';
 import type { Operations } from '../../domain/operations';
+import { createOpeningImportTemplate, openingRequestFromWorkbook } from '../../services/openingImportWorkbook';
 import { OwnerReauthenticationDialog } from './OwnerReauthenticationDialog';
 
 type Kind = 'cash' | 'receivables' | 'payables' | 'inventory';
@@ -20,6 +21,7 @@ export function OpeningBalancesCenter() {
   const [date, setDate] = useState(today), [policy, setPolicy] = useState<OpeningInput['currency_policy']>('sdg_only');
   const [rows, setRows] = useState<Row[]>([]), [reason, setReason] = useState(''), [equityReason, setEquityReason] = useState('');
   const [capitalSdg, setCapitalSdg] = useState('0'), [capitalUsd, setCapitalUsd] = useState('0');
+  const [importEvidence, setImportEvidence] = useState<{ name: string; hash: string; count: number } | null>(null);
   const batchId = useRef(operationId());
   const [preview, setPreview] = useState<Preview | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [message, setMessage] = useState('');
   const [reauth, setReauth] = useState(false), [lotId, setLotId] = useState(''), [cashId, setCashId] = useState(''), [settlementDate, setSettlementDate] = useState(today);
@@ -57,6 +59,23 @@ export function OpeningBalancesCenter() {
     pending.current = null;
   };
   const update = (key: string, fields: Partial<Row>) => setRows(old => old.map(row => row.key === key ? { ...row, ...fields } : row));
+  const downloadOpeningTemplate = async () => execute(async () => {
+    const template = await createOpeningImportTemplate(), url = URL.createObjectURL(new Blob([template.bytes], { type: template.mime_type })), link = document.createElement('a');
+    link.href = url; link.download = template.filename; link.click(); URL.revokeObjectURL(url);
+    if (inScope()) setMessage('تم تنزيل قالب الأرصدة الرسمي.');
+  });
+  const importOpeningWorkbook = async (file: File) => execute(async () => {
+    const imported = await openingRequestFromWorkbook(file, { batch_id: batchId.current, date, reason: reason.trim(), currency_policy: policy });
+    if (!inScope()) return;
+    const term = new Map(imported.terms.map(row => [`${row.kind}:${row.source_id}`, row]));
+    const next: Row[] = [];
+    for (const row of imported.input.cash) next.push({ key: operationId(), kind: 'cash', id: row.id, currency: row.currency, amount: String(row.amount), quantity: '', unit_cost: '', rate: String(row.exchange_rate_used || ''), due: date, reference: '' });
+    for (const kind of ['receivables', 'payables'] as const) for (const row of imported.input[kind]) { const details = term.get(`${kind === 'receivables' ? 'receivable' : 'payable'}:${row.id}`); next.push({ key: operationId(), kind, id: row.id, currency: row.currency, amount: String(row.amount), quantity: '', unit_cost: '', rate: String(row.exchange_rate_used || ''), due: details?.due_date || date, reference: details?.reference || '' }); }
+    for (const row of imported.input.inventory) next.push({ key: operationId(), kind: 'inventory', id: row.id, currency: row.currency, amount: '', quantity: String(row.quantity), unit_cost: String(row.unit_cost), rate: String(row.exchange_rate_used || ''), due: date, reference: '' });
+    setRows(next); setCapitalSdg(String(imported.input.capital.sdg)); setCapitalUsd(String(imported.input.capital.usd)); setEquityReason(imported.input.equity_difference_reason || '');
+    setImportEvidence({ name: imported.file.name, hash: imported.file.hash, count: imported.source_count }); setPreview(null);
+    setMessage(`تمت قراءة ${imported.source_count} مصدراً من الملف. راجع البنود ثم نفّذ المعاينة المحمية؛ لم يُحفظ شيء.`);
+  });
   const masters = (kind: Kind) => kind === 'cash' ? financialAccounts.filter(a => a.status === 'active' && (policy === 'dual' || a.currency === 'SDG')) : kind === 'receivables' ? customers : kind === 'payables' ? suppliers.filter(a => a.status === 'active') : products.filter(a => a.track_inventory && a.is_active);
   const lot = openingLots.find(row => row.id === lotId);
   const events = openingSettlements.filter(row => row.lot_id === lotId).sort((a, b) => b.sequence - a.sequence);
@@ -73,6 +92,7 @@ export function OpeningBalancesCenter() {
       <div className="grid sm:grid-cols-2 gap-3"><label>تاريخ الأرصدة<input aria-label="تاريخ الأرصدة" type="date" value={date} onChange={e => setDate(e.target.value)} required disabled={busy} className={inputClass} /></label><label>سياسة العملات<select aria-label="سياسة العملات" value={policy} onChange={e => { setPolicy(e.target.value as typeof policy); setRows([]); }} disabled={busy} className={inputClass}><option value="sdg_only">الجنيه السوداني فقط</option><option value="dual">دفتران SDG وUSD بأسعار صريحة</option></select></label></div>
       <p>أنشئ فترة مفتوحة تغطي تاريخ الأرصدة، وجهّز العملاء والموردين والأصناف والحسابات المالية أولاً. تغيير سياسة العملات يمسح بنود المسودة.</p>
       <label className="block">سبب بدء الأرصدة<textarea aria-label="سبب بدء الأرصدة" value={reason} onChange={e => setReason(e.target.value)} maxLength={1000} required disabled={busy} className={inputClass} /></label>
+      <section aria-label="استيراد ملف الأرصدة" className="border border-sf-border rounded p-3 space-y-2"><h4 className="font-semibold">استيراد Excel آمن</h4><p>نزّل القالب الرسمي، أدخل المعرفات والقيم الثابتة، ثم ارفعه. القراءة تملأ المسودة فقط ولا ترحّل أي رصيد.</p><div className="flex flex-wrap gap-2"><button type="button" className={button} disabled={busy} onClick={() => void downloadOpeningTemplate()}>تنزيل قالب الأرصدة</button><label className={`${button} cursor-pointer`}>رفع ملف الأرصدة<input aria-label="رفع ملف الأرصدة" type="file" accept=".xlsx" className="sr-only" disabled={busy || !reason.trim()} onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void importOpeningWorkbook(file); }} /></label></div>{importEvidence && <p data-testid="opening-import-evidence">الملف: {importEvidence.name} · المصادر: {importEvidence.count} · البصمة: {importEvidence.hash.slice(0, 12)}…</p>}</section>
       <div className="flex flex-wrap gap-2">{(Object.keys(names) as Kind[]).map(kind => <button key={kind} type="button" disabled={busy || rows.length >= 97} className={button} onClick={() => setRows(old => [...old, { key: operationId(), kind, id: '', currency: 'SDG', amount: '', quantity: '', unit_cost: '', rate: '', due: date, reference: '' }])}>إضافة {names[kind]}</button>)}</div>
       {rows.map((row, index) => <fieldset key={row.key} disabled={busy} className="border border-sf-border rounded p-3 space-y-3"><legend>{names[row.kind]} — {index + 1}</legend>
         <label className="block">المصدر<select aria-label={`المصدر ${index + 1}`} required value={row.id} onChange={e => { const item = masters(row.kind).find(item => item.id === e.target.value); update(row.key, { id: e.target.value, ...(row.kind === 'cash' && item ? { currency: (item as { currency: 'SDG' | 'USD' }).currency } : {}) }); }} className={inputClass}><option value="">اختر مصدراً</option>{masters(row.kind).map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>

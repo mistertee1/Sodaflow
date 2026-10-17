@@ -2,8 +2,9 @@ import { test, expect, type Page } from '@playwright/test';
 import { freshOpeningBooksFixture } from '../fixtures/openingBooks';
 import { INITIAL_SETTINGS } from '../../src/data/initialData';
 import { createDefaultSubscription, getPlanConfig } from '../../src/lib/plans';
+import ExcelJS from 'exceljs';
 
-async function seed(page: Page, role = 'Owner') {
+async function seed(page: Page, role = 'Owner', openAccounting = true) {
   const org = 'local-guest-org', root = `organizations/${org}`, { data } = freshOpeningBooksFixture(org, 'guest');
   const records: Record<string, any> = {
     [root]: { id: org, owner_uid: role === 'Owner' ? 'guest' : 'other-owner', name: 'متجر اختبار الأرصدة', status: 'active', accounting_version: 2, settings: INITIAL_SETTINGS },
@@ -17,8 +18,7 @@ async function seed(page: Page, role = 'Owner') {
     localStorage.setItem('mohasbasd_guest_session', 'true'); localStorage.setItem('sudanese_merchant_has_seen_tour_v2', 'true');
     if (!localStorage.getItem('sudaflow_guest_transactions_v3')) localStorage.setItem('sudaflow_guest_transactions_v3', JSON.stringify(records));
   }, records);
-  await page.goto('/'); await page.locator('#tab-accounting').click();
-  await page.getByRole('button', { name: 'الأرصدة الافتتاحية والسداد', exact: true }).click();
+  await page.goto('/'); if (openAccounting) { await page.locator('#tab-accounting').click(); await page.getByRole('button', { name: 'الأرصدة الافتتاحية والسداد', exact: true }).click(); }
 }
 async function prepare(page: Page) {
   const center = page.getByRole('region', { name: 'الأرصدة الافتتاحية والسداد', exact: true });
@@ -34,6 +34,32 @@ async function prepare(page: Page) {
   return center;
 }
 const records = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}'));
+async function openingWorkbook() {
+  const workbook = new ExcelJS.Workbook(); const instructions = workbook.addWorksheet('Instructions'); instructions.addRow(['التعليمات']);
+  const sheets: Record<string, { headers: string[]; rows: unknown[][] }> = {
+    Cash: { headers: ['id','currency','amount','exchange_rate_used'], rows: [['cash','SDG',1000,'']] },
+    Receivables: { headers: ['id','currency','amount','exchange_rate_used','due_date','reference'], rows: [['a','SDG',100,'','2026-10-10','AR-XLSX']] },
+    Payables: { headers: ['id','currency','amount','exchange_rate_used','due_date','reference'], rows: [] },
+    Inventory: { headers: ['id','quantity','unit_cost','currency','exchange_rate_used'], rows: [] },
+    Capital: { headers: ['sdg','usd','equity_difference_reason'], rows: [[1100,0,'']] },
+  };
+  for (const [name, data] of Object.entries(sheets)) { const sheet = workbook.addWorksheet(name); sheet.addRow(data.headers); data.rows.forEach(row => sheet.addRow(row)); }
+  return Buffer.from(await workbook.xlsx.writeBuffer());
+}
+
+test('Excel2.2b imports official opening workbook into protected preview without writes', async ({ page }) => {
+  await seed(page); const center = page.getByRole('region', { name: 'الأرصدة الافتتاحية والسداد', exact: true }), before = await records(page);
+  await center.getByLabel('تاريخ الأرصدة', { exact: true }).fill('2026-10-01'); await center.getByLabel('سبب بدء الأرصدة').fill('استيراد راجعه المحاسب');
+  await center.getByLabel('رفع ملف الأرصدة').setInputFiles({ name: 'opening.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: await openingWorkbook() });
+  await expect(center.getByRole('status')).toContainText('تمت قراءة 2 مصدراً'); await expect(center.getByTestId('opening-import-evidence')).toContainText('opening.xlsx');
+  await expect(center.getByLabel('المصدر 1')).toHaveValue('cash'); await expect(center.getByLabel('المصدر 2')).toHaveValue('a'); await expect(center.getByLabel('مرجع الرصيد 2')).toHaveValue('AR-XLSX');
+  expect(await records(page)).toEqual(before); await center.getByRole('button', { name: 'معاينة الأرصدة بدون حفظ', exact: true }).click(); await expect(center.getByRole('region', { name: 'مراجعة الأرصدة' })).toBeVisible(); expect(await records(page)).toEqual(before);
+});
+
+test('Excel2.2b hides opening workbook import from unauthorized viewer', async ({ page }) => {
+  await seed(page, 'Viewer', false); await page.locator('#tab-accounting').click(); await expect(page.getByRole('button', { name: 'الأرصدة الافتتاحية والسداد', exact: true })).toHaveCount(0); await expect(page.getByLabel('رفع ملف الأرصدة')).toHaveCount(0);
+  expect(Object.keys(await records(page)).filter(path => path.includes('/opening_batches/'))).toHaveLength(0);
+});
 
 test('C2 wizard mobile read-only preview, owner confirmation, atomic commit and opening settlement persist after reload', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 }); await seed(page);

@@ -25,3 +25,14 @@ test('Excel3.1 rejects invalid presets, oversized direct exports and unauthorize
  await assert.rejects(ops.execute(org.id,owner,{action:'companyExport.record',operationId:'large',data:{schema_version:3,byte_size:900001,filename:'x.json',collection_counts:{}}}),/900KB/);
  await assert.rejects(ops.execute(org.id,viewer,{action:'companyExport.record',operationId:'denied',data:{schema_version:3,byte_size:10,filename:'x.json',collection_counts:{}}}),/صلاحية/);
 });
+
+test('Excel3.1 reserves full-company exports and company presets for the actual Owner',async()=>{
+ const owner:Actor={uid:'owner',email:'owner@example.com',emailVerified:true},store=new MemoryStore(),org=await new Organizations(store).create(owner,'Portable',{...INITIAL_SETTINGS},'setup',true),root=`organizations/${org.id}`;
+ await store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:'Enterprise',subscriptionEnd:'2027-01-01'});tx.set(`${root}/members/accountant`,{uid:'accountant',role:'Accountant',status:'active',org_id:org.id});tx.set(`${root}/members/imposter`,{uid:'imposter',role:'Owner',status:'active',org_id:org.id});});
+ const ops=new Operations(store),accountant:Actor={...owner,uid:'accountant',email:'accountant@example.com'},imposter:Actor={...owner,uid:'imposter',email:'imposter@example.com'};
+ await assert.rejects(ops.execute(org.id,accountant,{action:'companyExport.record',operationId:'accountant-company',data:{schema_version:3,byte_size:10,filename:'x.json',collection_counts:{}}}),/صلاحية/);
+ await assert.rejects(ops.execute(org.id,accountant,{action:'exportPreset.save',operationId:'accountant-company-preset',data:{name:'نسخة كاملة',kind:'company'}}),/مالك المؤسسة الفعلي/);
+ await assert.rejects(ops.execute(org.id,imposter,{action:'companyExport.record',operationId:'imposter-company',data:{schema_version:3,byte_size:10,filename:'x.json',collection_counts:{}}}),/مالك المؤسسة الفعلي/);
+ const accounting=await ops.execute(org.id,accountant,{action:'exportPreset.save',operationId:'accountant-accounting-preset',data:{name:'دفتر',kind:'accounting'}});
+ assert.equal(accounting.result.kind,'accounting');
+});

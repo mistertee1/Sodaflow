@@ -425,7 +425,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const sensitive = ['payables:read', 'audit_logs:view', 'journal:read', 'accounts:read', 'periods:read'];
     const readOnly = action.endsWith(':read') || action === 'members:view';
     if (!active && (!readOnly || sensitive.includes(action))) return false;
-    const features: Partial<Record<ActionType, string>> = { 'tax:read': 'accounting', 'tax:manage': 'accounting', 'equity:write': 'accounting', 'opening:preview': 'accounting', 'opening:write': 'accounting', 'opening:settle': 'accounting', 'periods:read': 'accounting', 'periods:manage': 'accounting', 'periods:adjust': 'accounting', 'periods:reopen': 'accounting', 'payables:read': 'accounting', 'payables:write': 'accounting', 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting' };
+    const features: Partial<Record<ActionType, string>> = { 'tax:read': 'accounting', 'tax:manage': 'accounting', 'equity:write': 'accounting', 'opening:preview': 'accounting', 'opening:write': 'accounting', 'opening:settle': 'accounting', 'periods:read': 'accounting', 'periods:manage': 'accounting', 'periods:adjust': 'accounting', 'periods:reopen': 'accounting', 'payables:read': 'accounting', 'payables:write': 'accounting', 'reports:advanced': 'advanced_reports', 'products:stock_adjustment': 'inventory_tracking', 'audit_logs:view': 'audit_trail', 'journal:create': 'accounting', 'journal:read': 'accounting', 'accounts:create': 'accounting', 'accounts:update': 'accounting', 'accounts:read': 'accounting', 'export:company': 'accounting' };
     if (features[action] && state.subscription.features[features[action]!] !== true) return false;
     if (action === 'invoices:create' && invoiceQuotaReached(state.subscription, state.counters.lifetime_invoice_count || state.counters.invoice_count, state.counters.monthly_invoice_count || 0)) return false;
     return true;
@@ -461,6 +461,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   const createCompanyExport = async (presetId?:string) => {
     const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('اختر مؤسسة أولاً.');
+    if(snapshot.current.role!=='Owner'||snapshot.current.org.owner_uid!==(userRef.current?.uid||guestActor.uid))throw new BusinessError('تصدير الشركة الكامل متاح لمالك المؤسسة الفعلي فقط.',403);
     const full=id===guestId?await getGuest().snapshot(id,guestActor,true):await firebaseSnapshot(id,true);
     if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد التصدير.',409);
     const json=JSON.stringify(full,null,2),byte_size=new TextEncoder().encode(json).length; if(byte_size>900000)throw new BusinessError('التصدير المباشر الكامل محدود بـ900KB؛ استخدم مهمة التصدير الكبيرة.',413);

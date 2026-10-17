@@ -76,7 +76,7 @@ const actions: Record<string, ActionType> = {
   'bankReconciliation.create': 'journal:create', 'cashCount.create': 'journal:create',
   'financialAccount.create': 'accounts:create', 'financialAccount.update': 'accounts:update', 'cashTransfer.create': 'journal:create',
   'correctionDocument.export': 'backup:export', 'operational.export': 'backup:export', 'payables.export': 'backup:export', 'supplier.create': 'payables:write', 'supplier.update': 'payables:write', 'purchase.create': 'payables:write', 'supplierPayment.create': 'payables:write',
-  'masterExport.create': 'org:read', 'accountingExport.create': 'export:accounting', 'companyExport.record':'backup:export',
+  'masterExport.create': 'org:read', 'accountingExport.create': 'export:accounting', 'companyExport.record':'export:company',
   'exportPreset.save':'export:accounting', 'exportPreset.delete':'export:accounting',
   'masterImport.stage': 'org:read',
   'customer.create': 'customers:create', 'customer.update': 'customers:update', 'customer.delete': 'customers:delete',
@@ -587,6 +587,7 @@ export class Operations {
         }
         case 'exportPreset.save': {
           const kind=String(data.kind||'');ensure(['company','accounting','master'].includes(kind),'نوع إعداد التصدير غير صالح.');
+          ensure(kind!=='company'||role==='Owner'&&org.owner_uid===actor.uid,'تصدير الشركة الكامل وإعداداته متاحان لمالك المؤسسة الفعلي فقط.',403);
           const id=data.id?identifier(data.id):`export-preset-${command.operationId}`,name=text(data.name,80,true);const old=data.id?await required('export_presets',id):undefined;
           const module=data.module===undefined?'':String(data.module);if(kind==='master')masterExportModule(module);else ensure(!module,'الوحدة مسموحة لتصدير البيانات الرئيسية فقط.');
           const period=(data.period||{}) as {start?:string;end?:string};if(period.start)dateOnly(period.start);if(period.end)dateOnly(period.end);ensure(!period.start||!period.end||period.start<=period.end,'فترة إعداد التصدير غير صالحة.');ensure(kind==='accounting'||(!period.start&&!period.end),'الفترة مسموحة لدفتر المحاسب فقط.');
@@ -596,6 +597,7 @@ export class Operations {
           const id=identifier(data.id),preset=await required('export_presets',id);ensure(preset.org_id===orgId,'إعداد التصدير من مؤسسة أخرى.',409);remove(`${root}/export_presets/${id}`);result={id,deleted:true};break;
         }
         case 'companyExport.record': {
+          ensure(role==='Owner'&&org.owner_uid===actor.uid,'تصدير الشركة الكامل متاح لمالك المؤسسة الفعلي فقط.',403);assertFeature(subscription,'accounting');
           ensure(data.schema_version===3,'إصدار حزمة الشركة غير مدعوم.');const byteSize=Number(data.byte_size);ensure(Number.isSafeInteger(byteSize)&&byteSize>0&&byteSize<=900000,'التصدير المباشر الكامل محدود بـ900KB؛ استخدم مهمة التصدير الكبيرة.',413);
           const counts=data.collection_counts;ensure(counts&&typeof counts==='object'&&!Array.isArray(counts)&&Object.keys(counts).length<=60,'ملخص مجموعات التصدير غير صالح.');for(const [name,count] of Object.entries(counts)){identifier(name);ensure(Number.isSafeInteger(count)&&Number(count)>=0,'عدد سجلات التصدير غير صالح.');}
           const presetId=data.preset_id?identifier(data.preset_id):'';if(presetId)ensure(await tx.get(`${root}/export_presets/${presetId}`),'إعداد التصدير غير موجود.',404);

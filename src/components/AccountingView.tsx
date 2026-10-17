@@ -14,6 +14,7 @@ import { AccountingHealthCenter } from './accounting/AccountingHealthCenter';
 import { AccountingAssistanceCenter } from './accounting/AccountingAssistanceCenter';
 import { OwnerFinancialSummaryCenter } from './accounting/OwnerFinancialSummaryCenter';
 import { DataExportCenter } from './accounting/DataExportCenter';
+import { DataImportCenter } from './accounting/DataImportCenter';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { api } from '../services/businessApi';
 import type { Operations } from '../domain/operations';
@@ -98,7 +99,7 @@ export const AccountingView: React.FC = () => {
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<
-    'exports' | 'opening' | 'equity' | 'fx' | 'assets' | 'tax' | 'dimensions' | 'profitability' | 'budgets' | 'approvals' | 'forecast' | 'health' | 'assistance' | 'owner-summary' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
+    'imports' | 'exports' | 'opening' | 'equity' | 'fx' | 'assets' | 'tax' | 'dimensions' | 'profitability' | 'budgets' | 'approvals' | 'forecast' | 'health' | 'assistance' | 'owner-summary' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
   >('coa');
   const [reportStart, setReportStart] = useState('');
   const [reportEnd, setReportEnd] = useState('');
@@ -476,6 +477,7 @@ export const AccountingView: React.FC = () => {
           {isActionAllowed('reports:advanced') && isActionAllowed('journal:read') && <button data-testid="accounting-assistance-tab" onClick={() => setActiveSubTab('assistance')} aria-pressed={activeSubTab === 'assistance'} className="sf-secondary shrink-0 whitespace-nowrap">مساعد المحاسبة</button>}
           {userRole==='Owner' && isActionAllowed('reports:advanced') && <button data-testid="owner-financial-summary-tab" onClick={() => setActiveSubTab('owner-summary')} aria-pressed={activeSubTab === 'owner-summary'} className="sf-secondary shrink-0 whitespace-nowrap">ملخص المالك</button>}
           {(['customers','suppliers','products','invoices'] as const).some(module=>isActionAllowed(`export:${module}`)) && <button data-testid="data-export-tab" onClick={() => setActiveSubTab('exports')} aria-pressed={activeSubTab === 'exports'} className="sf-secondary shrink-0 whitespace-nowrap">تصدير البيانات</button>}
+          {(['customers','suppliers','products'] as const).some(module=>isActionAllowed(`import:${module}`)) && <button data-testid="data-import-tab" onClick={() => setActiveSubTab('imports')} aria-pressed={activeSubTab === 'imports'} className="sf-secondary shrink-0 whitespace-nowrap">استيراد البيانات</button>}
           {isActionAllowed('payables:read') && <button onClick={() => setActiveSubTab('payables')} aria-pressed={activeSubTab === 'payables'} className="sf-secondary shrink-0 whitespace-nowrap">الموردون والمشتريات</button>}
           <button
             onClick={() => setActiveSubTab('coa')}
@@ -973,6 +975,7 @@ export const AccountingView: React.FC = () => {
       {activeSubTab === 'assistance' && <AccountingAssistanceCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'owner-summary' && <OwnerFinancialSummaryCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'exports' && <DataExportCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
+      {activeSubTab === 'imports' && <DataImportCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'payables' && <PayablesCenter />}
 
       {activeSubTab === 'period_lock' && <AccountingPeriodsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}

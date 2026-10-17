@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel2",
-  "active_branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
+  "active_branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1889,9 +1889,33 @@
         {
           "id": "Excel2.3",
           "scope": "PRD50 bank statement CSV/Excel staging and manual matching import",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed",
+          "branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
+          "pr": 93,
+          "substeps": [
+            {
+              "id": "Excel2.3a",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
+              "pr": 92
+            },
+            {
+              "id": "Excel2.3b",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
+              "pr": 93,
+              "ci": {
+                "run_id": 38922608293,
+                "conclusion": "success",
+                "pretest": 13,
+                "unit_api": 370,
+                "emulator": 35,
+                "ui": 89,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            }
+          ]
         }
       ]
     },
@@ -1970,7 +1994,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel2.3b",
+  "active_substep": "Excel3.1",
   "observed_main_sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
   "lease_history": [
     {
@@ -2340,31 +2364,41 @@
       "pr": 92,
       "code_commit": "80b094a422d31aa440d9f392644bff855f46c02e",
       "status": "Excel2.3a_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel2-bank-matching-ui-20261016",
+      "round_id": "20261016T151200Z-excel2.3b",
+      "base_branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
+      "acquired_at": "2026-10-16T15:12:00Z",
+      "branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
+      "released_at": "2026-10-16T15:32:00Z",
+      "pr": 93,
+      "code_commit": "ee7f31378fcb5168286082adcd50294de00cd126",
+      "status": "Excel2.3b_implemented_ci_passed_render_acceptance_pending"
     }
   ],
   "last_lease": {
-    "worker": "excel2-bank-import-20261016",
-    "round_id": "20261016T113000Z-excel2.3a",
-    "base_branch": "codex/accounting-v2-excel2-opening-ui-20261016",
-    "acquired_at": "2026-10-16T11:30:00Z",
-    "branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
-    "released_at": "2026-10-16T14:55:00Z",
-    "pr": 92,
-    "code_commit": "80b094a422d31aa440d9f392644bff855f46c02e",
-    "status": "Excel2.3a_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-16T14:55:00Z",
+    "worker": "excel2-bank-matching-ui-20261016",
+    "round_id": "20261016T151200Z-excel2.3b",
+    "base_branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
+    "acquired_at": "2026-10-16T15:12:00Z",
+    "branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
+    "released_at": "2026-10-16T15:32:00Z",
+    "pr": 93,
+    "code_commit": "ee7f31378fcb5168286082adcd50294de00cd126",
+    "status": "Excel2.3b_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-16T15:32:00Z",
     "ci": {
-      "run_id": 38894360112,
-      "commit_sha": "80b094a422d31aa440d9f392644bff855f46c02e",
+      "run_id": 38922608293,
+      "commit_sha": "ee7f31378fcb5168286082adcd50294de00cd126",
       "conclusion": "success",
-      "bank_statement_import": 5,
       "pretest": 13,
       "unit_api": 370,
       "emulator": 35,
       "ui": 89,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to Excel2.3b protected bank statement import UI and manual ledger matching; Render acceptance remains independent"
+    "next": "Proceed to Excel3.1 full company export, data portability, saved presets and import/export histories; Render acceptance remains independent"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -2378,7 +2412,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to Excel2.3b protected bank statement import UI and manual ledger matching from PR92; retain independent Render acceptance",
+  "next": "Proceed to Excel3.1 full company export, data portability, saved presets and import/export histories from PR93; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2399,27 +2433,26 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "excel2-bank-import-20261016",
-    "round_id": "20261016T113000Z-excel2.3a",
-    "acquired_at": "2026-10-16T11:30:00Z",
-    "branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
-    "released_at": "2026-10-16T14:55:00Z",
-    "pr": 92,
-    "code_commit": "80b094a422d31aa440d9f392644bff855f46c02e",
-    "status": "Excel2.3a_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-16T14:55:00Z",
+    "worker": "excel2-bank-matching-ui-20261016",
+    "round_id": "20261016T151200Z-excel2.3b",
+    "acquired_at": "2026-10-16T15:12:00Z",
+    "branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
+    "released_at": "2026-10-16T15:32:00Z",
+    "pr": 93,
+    "code_commit": "ee7f31378fcb5168286082adcd50294de00cd126",
+    "status": "Excel2.3b_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-16T15:32:00Z",
     "ci": {
-      "run_id": 38894360112,
-      "commit_sha": "80b094a422d31aa440d9f392644bff855f46c02e",
+      "run_id": 38922608293,
+      "commit_sha": "ee7f31378fcb5168286082adcd50294de00cd126",
       "conclusion": "success",
-      "bank_statement_import": 5,
       "pretest": 13,
       "unit_api": 370,
       "emulator": 35,
       "ui": 89,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to Excel2.3b protected bank statement import UI and manual ledger matching; Render acceptance remains independent"
+    "next": "Proceed to Excel3.1 full company export, data portability, saved presets and import/export histories; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

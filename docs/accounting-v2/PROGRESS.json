@@ -4,15 +4,15 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "Excel2",
+  "active_milestone": "Excel3",
   "active_branch": "codex/accounting-v2-excel3-company-portability-20261016",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "excel3-company-portability-20261016",
-    "round_id": "20261016T161500Z-excel3.1",
+    "worker": "excel3-company-portability-resume-20261017",
+    "round_id": "20261017T205114Z-excel3.1-resume",
     "base_branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
-    "acquired_at": "2026-10-16T16:15:00Z",
-    "expires_at": "2026-10-16T17:15:00Z",
+    "acquired_at": "2026-10-17T20:51:14.480Z",
+    "expires_at": "2026-10-17T23:51:14.480Z",
     "branch": "codex/accounting-v2-excel3-company-portability-20261016"
   },
   "milestones": [

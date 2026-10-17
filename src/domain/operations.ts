@@ -76,7 +76,8 @@ const actions: Record<string, ActionType> = {
   'bankReconciliation.create': 'journal:create', 'cashCount.create': 'journal:create',
   'financialAccount.create': 'accounts:create', 'financialAccount.update': 'accounts:update', 'cashTransfer.create': 'journal:create',
   'correctionDocument.export': 'backup:export', 'operational.export': 'backup:export', 'payables.export': 'backup:export', 'supplier.create': 'payables:write', 'supplier.update': 'payables:write', 'purchase.create': 'payables:write', 'supplierPayment.create': 'payables:write',
-  'masterExport.create': 'org:read', 'accountingExport.create': 'export:accounting',
+  'masterExport.create': 'org:read', 'accountingExport.create': 'export:accounting', 'companyExport.record':'export:company',
+  'exportPreset.save':'export:accounting', 'exportPreset.delete':'export:accounting',
   'masterImport.stage': 'org:read',
   'customer.create': 'customers:create', 'customer.update': 'customers:update', 'customer.delete': 'customers:delete',
   'product.create': 'products:create', 'product.update': 'products:update', 'product.delete': 'products:delete', 'product.stock': 'products:stock_adjustment',
@@ -89,6 +90,7 @@ const actions: Record<string, ActionType> = {
   'invitation.create': 'members:invite', 'invitation.revoke': 'members:invite', 'backup.restore': 'backup:restore',
 };
 export const readPermissions: Record<string, ActionType> = { branches:'dimensions:read',cost_centers:'dimensions:read',projects:'dimensions:read',tax_configurations:'tax:read',tax_configuration_versions:'tax:read',fixed_assets:'journal:read',fixed_asset_depreciations:'journal:read',fx_revaluations:'journal:read', owner_equity_events:'journal:read', ...Object.fromEntries(openingCollections.map(name=>[name,'journal:read' as const])), accounting_periods:'periods:read', audit_archives: 'audit_logs:view', purchase_returns: 'payables:read', supplier_refunds: 'payables:read', credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
+readPermissions.export_presets = 'export:accounting';
 readPermissions.approval_policies = 'approvals:read';
 readPermissions.budgets = 'budget:read';
 readPermissions.recurring_cash_sources = 'budget:read';
@@ -583,6 +585,24 @@ export class Operations {
           const [accounts,entries,bank,cash]=await Promise.all(['accounts','journal_entries','bank_reconciliations','cash_reconciliations'].map(name=>tx.list(`${root}/${name}`)));
           result=buildAccountingExport({orgId,role,createdAt:iso,operationId:command.operationId,period,accounts:accounts as Account[],entries:entries as JournalEntry[],reconciliations:[...bank,...cash],settings});break;
         }
+        case 'exportPreset.save': {
+          const kind=String(data.kind||'');ensure(['company','accounting','master'].includes(kind),'نوع إعداد التصدير غير صالح.');
+          ensure(kind!=='company'||role==='Owner'&&org.owner_uid===actor.uid,'تصدير الشركة الكامل وإعداداته متاحان لمالك المؤسسة الفعلي فقط.',403);
+          const id=data.id?identifier(data.id):`export-preset-${command.operationId}`,name=text(data.name,80,true);const old=data.id?await required('export_presets',id):undefined;
+          const module=data.module===undefined?'':String(data.module);if(kind==='master')masterExportModule(module);else ensure(!module,'الوحدة مسموحة لتصدير البيانات الرئيسية فقط.');
+          const period=(data.period||{}) as {start?:string;end?:string};if(period.start)dateOnly(period.start);if(period.end)dateOnly(period.end);ensure(!period.start||!period.end||period.start<=period.end,'فترة إعداد التصدير غير صالحة.');ensure(kind==='accounting'||(!period.start&&!period.end),'الفترة مسموحة لدفتر المحاسب فقط.');
+          result={...old,id,org_id:orgId,name,kind,...(module?{module}:{}),...(period.start||period.end?{period}:{}),created_by:old?.created_by||actor.uid,created_at:old?.created_at||iso,updated_by:actor.uid,updated_at:iso};set(`${root}/export_presets/${id}`,result);break;
+        }
+        case 'exportPreset.delete': {
+          const id=identifier(data.id),preset=await required('export_presets',id);ensure(preset.org_id===orgId,'إعداد التصدير من مؤسسة أخرى.',409);remove(`${root}/export_presets/${id}`);result={id,deleted:true};break;
+        }
+        case 'companyExport.record': {
+          ensure(role==='Owner'&&org.owner_uid===actor.uid,'تصدير الشركة الكامل متاح لمالك المؤسسة الفعلي فقط.',403);assertFeature(subscription,'accounting');
+          ensure(data.schema_version===3,'إصدار حزمة الشركة غير مدعوم.');const byteSize=Number(data.byte_size);ensure(Number.isSafeInteger(byteSize)&&byteSize>0&&byteSize<=900000,'التصدير المباشر الكامل محدود بـ900KB؛ استخدم مهمة التصدير الكبيرة.',413);
+          const counts=data.collection_counts;ensure(counts&&typeof counts==='object'&&!Array.isArray(counts)&&Object.keys(counts).length<=60,'ملخص مجموعات التصدير غير صالح.');for(const [name,count] of Object.entries(counts)){identifier(name);ensure(Number.isSafeInteger(count)&&Number(count)>=0,'عدد سجلات التصدير غير صالح.');}
+          const presetId=data.preset_id?identifier(data.preset_id):'';if(presetId)ensure(await tx.get(`${root}/export_presets/${presetId}`),'إعداد التصدير غير موجود.',404);
+          result={id:`company-export-${command.operationId}`,schema_version:3,export_type:'company',format:'json',filename:text(data.filename,160,true),byte_size:byteSize,collection_counts:counts,preset_id:presetId||null,created_at:iso};break;
+        }
         case 'masterImport.stage': {
           const module=masterImportModule(data.module),existing=await tx.list(`${root}/${module}`),sessions=await tx.list(`${root}/import_sessions`);
           const preview=buildMasterImportPreview(data as never,existing,sessions,{orgId,actor:actor.uid,operationId:command.operationId,createdAt:iso});
@@ -1023,6 +1043,7 @@ export class Operations {
       const audit = {...(isEquity?{reauthentication:{auth_time:actor.authTime},owner_equity_evidence:{event_id:result.id,journal_id:result.journal_id,sequence:result.sequence,quote:result.quote}}:{}), ...(isTaxConfiguration?{reauthentication:{auth_time:actor.authTime},tax_configuration_evidence:{configuration_id:result.id,revision:result.revision,version_id:`${result.id}-r${result.revision}`}}:{}), ...(openingProof?{opening_evidence:openingProof,...(command.action==='opening.commit'?{reauthentication:{auth_time:actor.authTime}}:{})}:{}), ...(command.action==='period.reopen'?{reauthentication:{auth_time:actor.authTime}}:{}), ...(command.action==='settings.update' && Object.prototype.hasOwnProperty.call(data.updates,'period_lock_date')?{legacy_period_lock:{previous:settings.period_lock_date||null,new:data.updates.period_lock_date||null}}:{}), ...(command.action === 'correctionDocument.export' ? { event_type: 'DATA_EXPORT_CREATED', export_metadata: { format: 'pdf', document_type: result.document_type, document_id: result.document.id, source_id: result.source.id, schema_version: result.schema_version, record_count: 1 } } : {}), ...(command.action === 'operational.export' ? { export_metadata: { report: data.view, period: result.period, account_code: data.query?.accountCode || '', currency: data.query?.currency || 'SDG/USD' } } : {}), ...(command.action === 'payables.export' ? { export_metadata: { report: 'payables', period: result.period } } : {}), actor_role: role, reason: isEquity?result.input.reason:isOpening?result.reason:data.reason || '', cost_evidence: costEvidence, previous_state: previousState, new_state: newState, id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
       if(command.action==='masterExport.create')Object.assign(audit,{event_type:'DATA_EXPORT_CREATED',export_metadata:{export_type:'quick',format:result.format,module:result.module,record_count:result.record_count,masked_fields:result.masked_fields}});
       if(command.action==='accountingExport.create')Object.assign(audit,{event_type:'DATA_EXPORT_CREATED',export_metadata:{export_type:'accounting',format:result.format,record_count:result.record_count,line_count:result.line_count,period:result.period,schema_version:result.schema_version}});
+      if(command.action==='companyExport.record')Object.assign(audit,{event_type:'DATA_EXPORT_CREATED',export_metadata:{export_type:'company',format:'json',byte_size:result.byte_size,collection_counts:result.collection_counts,preset_id:result.preset_id,schema_version:result.schema_version}});
       if(command.action==='masterImport.stage')Object.assign(audit,{event_type:'DATA_IMPORT_STARTED',import_metadata:{import_type:result.import_type,file_name:result.file_name,file_hash:result.file_hash,totals:result.totals,status:'previewed',schema_version:result.schema_version}});
       if(isOpening)ensure(new TextEncoder().encode(JSON.stringify(audit)).length<=650000,'حجم تدقيق الأرصدة يتجاوز حد المستند.',413);
       tx.set(`${root}/audit_logs/${audit.id}`, audit);

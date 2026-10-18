@@ -2,7 +2,7 @@ import type { Document } from './store';
 import { ensure, identifier } from './validation';
 import { masterImportModule, type MasterImportModule } from './masterImport';
 
-export type LargeImportJobStatus = 'queued'|'running'|'failed'|'cancelled'|'awaiting_commit'|'completed';
+export type LargeImportJobStatus = 'queued'|'running'|'failed'|'cancelled'|'awaiting_commit'|'completed'|'rolled_back';
 export interface LargeImportContext { orgId:string; actorUid:string; actorRole:string; operationId:string; now:Date; }
 
 const allowed=(value:Document,keys:string[])=>ensure(Object.keys(value).every(key=>keys.includes(key)),'حقول مهمة الاستيراد غير صالحة أو محمية.');

@@ -58,6 +58,7 @@ import { approvalGate, saveApprovalPolicy } from './approvalPolicies';
 import { buildMasterExport, masterExportModule, masterExportPermission } from './masterExport';
 import { assertMasterImportPayload, buildMasterImportPreview, masterImportModule, masterImportPermission } from './masterImport';
 import { cancelLargeExportJob, requestLargeExportJob, retryLargeExportJob } from './largeExportJobs';
+import { cancelLargeImportJob, requestLargeImportJob, retryLargeImportJob } from './largeImportJobs';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
@@ -80,7 +81,7 @@ const actions: Record<string, ActionType> = {
   'masterExport.create': 'org:read', 'accountingExport.create': 'export:accounting', 'companyExport.record':'export:company',
   'exportPreset.save':'export:accounting', 'exportPreset.delete':'export:accounting',
   'largeExport.request':'export:accounting', 'largeExport.cancel':'export:accounting', 'largeExport.retry':'export:accounting',
-  'masterImport.stage': 'org:read',
+  'masterImport.stage': 'org:read', 'largeImport.request':'org:read', 'largeImport.cancel':'org:read', 'largeImport.retry':'org:read',
   'customer.create': 'customers:create', 'customer.update': 'customers:update', 'customer.delete': 'customers:delete',
   'product.create': 'products:create', 'product.update': 'products:update', 'product.delete': 'products:delete', 'product.stock': 'products:stock_adjustment',
   'accounting.activate': 'org:update_settings', 'product.cost.establish': 'products:stock_adjustment', 'inventory.receive': 'products:stock_adjustment',
@@ -265,6 +266,8 @@ export class Operations {
         const activeSubscription = ['active', 'trial'].includes(subscription.effective_status || subscription.status) && org.status === 'active';
         collections[name] = hasPermission(role, permission) && (backup || !feature || activeSubscription && subscription.features[feature] === true) ? await tx.list(`${root}/${name}`) : [];
       }
+      collections.large_import_jobs=['active','trial'].includes(subscription.effective_status||subscription.status)&&org.status==='active'&&subscription.features.accounting===true
+        ?(await tx.list(`${root}/large_import_jobs`)).filter(job=>hasPermission(role,masterImportPermission(masterImportModule(job.module)))):[];
       if (backup) { await verifyTaxConfigurationSources(collections,orgId);verifyFixedAssetSources(collections,orgId);verifyFxRevaluationSources(collections,orgId);verifyEquitySources(collections,orgId); await verifyAuditArchives(collections.audit_archives); await verifyClosedPeriodHashes(collections.accounting_periods,collections.journal_entries,collections); if(hasOpeningSources(collections))verifyOpeningSources(collections,orgId); }
       const counters = { ...DEFAULT_ORGANIZATION_COUNTERS, ...await tx.get(`${root}/meta/counters`) };
       if (backup) { ensure((counters.audit_archive_count || 0) === collections.audit_archives.length, 'عدد أرشيف التدقيق لا يطابق السجل المحفوظ.', 409); counters.audit_event_count = collections.audit_logs.length; counters.accounting_period_count=collections.accounting_periods.length; Object.assign(counters,openingBackupCounts(collections),equityBackupCounts(collections),fxRevaluationBackupCounts(collections),fixedAssetBackupCounts(collections),taxConfigurationBackupCounts(collections)); }
@@ -303,6 +306,10 @@ export class Operations {
       if (command.action === 'masterImport.stage') {
         assertMasterImportPayload(command.data);
         ensure(hasPermission(role, masterImportPermission(masterImportModule(command.data.module))), 'ليس لديك صلاحية استيراد هذه البيانات.', 403);
+      }
+      if(command.action==='largeImport.request'){
+        const sessionId=identifier(command.data.session_id),session=await tx.get(`${root}/import_sessions/${sessionId}`);
+        ensure(session,'جلسة الاستيراد غير موجودة.',404);ensure(hasPermission(role,masterImportPermission(masterImportModule(session.import_type))),'ليس لديك صلاحية استيراد هذه البيانات.',403);
       }
       if (command.action === 'operational.export') {
         ensure(operationalPermissions(command.data.view).every(permission => hasPermission(role, permission)), 'ليس لديك صلاحية هذا التقرير.', 403);
@@ -632,6 +639,22 @@ export class Operations {
           ensure(Object.keys(data).every(key=>['id'].includes(key)),'حقول إعادة محاولة التصدير غير صالحة.');
           result=retryLargeExportJob(job,{orgId,actorUid:actor.uid,actorRole:role,ownerUid:org.owner_uid,operationId:command.operationId,now});
           set(`${root}/${collection}/${id}`,result);tx.set(`large_export_queue/${orgId}.${id}`,{id:`${orgId}.${id}`,org_id:orgId,job_id:id,collection,created_at:iso});break;
+        }
+        case 'largeImport.request': {
+          assertFeature(subscription,'accounting');const sessionId=identifier(data.session_id),session=await required('import_sessions',sessionId),staging=await required('import_staging',sessionId);
+          const active=await tx.list(`${root}/large_import_jobs`);
+          result=requestLargeImportJob(data,session,staging,active,{orgId,actorUid:actor.uid,actorRole:role,operationId:command.operationId,now});
+          set(`${root}/large_import_jobs/${result.id}`,result);tx.set(`large_import_queue/${orgId}.${result.id}`,{id:`${orgId}.${result.id}`,org_id:orgId,job_id:result.id,created_at:iso});break;
+        }
+        case 'largeImport.cancel': {
+          const id=identifier(data.id);ensure(Object.keys(data).every(key=>key==='id'),'حقول إلغاء مهمة الاستيراد غير صالحة.');
+          const job=await required('large_import_jobs',id);ensure(hasPermission(role,masterImportPermission(masterImportModule(job.module))),'ليس لديك صلاحية استيراد هذه البيانات.',403);
+          result=cancelLargeImportJob(job,{orgId,actorUid:actor.uid,actorRole:role,operationId:command.operationId,now});set(`${root}/large_import_jobs/${id}`,result);tx.delete(`large_import_queue/${orgId}.${id}`);break;
+        }
+        case 'largeImport.retry': {
+          const id=identifier(data.id);ensure(Object.keys(data).every(key=>key==='id'),'حقول إعادة مهمة الاستيراد غير صالحة.');
+          const job=await required('large_import_jobs',id);ensure(hasPermission(role,masterImportPermission(masterImportModule(job.module))),'ليس لديك صلاحية استيراد هذه البيانات.',403);
+          result=retryLargeImportJob(job,{orgId,actorUid:actor.uid,actorRole:role,operationId:command.operationId,now});set(`${root}/large_import_jobs/${id}`,result);tx.set(`large_import_queue/${orgId}.${id}`,{id:`${orgId}.${id}`,org_id:orgId,job_id:id,created_at:iso});break;
         }
         case 'masterImport.stage': {
           const module=masterImportModule(data.module),existing=await tx.list(`${root}/${module}`),sessions=await tx.list(`${root}/import_sessions`);
@@ -1078,6 +1101,9 @@ export class Operations {
       if(command.action==='largeExport.cancel')Object.assign(audit,{event_type:'DATA_EXPORT_CANCELLED',export_metadata:{export_type:result.kind,format:result.format,status:result.status,attempt:result.attempt}});
       if(command.action==='largeExport.retry')Object.assign(audit,{event_type:'DATA_EXPORT_RETRIED',export_metadata:{export_type:result.kind,format:result.format,status:result.status,attempt:result.attempt}});
       if(command.action==='masterImport.stage')Object.assign(audit,{event_type:'DATA_IMPORT_STARTED',import_metadata:{import_type:result.import_type,file_name:result.file_name,file_hash:result.file_hash,totals:result.totals,status:'previewed',schema_version:result.schema_version}});
+      if(command.action==='largeImport.request')Object.assign(audit,{event_type:'DATA_IMPORT_QUEUED',import_metadata:{import_type:result.module,file_hash:result.file_hash,status:result.status,total_rows:result.total_rows,duplicate_policy:result.duplicate_policy,schema_version:result.schema_version}});
+      if(command.action==='largeImport.cancel')Object.assign(audit,{event_type:'DATA_IMPORT_CANCELLED',import_metadata:{import_type:result.module,status:result.status,total_rows:result.total_rows,attempt:result.attempt}});
+      if(command.action==='largeImport.retry')Object.assign(audit,{event_type:'DATA_IMPORT_RETRIED',import_metadata:{import_type:result.module,status:result.status,total_rows:result.total_rows,attempt:result.attempt}});
       if(isOpening)ensure(new TextEncoder().encode(JSON.stringify(audit)).length<=650000,'حجم تدقيق الأرصدة يتجاوز حد المستند.',413);
       tx.set(`${root}/audit_logs/${audit.id}`, audit);
       const visible = changes.filter(c => {

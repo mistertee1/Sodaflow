@@ -139,6 +139,10 @@ interface AppContextType {
   deleteExportPreset: (id:string) => Promise<void>;
   createCompanyExport: (presetId?:string) => Promise<{json:string;filename:string;byte_size:number;collection_counts:Record<string,number>}>;
   stageMasterImport: (input: MasterImportInput) => Promise<Document>;
+  largeImportJobs: Document[];
+  requestLargeImport: (sessionId:string,duplicatePolicy:'skip'|'update') => Promise<Document>;
+  cancelLargeImport: (id:string) => Promise<Document>;
+  retryLargeImport: (id:string) => Promise<Document>;
   // Actions
   updateSettings: (newSettings: Partial<MerchantSettings>, reason?: string, expectedOrgId?: string) => Promise<void>;
   addCustomer: (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Promise<Customer>;
@@ -603,7 +607,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isActionAllowed, createMasterExport: module => run('masterExport.create',{module}), createAccountingExport:period=>run('accountingExport.create',{period}),
     exportPresets:rows<Document>('export_presets'),dataTransferHistory:rows<Document>('audit_logs').filter(row=>['DATA_EXPORT_CREATED','DATA_IMPORT_STARTED'].includes(row.event_type)).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
     saveExportPreset:input=>run('exportPreset.save',input),deleteExportPreset:async id=>{await run('exportPreset.delete',{id});},createCompanyExport,
-    stageMasterImport: input => run('masterImport.stage',input as unknown as Document), switchOrganization, createNewOrg,
+    stageMasterImport: input => run('masterImport.stage',input as unknown as Document),
+    largeImportJobs:rows<Document>('large_import_jobs').sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
+    requestLargeImport:(sessionId,duplicatePolicy)=>run('largeImport.request',{session_id:sessionId,reviewed:true,duplicate_policy:duplicatePolicy}),
+    cancelLargeImport:id=>run('largeImport.cancel',{id}),retryLargeImport:id=>run('largeImport.retry',{id}), switchOrganization, createNewOrg,
     inviteMember: async (email, role) => { await run('invitation.create', { email, role }); },
     updateMemberRole: async (uid, role) => { await run('member.update', { uid, role }); },
     removeMember: async uid => { await run('member.remove', { uid }); },

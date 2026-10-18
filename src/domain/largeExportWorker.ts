@@ -15,7 +15,7 @@ const cleanFailure=(_error:unknown)=>({code:'export_generation_failed',message:'
 const audit=(eventType:string,job:Document,at:string)=>({id:`audit-${job.id}-${eventType.toLowerCase()}-${job.attempt}`,org_id:job.org_id,event_type:eventType,actor_uid:'system:large-export-worker',created_at:at,export_metadata:{export_type:job.kind,format:job.format,status:job.status,attempt:job.attempt}});
 
 export class LargeExportWorker {
-  constructor(private store:Store,private artifacts:LargeExportArtifactStore,private builder:LargeExportContentBuilder,private now=()=>new Date(),private claimId=()=>randomUUID()){}
+  constructor(private store:Store,private artifacts:LargeExportArtifactStore,private builder:LargeExportContentBuilder,private now:()=>Date=()=>new Date(),private claimId:()=>string=()=>randomUUID()){}
 
   async runNext():Promise<Document|null>{
     const queued=await this.store.transaction(tx=>tx.list('large_export_queue',{limit:25,orderBy:'created_at'}));

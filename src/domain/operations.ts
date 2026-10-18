@@ -666,7 +666,7 @@ export class Operations {
           result=await commitLargeImport(tx,root,job,staging,actor.uid,command.operationId,iso);set(`${root}/large_import_jobs/${id}`,result);set(`${root}/import_sessions/${identifier(job.session_id)}`,{...await required('import_sessions',identifier(job.session_id)),status:'committed',job_id:id,committed_at:iso});break;
         }
         case 'largeImport.undo': {
-          ensure(Object.keys(data).every(key=>key==='id'),'حقول التراجع عن الاستيراد غير صالحة.');const id=identifier(data.id),job=await required('large_import_jobs',id),backup=await required('import_commit_backups',identifier(job.commit_backup_id));
+          ensure(Object.keys(data).every(key=>['id','reason'].includes(key)),'حقول التراجع عن الاستيراد غير صالحة.');text(data.reason,1000,true);const id=identifier(data.id),job=await required('large_import_jobs',id),backup=await required('import_commit_backups',identifier(job.commit_backup_id));
           result=await undoLargeImport(tx,root,job,backup,actor.uid,command.operationId,iso);set(`${root}/large_import_jobs/${id}`,result);set(`${root}/import_sessions/${identifier(job.session_id)}`,{...await required('import_sessions',identifier(job.session_id)),status:'rolled_back',rolled_back_at:iso});break;
         }
         case 'masterImport.stage': {

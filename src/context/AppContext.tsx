@@ -143,6 +143,8 @@ interface AppContextType {
   requestLargeImport: (sessionId:string,duplicatePolicy:'skip'|'update') => Promise<Document>;
   cancelLargeImport: (id:string) => Promise<Document>;
   retryLargeImport: (id:string) => Promise<Document>;
+  commitLargeImport: (id:string) => Promise<Document>;
+  undoLargeImport: (id:string,reason:string) => Promise<Document>;
   // Actions
   updateSettings: (newSettings: Partial<MerchantSettings>, reason?: string, expectedOrgId?: string) => Promise<void>;
   addCustomer: (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Promise<Customer>;
@@ -610,7 +612,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     stageMasterImport: input => run('masterImport.stage',input as unknown as Document),
     largeImportJobs:rows<Document>('large_import_jobs').sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
     requestLargeImport:(sessionId,duplicatePolicy)=>run('largeImport.request',{session_id:sessionId,reviewed:true,duplicate_policy:duplicatePolicy}),
-    cancelLargeImport:id=>run('largeImport.cancel',{id}),retryLargeImport:id=>run('largeImport.retry',{id}), switchOrganization, createNewOrg,
+    cancelLargeImport:id=>run('largeImport.cancel',{id}),retryLargeImport:id=>run('largeImport.retry',{id}),commitLargeImport:id=>run('largeImport.commit',{id}),undoLargeImport:(id,reason)=>run('largeImport.undo',{id,reason}), switchOrganization, createNewOrg,
     inviteMember: async (email, role) => { await run('invitation.create', { email, role }); },
     updateMemberRole: async (uid, role) => { await run('member.update', { uid, role }); },
     removeMember: async uid => { await run('member.remove', { uid }); },

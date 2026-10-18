@@ -113,8 +113,8 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 107 | Final Product Goal | A-E / release gate |
 | 108 | Commercial Positioning After Completion | A-E / release gate |
 | 109 | Next Engineering Step | A-E / release gate |
-| 110 | Excel Export & Data Portability | Excel1.1/Excel2.1 implemented; full portability remains Excel3 |
-| 111 | Export Modes | Quick exports Excel1.1; accountant package Excel2.1; remaining modes Excel3-4 |
+| 110 | Excel Export & Data Portability | Excel3.1 full-company JSON portability implemented for the actual Owner; CI passed; large asynchronous packages remain Excel3.2 |
+| 111 | Export Modes | Quick exports Excel1.1; accountant package Excel2.1; direct full-company package Excel3.1; large-job delivery remains Excel3.2 |
 | 112 | Full Company Workbook Structure | Excel 1-4 |
 | 113 | Invoice Export Structure | Excel 1-4 |
 | 114 | Raw Data vs Report Sheets | Excel2.1 accountant workbook includes journal raw sheets and financial report sheets |
@@ -125,19 +125,19 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 119 | Data Dictionary Sheet | Excel2.1 implemented for accountant workbook |
 | 120 | Reconciliation Sheet | Excel2.1 includes bank/cash reconciliation evidence |
 | 121 | Opening / Movement / Closing Columns | Excel 1-4 |
-| 122 | Export Filters | Excel2.1 date period implemented; column selection/presets remain Excel3 |
+| 122 | Export Filters | Excel2.1 date period plus Excel3.1 saved accounting/master/company preset scopes implemented; arbitrary column selection remains later |
 | 123 | Export Column Selection | Excel 1-4 |
-| 124 | Saved Export Presets | Excel 1-4 |
+| 124 | Saved Export Presets | Excel3.1 tenant-owned save/delete/reload implemented; company presets restricted to the actual Owner |
 | 125 | Accountant Package | Excel2.1 implemented; large-job delivery remains Excel3.2 |
 | 126 | Auditor Package | Excel 1-4 |
-| 127 | Export Permissions | Excel1.1 module permissions and Excel2.1 accounting permission implemented |
+| 127 | Export Permissions | Excel1.1 module permissions, Excel2.1 accounting permission and Excel3.1 dedicated actual-Owner company-export permission implemented |
 | 128 | Sensitive Data Masking | Excel 1-4 |
-| 129 | Export Audit Log | Excel1.1/Excel2.1 DATA_EXPORT_CREATED implemented |
+| 129 | Export Audit Log | Excel1.1/Excel2.1/Excel3.1 DATA_EXPORT_CREATED implemented; Excel3.1 UI exposes authorized export/import history after reload |
 | 130 | Large Export Architecture | Excel 1-4 |
 | 131 | Temporary Export Files | Excel 1-4 |
-| 132 | Data Portability Package | Excel 1-4 |
-| 133 | Export Schema Version | Excel 1-4 |
-| 134 | Export References | Excel 1-4 |
+| 132 | Data Portability Package | Excel3.1 direct full-company JSON snapshot implemented with tenant/session guards and collection counts; oversized jobs remain Excel3.2 |
+| 133 | Export Schema Version | Excel3.1 full-company package requires schema_version 3 and rejects unsupported versions |
+| 134 | Export References | Excel3.1 preserves tenant snapshot references and records preset/schema/size/count evidence in the audit event |
 | 135 | Excel Import Center | Excel 1-4 |
 | 136 | Import Workflow | Excel 1-4 |
 | 137 | Initial Supported Imports | Excel 1-4 |

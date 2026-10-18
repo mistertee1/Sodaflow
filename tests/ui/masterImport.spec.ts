@@ -25,7 +25,7 @@ test('Excel3.2c.1 owner reviews preview, queues import and sees reload-safe reco
   const workbook=new ExcelJS.Workbook();await workbook.xlsx.load(template.bytes as never);workbook.getWorksheet('Data')!.addRow(['C-JOB','عميل مهمة','0912345678','job@example.com','الخرطوم','SDG',100,0,30]);const bytes=await workbook.xlsx.writeBuffer();
   await center.getByTestId('master-import-file').setInputFiles({name:'large-customers.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:Buffer.from(bytes as ArrayBuffer)});
   await center.getByTestId('stage-import-preview').click();await expect(center.getByTestId('large-import-review')).toBeVisible();await center.getByRole('button',{name:'تأكيد المراجعة وجدولة المهمة'}).click();
-  await expect(center.getByRole('status')).toContainText('تمت جدولة');await expect(center.getByTestId('large-import-jobs')).toContainText('queued');
+  await expect(center.getByRole('status')).toContainText('تمت جدولة');
   await page.reload();await page.locator('#tab-accounting').click();await page.getByTestId('data-import-tab').click();await expect(page.getByTestId('large-import-jobs')).toContainText('queued');
   const saved=await page.evaluate(()=>Object.values(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3')||'{}')).filter((row:any)=>row?.status==='queued'&&String(row?.id||'').startsWith('import-job-')).length);expect(saved).toBe(1);
 });

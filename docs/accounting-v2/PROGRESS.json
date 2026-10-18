@@ -5,16 +5,9 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel3",
-  "active_branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
+  "active_branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "excel3-large-import-ui-resume-20261018",
-    "round_id": "20261018T070900Z-excel3.2c.1-resume",
-    "base_branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
-    "acquired_at": "2026-10-18T07:07:01Z",
-    "expires_at": "2026-10-18T08:37:01Z",
-    "branch": "codex/accounting-v2-excel3-large-import-ui-20261018"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -1929,8 +1922,8 @@
     {
       "id": "Excel3",
       "status": "in_progress",
-      "branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
-      "pr": 96,
+      "branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
+      "pr": 97,
       "steps": [
         {
           "id": "Excel3.1",
@@ -1958,8 +1951,8 @@
           "id": "Excel3.2",
           "scope": "Server-side large export/import jobs, temporary downloads/expiry and failure recovery",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
-          "pr": 96,
+          "branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
+          "pr": 97,
           "substeps": [
             {
               "id": "Excel3.2a",
@@ -2008,7 +2001,24 @@
             {
               "id": "Excel3.2c",
               "scope": "Large import jobs and reviewed recovery flow",
-              "status": "pending"
+              "status": "in_progress",
+              "branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
+              "pr": 97,
+              "substeps": [
+                {
+                  "id": "Excel3.2c.1",
+                  "scope": "Protected reviewed large-import request, cancellation, retry, progress UI and permission isolation",
+                  "status": "implemented_ci_passed_render_acceptance_pending",
+                  "branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
+                  "pr": 97,
+                  "code_commit": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
+                  "report": "REPORT_EXCEL3_2C1_LARGE_IMPORT_REVIEW_QUEUE.md",
+                  "checks": {"pretest": 24, "unit_api": 373, "emulator": 35, "ui": 91, "production_audit_vulnerabilities": 0},
+                  "ci": {"run_id": 39106633168, "commit_sha": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda", "conclusion": "success"},
+                  "render_acceptance": "pending_matching_authenticated_staging_commit"
+                },
+                {"id": "Excel3.2c.2", "scope": "Server worker chunk validation, awaiting_commit, atomic commit, undo and rollback", "status": "pending"}
+              ]
             }
           ]
         }
@@ -2037,12 +2047,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_EXCEL3_2B_LARGE_EXPORT_WORKER.md",
+  "last_report": "REPORT_EXCEL3_2C1_LARGE_IMPORT_REVIEW_QUEUE.md",
   "next_steps": [
-    "Proceed to Excel1.1 quick/master exports with numeric integrity and authorized sensitive masking",
+    "Proceed to Excel3.2c.2 worker chunk validation, awaiting_commit, atomic commit, undo and rollback from PR97",
     "Independent authenticated Render acceptance for E1-E3 on matching staging commits"
   ],
-  "updated_at": "2026-10-18T03:22:33Z",
+  "updated_at": "2026-10-18T08:54:24Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2067,7 +2077,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel3.2c",
+  "active_substep": "Excel3.2c.2",
   "observed_main_sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
   "lease_history": [
     {
@@ -2481,30 +2491,41 @@
       "pr": 96,
       "code_commit": "9813f0fe0b516501146e3b2dee47389890ed038e",
       "status": "Excel3.2b_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel3-large-import-ui-resume-20261018",
+      "round_id": "20261018T070900Z-excel3.2c.1-resume",
+      "base_branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
+      "acquired_at": "2026-10-18T07:07:01Z",
+      "branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
+      "released_at": "2026-10-18T08:54:24Z",
+      "pr": 97,
+      "code_commit": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
+      "status": "Excel3.2c.1_implemented_ci_passed_render_acceptance_pending"
     }
   ],
   "last_lease": {
-    "worker": "excel3-large-export-worker-20261018",
-    "round_id": "20261018T024000Z-excel3.2b",
-    "base_branch": "codex/accounting-v2-excel3-large-export-jobs-20261018",
-    "acquired_at": "2026-10-18T02:40:00Z",
-    "branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
-    "released_at": "2026-10-18T03:22:33Z",
-    "pr": 96,
-    "code_commit": "9813f0fe0b516501146e3b2dee47389890ed038e",
-    "status": "Excel3.2b_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-18T03:22:33Z",
+    "worker": "excel3-large-import-ui-resume-20261018",
+    "round_id": "20261018T070900Z-excel3.2c.1-resume",
+    "base_branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
+    "acquired_at": "2026-10-18T07:07:01Z",
+    "branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
+    "released_at": "2026-10-18T08:54:24Z",
+    "pr": 97,
+    "code_commit": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
+    "status": "Excel3.2c.1_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-18T08:54:24Z",
     "ci": {
-      "run_id": 39093025097,
-      "commit_sha": "9813f0fe0b516501146e3b2dee47389890ed038e",
+      "run_id": 39106633168,
+      "commit_sha": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
       "conclusion": "success",
-      "pretest": 20,
+      "pretest": 24,
       "unit_api": 373,
       "emulator": 35,
-      "ui": 90,
+      "ui": 91,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to Excel3.2c large import jobs and reviewed recovery UI from PR96; Render acceptance remains independent"
+    "next": "Proceed to Excel3.2c.2 worker chunk validation, awaiting_commit, atomic commit, undo and rollback from PR97; Render acceptance remains independent"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -2518,7 +2539,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to Excel3.2c large import jobs and reviewed recovery UI from PR96; retain independent Render acceptance",
+  "next": "Proceed to Excel3.2c.2 worker chunk validation, awaiting_commit, atomic commit, undo and rollback from PR97; retain independent Render acceptance",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2539,26 +2560,26 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "excel3-large-export-worker-20261018",
-    "round_id": "20261018T024000Z-excel3.2b",
-    "acquired_at": "2026-10-18T02:40:00Z",
-    "branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
-    "released_at": "2026-10-18T03:22:33Z",
-    "pr": 96,
-    "code_commit": "9813f0fe0b516501146e3b2dee47389890ed038e",
-    "status": "Excel3.2b_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-18T03:22:33Z",
+    "worker": "excel3-large-import-ui-resume-20261018",
+    "round_id": "20261018T070900Z-excel3.2c.1-resume",
+    "acquired_at": "2026-10-18T07:07:01Z",
+    "branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
+    "released_at": "2026-10-18T08:54:24Z",
+    "pr": 97,
+    "code_commit": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
+    "status": "Excel3.2c.1_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-18T08:54:24Z",
     "ci": {
-      "run_id": 39093025097,
-      "commit_sha": "9813f0fe0b516501146e3b2dee47389890ed038e",
+      "run_id": 39106633168,
+      "commit_sha": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
       "conclusion": "success",
-      "pretest": 20,
+      "pretest": 24,
       "unit_api": 373,
       "emulator": 35,
-      "ui": 90,
+      "ui": 91,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to Excel3.2c large import jobs and reviewed recovery UI from PR96; Render acceptance remains independent"
+    "next": "Proceed to Excel3.2c.2 worker chunk validation, awaiting_commit, atomic commit, undo and rollback from PR97; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

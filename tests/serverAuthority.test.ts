@@ -108,7 +108,7 @@ test('HTTP registration returns an error for remote failure and retries without 
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 }));
 
-test('offline guest MemoryStore retains persistence rollback and local authority', async () => {
+test('isolated MemoryStore fixture retains atomic rollback and test authority', async () => {
   let blocked = true; const guest = new MemoryStore({}, () => { if (blocked) throw Error('quota exceeded'); });
   await assert.rejects(guest.transaction(async tx => tx.set('guest/document', { marker: 'synthetic' })), /quota exceeded/);
   assert.deepEqual(guest.dump(), {}); blocked = false;

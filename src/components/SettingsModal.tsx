@@ -136,7 +136,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       return;
     }
 
-    if (!currentOrg || currentOrg.id === 'local-guest-org' || userRole === 'Viewer') {
+    if (!currentOrg || userRole === 'Viewer') {
       setLogoUploadError('لم يكتمل تحميل المؤسسة أو لا تتوفر صلاحية تعديلها. أعد المزامنة أولاً ثم ارفع الشعار.');
       return;
     }
@@ -357,7 +357,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-sf-raised p-3 rounded-lg border border-sf-border">
                   <div>
                     <p className="text-xs text-sf-text font-medium">
-                      أنت تستخدم التطبيق في الوضع المحلي حالياً (كضيف).
+                      سجّل دخولك إلى حساب Firebase للوصول إلى مؤسستك.
                     </p>
                     <p className="text-xs text-sf-muted">
                       سجّل دخولك لحفظ فواتيرك ومخزونك سحابياً والوصول إليها من أكثر من جهاز.

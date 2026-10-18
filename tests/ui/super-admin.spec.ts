@@ -28,10 +28,11 @@ test('an uncertain save retries the same identifier and creates a single renewal
   const dialog = page.getByRole('dialog', { name: 'إدارة اشتراك الشركة' });
   await dialog.getByLabel('عدد الأيام').fill('5'); await dialog.getByLabel('سبب التعديل (إلزامي في سجل العمليات)').fill('تمديد اختبار');
   platform.abortAfterCommit(); await dialog.getByRole('button', { name: 'حفظ التعديل', exact: true }).click(); await expect(dialog.getByRole('alert')).toContainText('تعذر تأكيد الحفظ');
-  const afterFirst = platform.fixture.store.dump();
+  const financialState = () => Object.fromEntries(Object.entries(platform.fixture.store.dump()).filter(([path]) => !path.startsWith('platformOperationIntents/')));
+  const afterFirst = financialState();
   await dialog.getByRole('button', { name: 'حفظ التعديل', exact: true }).click(); await expect(dialog.getByRole('status')).toContainText('تم حفظ التعديل');
   expect(platform.mutations).toHaveLength(2); expect(platform.mutations[0].operationId).toBe(platform.mutations[1].operationId);
-  expect(platform.fixture.store.dump()).toEqual(afterFirst); expect(Object.values(afterFirst).filter(d => d.action === 'subscription.extend')).toHaveLength(1);
+  expect(financialState()).toEqual(afterFirst); expect(Object.values(afterFirst).filter(d => d.action === 'subscription.extend')).toHaveLength(1);
 });
 
 test('a confirmed save with a failed refresh remains distinct from an unconfirmed mutation', async ({ page, platform }) => {

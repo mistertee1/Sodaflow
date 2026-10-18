@@ -69,7 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
       await signInWithGoogle();
     } catch (err: any) {
       console.warn('Google login notice in header:', err?.code);
-      setAuthError(err?.friendlyMessage || 'تعذر تسجيل الدخول بحساب Google. يمكنك المتابعة محلياً.');
+      setAuthError(err?.friendlyMessage || 'تعذر تسجيل الدخول بحساب Google. تحقق من الاتصال وأعد المحاولة.');
     }
   };
 
@@ -153,7 +153,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="inline-flex items-center gap-1 text-sf-warning hover:text-sf-warning text-xs font-medium underline"
                 >
                   <CloudOff className="w-3.5 h-3.5" />
-                  <span>وضع الضيف (اضغط لتفعيل المزامنة السحابية)</span>
+                  <span>تسجيل الدخول إلى الحساب السحابي</span>
                 </button>
               )}
             </p>

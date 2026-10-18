@@ -10,7 +10,7 @@ export interface Store { readonly authority?: 'server' | 'browser' | 'local'; tr
 export interface Change { path: string; value: Document | null; }
 export function clean<T>(value: T): T { return JSON.parse(JSON.stringify(value)); }
 
-/** Same transactional domain service for offline guest mode and deterministic tests. */
+/** Transactional in-memory fixture for deterministic tests; production uses Firestore. */
 export class MemoryStore implements Store {
   readonly authority = 'local' as const;
   private documents: Record<string, Document>;

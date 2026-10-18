@@ -97,7 +97,8 @@ export const ExpensesView: React.FC = () => {
       return;
     }
 
-    const orgId = currentOrg && currentOrg.id !== 'local-guest-org' ? currentOrg.id : `org-${currentUser.uid}`;
+    const orgId = currentOrg?.id;
+    if (!orgId) { setUploadError('انتظر تحميل المؤسسة من السحابة قبل رفع الإيصال.'); return; }
 
     setIsUploadingReceipt(true);
     setUploadProgress(0);

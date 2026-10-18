@@ -18,11 +18,15 @@ import { FirestoreStore } from './firestoreStore';
 import { ResilientStore } from './resilientStore';
 import { resolveSubscription } from './subscriptions';
 import { PlatformBilling } from './platformBilling';
+import { OperationIntents } from './operationIntents';
 import { loadSubscription, assertSubscriptionActive } from '../src/domain/subscriptions';
 
 type Verify = (token: string) => Promise<Actor>;
 export function createApi(options?: { operations: Operations; verify: Verify }) {
   const router = express.Router();
+  // Tenant records and platform access decisions must not become a browser/CDN
+  // disk snapshot. Apply this to successful responses and authorization errors.
+  router.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
   const service = () => options?.operations || new Engine(new ResilientStore(adminServices().db), undefined, resolveSubscription, verifyDeployedAccountingRules);
   const platform = () => new PlatformBilling(service().store, options ? undefined : adminServices().db);
   const verify: Verify = options?.verify || (async token => {
@@ -71,6 +75,8 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   const route = (work: (req: express.Request, actor: Actor) => Promise<unknown>): express.RequestHandler => async (req, res, next) => {
     try { res.json(await work(req, res.locals.actor)); } catch (e) { next(e); }
   };
+  router.post('/operation-intents', route((req, actor) => new OperationIntents(service().store).begin(actor, req.body)));
+  router.post('/operation-intents/acknowledge', route((req, actor) => new OperationIntents(service().store).acknowledge(actor, req.body)));
   router.get('/plans', route(async () => (await platform().catalog()).filter(plan => plan.active)));
   router.get('/super-admin/session', route(async (_req, actor) => { await platform().assertAdmin(actor); return { uid: actor.uid, email: actor.email, role: 'super_admin' }; }));
   router.get('/super-admin/overview', route(async (_req, actor) => platform().overview(actor)));

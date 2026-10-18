@@ -9,8 +9,8 @@ import { FirestoreStore } from './firestoreStore';
  * would split organizations, quotas, subscriptions and financial books.
  *
  * Preserve the existing entry point. Existing .data files are neither read nor
- * removed; recovery of their contents requires a reviewed import. Offline guest
- * sessions still use MemoryStore through the guest service.
+ * removed; recovery of their contents requires a reviewed import. MemoryStore
+ * is reserved for isolated test fixtures.
  */
 export class ResilientStore implements Store {
   readonly authority = 'server' as const;

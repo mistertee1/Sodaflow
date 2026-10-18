@@ -13,7 +13,7 @@ import { DEFAULT_ORGANIZATION_COUNTERS } from '../types';
 import { INITIAL_SETTINGS } from '../data/initialData';
 import { auth, onAuthStateChanged, logout, checkRedirectResult, type User } from '../lib/firebase';
 import { createDefaultSubscription } from '../lib/plans';
-import { Operations, type Actor } from '../domain/operations';
+import type { Operations } from '../domain/operations';
 import type { FinancialAccount } from '../domain/cashManagement';
 import type { OperationalReportTypes, OperationalView, LedgerQuery, ReportPeriod } from '../domain/operationalReports';
 import type { CostInput } from '../domain/inventoryCost';
@@ -21,8 +21,6 @@ import type { Change, Document } from '../domain/store';
 import { api, operationId } from '../services/businessApi';
 import { firebaseCommand, firebaseSnapshot, watchFirebaseRevision } from '../services/firebaseSync';
 import { cloudOrganizations } from '../services/cloudOrganizations';
-import { createGuestStore, guestActor, guestId } from '../services/guestStore';
-import { readSnapshotCache, writeSnapshotCache } from '../services/snapshotCache';
 import { hasPermission, type ActionType } from '../services/rbacService';
 import { getDefaultChartOfAccounts } from '../services/accountingService';
 import { BusinessError } from '../domain/validation';
@@ -48,7 +46,7 @@ interface AppContextType {
   accountingPeriods: AccountingPeriod[];
   loadAccountingPeriods: (periodId?: string) => Promise<Awaited<ReturnType<Operations['periodReports']>>>;
   saveAccountingPeriod: (action: 'period.create' | 'period.softClose' | 'period.close' | 'period.reopen', data: Document, expectedOrgId: string) => Promise<AccountingPeriod>;
-  confirmOwnerReauthentication: (method: OwnerAuthMethod | 'local-demo', password?: string) => Promise<string>;
+  confirmOwnerReauthentication: (method: OwnerAuthMethod, password?: string) => Promise<string>;
   exportCorrectionDocument: (kind: CorrectionDocumentKind, id: string) => Promise<CorrectionDocument>;
   currentUser: User | null;
   authLoading: boolean;
@@ -190,37 +188,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [syncStatus, setSyncStatus] = useState<AppContextType['syncStatus']>('idle');
   const [syncError, setSyncError] = useState<string | null>(null);
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
-  const [theme, setTheme] = useState<'light' | 'dark'>(() => localStorage.getItem('hisabuk_theme') === 'dark' ? 'dark' : 'light');
-  const guestOwnerAuthAt = useRef<number | undefined>(undefined);
-  const session = useRef(0), snapshot = useRef(state), userRef = useRef<User | null>(null), guest = useRef<Operations | null>(null);
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const session = useRef(0), snapshot = useRef(state), userRef = useRef<User | null>(null);
   const activeOrg = useRef<string | null>(null), queue = useRef<Promise<unknown>>(Promise.resolve());
   const pendingRefresh = useRef(false), confirmedRevision = useRef(-1), revisionWatch = useRef<(() => void) | null>(null);
   const fail = (error: unknown) => { setSyncStatus('error'); setSyncError(error instanceof Error ? error.message : 'تعذر إكمال العملية.'); };
   const apply = (next: Snapshot) => { snapshot.current = next; setState(next); };
-  const actor = (): Actor => ({ uid: userRef.current?.uid || 'guest', email: userRef.current?.email || '', emailVerified: userRef.current?.emailVerified || false });
-  const getGuest = () => { if (!guest.current) guest.current = new Operations(createGuestStore(), undefined, saved => saved as OrgSubscription); return guest.current; };
-  const cacheConfirmedSnapshot = (next: Snapshot, savedAt = new Date()) => {
-    const user = userRef.current;
-    if (!user || !next.org?.id || next.org.id === guestId) return;
-    writeSnapshotCache(localStorage, user.uid, next.org.id, next, savedAt);
-  };
   const refresh = async (id = activeOrg.current, epoch = session.current) => {
     if (!id) throw new BusinessError('اختر مؤسسة أولاً.');
-    const loaded = id === guestId && !userRef.current ? await getGuest().snapshot(id, guestActor) : await firebaseSnapshot(id);
+    if (!userRef.current) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
+    const loaded = await firebaseSnapshot(id);
     if (epoch !== session.current || id !== activeOrg.current) return;
     const loadedRevision = Number(loaded.counters.revision || 0);
-    // Only server-confirmed revisions participate in ordering. A cached snapshot is display-only
-    // and can never block a fresher authoritative response.
+    // Only server-confirmed revisions participate in ordering; no browser disk snapshot is loaded.
     if (loadedRevision < confirmedRevision.current) return;
     if (!(loaded.collections.accounts || []).length) loaded.collections.accounts = getDefaultChartOfAccounts(id);
     confirmedRevision.current = loadedRevision;
     apply(loaded);
-    if (id !== guestId) cacheConfirmedSnapshot(loaded);
-    setSyncStatus(id === guestId ? 'idle' : 'synced'); setSyncError(null); setLastSyncedAt(id === guestId ? null : new Date());
+    setSyncStatus('synced'); setSyncError(null); setLastSyncedAt(new Date());
     startRevisionWatch(id, epoch);
   };
   const startRevisionWatch = (id: string, epoch: number) => {
-    if (revisionWatch.current || id === guestId || !userRef.current || epoch !== session.current) return;
+    if (revisionWatch.current || !userRef.current || epoch !== session.current) return;
     let monitoringFailed = false;
     revisionWatch.current = watchFirebaseRevision(
       id,
@@ -250,24 +239,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const epoch = ++session.current;
     activeOrg.current = org.id;
     confirmedRevision.current = -1;
-    const user = userRef.current;
-    const cached = user && org.id !== guestId ? readSnapshotCache<Snapshot>(localStorage, user.uid, org.id) : null;
-    if (cached) {
-      apply(cached.snapshot);
-      setSyncStatus('syncing');
-      setSyncError(null);
-      setLastSyncedAt(cached.savedAt);
-      // Cached data is already authenticated to this user+organization key. Let the UI render
-      // immediately while the server snapshot is being reconciled in the background.
-      setAuthLoading(false);
-    } else {
-      apply({ ...emptySnapshot(), org, role: org.owner_uid === userRef.current?.uid ? 'Owner' : 'Viewer' }); setSyncStatus('syncing'); setSyncError(null); setLastSyncedAt(null);
-    }
+    // The tenant shell can be shown while loading, but its records and permissions
+    // remain empty until Firebase-backed API data is confirmed.
+    apply({ ...emptySnapshot(), org, role: org.owner_uid === userRef.current?.uid ? 'Owner' : 'Viewer' });
+    setSyncStatus('syncing'); setSyncError(null); setLastSyncedAt(null);
     try {
       await refresh(org.id, epoch);
-      if (epoch === session.current && userRef.current) {
-        localStorage.setItem(`sudaflow_active_org_${userRef.current.uid}`, org.id);
-      }
     } catch (error) { if (epoch === session.current) fail(error); throw error; }
   };
   const initializeCloudOrganization = async (user: User, epoch = session.current) => {
@@ -281,8 +258,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
       if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
       setUserOrgs(orgs);
-      const saved = localStorage.getItem(`sudaflow_active_org_${user.uid}`) || localStorage.getItem('hisabuk_active_org_id');
-      await load(orgs.find(o => o.id === saved) || orgs[0]);
+      await load(orgs[0]);
     } catch (error) {
       console.warn('Initial cloud organization load warning:', error);
       if (epoch !== session.current || userRef.current?.uid !== user.uid) return;
@@ -301,12 +277,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     document.documentElement.classList.toggle('light', theme === 'light');
     document.documentElement.classList.toggle('dark', theme === 'dark');
     document.documentElement.dataset.sfTheme = theme;
-    localStorage.setItem('hisabuk_theme', theme);
   }, [theme]);
   useEffect(() => onAuthStateChanged(auth, async user => {
     const epoch = ++session.current;
     revisionWatch.current?.(); revisionWatch.current = null;
-    userRef.current = user; setCurrentUser(user); activeOrg.current = null; confirmedRevision.current = -1; apply(emptySnapshot()); setUserOrgs([]); setAuthLoading(true); setSyncError(null);
+    userRef.current = user; setCurrentUser(user); activeOrg.current = null; confirmedRevision.current = -1; setLastSyncedAt(null); apply(emptySnapshot()); setUserOrgs([]); setAuthLoading(true); setSyncError(null);
     try {
       const isGoogleUser = user?.providerData?.some(p => p.providerId === 'google.com') || false;
       const isVerified = Boolean(user?.emailVerified || isGoogleUser);
@@ -319,9 +294,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return;
       }
       if (!user) {
-        const loaded = await getGuest().snapshot(guestId, guestActor);
-        if (epoch !== session.current) return;
-        activeOrg.current = guestId; apply(loaded); setUserOrgs([loaded.org]); setSyncStatus('idle');
+        setSyncStatus('idle');
       } else {
         if (window.location.pathname === '/super-admin' || window.location.pathname.startsWith('/super-admin/')) { setSyncStatus('idle'); return; }
         await initializeCloudOrganization(user, epoch);
@@ -360,18 +333,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
     confirmedRevision.current = Math.max(confirmedRevision.current, Number(next.counters.revision || 0));
     apply(next);
-    cacheConfirmedSnapshot(next);
   };
   const run = <T extends Document = Document>(action: string, data: Document, suggestedId?: string): Promise<T> => {
     const epoch = session.current, id = activeOrg.current, activeUser = userRef.current;
     const work = queue.current.then(async () => {
-      if (!id || epoch !== session.current || snapshot.current.role === 'Viewer') throw new BusinessError('المؤسسة لم تُحمّل أو صلاحية الكتابة غير متاحة.', 403);
+      if (!activeUser || userRef.current?.uid !== activeUser.uid || !id || epoch !== session.current || !snapshot.current.exported_at || snapshot.current.role === 'Viewer') throw new BusinessError('المؤسسة لم تُحمّل أو صلاحية الكتابة غير متاحة.', 403);
       setSyncStatus('syncing'); setSyncError(null);
       try {
-        const response = !activeUser && id === guestId ? await getGuest().execute(id, { ...guestActor, authTime: guestOwnerAuthAt.current }, { action, operationId: suggestedId || operationId(), data }) : await firebaseCommand(id, action, data, suggestedId);
+        const response = await firebaseCommand(id, action, data, suggestedId);
         if (epoch !== session.current) throw new BusinessError('تم حفظ العملية في المؤسسة السابقة. تغيّرت الجلسة؛ أعد تحميل المؤسسة لمشاهدتها.', 409);
         applyChanges(response.changes);
-        setSyncStatus(id === guestId ? 'idle' : 'synced'); setLastSyncedAt(id === guestId ? null : new Date());
+        setSyncStatus('synced'); setLastSyncedAt(new Date());
         return response.result as T;
       } catch (error) { if (epoch === session.current) fail(error); throw error; }
     });
@@ -420,7 +392,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   const exportDataJson = async () => {
     const id = activeOrg.current; if (!id) throw new BusinessError('اختر مؤسسة أولاً.');
-    const full = id === guestId ? await getGuest().snapshot(id, guestActor, true) : await firebaseSnapshot(id, true);
+    const full = await firebaseSnapshot(id, true);
     return JSON.stringify(full, null, 2);
   };
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
@@ -434,7 +406,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     previewFixedAsset: async (request, expectedOrgId) => {
       const id = activeOrg.current, epoch = session.current;
       if (!id || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409);
-      const preview = id === guestId && !userRef.current ? await getGuest().fixedAssetPreview(id, guestActor, request) : await api<FixedAssetPreview>(`/organizations/${encodeURIComponent(id)}/fixed-assets/preview`, {method: 'POST', body: JSON.stringify(request)});
+      const preview = await api<FixedAssetPreview>(`/organizations/${encodeURIComponent(id)}/fixed-assets/preview`, {method: 'POST', body: JSON.stringify(request)});
       if (id !== activeOrg.current || epoch !== session.current || preview.organizationId !== id) throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد المعاينة.', 409);
       return preview;
     },
@@ -444,7 +416,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     previewOpening: async (request, expectedOrgId) => {
       const id = activeOrg.current, epoch = session.current;
       if (!id || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.', 409);
-      const preview = id === guestId && !userRef.current ? await getGuest().openingPreview(id, guestActor, request) : await api<Awaited<ReturnType<Operations['openingPreview']>>>(`/organizations/${encodeURIComponent(id)}/opening-balances/preview`, {method: 'POST', body: JSON.stringify(request)});
+      const preview = await api<Awaited<ReturnType<Operations['openingPreview']>>>(`/organizations/${encodeURIComponent(id)}/opening-balances/preview`, {method: 'POST', body: JSON.stringify(request)});
       if (id !== activeOrg.current || epoch !== session.current) throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد المعاينة.', 409);
       return preview;
     },
@@ -458,14 +430,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     },
     previewFxRevaluation: async(data,expectedOrgId)=>{
       const id=activeOrg.current,epoch=session.current;if(!id||id!==expectedOrgId)throw new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.',409);
-      const preview=id===guestId&&!userRef.current?await getGuest().fxRevaluationPreview(id,guestActor,data):await api<Awaited<ReturnType<Operations['fxRevaluationPreview']>>>(`/organizations/${encodeURIComponent(id)}/fx-revaluations/preview`,{method:'POST',body:JSON.stringify(data)});
+      const preview=await api<Awaited<ReturnType<Operations['fxRevaluationPreview']>>>(`/organizations/${encodeURIComponent(id)}/fx-revaluations/preview`,{method:'POST',body:JSON.stringify(data)});
       if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد المعاينة.',409);return preview;
     },
     saveFxRevaluation:(data,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run('fxRevaluation.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح العملية.',409)),
     accountingPeriods: rows<AccountingPeriod>('accounting_periods'),
     loadAccountingPeriods: async periodId => {
       const id = activeOrg.current, epoch = session.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');
-      const report = id === guestId && !userRef.current ? await getGuest().periodReports(id, guestActor, periodId) : await api<Awaited<ReturnType<Operations['periodReports']>>>(`/organizations/${encodeURIComponent(id)}/accounting-periods${periodId ? '?periodId=' + encodeURIComponent(periodId) : ''}`);
+      const report = await api<Awaited<ReturnType<Operations['periodReports']>>>(`/organizations/${encodeURIComponent(id)}/accounting-periods${periodId ? '?periodId=' + encodeURIComponent(periodId) : ''}`);
       if (id !== activeOrg.current || epoch !== session.current) throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدث البيانات.', 409);
       return report;
     },
@@ -476,11 +448,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     confirmOwnerReauthentication: async (method, password) => {
       const id = activeOrg.current, epoch = session.current, uid = userRef.current?.uid;
       if (!id || snapshot.current.role !== 'Owner' || !isActionAllowed('org:update_settings')) throw new BusinessError('إعادة الفتح متاحة لمالك المؤسسة فقط.', 403);
-      if (!uid && id === guestId && method === 'local-demo') guestOwnerAuthAt.current = Math.floor(Date.now() / 1000);
-      else {
-        if (method === 'local-demo') throw new BusinessError('التأكيد المحلي لا يصلح للحساب السحابي.', 403);
-        await reauthenticateOwner(method, password, uid || '');
-      }
+      if (!uid) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
+      await reauthenticateOwner(method, password, uid);
       if (id !== activeOrg.current || epoch !== session.current || uid !== userRef.current?.uid) throw new BusinessError('تغيرت المؤسسة أو الجلسة أثناء التحقق.', 409);
       return id;
     },
@@ -496,20 +465,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadPayablesReport: async (period, exporting = false) => {
       const id = activeOrg.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');
       if (exporting) return run('payables.export', { period }) as Promise<Awaited<ReturnType<Operations['payableReports']>>>;
-      return id === guestId && !userRef.current ? getGuest().payableReports(id, guestActor, period) : api(`/organizations/${encodeURIComponent(id)}/reports/payables?start=${encodeURIComponent(period.start || '')}&end=${encodeURIComponent(period.end || '')}`);
+      return api(`/organizations/${encodeURIComponent(id)}/reports/payables?start=${encodeURIComponent(period.start || '')}&end=${encodeURIComponent(period.end || '')}`);
     },
     loadOperationalReport: async (view, query, exporting = false) => {
       const id = activeOrg.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');
       if (exporting) return run('operational.export', { view, query });
       const params = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== undefined).map(([key, value]) => [key, value!]));
-      return id === guestId && !userRef.current ? getGuest().operationalReport(id, guestActor, view, query) : api(`/organizations/${encodeURIComponent(id)}/reports/${view}?${params}`);
+      return api(`/organizations/${encodeURIComponent(id)}/reports/${view}?${params}`);
     },
     financialAccounts: rows<FinancialAccount>('financial_accounts'), internalTransfers: rows<Document>('internal_transfers'),
     saveFinancialAccount: (data, id) => run<FinancialAccount>(id ? 'financialAccount.update' : 'financialAccount.create', id ? { id, updates: data } : data),
     transferCash: data => run('cashTransfer.create', data),
     loadCashReconciliations: async asOf => {
       const id = activeOrg.current; if (!id) throw new BusinessError('المؤسسة غير متاحة.');
-      return id === guestId && !userRef.current ? getGuest().cashReconciliationReports(id, guestActor, asOf) : api(`/organizations/${encodeURIComponent(id)}/reports/reconciliations?asOf=${encodeURIComponent(asOf)}`);
+      return api(`/organizations/${encodeURIComponent(id)}/reports/reconciliations?asOf=${encodeURIComponent(asOf)}`);
     },
     saveBankReconciliation: data => run('bankReconciliation.create', data),
     recordCashCount: data => run('cashCount.create', data),
@@ -543,7 +512,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     syncAllToCloud, reconcileProductStock, exportDataJson, importDataJson,
     getNextInvoiceNumber: () => `${state.settings.invoice_prefix}${String((state.counters.last_invoice_number || 0) + 1).padStart(4, '0')}`,
     resetToSampleData: () => { setSyncError('بياناتك محفوظة. للاستعادة اختر نسخة احتياطية ومؤسسة فارغة.'); },
-    logoutUser: async () => { ++session.current; revisionWatch.current?.(); revisionWatch.current = null; activeOrg.current = null; confirmedRevision.current = -1; apply(emptySnapshot()); await logout(); },
+    logoutUser: async () => { ++session.current; revisionWatch.current?.(); revisionWatch.current = null; activeOrg.current = null; confirmedRevision.current = -1; setLastSyncedAt(null); apply(emptySnapshot()); await logout(); },
   };
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

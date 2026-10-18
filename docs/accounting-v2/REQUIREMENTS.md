@@ -166,8 +166,8 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 160 | Duplicate File Detection | Excel 1-4 |
 | 161 | Import Staging | Excel2.3a/2.3b keep the bank statement in client-local review state until explicit atomic reconciliation save; server staging remains later |
 | 162 | Dry Run | Excel2.3a/2.3b compute inflow/outflow/closing difference and populate unmatched rows without financial writes or automatic matching |
-| 163 | Large Import Jobs | Excel3.2c.1 protected reviewed request/cancel/retry queue foundation; worker and record commit remain Excel3.2c.2 |
-| 164 | Import Progress | Excel3.2c.1 persists and displays queued/progress/stage status; worker-driven chunk progress remains Excel3.2c.2 |
+| 163 | Large Import Jobs | Excel3.2c.1 reviewed queue foundation plus Excel3.2c.2a bounded worker validation and awaiting_commit; atomic record commit remains Excel3.2c.2b |
+| 164 | Import Progress | Excel3.2c.2a persists claim-protected bounded progress and reaches 100 only at awaiting_commit |
 | 165 | Import Idempotency | Excel3.2c.1 idempotent request/cancel/retry bound to file hash, schema, session, review and duplicate-policy evidence; atomic record commit remains Excel3.2c.2 |
 | 166 | Undo Import | Excel 1-4 |
 | 167 | Import Rollback Rules | Excel 1-4 |

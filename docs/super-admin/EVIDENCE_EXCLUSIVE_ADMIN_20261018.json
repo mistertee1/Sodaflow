@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-18T20:44:01.922Z",
+  "repository": "mistertee1/Sodaflow",
+  "source": {
+    "commit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+    "tree": "90b85c652d76568cd6eb7dbb805cb5984e878ec8",
+    "pullRequest": 67,
+    "mergedBy": "mistertee1",
+    "mergedAt": "2026-10-14T16:09:27Z",
+    "prSource": "a314b3330c687a7e5f68f9d1bf2be3cb9b757da2",
+    "prSourceTree": "90b85c652d76568cd6eb7dbb805cb5984e878ec8",
+    "treesIdentical": true
+  },
+  "acceptance": {
+    "unitApi": 363,
+    "firestoreEmulator": 42,
+    "ui": 60,
+    "superAdminUi": 11,
+    "failed": 0,
+    "skipped": 0,
+    "productionAuditVulnerabilities": 0,
+    "types": "passed",
+    "core": "passed",
+    "build": "passed",
+    "emulatorProject": "demo-sudaflow",
+    "productionFinancialTestWrites": 0,
+    "checks": {
+      "id": 38595659249,
+      "jobId": 115961593584,
+      "sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38595659249"
+    },
+    "pullRequestRun": {
+      "id": 38406495326,
+      "sha": "a314b3330c687a7e5f68f9d1bf2be3cb9b757da2",
+      "conclusion": "success"
+    }
+  },
+  "logResultLines": [
+    "2026-10-14T16:10:38.0798331Z ℹ tests 363",
+    "2026-10-14T16:10:38.0799907Z ℹ pass 363",
+    "2026-10-14T16:10:38.0800512Z ℹ fail 0",
+    "2026-10-14T16:10:38.0801709Z ℹ skipped 0",
+    "2026-10-14T16:10:47.3731426Z found 0 vulnerabilities",
+    "2026-10-14T16:12:23.5240109Z ℹ tests 42",
+    "2026-10-14T16:12:23.5241087Z ℹ pass 42",
+    "2026-10-14T16:12:23.5241529Z ℹ fail 0",
+    "2026-10-14T16:12:23.5242842Z ℹ skipped 0",
+    "2026-10-14T16:15:08.3567800Z   60 passed (2.3m)"
+  ],
+  "production": {
+    "serviceId": "srv-db4lfrvavr4c73fn1hl0",
+    "workspaceId": "tea-db20pccs728c73ald730",
+    "branch": "codex/wafer-ux-phase1",
+    "deployedCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0",
+    "deployId": "dep-db7341psrm7s73bs37bg",
+    "probes": [
+      {
+        "checkedAt": "2026-10-18T20:41:24.568074+00:00",
+        "path": "/api/health",
+        "status": 200,
+        "body": "{\"status\":\"ok\",\"app\":\"SudaFlow\",\"version\":\"3.0.0\",\"release\":\"2026-10-05-central-sync-recovery\"}"
+      },
+      {
+        "checkedAt": "2026-10-18T20:41:24.569048+00:00",
+        "path": "/api/health/ready",
+        "status": 503,
+        "body": "{\"status\":\"error\",\"firebase_project_id\":\"sodaflow\",\"firestore_database_id\":\"(default)\",\"checks\":{\"firebase\":{\"status\":\"error\",\"code\":\"service_unavailable\",\"message\":\"تعذر تأكيد الحفظ. أعد المحاولة بعد التحقق من إعداد الخادم والاتصال.\"}}}"
+      },
+      {
+        "checkedAt": "2026-10-18T20:41:24.569511+00:00",
+        "path": "/api/super-admin/session",
+        "status": 401,
+        "body": "{\"error\":\"تسجيل الدخول مطلوب.\"}"
+      }
+    ],
+    "firstColdReadTimedOut": true,
+    "productionActivated": false,
+    "verifiedSelectedUid": false
+  },
+  "safety": {
+    "passwordStored": false,
+    "authAttemptRetried": false,
+    "productionFinancialWrites": 0,
+    "productionEnvironmentChangesInThisCloseout": 0,
+    "productionDeploysInThisCloseout": 0,
+    "productionRulesOrClaimsChanged": false,
+    "commercialMigrationApplied": false,
+    "sourceChanges": 0
+  },
+  "priorEnvironmentUpdate": {
+    "key": "SUPER_ADMIN_EMAIL",
+    "replaceExistingEnvironment": false,
+    "passwordStored": false,
+    "unexpectedDeploymentObserved": true,
+    "deployId": "dep-db7341psrm7s73bs37bg",
+    "sourceCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0",
+    "newSourceDeployed": false,
+    "note": "Connector environment update was followed by an API redeploy of the existing source. The legacy local .data file was not accessible for inspection or recovery; no data-loss claim is made. No further production write or deploy is attempted."
+  },
+  "remainingBlockers": [
+    {
+      "id": "firebase_runtime_credentials",
+      "evidence": "2026-10-18 readiness503 at checks.firebase with service_unavailable.",
+      "required": "Working server-side Firebase Admin credentials for the original customer project in protected Render secrets; an application password cannot replace them."
+    },
+    {
+      "id": "selected_account_identity_unverified",
+      "evidence": "Selected email approved/configured; one 2026-10-13 Auth attempt returned INVALID_LOGIN_CREDENTIALS. UID/email verification remain unresolved.",
+      "required": "Trusted Admin SDK getUserByEmail(SUPER_ADMIN_EMAIL) after access is ready; confirm enabled/verified exact UID and review bootstrap. No rejected-password retry without new information."
+    },
+    {
+      "id": "customer_datastore_and_legacy_recovery_review",
+      "evidence": "Original Firestore/IAM/indexes/Storage and any old .data file remain unverified.",
+      "required": "Locate and preserve original data/backups; review local-file recovery and migration preview before applying."
+    },
+    {
+      "id": "coordinated_production_release",
+      "evidence": "Render still serves af3acda from codex/wafer-ux-phase1; merged main is c04e6d6.",
+      "required": "After prerequisites and review, coordinate frontend/API/Rules/indexes/bootstrap/live acceptance. No real financial test transactions or unreviewed migration."
+    }
+  ]
+}

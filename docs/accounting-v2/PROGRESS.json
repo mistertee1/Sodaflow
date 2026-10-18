@@ -4,10 +4,19 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "Excel3",
-  "active_branch": "codex/accounting-v2-excel3-large-import-commit-20261018",
+  "active_milestone": "Excel4",
+  "active_branch": "codex/accounting-v2-excel4-historical-validation-20261018",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel4-historical-validation-20261018",
+    "round_id": "20261018T161900Z-excel4.1a",
+    "base_branch": "codex/accounting-v2-excel3-large-import-commit-20261018",
+    "branch": "codex/accounting-v2-excel4-historical-validation-20261018",
+    "pr": null,
+    "acquired_at": "2026-10-18T16:19:00Z",
+    "expires_at": "2026-10-18T17:49:00Z",
+    "scope": "Excel4.1a historical import safety validation foundation"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -2137,7 +2146,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1",
+  "active_substep": "Excel4.1a",
   "observed_main_sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
   "lease_history": [
     {

@@ -52,6 +52,7 @@ export type ActionType =
   | 'export:products'
   | 'export:invoices'
   | 'export:accounting'
+  | 'export:company'
   | 'import:customers'
   | 'import:suppliers'
   | 'import:products'
@@ -102,7 +103,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'expenses:delete',
     'reports:view',
     'reports:advanced',
-    'export:customers', 'export:suppliers', 'export:products', 'export:invoices', 'export:accounting',
+    'export:customers', 'export:suppliers', 'export:products', 'export:invoices', 'export:accounting', 'export:company',
     'import:customers', 'import:suppliers', 'import:products',
     'accounts:read',
     'accounts:create',

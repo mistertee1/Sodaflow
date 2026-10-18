@@ -5,9 +5,17 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-validation-20261018",
+  "active_branch": "codex/accounting-v2-excel4-historical-staging-20261018",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel4-historical-staging-20261018",
+    "round_id": "20261018T174747Z-excel4.1b",
+    "base_branch": "codex/accounting-v2-excel4-historical-validation-20261018",
+    "branch": "codex/accounting-v2-excel4-historical-staging-20261018",
+    "acquired_at": "2026-10-18T17:47:47.027Z",
+    "expires_at": "2026-10-18T19:17:47.027Z",
+    "scope": "Excel4.1b protected historical import staging, permissions and audit"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -2105,8 +2113,16 @@
               "pr": 100,
               "code_commit": "a1040c3eb05d020a3e92a41e7935246586c20a89",
               "report": "REPORT_EXCEL4_1A_HISTORICAL_IMPORT_VALIDATION.md",
-              "checks": {"targeted": 6, "types": "passed", "lint_core": "passed"},
-              "ci": {"run_id": 39144556372, "commit_sha": "ee568a915420d8bdd12787cca2a0aa77ab7bf72e", "conclusion": "success"},
+              "checks": {
+                "targeted": 6,
+                "types": "passed",
+                "lint_core": "passed"
+              },
+              "ci": {
+                "run_id": 39144556372,
+                "commit_sha": "ee568a915420d8bdd12787cca2a0aa77ab7bf72e",
+                "conclusion": "success"
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]

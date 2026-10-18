@@ -5,7 +5,7 @@ import { buildAccountingExport } from '../src/domain/accountingExport';
 import { ensure } from '../src/domain/validation';
 import { hasPermission } from '../src/services/rbacService';
 import { adminServices } from './admin';
-import { ResilientStore } from './resilientStore';
+import { FirestoreStore } from './firestoreStore';
 import { resolveSubscription } from './subscriptions';
 import { verifyDeployedAccountingRules } from './accountingSecurity';
 import type { Account, JournalEntry } from '../src/types';
@@ -28,7 +28,7 @@ export class ServerLargeExportBuilder implements LargeExportContentBuilder{
   }
 }
 
-export function firebaseLargeExportWorker(){const store:Store=new ResilientStore(adminServices().db),operations=new Operations(store,undefined,resolveSubscription,verifyDeployedAccountingRules);return new LargeExportWorker(store,new FirebaseLargeExportArtifacts(),new ServerLargeExportBuilder(operations));}
+export function firebaseLargeExportWorker(){const store:Store=new FirestoreStore(adminServices().db),operations=new Operations(store,undefined,resolveSubscription,verifyDeployedAccountingRules);return new LargeExportWorker(store,new FirebaseLargeExportArtifacts(),new ServerLargeExportBuilder(operations));}
 
 export async function authorizedLargeExportDownload(store:Store,worker:LargeExportWorker,orgId:string,collection:string,jobId:string,actor:Actor){
   const role=await store.transaction(async tx=>{const value=await membership(tx,orgId,actor),permission=collection==='company_export_jobs'?'export:company':'export:accounting',subscription=await loadSubscription(tx,orgId,value.org,new Date(),resolveSubscription);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');if(collection==='accounting_export_jobs')assertFeature(subscription,'advanced_reports');ensure(hasPermission(value.role,permission), 'تنزيل التصدير غير مسموح.',403);ensure(collection!=='company_export_jobs'||value.role==='Owner'&&value.org.owner_uid===actor.uid,'تنزيل حزمة الشركة متاح للمالك الفعلي فقط.',403);return value.role;});return worker.download(orgId,collection,jobId,actor.uid,role);

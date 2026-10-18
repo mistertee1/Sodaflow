@@ -18,7 +18,7 @@ export class LargeExportWorker {
   constructor(private store:Store,private artifacts:LargeExportArtifactStore,private builder:LargeExportContentBuilder,private now=()=>new Date(),private claimId=()=>randomUUID()){}
 
   async runNext():Promise<Document|null>{
-    const queued=await this.store.transaction(tx=>tx.list('large_export_queue'));
+    const queued=await this.store.transaction(tx=>tx.list('large_export_queue',{limit:25,orderBy:'created_at'}));
     const item=[...queued].sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)))[0];
     return item?this.run(identifier(item.org_id),identifier(item.collection),identifier(item.job_id)):null;
   }
@@ -57,7 +57,7 @@ export class LargeExportWorker {
     if(job.artifact?.path)await this.artifacts.delete(String(job.artifact.path));const at=this.now().toISOString();return this.store.transaction(async tx=>{const current=await tx.get(path);if(!current||current.status!=='completed'||current.expires_at!==job.expires_at)return null;const result={...current,status:'expired',artifact:null,expired_at:at,updated_at:at};tx.set(path,result);tx.delete(`large_export_expiry/${orgId}.${jobId}`);const event=audit('DATA_EXPORT_EXPIRED',result,at);tx.set(`organizations/${orgId}/audit_logs/${event.id}`,event);return result;});
   }
 
-  async expireNext():Promise<Document|null>{const due=await this.store.transaction(tx=>tx.list('large_export_expiry')),item=[...due].filter(x=>new Date(x.expires_at)<=this.now()).sort((a,b)=>String(a.expires_at).localeCompare(String(b.expires_at)))[0];return item?this.expire(identifier(item.org_id),identifier(item.collection),identifier(item.job_id)):null;}
+  async expireNext():Promise<Document|null>{const due=await this.store.transaction(tx=>tx.list('large_export_expiry',{limit:25,orderBy:'expires_at'})),item=due.find(x=>new Date(x.expires_at)<=this.now());return item?this.expire(identifier(item.org_id),identifier(item.collection),identifier(item.job_id)):null;}
 
   async download(orgId:string,collection:string,jobId:string,actorUid:string,role:string):Promise<{url:string;expires_at:string}>{
     ensure(collections.includes(collection as typeof collections[number]),'مجموعة مهمة التصدير غير صالحة.');ensure(collection!=='company_export_jobs'||role==='Owner','تنزيل حزمة الشركة متاح للمالك فقط.',403);ensure(['Owner','Admin','Accountant'].includes(role),'تنزيل التصدير غير مسموح.',403);

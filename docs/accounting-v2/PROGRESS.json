@@ -8,11 +8,11 @@
   "active_branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "excel3-large-import-ui-20261018",
-    "round_id": "20261018T042500Z-excel3.2c",
+    "worker": "excel3-large-import-ui-resume-20261018",
+    "round_id": "20261018T070900Z-excel3.2c.1-resume",
     "base_branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
-    "acquired_at": "2026-10-18T04:25:00Z",
-    "expires_at": "2026-10-18T05:55:00Z",
+    "acquired_at": "2026-10-18T07:07:01Z",
+    "expires_at": "2026-10-18T08:37:01Z",
     "branch": "codex/accounting-v2-excel3-large-import-ui-20261018"
   },
   "milestones": [

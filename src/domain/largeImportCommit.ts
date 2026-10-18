@@ -19,7 +19,8 @@ export async function commitLargeImport(tx:Transaction,root:string,job:Document,
   ensure(Array.isArray(staging.rows)&&staging.rows.length===Number(job.validated_rows),'تغيرت صفوف staging بعد التحقق.',409);
   ensure(/^[a-f0-9]{64}$/i.test(String(job.validated_staging_sha256||''))&&await largeImportStagingSha256(staging.rows as Document[])===job.validated_staging_sha256,'تغير محتوى staging بعد التحقق.',409);
   ensure(staging.rows.length<=400,'الاعتماد الذري يدعم حتى 400 صف؛ قسّم الملف إلى دفعات أصغر.',413);
-  const module=masterImportModule(job.module),policy=job.duplicate_policy as DuplicatePolicy,existing=await tx.list(`${root}/${module}`),changes:Document[]=[],createdIds:string[]=[],skippedRows:number[]=[];
+  const module=masterImportModule(job.module);ensure(['skip','update'].includes(job.duplicate_policy),'سياسة تكرار المهمة غير صالحة.',409);
+  const policy=job.duplicate_policy as DuplicatePolicy,existing=await tx.list(`${root}/${module}`),changes:Document[]=[],createdIds:string[]=[],skippedRows:number[]=[];
   for(const staged of staging.rows as Document[]){
     ensure(staged.status!=='blocking'&&!staged.issues?.some((issue:Document)=>issue.level==='blocking'),'تحتوي بيانات staging على خطأ حاجب.',409);
     const data=cleanData(module,staged.data||{}),duplicate=findDuplicate(module,data,existing);

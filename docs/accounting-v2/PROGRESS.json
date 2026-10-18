@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-validation-20261018",
+  "active_branch": "codex/accounting-v2-excel4-historical-staging-20261018",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -2087,15 +2087,15 @@
     {
       "id": "Excel4",
       "status": "in_progress",
-      "branch": "codex/accounting-v2-excel4-historical-validation-20261018",
-      "pr": 100,
+      "branch": "codex/accounting-v2-excel4-historical-staging-20261018",
+      "pr": 101,
       "steps": [
         {
           "id": "Excel4.1",
           "scope": "Controlled historical invoices/purchases/journals and legacy migration",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-excel4-historical-validation-20261018",
-          "pr": 100,
+          "branch": "codex/accounting-v2-excel4-historical-staging-20261018",
+          "pr": 101,
           "substeps": [
             {
               "id": "Excel4.1a",
@@ -2105,8 +2105,39 @@
               "pr": 100,
               "code_commit": "a1040c3eb05d020a3e92a41e7935246586c20a89",
               "report": "REPORT_EXCEL4_1A_HISTORICAL_IMPORT_VALIDATION.md",
-              "checks": {"targeted": 6, "types": "passed", "lint_core": "passed"},
-              "ci": {"run_id": 39144556372, "commit_sha": "ee568a915420d8bdd12787cca2a0aa77ab7bf72e", "conclusion": "success"},
+              "checks": {
+                "targeted": 6,
+                "types": "passed",
+                "lint_core": "passed"
+              },
+              "ci": {
+                "run_id": 39144556372,
+                "commit_sha": "ee568a915420d8bdd12787cca2a0aa77ab7bf72e",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "Excel4.1b",
+              "scope": "Protected historical import staging, server-derived validation context, permissions and audit",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-staging-20261018",
+              "pr": 101,
+              "code_commit": "1e835da3632123df4cd711f667fc9832211faba6",
+              "report": "REPORT_EXCEL4_1B_HISTORICAL_IMPORT_STAGING.md",
+              "checks": {
+                "targeted_excel_import": 43,
+                "unit_api": 373,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 39151702000,
+                "commit_sha": "1e835da3632123df4cd711f667fc9832211faba6",
+                "conclusion": "success"
+              },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
             }
           ]
@@ -2121,12 +2152,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_EXCEL4_1A_HISTORICAL_IMPORT_VALIDATION.md",
+  "last_report": "REPORT_EXCEL4_1B_HISTORICAL_IMPORT_STAGING.md",
   "next_steps": [
-    "Proceed to Excel4.1b protected historical import staging, commands, permissions and audit from PR100",
-    "Independent authenticated Render acceptance for E1-E3 on matching staging commits"
+    "Proceed to Excel4.1c atomic historical commit, reconciliation and accounting-block close guard from PR101",
+    "Independent authenticated Render acceptance on a matching staging commit"
   ],
-  "updated_at": "2026-10-18T17:40:00Z",
+  "updated_at": "2026-10-18T19:45:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2151,7 +2182,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1b",
+  "active_substep": "Excel4.1c",
   "observed_main_sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
   "lease_history": [
     {
@@ -2624,7 +2655,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to Excel4.1 controlled historical invoices, purchases, journals and legacy migration; Render acceptance remains independent",
+  "next": "Proceed to Excel4.1c atomic historical commit, reconciliation and accounting-block close guard; Render acceptance remains independent",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2645,25 +2676,23 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "excel3-large-import-commit-resume-20261018",
-    "round_id": "20261018T122435Z-excel3.2c.2b-resume",
-    "acquired_at": "2026-10-18T12:24:35Z",
-    "branch": "codex/accounting-v2-excel3-large-import-commit-20261018",
-    "released_at": "2026-10-18T14:15:00Z",
-    "pr": 99,
-    "code_commit": "a47ae81171bf4d5708154df24fc0386af778d9a9",
-    "status": "Excel3.2c.2b_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-18T14:15:00Z",
+    "worker": "excel4-historical-staging-20261018",
+    "round_id": "20261018T174747Z-excel4.1b",
+    "acquired_at": "2026-10-18T17:47:47.027Z",
+    "released_at": "2026-10-18T19:45:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-staging-20261018",
+    "pr": 101,
+    "code_commit": "1e835da3632123df4cd711f667fc9832211faba6",
+    "status": "Excel4.1b_implemented_ci_passed_render_acceptance_pending",
     "ci": {
-      "run_id": 39127615578,
-      "commit_sha": "a47ae81171bf4d5708154df24fc0386af778d9a9",
+      "run_id": 39151702000,
+      "commit_sha": "1e835da3632123df4cd711f667fc9832211faba6",
       "conclusion": "success",
-      "code_and_tests": "passed",
-      "emulator": "passed",
-      "ui": "passed",
-      "production_audit": "passed"
+      "targeted_excel_import": 43,
+      "unit_api": 373,
+      "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to Excel4.1 controlled historical invoices, purchases, journals and legacy migration; Render acceptance remains independent"
+    "next": "Proceed to Excel4.1c atomic historical commit, reconciliation and accounting-block close guard; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

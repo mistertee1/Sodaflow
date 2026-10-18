@@ -13,8 +13,9 @@ async function fixture(){
 
 test('Excel3.2c.1 queues only reviewed error-free tenant staging with idempotency evidence',async()=>{
  const f=await fixture(),r=await f.ops.execute(f.org.id,f.owner,{action:'largeImport.request',operationId:'queue-import',data:{session_id:'session-one',reviewed:true,duplicate_policy:'skip'}});
- assert.equal(r.result.status,'queued');assert.equal(r.result.total_rows,2);assert.equal(r.result.file_hash,'a'.repeat(64));assert.equal(r.result.schema_version,1);assert.equal(r.result.reviewed_by,'owner');
+ assert.equal(r.result.status,'queued');assert.equal(r.result.total_rows,2);assert.equal(r.result.file_hash,'a'.repeat(64));assert.equal(r.result.schema_version,1);assert.equal(r.result.idempotency_key,`session-one:${'a'.repeat(64)}:1`);assert.equal(r.result.reviewed_by,'owner');
  const dump=f.store.dump();assert.equal(dump[`large_import_queue/${f.org.id}.${r.result.id}`].job_id,r.result.id);assert.equal(dump[`${f.root}/audit_logs/audit-queue-import`].event_type,'DATA_IMPORT_QUEUED');
+ await assert.rejects(f.ops.execute(f.org.id,f.owner,{action:'largeImport.request',operationId:'queue-import-again',data:{session_id:'session-one',reviewed:true,duplicate_policy:'skip'}}),/سبق جدولة جلسة الاستيراد نفسها/);
 });
 
 test('Excel3.2c.1 rejects forged review, blocking errors, tenant mismatch and viewer access',async()=>{
@@ -30,8 +31,11 @@ test('Excel3.2c.1 enforces two active jobs, owner/requester cancellation and bou
  const one=await f.ops.execute(f.org.id,accountant,{action:'largeImport.request',operationId:'one',data:{session_id:'session-one',reviewed:true,duplicate_policy:'update'}});
  await f.store.transaction(async tx=>{tx.set(`${f.root}/import_sessions/session-two`,{...await tx.get(`${f.root}/import_sessions/session-one`),id:'session-two'});tx.set(`${f.root}/import_staging/session-two`,{...await tx.get(`${f.root}/import_staging/session-one`),id:'session-two',session_id:'session-two'});});
  await f.ops.execute(f.org.id,f.owner,{action:'largeImport.request',operationId:'two',data:{session_id:'session-two',reviewed:true}});
- await assert.rejects(f.ops.execute(f.org.id,f.owner,{action:'largeImport.request',operationId:'overflow',data:{session_id:'session-one',reviewed:true}}),/مهمتا استيراد/);
+ await f.store.transaction(async tx=>{tx.set(`${f.root}/import_sessions/session-three`,{...await tx.get(`${f.root}/import_sessions/session-one`),id:'session-three'});tx.set(`${f.root}/import_staging/session-three`,{...await tx.get(`${f.root}/import_staging/session-one`),id:'session-three',session_id:'session-three'});});
+ await assert.rejects(f.ops.execute(f.org.id,f.owner,{action:'largeImport.request',operationId:'overflow',data:{session_id:'session-three',reviewed:true}}),/مهمتا استيراد/);
  const cancelled=await f.ops.execute(f.org.id,f.owner,{action:'largeImport.cancel',operationId:'cancel',data:{id:one.result.id}});assert.equal(cancelled.result.status,'cancelled');
+ await f.store.transaction(async tx=>tx.set(`${f.root}/large_import_jobs/awaiting`,{id:'awaiting',org_id:f.org.id,module:'customers',status:'awaiting_commit',attempt:1,max_attempts:3,requested_by:'accountant',progress:100,total_rows:2}));
+ const cancelledAwaiting=await f.ops.execute(f.org.id,f.owner,{action:'largeImport.cancel',operationId:'cancel-awaiting',data:{id:'awaiting'}});assert.equal(cancelledAwaiting.result.status,'cancelled');
  await f.store.transaction(async tx=>tx.set(`${f.root}/large_import_jobs/failed`,{id:'failed',org_id:f.org.id,module:'customers',status:'failed',attempt:1,max_attempts:3,requested_by:'accountant',progress:51,total_rows:2}));
  const retry=await f.ops.execute(f.org.id,accountant,{action:'largeImport.retry',operationId:'retry',data:{id:'failed'}});assert.equal(retry.result.attempt,2);assert.equal(retry.result.progress,0);assert.equal(retry.result.failure,null);
 });

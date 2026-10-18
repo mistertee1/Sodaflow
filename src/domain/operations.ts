@@ -60,6 +60,7 @@ import { assertMasterImportPayload, buildMasterImportPreview, masterImportModule
 import { cancelLargeExportJob, requestLargeExportJob, retryLargeExportJob } from './largeExportJobs';
 import { cancelLargeImportJob, requestLargeImportJob, retryLargeImportJob } from './largeImportJobs';
 import { commitLargeImport, undoLargeImport } from './largeImportCommit';
+import { assertHistoricalImportStagePayload, buildHistoricalImportStage } from './historicalImportStaging';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
@@ -82,7 +83,7 @@ const actions: Record<string, ActionType> = {
   'masterExport.create': 'org:read', 'accountingExport.create': 'export:accounting', 'companyExport.record':'export:company',
   'exportPreset.save':'export:accounting', 'exportPreset.delete':'export:accounting',
   'largeExport.request':'export:accounting', 'largeExport.cancel':'export:accounting', 'largeExport.retry':'export:accounting',
-  'masterImport.stage': 'org:read', 'largeImport.request':'org:read', 'largeImport.cancel':'org:read', 'largeImport.retry':'org:read', 'largeImport.commit':'org:read', 'largeImport.undo':'org:read',
+  'masterImport.stage': 'org:read', 'historicalImport.stage':'import:accounting', 'largeImport.request':'org:read', 'largeImport.cancel':'org:read', 'largeImport.retry':'org:read', 'largeImport.commit':'org:read', 'largeImport.undo':'org:read',
   'customer.create': 'customers:create', 'customer.update': 'customers:update', 'customer.delete': 'customers:delete',
   'product.create': 'products:create', 'product.update': 'products:update', 'product.delete': 'products:delete', 'product.stock': 'products:stock_adjustment',
   'accounting.activate': 'org:update_settings', 'product.cost.establish': 'products:stock_adjustment', 'inventory.receive': 'products:stock_adjustment',
@@ -101,6 +102,7 @@ readPermissions.approval_policies = 'approvals:read';
 readPermissions.budgets = 'budget:read';
 readPermissions.recurring_cash_sources = 'budget:read';
 readPermissions.scheduled_cash_sources = 'budget:read';
+readPermissions.historical_import_sessions = 'import:accounting';
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
   if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
@@ -263,7 +265,7 @@ export class Operations {
       if (backup) { ensure(org.status === 'active', 'المؤسسة متوقفة؛ التصدير المحمي غير متاح.', 403); assertSubscriptionActive(subscription); }
       const collections: Record<string, Document[]> = {};
       for (const [name, permission] of Object.entries(readPermissions)) {
-        const feature = name==='branches'?'branches':['cost_centers','projects'].includes(name)?'advanced_reports':['audit_logs','audit_archives'].includes(name) ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(name) ? 'accounting' : null;
+        const feature = name==='branches'?'branches':['cost_centers','projects'].includes(name)?'advanced_reports':['audit_logs','audit_archives'].includes(name) ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['historical_import_sessions','accounts', 'journal_entries', ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(name) ? 'accounting' : null;
         const activeSubscription = ['active', 'trial'].includes(subscription.effective_status || subscription.status) && org.status === 'active';
         collections[name] = hasPermission(role, permission) && (backup || !feature || activeSubscription && subscription.features[feature] === true) ? await tx.list(`${root}/${name}`) : [];
       }
@@ -308,6 +310,7 @@ export class Operations {
         assertMasterImportPayload(command.data);
         ensure(hasPermission(role, masterImportPermission(masterImportModule(command.data.module))), 'ليس لديك صلاحية استيراد هذه البيانات.', 403);
       }
+      if(command.action==='historicalImport.stage')assertHistoricalImportStagePayload(command.data);
       if(command.action==='largeImport.request'){
         const sessionId=identifier(command.data.session_id),session=await tx.get(`${root}/import_sessions/${sessionId}`);
         ensure(session,'جلسة الاستيراد غير موجودة.',404);ensure(hasPermission(role,masterImportPermission(masterImportModule(session.import_type))),'ليس لديك صلاحية استيراد هذه البيانات.',403);
@@ -449,6 +452,11 @@ export class Operations {
       const plan = subscriptionLimits(subscription);
       if (command.action === 'subscription.request') ensure(role === 'Owner', 'طلب تغيير الباقة متاح لمالك الشركة فقط.', 403);
       if (command.action !== 'subscription.request') assertSubscriptionActive(subscription);
+      if(command.action==='historicalImport.stage'){
+        ensure(org.accounting_version===2,'الاستيراد التاريخي يتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');
+        if(command.data.rows.some((row:Document)=>row.currency==='USD'))assertFeature(subscription,'multi_currency');
+        if(this.store.authority==='browser')throw new BusinessError('الاستيراد التاريخي المحمي يتطلب خدمة الخادم.',403,'accounting_server_required');
+      }
       if (['product.stock', 'product.cost.establish', 'inventory.receive'].includes(command.action) || command.action === 'product.create' && data.track_inventory) assertFeature(subscription, 'inventory_tracking');
       if (command.action.startsWith('financialAccount.') || ['cashTransfer.create','bankReconciliation.create','cashCount.create'].includes(command.action)) assertFeature(subscription, 'accounting');
       if (command.action === 'financialAccount.create' && data.currency === 'USD') assertFeature(subscription, 'multi_currency');
@@ -676,6 +684,14 @@ export class Operations {
           set(`${root}/import_staging/${preview.staging.id}`,preview.staging);
           result=preview.result;
           break;
+        }
+        case 'historicalImport.stage': {
+          const [accounts,branches,costCenters,projects,entries,invoices,purchases,priorSessions,priorStaging]=await Promise.all(['accounts','branches','cost_centers','projects','journal_entries','invoices','purchase_bills','historical_import_sessions','historical_import_staging'].map(name=>tx.list(`${root}/${name}`)));
+          for(const rows of [accounts,branches,costCenters,projects,entries,invoices,purchases,priorSessions,priorStaging])ensure(rows.every(row=>!row.org_id||row.org_id===orgId),'بيانات سياق الاستيراد التاريخي تحتوي مؤسسة أخرى.',409);
+          const existingReferences=[...entries,...invoices,...purchases,...priorStaging.flatMap(row=>Array.isArray(row.rows)?row.rows:[])].flatMap(row=>['reference','reference_number','invoice_number','supplier_reference','external_reference'].map(field=>row[field]).filter(Boolean)).map(String);
+          const validation={orgId,periodLockDate:settings.period_lock_date||undefined,periods:periods.map(({start_date,end_date,status})=>({start_date,end_date,status})),accounts:(accounts as Account[]).filter(account=>account.is_active!==false).map(account=>account.code),branches:['main',...branches.filter(row=>row.status!=='inactive').map(row=>row.id)],currencies:[settings.primary_currency,settings.secondary_currency].filter((value,index,all)=>value&&all.indexOf(value)===index),dimensions:[...costCenters,...projects].filter(row=>row.status!=='inactive').map(row=>row.id),existingReferences};
+          const staged=await buildHistoricalImportStage(data as never,{orgId,actorUid:actor.uid,operationId:command.operationId,createdAt:iso,validation:validation as never,previousSessions:priorSessions});
+          set(`${root}/historical_import_sessions/${staged.session.id}`,staged.session);set(`${root}/historical_import_staging/${staged.staging.id}`,staged.staging);result=staged.result;break;
         }
         case 'supplier.create': case 'supplier.update': case 'purchase.create': case 'supplierPayment.create': {
           result = await payableCommand(command.action, data, { tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
@@ -1114,6 +1130,7 @@ export class Operations {
       if(command.action==='largeExport.cancel')Object.assign(audit,{event_type:'DATA_EXPORT_CANCELLED',export_metadata:{export_type:result.kind,format:result.format,status:result.status,attempt:result.attempt}});
       if(command.action==='largeExport.retry')Object.assign(audit,{event_type:'DATA_EXPORT_RETRIED',export_metadata:{export_type:result.kind,format:result.format,status:result.status,attempt:result.attempt}});
       if(command.action==='masterImport.stage')Object.assign(audit,{event_type:'DATA_IMPORT_STARTED',import_metadata:{import_type:result.import_type,file_name:result.file_name,file_hash:result.file_hash,totals:result.totals,status:'previewed',schema_version:result.schema_version}});
+      if(command.action==='historicalImport.stage')Object.assign(audit,{event_type:'DATA_IMPORT_STARTED',import_metadata:{import_type:result.import_type,file_name:result.file_name,file_hash:result.file_hash,rows_total:result.rows_total,rows_imported:0,rows_failed:result.rows_failed,status:result.status,schema_version:result.schema_version,accounting_block:result.accounting_block,rows_sha256:result.rows_sha256}});
       if(command.action==='largeImport.request')Object.assign(audit,{event_type:'DATA_IMPORT_QUEUED',import_metadata:{import_type:result.module,file_hash:result.file_hash,status:result.status,total_rows:result.total_rows,duplicate_policy:result.duplicate_policy,schema_version:result.schema_version}});
       if(command.action==='largeImport.cancel')Object.assign(audit,{event_type:'DATA_IMPORT_CANCELLED',import_metadata:{import_type:result.module,status:result.status,total_rows:result.total_rows,attempt:result.attempt}});
       if(command.action==='largeImport.retry')Object.assign(audit,{event_type:'DATA_IMPORT_RETRIED',import_metadata:{import_type:result.module,status:result.status,total_rows:result.total_rows,attempt:result.attempt}});
@@ -1125,7 +1142,7 @@ export class Operations {
         if (c.path === root || c.path.startsWith(`${root}/meta/`)) return true;
         const collection = c.path.split('/')[2];
         if(collection==='large_import_jobs')return Boolean(c.value)&&hasPermission(role,masterImportPermission(masterImportModule(c.value!.module)));
-        const feature = collection === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(collection) ? 'accounting' : ['audit_logs','audit_archives'].includes(collection) ? 'audit_trail' : null;
+        const feature = collection === 'inventory_movements' ? 'inventory_tracking' : ['historical_import_sessions','accounts', 'journal_entries', ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(collection) ? 'accounting' : ['audit_logs','audit_archives'].includes(collection) ? 'audit_trail' : null;
         return c.path.startsWith(`${root}/`) && hasPermission(role, readPermissions[collection]) && (!feature || subscription.features[feature] === true);
       });
       const response = clean({ result, changes: visible });

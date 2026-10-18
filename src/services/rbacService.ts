@@ -56,6 +56,7 @@ export type ActionType =
   | 'import:customers'
   | 'import:suppliers'
   | 'import:products'
+  | 'import:accounting'
   | 'accounts:read'
   | 'accounts:create'
   | 'accounts:update'
@@ -104,7 +105,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'reports:view',
     'reports:advanced',
     'export:customers', 'export:suppliers', 'export:products', 'export:invoices', 'export:accounting', 'export:company',
-    'import:customers', 'import:suppliers', 'import:products',
+    'import:customers', 'import:suppliers', 'import:products', 'import:accounting',
     'accounts:read',
     'accounts:create',
     'accounts:update',
@@ -147,7 +148,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'reports:view',
     'reports:advanced',
     'export:customers', 'export:suppliers', 'export:products', 'export:invoices', 'export:accounting',
-    'import:customers', 'import:suppliers', 'import:products',
+    'import:customers', 'import:suppliers', 'import:products', 'import:accounting',
     'accounts:read',
     'accounts:create',
     'accounts:update',
@@ -185,7 +186,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'reports:view',
     'reports:advanced',
     'export:customers', 'export:suppliers', 'export:products', 'export:invoices', 'export:accounting',
-    'import:customers', 'import:suppliers', 'import:products',
+    'import:customers', 'import:suppliers', 'import:products', 'import:accounting',
     'accounts:read',
     'accounts:create',
     'accounts:update',

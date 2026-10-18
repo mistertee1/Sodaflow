@@ -57,6 +57,7 @@ import { authorizeCreditDecision, customerCreditDecision } from './customerCredi
 import { approvalGate, saveApprovalPolicy } from './approvalPolicies';
 import { buildMasterExport, masterExportModule, masterExportPermission } from './masterExport';
 import { assertMasterImportPayload, buildMasterImportPreview, masterImportModule, masterImportPermission } from './masterImport';
+import { cancelLargeExportJob, requestLargeExportJob, retryLargeExportJob } from './largeExportJobs';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
@@ -78,6 +79,7 @@ const actions: Record<string, ActionType> = {
   'correctionDocument.export': 'backup:export', 'operational.export': 'backup:export', 'payables.export': 'backup:export', 'supplier.create': 'payables:write', 'supplier.update': 'payables:write', 'purchase.create': 'payables:write', 'supplierPayment.create': 'payables:write',
   'masterExport.create': 'org:read', 'accountingExport.create': 'export:accounting', 'companyExport.record':'export:company',
   'exportPreset.save':'export:accounting', 'exportPreset.delete':'export:accounting',
+  'largeExport.request':'export:accounting', 'largeExport.cancel':'export:accounting', 'largeExport.retry':'export:accounting',
   'masterImport.stage': 'org:read',
   'customer.create': 'customers:create', 'customer.update': 'customers:update', 'customer.delete': 'customers:delete',
   'product.create': 'products:create', 'product.update': 'products:update', 'product.delete': 'products:delete', 'product.stock': 'products:stock_adjustment',
@@ -91,6 +93,8 @@ const actions: Record<string, ActionType> = {
 };
 export const readPermissions: Record<string, ActionType> = { branches:'dimensions:read',cost_centers:'dimensions:read',projects:'dimensions:read',tax_configurations:'tax:read',tax_configuration_versions:'tax:read',fixed_assets:'journal:read',fixed_asset_depreciations:'journal:read',fx_revaluations:'journal:read', owner_equity_events:'journal:read', ...Object.fromEntries(openingCollections.map(name=>[name,'journal:read' as const])), accounting_periods:'periods:read', audit_archives: 'audit_logs:view', purchase_returns: 'payables:read', supplier_refunds: 'payables:read', credit_notes: 'journal:read', customer_refunds: 'journal:read', bank_reconciliations: 'journal:read', cash_reconciliations: 'journal:read', financial_accounts: 'journal:read', internal_transfers: 'journal:read', suppliers: 'payables:read', purchase_bills: 'payables:read', supplier_payments: 'payables:read', customers: 'customers:read', products: 'products:read', invoices: 'invoices:read', payments: 'payments:read', expenses: 'expenses:read', inventory_movements: 'products:stock_adjustment', accounts: 'accounts:read', journal_entries: 'journal:read', members: 'members:view', audit_logs: 'audit_logs:view', invitations: 'members:invite' };
 readPermissions.export_presets = 'export:accounting';
+readPermissions.accounting_export_jobs = 'export:accounting';
+readPermissions.company_export_jobs = 'export:company';
 readPermissions.approval_policies = 'approvals:read';
 readPermissions.budgets = 'budget:read';
 readPermissions.recurring_cash_sources = 'budget:read';
@@ -603,6 +607,32 @@ export class Operations {
           const presetId=data.preset_id?identifier(data.preset_id):'';if(presetId)ensure(await tx.get(`${root}/export_presets/${presetId}`),'إعداد التصدير غير موجود.',404);
           result={id:`company-export-${command.operationId}`,schema_version:3,export_type:'company',format:'json',filename:text(data.filename,160,true),byte_size:byteSize,collection_counts:counts,preset_id:presetId||null,created_at:iso};break;
         }
+        case 'largeExport.request': {
+          ensure(org.accounting_version===2,'مهام التصدير الكبيرة تتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');
+          if(data.kind==='accounting')assertFeature(subscription,'advanced_reports');
+          const presetId=data.preset_id?identifier(String(data.preset_id)):'';
+          if(presetId){const preset=await required('export_presets',presetId);ensure(preset.kind===data.kind,'إعداد التصدير لا يطابق نوع المهمة.',409);}
+          const active=[...await tx.list(`${root}/accounting_export_jobs`),...await tx.list(`${root}/company_export_jobs`)];
+          result=requestLargeExportJob(data,active,{orgId,actorUid:actor.uid,actorRole:role,ownerUid:org.owner_uid,operationId:command.operationId,now});
+          const collection=result.kind==='company'?'company_export_jobs':'accounting_export_jobs';
+          set(`${root}/${collection}/${result.id}`,result);break;
+        }
+        case 'largeExport.cancel': {
+          const id=identifier(data.id);let collection='accounting_export_jobs',job=await tx.get(`${root}/${collection}/${id}`);
+          if(!job&&role==='Owner'&&org.owner_uid===actor.uid){collection='company_export_jobs';job=await tx.get(`${root}/${collection}/${id}`);}
+          ensure(job,'مهمة التصدير غير موجودة.',404);
+          ensure(Object.keys(data).every(key=>['id'].includes(key)),'حقول إلغاء مهمة التصدير غير صالحة.');
+          result=cancelLargeExportJob(job,{orgId,actorUid:actor.uid,actorRole:role,ownerUid:org.owner_uid,operationId:command.operationId,now});
+          set(`${root}/${collection}/${id}`,result);break;
+        }
+        case 'largeExport.retry': {
+          const id=identifier(data.id);let collection='accounting_export_jobs',job=await tx.get(`${root}/${collection}/${id}`);
+          if(!job&&role==='Owner'&&org.owner_uid===actor.uid){collection='company_export_jobs';job=await tx.get(`${root}/${collection}/${id}`);}
+          ensure(job,'مهمة التصدير غير موجودة.',404);
+          ensure(Object.keys(data).every(key=>['id'].includes(key)),'حقول إعادة محاولة التصدير غير صالحة.');
+          result=retryLargeExportJob(job,{orgId,actorUid:actor.uid,actorRole:role,ownerUid:org.owner_uid,operationId:command.operationId,now});
+          set(`${root}/${collection}/${id}`,result);break;
+        }
         case 'masterImport.stage': {
           const module=masterImportModule(data.module),existing=await tx.list(`${root}/${module}`),sessions=await tx.list(`${root}/import_sessions`);
           const preview=buildMasterImportPreview(data as never,existing,sessions,{orgId,actor:actor.uid,operationId:command.operationId,createdAt:iso});
@@ -1044,6 +1074,9 @@ export class Operations {
       if(command.action==='masterExport.create')Object.assign(audit,{event_type:'DATA_EXPORT_CREATED',export_metadata:{export_type:'quick',format:result.format,module:result.module,record_count:result.record_count,masked_fields:result.masked_fields}});
       if(command.action==='accountingExport.create')Object.assign(audit,{event_type:'DATA_EXPORT_CREATED',export_metadata:{export_type:'accounting',format:result.format,record_count:result.record_count,line_count:result.line_count,period:result.period,schema_version:result.schema_version}});
       if(command.action==='companyExport.record')Object.assign(audit,{event_type:'DATA_EXPORT_CREATED',export_metadata:{export_type:'company',format:'json',byte_size:result.byte_size,collection_counts:result.collection_counts,preset_id:result.preset_id,schema_version:result.schema_version}});
+      if(command.action==='largeExport.request')Object.assign(audit,{event_type:'DATA_EXPORT_QUEUED',export_metadata:{export_type:result.kind,format:result.format,status:result.status,attempt:result.attempt,period:result.period,preset_id:result.preset_id}});
+      if(command.action==='largeExport.cancel')Object.assign(audit,{event_type:'DATA_EXPORT_CANCELLED',export_metadata:{export_type:result.kind,format:result.format,status:result.status,attempt:result.attempt}});
+      if(command.action==='largeExport.retry')Object.assign(audit,{event_type:'DATA_EXPORT_RETRIED',export_metadata:{export_type:result.kind,format:result.format,status:result.status,attempt:result.attempt}});
       if(command.action==='masterImport.stage')Object.assign(audit,{event_type:'DATA_IMPORT_STARTED',import_metadata:{import_type:result.import_type,file_name:result.file_name,file_hash:result.file_hash,totals:result.totals,status:'previewed',schema_version:result.schema_version}});
       if(isOpening)ensure(new TextEncoder().encode(JSON.stringify(audit)).length<=650000,'حجم تدقيق الأرصدة يتجاوز حد المستند.',413);
       tx.set(`${root}/audit_logs/${audit.id}`, audit);

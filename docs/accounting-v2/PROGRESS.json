@@ -4,8 +4,8 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "Excel3",
-  "active_branch": "codex/accounting-v2-excel3-large-import-commit-20261018",
+  "active_milestone": "Excel4",
+  "active_branch": "codex/accounting-v2-excel4-historical-validation-20261018",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -2086,16 +2086,30 @@
     },
     {
       "id": "Excel4",
-      "status": "pending",
-      "branch": null,
-      "pr": null,
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-excel4-historical-validation-20261018",
+      "pr": 100,
       "steps": [
         {
           "id": "Excel4.1",
           "scope": "Controlled historical invoices/purchases/journals and legacy migration",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-excel4-historical-validation-20261018",
+          "pr": 100,
+          "substeps": [
+            {
+              "id": "Excel4.1a",
+              "scope": "Dry-run safety validation for historical journals, invoices, purchases and legacy trial balance",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-validation-20261018",
+              "pr": 100,
+              "code_commit": "a1040c3eb05d020a3e92a41e7935246586c20a89",
+              "report": "REPORT_EXCEL4_1A_HISTORICAL_IMPORT_VALIDATION.md",
+              "checks": {"targeted": 6, "types": "passed", "lint_core": "passed"},
+              "ci": {"run_id": 39144556372, "commit_sha": "ee568a915420d8bdd12787cca2a0aa77ab7bf72e", "conclusion": "success"},
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            }
+          ]
         },
         {
           "id": "Excel4.2",
@@ -2107,12 +2121,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_EXCEL3_2C2A_LARGE_IMPORT_WORKER.md",
+  "last_report": "REPORT_EXCEL4_1A_HISTORICAL_IMPORT_VALIDATION.md",
   "next_steps": [
-    "Proceed to Excel3.2c.2 worker chunk validation, awaiting_commit, atomic commit, undo and rollback from PR97",
+    "Proceed to Excel4.1b protected historical import staging, commands, permissions and audit from PR100",
     "Independent authenticated Render acceptance for E1-E3 on matching staging commits"
   ],
-  "updated_at": "2026-10-18T12:24:35Z",
+  "updated_at": "2026-10-18T17:40:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2137,7 +2151,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1",
+  "active_substep": "Excel4.1b",
   "observed_main_sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
   "lease_history": [
     {

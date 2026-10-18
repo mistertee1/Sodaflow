@@ -113,8 +113,8 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 107 | Final Product Goal | A-E / release gate |
 | 108 | Commercial Positioning After Completion | A-E / release gate |
 | 109 | Next Engineering Step | A-E / release gate |
-| 110 | Excel Export & Data Portability | Excel3.1 full-company JSON portability plus Excel3.2a protected large-job intake/recovery foundation implemented; worker delivery remains Excel3.2b |
-| 111 | Export Modes | Quick exports Excel1.1; accountant package Excel2.1; direct full-company package Excel3.1; queued large company/accounting requests Excel3.2a; artifact delivery remains Excel3.2b |
+| 110 | Excel Export & Data Portability | Excel3.1 portability, Excel3.2a protected intake and Excel3.2b private worker artifact delivery implemented; large import/UI remains Excel3.2c |
+| 111 | Export Modes | Quick Excel1.1; accountant Excel2.1; direct company Excel3.1; queued large requests Excel3.2a; private temporary artifacts Excel3.2b |
 | 112 | Full Company Workbook Structure | Excel 1-4 |
 | 113 | Invoice Export Structure | Excel 1-4 |
 | 114 | Raw Data vs Report Sheets | Excel2.1 accountant workbook includes journal raw sheets and financial report sheets |
@@ -128,13 +128,13 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 122 | Export Filters | Excel2.1 date period plus Excel3.1 saved accounting/master/company preset scopes implemented; arbitrary column selection remains later |
 | 123 | Export Column Selection | Excel 1-4 |
 | 124 | Saved Export Presets | Excel3.1 tenant-owned save/delete/reload implemented; company presets restricted to the actual Owner |
-| 125 | Accountant Package | Excel2.1 implemented; Excel3.2a adds bounded accountant large-job request/cancel/retry; worker delivery remains Excel3.2b |
+| 125 | Accountant Package | Excel2.1 direct and Excel3.2a/b bounded large request, worker generation and protected temporary download implemented |
 | 126 | Auditor Package | Excel 1-4 |
 | 127 | Export Permissions | Excel1.1 module permissions, Excel2.1 accounting permission, Excel3.1 actual-Owner company permission and Excel3.2a isolated company/accounting job collections implemented |
 | 128 | Sensitive Data Masking | Excel 1-4 |
-| 129 | Export Audit Log | DATA_EXPORT_CREATED plus Excel3.2a QUEUED/CANCELLED/RETRIED lifecycle audit implemented; worker completion/failure audit remains Excel3.2b |
-| 130 | Large Export Architecture | Excel3.2a protected bounded queue contract, cancellation and retry implemented; worker/progress/artifact execution remains Excel3.2b |
-| 131 | Temporary Export Files | Pending Excel3.2b signed temporary artifact, expiry and cleanup; Excel3.2a deliberately stores no artifact URL |
+| 129 | Export Audit Log | CREATED plus QUEUED/CANCELLED/RETRIED and Excel3.2b COMPLETED/FAILED/EXPIRED lifecycle audit implemented |
+| 130 | Large Export Architecture | Excel3.2a bounded queue and Excel3.2b atomic worker claims, stale recovery, private artifacts and bounded cleanup implemented |
+| 131 | Temporary Export Files | Excel3.2b private Storage object, SHA-256 manifest, five-minute signed download, 24-hour expiry and deletion implemented |
 | 132 | Data Portability Package | Excel3.1 direct full-company JSON snapshot implemented; Excel3.2a queues oversized company jobs for the actual Owner; worker artifact remains Excel3.2b |
 | 133 | Export Schema Version | Excel3.1 full-company package requires schema_version 3 and rejects unsupported versions |
 | 134 | Export References | Excel3.1 preserves tenant snapshot references and records preset/schema/size/count evidence in the audit event |

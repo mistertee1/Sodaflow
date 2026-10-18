@@ -59,6 +59,7 @@ import { buildMasterExport, masterExportModule, masterExportPermission } from '.
 import { assertMasterImportPayload, buildMasterImportPreview, masterImportModule, masterImportPermission } from './masterImport';
 import { cancelLargeExportJob, requestLargeExportJob, retryLargeExportJob } from './largeExportJobs';
 import { cancelLargeImportJob, requestLargeImportJob, retryLargeImportJob } from './largeImportJobs';
+import { commitLargeImport, undoLargeImport } from './largeImportCommit';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
@@ -81,7 +82,7 @@ const actions: Record<string, ActionType> = {
   'masterExport.create': 'org:read', 'accountingExport.create': 'export:accounting', 'companyExport.record':'export:company',
   'exportPreset.save':'export:accounting', 'exportPreset.delete':'export:accounting',
   'largeExport.request':'export:accounting', 'largeExport.cancel':'export:accounting', 'largeExport.retry':'export:accounting',
-  'masterImport.stage': 'org:read', 'largeImport.request':'org:read', 'largeImport.cancel':'org:read', 'largeImport.retry':'org:read',
+  'masterImport.stage': 'org:read', 'largeImport.request':'org:read', 'largeImport.cancel':'org:read', 'largeImport.retry':'org:read', 'largeImport.commit':'org:read', 'largeImport.undo':'org:read',
   'customer.create': 'customers:create', 'customer.update': 'customers:update', 'customer.delete': 'customers:delete',
   'product.create': 'products:create', 'product.update': 'products:update', 'product.delete': 'products:delete', 'product.stock': 'products:stock_adjustment',
   'accounting.activate': 'org:update_settings', 'product.cost.establish': 'products:stock_adjustment', 'inventory.receive': 'products:stock_adjustment',
@@ -310,6 +311,10 @@ export class Operations {
       if(command.action==='largeImport.request'){
         const sessionId=identifier(command.data.session_id),session=await tx.get(`${root}/import_sessions/${sessionId}`);
         ensure(session,'جلسة الاستيراد غير موجودة.',404);ensure(hasPermission(role,masterImportPermission(masterImportModule(session.import_type))),'ليس لديك صلاحية استيراد هذه البيانات.',403);
+      }
+      if(['largeImport.commit','largeImport.undo'].includes(command.action)){
+        const job=await tx.get(`${root}/large_import_jobs/${identifier(command.data.id)}`);ensure(job,'مهمة الاستيراد غير موجودة.',404);ensure(hasPermission(role,masterImportPermission(masterImportModule(job.module))),'ليس لديك صلاحية استيراد هذه البيانات.',403);
+        if(command.action==='largeImport.undo'){ensure(['Owner','Admin'].includes(role),'التراجع عن الاستيراد متاح للمالك أو المدير فقط.',403);ensure(actor.authTime&&Math.floor(now.getTime()/1000)-actor.authTime<=300,'يلزم إعادة مصادقة حديثة قبل التراجع.',401);}
       }
       if (command.action === 'operational.export') {
         ensure(operationalPermissions(command.data.view).every(permission => hasPermission(role, permission)), 'ليس لديك صلاحية هذا التقرير.', 403);
@@ -655,6 +660,14 @@ export class Operations {
           const id=identifier(data.id);ensure(Object.keys(data).every(key=>key==='id'),'حقول إعادة مهمة الاستيراد غير صالحة.');
           const job=await required('large_import_jobs',id);ensure(hasPermission(role,masterImportPermission(masterImportModule(job.module))),'ليس لديك صلاحية استيراد هذه البيانات.',403);
           result=retryLargeImportJob(job,{orgId,actorUid:actor.uid,actorRole:role,operationId:command.operationId,now});set(`${root}/large_import_jobs/${id}`,result);tx.set(`large_import_queue/${orgId}.${id}`,{id:`${orgId}.${id}`,org_id:orgId,job_id:id,created_at:iso});break;
+        }
+        case 'largeImport.commit': {
+          ensure(Object.keys(data).every(key=>key==='id'),'حقول اعتماد مهمة الاستيراد غير صالحة.');const id=identifier(data.id),job=await required('large_import_jobs',id),staging=await required('import_staging',identifier(job.session_id));
+          result=await commitLargeImport(tx,root,job,staging,actor.uid,command.operationId,iso);set(`${root}/large_import_jobs/${id}`,result);set(`${root}/import_sessions/${identifier(job.session_id)}`,{...await required('import_sessions',identifier(job.session_id)),status:'committed',job_id:id,committed_at:iso});break;
+        }
+        case 'largeImport.undo': {
+          ensure(Object.keys(data).every(key=>['id','reason'].includes(key)),'حقول التراجع عن الاستيراد غير صالحة.');text(data.reason,1000,true);const id=identifier(data.id),job=await required('large_import_jobs',id),backup=await required('import_commit_backups',identifier(job.commit_backup_id));
+          result=await undoLargeImport(tx,root,job,backup,actor.uid,command.operationId,iso);set(`${root}/large_import_jobs/${id}`,result);set(`${root}/import_sessions/${identifier(job.session_id)}`,{...await required('import_sessions',identifier(job.session_id)),status:'rolled_back',rolled_back_at:iso});break;
         }
         case 'masterImport.stage': {
           const module=masterImportModule(data.module),existing=await tx.list(`${root}/${module}`),sessions=await tx.list(`${root}/import_sessions`);
@@ -1104,11 +1117,14 @@ export class Operations {
       if(command.action==='largeImport.request')Object.assign(audit,{event_type:'DATA_IMPORT_QUEUED',import_metadata:{import_type:result.module,file_hash:result.file_hash,status:result.status,total_rows:result.total_rows,duplicate_policy:result.duplicate_policy,schema_version:result.schema_version}});
       if(command.action==='largeImport.cancel')Object.assign(audit,{event_type:'DATA_IMPORT_CANCELLED',import_metadata:{import_type:result.module,status:result.status,total_rows:result.total_rows,attempt:result.attempt}});
       if(command.action==='largeImport.retry')Object.assign(audit,{event_type:'DATA_IMPORT_RETRIED',import_metadata:{import_type:result.module,status:result.status,total_rows:result.total_rows,attempt:result.attempt}});
+      if(command.action==='largeImport.commit')Object.assign(audit,{event_type:'DATA_IMPORT_COMMITTED',import_metadata:{import_type:result.module,status:result.status,committed_rows:result.committed_rows,skipped_rows:result.skipped_rows,backup_id:result.commit_backup_id}});
+      if(command.action==='largeImport.undo')Object.assign(audit,{event_type:'DATA_IMPORT_ROLLED_BACK',reauthentication:{auth_time:actor.authTime},import_metadata:{import_type:result.module,status:result.status,backup_id:result.commit_backup_id}});
       if(isOpening)ensure(new TextEncoder().encode(JSON.stringify(audit)).length<=650000,'حجم تدقيق الأرصدة يتجاوز حد المستند.',413);
       tx.set(`${root}/audit_logs/${audit.id}`, audit);
       const visible = changes.filter(c => {
         if (c.path === root || c.path.startsWith(`${root}/meta/`)) return true;
         const collection = c.path.split('/')[2];
+        if(collection==='large_import_jobs')return Boolean(c.value)&&hasPermission(role,masterImportPermission(masterImportModule(c.value!.module)));
         const feature = collection === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(collection) ? 'accounting' : ['audit_logs','audit_archives'].includes(collection) ? 'audit_trail' : null;
         return c.path.startsWith(`${root}/`) && hasPermission(role, readPermissions[collection]) && (!feature || subscription.features[feature] === true);
       });

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Document, Store } from './store';
 import { ensure, identifier } from './validation';
 import type { MasterImportModule } from './masterImport';
+import { largeImportStagingSha256 } from './largeImportEvidence';
 
 export interface LargeImportRowValidator { validate(row:Document,module:MasterImportModule,policy:'skip'|'update'):Promise<void>|void; }
 
@@ -35,7 +36,8 @@ export class LargeImportWorker {
     const {job,rows}=claimed;
     try{
       for(let offset=0;offset<rows.length;offset+=this.chunkSize){const chunk=rows.slice(offset,offset+this.chunkSize);for(const row of chunk)await this.validator.validate(row,job.module,job.duplicate_policy);const processed=Math.min(rows.length,offset+chunk.length),progress=Math.min(99,Math.floor(processed*99/rows.length));const alive=await this.store.transaction(async tx=>{const current=await tx.get(path);if(!current||current.status!=='running'||current.worker_claim!==claim)return false;tx.set(path,{...current,processed_rows:processed,progress,stage:'validation',updated_at:this.now().toISOString()});return true;});if(!alive)return null;}
-      return this.store.transaction(async tx=>{const current=await tx.get(path);if(!current||current.status!=='running'||current.worker_claim!==claim)return null;const at=this.now().toISOString(),result={...current,status:'awaiting_commit',stage:'review_commit',progress:100,processed_rows:rows.length,validated_rows:rows.length,worker_claim:null,validated_at:at,updated_at:at};tx.set(path,result);tx.delete(queuePath);const event=audit('DATA_IMPORT_VALIDATED',result,at);tx.set(`${root}/audit_logs/${event.id}`,event);return result;});
+      const validatedStagingSha256=await largeImportStagingSha256(rows);
+      return this.store.transaction(async tx=>{const current=await tx.get(path);if(!current||current.status!=='running'||current.worker_claim!==claim)return null;const at=this.now().toISOString(),result={...current,status:'awaiting_commit',stage:'review_commit',progress:100,processed_rows:rows.length,validated_rows:rows.length,validated_staging_sha256:validatedStagingSha256,worker_claim:null,validated_at:at,updated_at:at};tx.set(path,result);tx.delete(queuePath);const event=audit('DATA_IMPORT_VALIDATED',result,at);tx.set(`${root}/audit_logs/${event.id}`,event);return result;});
     }catch(error){return this.fail(path,queuePath,root,claim,error);}
   }
 

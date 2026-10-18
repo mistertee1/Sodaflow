@@ -166,12 +166,12 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 160 | Duplicate File Detection | Excel 1-4 |
 | 161 | Import Staging | Excel2.3a/2.3b keep the bank statement in client-local review state until explicit atomic reconciliation save; server staging remains later |
 | 162 | Dry Run | Excel2.3a/2.3b compute inflow/outflow/closing difference and populate unmatched rows without financial writes or automatic matching |
-| 163 | Large Import Jobs | Excel3.2c.1 reviewed queue foundation plus Excel3.2c.2a bounded worker validation and awaiting_commit; atomic record commit remains Excel3.2c.2b |
-| 164 | Import Progress | Excel3.2c.2a persists claim-protected bounded progress and reaches 100 only at awaiting_commit |
-| 165 | Import Idempotency | Excel3.2c.1 idempotent request/cancel/retry bound to file hash, schema, session, review and duplicate-policy evidence; atomic record commit remains Excel3.2c.2 |
-| 166 | Undo Import | Excel 1-4 |
-| 167 | Import Rollback Rules | Excel 1-4 |
-| 168 | Import Permissions | Excel1.2 master permissions; Excel2.2b requires opening:preview; Excel2.3b reuses protected bank reconciliation access; Excel3.2c.1 rechecks live module import permission and hides large-import jobs from Viewer |
+| 163 | Large Import Jobs | Excel3.2c.1 reviewed queue, Excel3.2c.2a bounded validation/awaiting_commit, and Excel3.2c.2b atomic commit are implemented |
+| 164 | Import Progress | Excel3.2c persists claim-protected progress through awaiting_commit, committed and undone states and reload |
+| 165 | Import Idempotency | Request evidence and deterministic commit batch/operation identifiers prevent mismatched replay and double commit |
+| 166 | Undo Import | Excel3.2c.2b restores updated records and removes created records atomically from the captured pre-commit backup |
+| 167 | Import Rollback Rules | Owner/Admin, recent reauthentication, audited reason, matching operation evidence, and no later record edits; otherwise fail closed |
+| 168 | Import Permissions | Live module permission for queue/commit; Viewer hidden; undo restricted to Owner/Admin with recent reauthentication |
 | 169 | Opening Balance Import Security | Excel2.2a strict parser plus Excel2.2b session/org guards, review preview and existing Owner reauthentication/atomic commit |
 | 170 | Post-import Reconciliation | Excel2.2b hands off to C2 opening journals; Excel2.3b requires explicit row matching then uses existing atomic bank reconciliation save and reload synchronization; Render acceptance pending |
 | 171 | Accounting Import Block | Excel 1-4 |

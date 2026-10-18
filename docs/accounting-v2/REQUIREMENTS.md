@@ -175,11 +175,11 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 169 | Opening Balance Import Security | Excel2.2a strict parser plus Excel2.2b session/org guards, review preview and existing Owner reauthentication/atomic commit |
 | 170 | Post-import Reconciliation | Excel2.2b hands off to C2 opening journals; Excel2.3b requires explicit row matching then uses existing atomic bank reconciliation save and reload synchronization; Render acceptance pending |
 | 171 | Accounting Import Block | Excel 1-4 |
-| 172 | Historical Invoice Import | Excel 1-4 |
-| 173 | Advanced Accountant Import | Excel 1-4 |
-| 174 | Journal Import Safety | Excel 1-4 |
+| 172 | Historical Invoice Import | Excel4.1a validates dates, accounts, counterparties, totals and payments without writes; staging/commit remain later |
+| 173 | Advanced Accountant Import | Excel4.1a validation contract covers historical journals, invoices, purchases and legacy trial balance rows |
+| 174 | Journal Import Safety | Excel4.1a enforces balanced entries, valid accounts/period/currency/branch/dimensions and unique references before staging |
 | 175 | Onboarding Migration Wizard | Excel 1-4 |
-| 176 | Migration Readiness Gate | Excel 1-4 |
+| 176 | Migration Readiness Gate | Excel4.1a emits an accounting block for validation differences; full reconciliation readiness gate remains later |
 | 177 | Import Audit | Excel 1-4 |
 | 178 | Import Audit Metadata | Excel 1-4 |
 | 179 | Excel Module Commercial Acceptance Criteria | Excel 1-4 |

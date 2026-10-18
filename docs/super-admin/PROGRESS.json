@@ -2,13 +2,25 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-18T20:44:01.922Z",
-  "activeRunId": null,
-  "leaseUntil": null,
+  "updatedAt": "2026-10-18T20:55:35.972212+00:00",
+  "activeRunId": "firebase-cloud-only-20261018",
+  "leaseUntil": "2026-10-19T00:55:35.972212+00:00",
   "automationId": "6ac35722234c819194e0535527c23124",
   "currentStage": 5,
-  "workBranch": "codex/super-admin-merged-acceptance-20261018",
-  "ownedPaths": [],
+  "workBranch": "codex/firebase-cloud-only-20261018",
+  "ownedPaths": [
+    "src/App.tsx",
+    "src/context/AppContext.tsx",
+    "src/services/{firebaseSync,pendingOperations,snapshotCache,guestStore,businessApi}.ts",
+    "src/lib/firebase.ts",
+    "src/components/{LandingPageView,Header,SettingsModal,ProductsView}.tsx",
+    "src/components/accounting/OwnerReauthenticationDialog.tsx",
+    "tests/ui/**",
+    "tests/*cloud*.test.ts",
+    "tests/snapshotCache.test.ts",
+    "package.json",
+    "docs/super-admin/**"
+  ],
   "stages": [
     {
       "id": 0,
@@ -174,7 +186,7 @@
   ],
   "productionValidated": false,
   "lastCompletedStage": 4,
-  "unmergedWorkBranch": "codex/super-admin-merged-acceptance-20261018",
+  "unmergedWorkBranch": "codex/firebase-cloud-only-20261018",
   "lastSourceCommit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
   "sourceStagesComplete": true,
   "status": "blocked_external",
@@ -209,8 +221,8 @@
     "latestDeployId": "dep-db7341psrm7s73bs37bg",
     "latestDeployCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0"
   },
-  "observedMainSha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
-  "workBaseSha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+  "observedMainSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
+  "workBaseSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
   "userMergesOnly": true,
   "dependencies": [
     {
@@ -537,5 +549,14 @@
       "erpApi": 404,
       "writeAttempt": 405
     }
+  },
+  "firebaseCloudOnly": {
+    "status": "in_progress",
+    "baseSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
+    "request": "Firebase is the only business datastore; remove guest/local persistence and confirmed disk snapshot hydration while retaining Super Admin and server subscription enforcement.",
+    "productionChanges": 0,
+    "acceptance": "pending",
+    "authSession": "Firebase-managed login session only; no ERP business records in browser storage.",
+    "legacyRecovery": "Existing browser/server files remain untouched and are not automatically imported or read."
   }
 }

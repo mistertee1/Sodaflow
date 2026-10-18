@@ -310,3 +310,12 @@ C2.3.2 engineering evidence: source commit 7d5131a3be5ecaa5a53875c02bee1ab4cef47
 - الإلغاء متاح للمنشئ أو المالك للمهمة النشطة فقط. إعادة المحاولة متاحة للمهمة الفاشلة فقط وقبل نفاد المحاولات، وتمسح failure/artifact/expiry والتقدم القديم قبل إعادتها إلى queued.
 - تسجل أوامر دورة الحياة أحداث QUEUED/CANCELLED/RETRIED. Excel3.2a لا يشغّل worker ولا ينشئ ملفات أو روابط أو storage grants؛ worker والتقدم والملف المؤقت الموقع وانتهاء الصلاحية والتنظيف والفشل النهائي تتبع Excel3.2b، والاستيراد الكبير يتبع جزءاً مستقلاً لاحقاً.
 - لا Firestore Rules جديدة ولا migration ولا نشر أو كتابة إنتاجية. قبول Render المصادق عليه لا يُستنتج من CI ويبقى مستقلاً لنسخة staging مطابقة للالتزام.
+
+## Excel3.2b — عامل التصدير والـartifact المؤقت
+
+- يكتب طلب Excel3.2a مؤشراً خادمياً في `large_export_queue`. يقرأ العامل أقدم 25 مؤشراً فقط، ويطالب المهمة داخل transaction قبل أي توليد. الإلغاء يحذف المؤشر، وإعادة المحاولة تعيده idempotently.
+- claim يحمل معرف عامل ووقت بدء. claim الذي ظل `running` أكثر من 15 دقيقة قابل للاسترداد بمحاولة جديدة حتى `max_attempts`، ثم يتحول إلى failed مغلقاً. لا يستخدم العامل `ResilientStore` كي لا يحول مهمة سحابية إلى ملف محلي عند فشل IAM؛ Firestore/Storage failure يبقى ظاهراً.
+- يعيد builder الخادمي تحميل snapshot بالهوية المنشئة الحالية؛ حزمة الشركة تستلزم Owner فعلياً، وحزمة المحاسب تستلزم accounting/advanced_reports. سقف العامل 50 ألف قيد و25MB، بينما تبقى حدود المسار المباشر كما هي.
+- يحفظ Firebase Storage object خاصاً بلا download token دائم. مستند المهمة لا يحتوي URL بل manifest: path وfilename وMIME والحجم وعدد السجلات وSHA-256. endpoint التنزيل يعيد التحقق من العضوية والاشتراك والميزة والصلاحية والمنشئ/المالك ويصدر signed URL لا يتجاوز خمس دقائق.
+- عند الإكمال يضاف `large_export_expiry` وينتهي artifact بعد 24 ساعة. عامل التنظيف يقرأ أول 25 حسب وقت الانتهاء، يحذف object ثم يمسح manifest ويكتب EXPIRED. الإلغاء المتزامن بعد الرفع يجعل claim غير صالح ويحذف object دون نشر نجاح.
+- failure المخزن يحمل رمزاً ورسالة عامة فقط؛ لا يحفظ stack أو bucket/IAM detail. تسجل دورة العامل COMPLETED/FAILED/EXPIRED في audit. runner يدعم SIGTERM/SIGINT وpolling خفيف ويمكن تكوينه كـRender Background Worker، لكن لم يُنشأ أو يُنشر هنا.

@@ -615,7 +615,7 @@ export class Operations {
           const active=[...await tx.list(`${root}/accounting_export_jobs`),...await tx.list(`${root}/company_export_jobs`)];
           result=requestLargeExportJob(data,active,{orgId,actorUid:actor.uid,actorRole:role,ownerUid:org.owner_uid,operationId:command.operationId,now});
           const collection=result.kind==='company'?'company_export_jobs':'accounting_export_jobs';
-          set(`${root}/${collection}/${result.id}`,result);break;
+          set(`${root}/${collection}/${result.id}`,result);tx.set(`large_export_queue/${orgId}.${result.id}`,{id:`${orgId}.${result.id}`,org_id:orgId,job_id:result.id,collection,created_at:iso});break;
         }
         case 'largeExport.cancel': {
           const id=identifier(data.id);let collection='accounting_export_jobs',job=await tx.get(`${root}/${collection}/${id}`);
@@ -623,7 +623,7 @@ export class Operations {
           ensure(job,'مهمة التصدير غير موجودة.',404);
           ensure(Object.keys(data).every(key=>['id'].includes(key)),'حقول إلغاء مهمة التصدير غير صالحة.');
           result=cancelLargeExportJob(job,{orgId,actorUid:actor.uid,actorRole:role,ownerUid:org.owner_uid,operationId:command.operationId,now});
-          set(`${root}/${collection}/${id}`,result);break;
+          set(`${root}/${collection}/${id}`,result);tx.delete(`large_export_queue/${orgId}.${id}`);break;
         }
         case 'largeExport.retry': {
           const id=identifier(data.id);let collection='accounting_export_jobs',job=await tx.get(`${root}/${collection}/${id}`);
@@ -631,7 +631,7 @@ export class Operations {
           ensure(job,'مهمة التصدير غير موجودة.',404);
           ensure(Object.keys(data).every(key=>['id'].includes(key)),'حقول إعادة محاولة التصدير غير صالحة.');
           result=retryLargeExportJob(job,{orgId,actorUid:actor.uid,actorRole:role,ownerUid:org.owner_uid,operationId:command.operationId,now});
-          set(`${root}/${collection}/${id}`,result);break;
+          set(`${root}/${collection}/${id}`,result);tx.set(`large_export_queue/${orgId}.${id}`,{id:`${orgId}.${id}`,org_id:orgId,job_id:id,collection,created_at:iso});break;
         }
         case 'masterImport.stage': {
           const module=masterImportModule(data.module),existing=await tx.list(`${root}/${module}`),sessions=await tx.list(`${root}/import_sessions`);

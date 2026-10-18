@@ -1124,6 +1124,7 @@ export class Operations {
       const visible = changes.filter(c => {
         if (c.path === root || c.path.startsWith(`${root}/meta/`)) return true;
         const collection = c.path.split('/')[2];
+        if(collection==='large_import_jobs')return Boolean(c.value)&&hasPermission(role,masterImportPermission(masterImportModule(c.value!.module)));
         const feature = collection === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(collection) ? 'accounting' : ['audit_logs','audit_archives'].includes(collection) ? 'audit_trail' : null;
         return c.path.startsWith(`${root}/`) && hasPermission(role, readPermissions[collection]) && (!feature || subscription.features[feature] === true);
       });

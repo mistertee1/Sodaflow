@@ -1,6 +1,7 @@
 import type { Document, Transaction } from './store';
 import { ensure, identifier } from './validation';
 import { masterImportModule, type MasterImportModule } from './masterImport';
+import { largeImportStagingSha256, sameLargeImportRecord } from './largeImportEvidence';
 
 type DuplicatePolicy='skip'|'update';
 const keys:Record<MasterImportModule,string[]>={customers:['customer_code','email'],suppliers:['supplier_code','email','tax_number'],products:['sku']};
@@ -16,6 +17,7 @@ export async function commitLargeImport(tx:Transaction,root:string,job:Document,
   ensure(job.status==='awaiting_commit'&&job.stage==='review_commit','مهمة الاستيراد ليست جاهزة للاعتماد.',409);
   ensure(staging&&staging.session_id===job.session_id&&staging.org_id===job.org_id,'بيانات staging لا تطابق المهمة.',409);
   ensure(Array.isArray(staging.rows)&&staging.rows.length===Number(job.validated_rows),'تغيرت صفوف staging بعد التحقق.',409);
+  ensure(/^[a-f0-9]{64}$/i.test(String(job.validated_staging_sha256||''))&&await largeImportStagingSha256(staging.rows as Document[])===job.validated_staging_sha256,'تغير محتوى staging بعد التحقق.',409);
   ensure(staging.rows.length<=400,'الاعتماد الذري يدعم حتى 400 صف؛ قسّم الملف إلى دفعات أصغر.',413);
   const module=masterImportModule(job.module),policy=job.duplicate_policy as DuplicatePolicy,existing=await tx.list(`${root}/${module}`),changes:Document[]=[],createdIds:string[]=[],skippedRows:number[]=[];
   for(const staged of staging.rows as Document[]){
@@ -28,6 +30,7 @@ export async function commitLargeImport(tx:Transaction,root:string,job:Document,
     if(duplicate)Object.assign(existing[existing.findIndex(row=>row.id===duplicate.id)],record);else existing.push(record);
   }
   const backup={id:`backup-${job.id}`,org_id:job.org_id,job_id:job.id,module,operation_id:operationId,created_by:actorUid,created_at:at,status:'available',changes,created_ids:createdIds,skipped_rows:skippedRows};
+  ensure(new TextEncoder().encode(JSON.stringify(backup)).length<=650000,'نسخة التراجع أكبر من حد الاعتماد الذري؛ قسّم الملف إلى دفعات أصغر.',413);
   tx.set(`${root}/import_commit_backups/${backup.id}`,backup);
   return{...job,status:'completed',stage:'committed',committed_rows:changes.length,skipped_rows:skippedRows.length,commit_backup_id:backup.id,committed_by:actorUid,committed_at:at,updated_at:at};
 }
@@ -36,7 +39,7 @@ export async function undoLargeImport(tx:Transaction,root:string,job:Document,ba
   ensure(job.status==='completed'&&job.commit_backup_id===backup?.id&&backup.status==='available','لا توجد نسخة تراجع متاحة لهذه المهمة.',409);
   ensure(Array.isArray(backup.changes)&&backup.job_id===job.id&&backup.org_id===job.org_id,'دليل التراجع لا يطابق المهمة.',409);
   const module=masterImportModule(job.module);
-  for(const change of backup.changes as Document[]){const current=await tx.get(`${root}/${module}/${identifier(change.id)}`);ensure(current&&current.import_batch_id===job.id&&current.import_operation_id===backup.operation_id,'تغير سجل بعد الاستيراد؛ أُلغي التراجع لحماية التعديلات اللاحقة.',409);}
+  for(const change of backup.changes as Document[]){const current=await tx.get(`${root}/${module}/${identifier(change.id)}`);ensure(current&&current.import_batch_id===job.id&&current.import_operation_id===backup.operation_id&&sameLargeImportRecord(current,change.after),'تغير سجل بعد الاستيراد؛ أُلغي التراجع لحماية التعديلات اللاحقة.',409);}
   for(const change of backup.changes as Document[]){const path=`${root}/${module}/${identifier(change.id)}`;if(change.before)tx.set(path,change.before);else tx.delete(path);}
   tx.set(`${root}/import_commit_backups/${backup.id}`,{...backup,status:'consumed',undone_by:actorUid,undo_operation_id:operationId,undone_at:at});
   return{...job,status:'rolled_back',stage:'rolled_back',rolled_back_by:actorUid,rolled_back_at:at,updated_at:at};

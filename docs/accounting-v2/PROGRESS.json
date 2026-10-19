@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-staging-20261018",
+  "active_branch": "codex/accounting-v2-excel4-historical-commit-20261018",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -2087,15 +2087,15 @@
     {
       "id": "Excel4",
       "status": "in_progress",
-      "branch": "codex/accounting-v2-excel4-historical-staging-20261018",
-      "pr": 101,
+      "branch": "codex/accounting-v2-excel4-historical-commit-20261018",
+      "pr": 104,
       "steps": [
         {
           "id": "Excel4.1",
           "scope": "Controlled historical invoices/purchases/journals and legacy migration",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-excel4-historical-staging-20261018",
-          "pr": 101,
+          "branch": "codex/accounting-v2-excel4-historical-commit-20261018",
+          "pr": 104,
           "substeps": [
             {
               "id": "Excel4.1a",
@@ -2139,6 +2139,30 @@
                 "conclusion": "success"
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "Excel4.1c",
+              "scope": "Atomic historical journal/trial-balance commit, reconciliation evidence and Period Close accounting-block guard",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-commit-20261018",
+              "pr": 104,
+              "code_commit": "bce5ddced750c1ac2f4c772df12f514b07c6e510",
+              "report": "REPORT_EXCEL4_1C_HISTORICAL_COMMIT.md",
+              "checks": {
+                "targeted_excel_import": 47,
+                "unit_api": 373,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 39177020604,
+                "commit_sha": "bce5ddced750c1ac2f4c772df12f514b07c6e510",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "limitations": "Historical invoices and purchases remain fail-closed until Excel4.1d supplies native subsidiary/payment/inventory/COGS/tax evidence."
             }
           ]
         },
@@ -2152,9 +2176,9 @@
       ]
     }
   ],
-  "last_report": "REPORT_EXCEL4_1B_HISTORICAL_IMPORT_STAGING.md",
+  "last_report": "REPORT_EXCEL4_1C_HISTORICAL_COMMIT.md",
   "next_steps": [
-    "Proceed to Excel4.1c atomic historical commit, reconciliation and accounting-block close guard from PR101",
+    "Proceed to Excel4.1d native historical invoices and purchases with AR/AP, payment, inventory, COGS and tax evidence from PR104",
     "Independent authenticated Render acceptance on a matching staging commit"
   ],
   "updated_at": "2026-10-18T19:45:00Z",
@@ -2621,27 +2645,24 @@
     }
   ],
   "last_lease": {
-    "worker": "excel3-large-import-ui-resume-20261018",
-    "round_id": "20261018T070900Z-excel3.2c.1-resume",
-    "base_branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
-    "acquired_at": "2026-10-18T07:07:01Z",
-    "branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
-    "released_at": "2026-10-18T08:54:24Z",
-    "pr": 97,
-    "code_commit": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
-    "status": "Excel3.2c.1_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-18T08:54:24Z",
+    "worker": "excel4-historical-commit-20261018",
+    "round_id": "20261018T232741Z-excel4.1c",
+    "base_branch": "codex/accounting-v2-excel4-historical-staging-20261018",
+    "acquired_at": "2026-10-18T23:27:41.183Z",
+    "released_at": "2026-10-19T01:32:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-commit-20261018",
+    "pr": 104,
+    "code_commit": "bce5ddced750c1ac2f4c772df12f514b07c6e510",
+    "status": "Excel4.1c_implemented_ci_passed_render_acceptance_pending",
     "ci": {
-      "run_id": 39106633168,
-      "commit_sha": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
+      "run_id": 39177020604,
+      "commit_sha": "bce5ddced750c1ac2f4c772df12f514b07c6e510",
       "conclusion": "success",
-      "pretest": 24,
+      "targeted_excel_import": 47,
       "unit_api": 373,
-      "emulator": 35,
-      "ui": 91,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to Excel3.2c.2 worker chunk validation, awaiting_commit, atomic commit, undo and rollback from PR97; Render acceptance remains independent"
+    "next": "Proceed to Excel4.1d native historical invoices and purchases with complete subsidiary evidence; Render acceptance remains independent"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -2655,7 +2676,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to Excel4.1c atomic historical commit, reconciliation and accounting-block close guard; Render acceptance remains independent",
+  "next": "Proceed to Excel4.1d native historical invoices and purchases with complete subsidiary evidence; Render acceptance remains independent",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2676,23 +2697,23 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "excel4-historical-staging-20261018",
-    "round_id": "20261018T174747Z-excel4.1b",
-    "acquired_at": "2026-10-18T17:47:47.027Z",
-    "released_at": "2026-10-18T19:45:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-staging-20261018",
-    "pr": 101,
-    "code_commit": "1e835da3632123df4cd711f667fc9832211faba6",
-    "status": "Excel4.1b_implemented_ci_passed_render_acceptance_pending",
+    "worker": "excel4-historical-commit-20261018",
+    "round_id": "20261018T232741Z-excel4.1c",
+    "acquired_at": "2026-10-18T23:27:41.183Z",
+    "released_at": "2026-10-19T01:32:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-commit-20261018",
+    "pr": 104,
+    "code_commit": "bce5ddced750c1ac2f4c772df12f514b07c6e510",
+    "status": "Excel4.1c_implemented_ci_passed_render_acceptance_pending",
     "ci": {
-      "run_id": 39151702000,
-      "commit_sha": "1e835da3632123df4cd711f667fc9832211faba6",
+      "run_id": 39177020604,
+      "commit_sha": "bce5ddced750c1ac2f4c772df12f514b07c6e510",
       "conclusion": "success",
-      "targeted_excel_import": 43,
+      "targeted_excel_import": 47,
       "unit_api": 373,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Proceed to Excel4.1c atomic historical commit, reconciliation and accounting-block close guard; Render acceptance remains independent"
+    "next": "Proceed to Excel4.1d native historical invoices and purchases with complete subsidiary evidence; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

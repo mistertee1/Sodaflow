@@ -39,6 +39,9 @@ export interface JournalEntryLine {
 }
 
 export interface JournalEntry {
+  historical_import_session_id?: string;
+  historical_import_row_numbers?: number[];
+  source_rows_sha256?: string;
   adjusting?: boolean;
   adjustment_reason?: string;
   period_id?: string | null;

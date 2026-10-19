@@ -61,6 +61,7 @@ import { cancelLargeExportJob, requestLargeExportJob, retryLargeExportJob } from
 import { cancelLargeImportJob, requestLargeImportJob, retryLargeImportJob } from './largeImportJobs';
 import { commitLargeImport, undoLargeImport } from './largeImportCommit';
 import { assertHistoricalImportStagePayload, buildHistoricalImportStage } from './historicalImportStaging';
+import { assertHistoricalImportCommitPayload, buildHistoricalImportCommit } from './historicalImportCommit';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
@@ -83,7 +84,7 @@ const actions: Record<string, ActionType> = {
   'masterExport.create': 'org:read', 'accountingExport.create': 'export:accounting', 'companyExport.record':'export:company',
   'exportPreset.save':'export:accounting', 'exportPreset.delete':'export:accounting',
   'largeExport.request':'export:accounting', 'largeExport.cancel':'export:accounting', 'largeExport.retry':'export:accounting',
-  'masterImport.stage': 'org:read', 'historicalImport.stage':'import:accounting', 'largeImport.request':'org:read', 'largeImport.cancel':'org:read', 'largeImport.retry':'org:read', 'largeImport.commit':'org:read', 'largeImport.undo':'org:read',
+  'masterImport.stage': 'org:read', 'historicalImport.stage':'import:accounting', 'historicalImport.commit':'import:accounting', 'largeImport.request':'org:read', 'largeImport.cancel':'org:read', 'largeImport.retry':'org:read', 'largeImport.commit':'org:read', 'largeImport.undo':'org:read',
   'customer.create': 'customers:create', 'customer.update': 'customers:update', 'customer.delete': 'customers:delete',
   'product.create': 'products:create', 'product.update': 'products:update', 'product.delete': 'products:delete', 'product.stock': 'products:stock_adjustment',
   'accounting.activate': 'org:update_settings', 'product.cost.establish': 'products:stock_adjustment', 'inventory.receive': 'products:stock_adjustment',
@@ -311,6 +312,7 @@ export class Operations {
         ensure(hasPermission(role, masterImportPermission(masterImportModule(command.data.module))), 'ليس لديك صلاحية استيراد هذه البيانات.', 403);
       }
       if(command.action==='historicalImport.stage')assertHistoricalImportStagePayload(command.data);
+      if(command.action==='historicalImport.commit')assertHistoricalImportCommitPayload(command.data);
       if(command.action==='largeImport.request'){
         const sessionId=identifier(command.data.session_id),session=await tx.get(`${root}/import_sessions/${sessionId}`);
         ensure(session,'جلسة الاستيراد غير موجودة.',404);ensure(hasPermission(role,masterImportPermission(masterImportModule(session.import_type))),'ليس لديك صلاحية استيراد هذه البيانات.',403);
@@ -452,9 +454,9 @@ export class Operations {
       const plan = subscriptionLimits(subscription);
       if (command.action === 'subscription.request') ensure(role === 'Owner', 'طلب تغيير الباقة متاح لمالك الشركة فقط.', 403);
       if (command.action !== 'subscription.request') assertSubscriptionActive(subscription);
-      if(command.action==='historicalImport.stage'){
+      if(['historicalImport.stage','historicalImport.commit'].includes(command.action)){
         ensure(org.accounting_version===2,'الاستيراد التاريخي يتطلب محاسبة V2.',409);assertFeature(subscription,'accounting');
-        if(command.data.rows.some((row:Document)=>row.currency==='USD'))assertFeature(subscription,'multi_currency');
+        if(command.action==='historicalImport.stage'&&command.data.rows.some((row:Document)=>row.currency==='USD'))assertFeature(subscription,'multi_currency');
         if(this.store.authority==='browser')throw new BusinessError('الاستيراد التاريخي المحمي يتطلب خدمة الخادم.',403,'accounting_server_required');
       }
       if (['product.stock', 'product.cost.establish', 'inventory.receive'].includes(command.action) || command.action === 'product.create' && data.track_inventory) assertFeature(subscription, 'inventory_tracking');
@@ -692,6 +694,21 @@ export class Operations {
           const validation={orgId,periodLockDate:settings.period_lock_date||undefined,periods:periods.map(({start_date,end_date,status})=>({start_date,end_date,status})),accounts:(accounts as Account[]).filter(account=>account.is_active!==false).map(account=>account.code),branches:['main',...branches.filter(row=>row.status!=='inactive').map(row=>row.id)],currencies:[settings.primary_currency,settings.secondary_currency].filter((value,index,all)=>value&&all.indexOf(value)===index),dimensions:[...costCenters,...projects].filter(row=>row.status!=='inactive').map(row=>row.id),existingReferences};
           const staged=await buildHistoricalImportStage(data as never,{orgId,actorUid:actor.uid,operationId:command.operationId,createdAt:iso,validation:validation as never,previousSessions:priorSessions});
           set(`${root}/historical_import_sessions/${staged.session.id}`,staged.session);set(`${root}/historical_import_staging/${staged.staging.id}`,staged.staging);result=staged.result;break;
+        }
+        case 'historicalImport.commit': {
+          const id=identifier(data.id),session=await required('historical_import_sessions',id),staging=await required('historical_import_staging',id);
+          const [branches,costCenters,projects,priorStaging]=await Promise.all(['branches','cost_centers','projects','historical_import_staging'].map(name=>tx.list(`${root}/${name}`)));
+          const financialData=Object.fromEntries(await Promise.all(financialCollections.map(async name=>[name,await tx.list(`${root}/${name}`)]))) as FinancialData;
+          for(const rows of [...Object.values(financialData),branches,costCenters,projects,priorStaging])ensure(rows.every(row=>!row.org_id||row.org_id===orgId),'بيانات سياق اعتماد الاستيراد التاريخي تحتوي مؤسسة أخرى.',409);
+          const stagedRows=Array.isArray(staging.rows)?staging.rows:[];if(stagedRows.some((row:Document)=>row.currency==='USD'))assertFeature(subscription,'multi_currency');
+          const otherStaging=priorStaging.filter(row=>row.session_id!==id);
+          const existingReferences=[...financialData.journal_entries,...financialData.invoices,...financialData.purchase_bills,...otherStaging.flatMap(row=>Array.isArray(row.rows)?row.rows:[])].flatMap(row=>['reference','reference_number','invoice_number','supplier_reference','external_reference'].map(field=>row[field]).filter(Boolean)).map(String);
+          const accounts=financialData.accounts as Account[];
+          const validation={orgId,periodLockDate:settings.period_lock_date||undefined,periods:periods.map(({start_date,end_date,status})=>({start_date,end_date,status})),accounts:accounts.filter(account=>account.is_active!==false).map(account=>account.code),branches:['main',...branches.filter(row=>row.status!=='inactive').map(row=>row.id)],currencies:[settings.primary_currency,settings.secondary_currency].filter((value,index,all)=>value&&all.indexOf(value)===index),dimensions:[...costCenters,...projects].filter(row=>row.status!=='inactive').map(row=>row.id),existingReferences};
+          const dimensionKinds=Object.fromEntries([...costCenters.map(row=>[row.id,'cost_center']),...projects.map(row=>[row.id,'project'])]);
+          const committed=await buildHistoricalImportCommit(data as never,session,staging,{orgId,actorUid:actor.uid,operationId:command.operationId,committedAt:iso,settings,validation:validation as never,accounts,dimensionKinds:dimensionKinds as never,financialData});
+          for(const entry of committed.postings)await post(entry);
+          set(`${root}/historical_import_sessions/${id}`,committed.session);result=committed.result;break;
         }
         case 'supplier.create': case 'supplier.update': case 'purchase.create': case 'supplierPayment.create': {
           result = await payableCommand(command.action, data, { tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }); break;
@@ -1117,7 +1134,7 @@ export class Operations {
         }
       }
       counters.updated_at = iso; counters.revision = (counters.revision || 0) + 1; set(`${root}/meta/counters`, counters);
-      const auditKeys = ['input','quote','source_balance','prior_journal_ids','last_owner_equity_event_id','batch_id','lot_id','journal_id','line_index','party_id','native_amount','last_opening_batch_id','last_opening_settlement_id','start_date','end_date','revision','previous_status','reopened_by','reopened_at','reopen_reason','changed_by','changed_at','close_evidence','adjusting','adjustment_reason','period_id','invoice_id', 'lines', 'native_currency', 'source_sequence', 'correction_count', 'credit_sdg', 'credit_usd', 'restored_cost_sdg', 'restored_cost_usd', 'credited_amount_sdg', 'credited_amount_usd', 'refunded_amount_sdg', 'refunded_amount_usd', 'credit_balance_sdg', 'credit_balance_usd', 'receivable_due_sdg', 'receivable_due_usd', 'available_credit_sdg', 'available_credit_usd', 'financial_account_id', 'ledger_snapshot', 'statement_opening', 'statement_closing', 'statement_lines', 'matches', 'actual_count', 'difference', 'opening_difference', 'difference_reason', 'reconciliation_sequence', 'last_reconciliation_id', 'account_code', 'kind', 'from_id', 'to_id', 'from_account_code', 'to_account_code', 'amount_sdg', 'amount_usd', 'source_balance_sdg', 'source_balance_usd', 'revision', 'last_transfer_id', 'date', 'reason', 'id', 'code', 'name', 'type', 'nature', 'reporting_group', 'cash_flow_category', 'normal_balance', 'supplier_id', 'bill_id', 'supplier_reference', 'due_date', 'reference_number', 'payment_terms_days', 'credit_limit', 'default_currency', 'phone', 'email', 'address', 'tax_number', 'notes', 'sequence', 'payment_sequence', 'settled_amount_sdg', 'settled_amount_usd', 'cash_amount_sdg', 'cash_amount_usd', 'stock_quantity', ...costFields, 'status', 'accounting_version', 'grand_total_sdg', 'grand_total_usd', 'remaining_sdg', 'remaining_usd', 'paid_amount_sdg', 'paid_amount_usd', 'amount', 'currency', 'payment_account_code', 'expense_account_code', 'cogs_sdg', 'cogs_usd', 'balance_sdg', 'balance_usd'];
+      const auditKeys = ['input','quote','source_balance','prior_journal_ids','last_owner_equity_event_id','batch_id','lot_id','journal_id','line_index','party_id','native_amount','last_opening_batch_id','last_opening_settlement_id','start_date','end_date','revision','previous_status','reopened_by','reopened_at','reopen_reason','changed_by','changed_at','close_evidence','adjusting','adjustment_reason','period_id','invoice_id', 'lines', 'native_currency', 'source_sequence', 'correction_count', 'credit_sdg', 'credit_usd', 'restored_cost_sdg', 'restored_cost_usd', 'credited_amount_sdg', 'credited_amount_usd', 'refunded_amount_sdg', 'refunded_amount_usd', 'credit_balance_sdg', 'credit_balance_usd', 'receivable_due_sdg', 'receivable_due_usd', 'available_credit_sdg', 'available_credit_usd', 'financial_account_id', 'ledger_snapshot', 'statement_opening', 'statement_closing', 'statement_lines', 'matches', 'actual_count', 'difference', 'opening_difference', 'difference_reason', 'reconciliation_sequence', 'last_reconciliation_id', 'account_code', 'kind', 'from_id', 'to_id', 'from_account_code', 'to_account_code', 'amount_sdg', 'amount_usd', 'source_balance_sdg', 'source_balance_usd', 'revision', 'last_transfer_id', 'date', 'reason', 'id', 'code', 'name', 'type', 'nature', 'reporting_group', 'cash_flow_category', 'normal_balance', 'supplier_id', 'bill_id', 'supplier_reference', 'due_date', 'reference_number', 'payment_terms_days', 'credit_limit', 'default_currency', 'phone', 'email', 'address', 'tax_number', 'notes', 'sequence', 'payment_sequence', 'settled_amount_sdg', 'settled_amount_usd', 'cash_amount_sdg', 'cash_amount_usd', 'stock_quantity', 'completion_code', 'accounting_block', 'commit_journal_ids', 'reconciliation', 'rows_imported', ...costFields, 'status', 'accounting_version', 'grand_total_sdg', 'grand_total_usd', 'remaining_sdg', 'remaining_usd', 'paid_amount_sdg', 'paid_amount_usd', 'amount', 'currency', 'payment_account_code', 'expense_account_code', 'cogs_sdg', 'cogs_usd', 'balance_sdg', 'balance_usd'];
       const taxAuditKeys=['id','configuration_id','revision','name','jurisdiction','direction','rate','calculation','rounding','recoverable','tax_account_code','effective_from','effective_to','active','reason','operation_id'];
       const auditFields=isTaxConfiguration?[...auditKeys,...taxAuditKeys]:auditKeys;
       const previousState = Object.fromEntries(changes.filter(change => beforeValues.has(change.path)).map(change => [change.path, pick(beforeValues.get(change.path)!, auditFields)]));
@@ -1131,6 +1148,7 @@ export class Operations {
       if(command.action==='largeExport.retry')Object.assign(audit,{event_type:'DATA_EXPORT_RETRIED',export_metadata:{export_type:result.kind,format:result.format,status:result.status,attempt:result.attempt}});
       if(command.action==='masterImport.stage')Object.assign(audit,{event_type:'DATA_IMPORT_STARTED',import_metadata:{import_type:result.import_type,file_name:result.file_name,file_hash:result.file_hash,totals:result.totals,status:'previewed',schema_version:result.schema_version}});
       if(command.action==='historicalImport.stage')Object.assign(audit,{event_type:'DATA_IMPORT_STARTED',import_metadata:{import_type:result.import_type,file_name:result.file_name,file_hash:result.file_hash,rows_total:result.rows_total,rows_imported:0,rows_failed:result.rows_failed,status:result.status,schema_version:result.schema_version,accounting_block:result.accounting_block,rows_sha256:result.rows_sha256}});
+      if(command.action==='historicalImport.commit')Object.assign(audit,{event_type:'DATA_IMPORT_COMPLETED',import_metadata:{import_session_id:result.id,import_type:result.import_type,file_hash:result.file_hash,rows_total:result.rows_total,rows_imported:result.rows_imported,rows_failed:result.rows_failed,status:result.status,completion_code:result.completion_code,schema_version:result.schema_version,accounting_block:result.accounting_block,journals_created:result.journals_created,rows_sha256:result.rows_sha256,reconciliation:result.reconciliation}});
       if(command.action==='largeImport.request')Object.assign(audit,{event_type:'DATA_IMPORT_QUEUED',import_metadata:{import_type:result.module,file_hash:result.file_hash,status:result.status,total_rows:result.total_rows,duplicate_policy:result.duplicate_policy,schema_version:result.schema_version}});
       if(command.action==='largeImport.cancel')Object.assign(audit,{event_type:'DATA_IMPORT_CANCELLED',import_metadata:{import_type:result.module,status:result.status,total_rows:result.total_rows,attempt:result.attempt}});
       if(command.action==='largeImport.retry')Object.assign(audit,{event_type:'DATA_IMPORT_RETRIED',import_metadata:{import_type:result.module,status:result.status,total_rows:result.total_rows,attempt:result.attempt}});

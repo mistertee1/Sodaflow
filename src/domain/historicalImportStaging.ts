@@ -70,7 +70,7 @@ export async function buildHistoricalImportStage(input:HistoricalImportStageInpu
     id,org_id:context.orgId,schema_version:input.schema_version,file_name:filename,file_hash:input.file_hash,import_type:importType,
     kinds,created_by:context.actorUid,created_at:context.createdAt,rows_total:input.rows.length,rows_valid:input.rows.length,
     rows_failed:0,rows_imported:0,rows_skipped:0,status,file_duplicate:fileDuplicate,rows_sha256:rowsSha256,
-    validation_context_sha256:contextSha256,accounting_block:validation.accounting_block,validation:{...validation,blocking_issues:[]},
+    validation_context_sha256:contextSha256,document_evidence_sha256:documentEvidenceSha256,accounting_block:validation.accounting_block,validation:{...validation,blocking_issues:[]},
   };
   const staging={id,org_id:context.orgId,session_id:id,schema_version:input.schema_version,rows,rows_sha256:rowsSha256,validation_basis:validationBasis,validation_context_sha256:contextSha256,document_evidence:structuredClone(evidence),document_evidence_sha256:documentEvidenceSha256,created_at:context.createdAt};
   ensure(new TextEncoder().encode(JSON.stringify(staging)).length<=620000,'حجم staging التاريخي يتجاوز الحد؛ قسّم الملف إلى دفعات أصغر.',413);

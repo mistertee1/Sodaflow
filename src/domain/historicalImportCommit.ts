@@ -10,6 +10,7 @@ export interface HistoricalImportCommitInput {
   id:string;
   expected_rows_sha256:string;
   expected_validation_context_sha256:string;
+  expected_document_evidence_sha256?:string;
   reason:string;
 }
 
@@ -28,9 +29,10 @@ export interface HistoricalImportCommitContext {
 export function assertHistoricalImportCommitPayload(value:unknown):asserts value is HistoricalImportCommitInput {
   ensure(Boolean(value)&&typeof value==='object'&&!Array.isArray(value),'بيانات اعتماد الاستيراد التاريخي غير صالحة.');
   const input=value as HistoricalImportCommitInput;
-  ensure(Object.keys(input).every(key=>['id','expected_rows_sha256','expected_validation_context_sha256','reason'].includes(key)),'حقول اعتماد الاستيراد التاريخي غير صالحة أو محمية.');
+  ensure(Object.keys(input).every(key=>['id','expected_rows_sha256','expected_validation_context_sha256','expected_document_evidence_sha256','reason'].includes(key)),'حقول اعتماد الاستيراد التاريخي غير صالحة أو محمية.');
   identifier(input.id);text(input.reason,1000,true);
   ensure(/^[a-f0-9]{64}$/i.test(input.expected_rows_sha256)&&/^[a-f0-9]{64}$/i.test(input.expected_validation_context_sha256),'بصمة اعتماد الاستيراد التاريخي غير صالحة.');
+  if(input.expected_document_evidence_sha256!==undefined)ensure(/^[a-f0-9]{64}$/i.test(input.expected_document_evidence_sha256),'بصمة دليل المستندات التاريخية غير صالحة.');
 }
 
 const bookAmount=(currency:string,value:number)=>currency==='SDG'?{sdg:value,usd:0}:{sdg:0,usd:value};
@@ -72,9 +74,15 @@ export async function buildHistoricalImportCommit(input:HistoricalImportCommitIn
   const rows=structuredClone(staging.rows) as HistoricalImportRow[];
   ensure(await largeImportStagingSha256(rows as unknown as Document[])===session.rows_sha256,'بصمة صفوف staging التاريخي مختلفة.',409);
   ensure(await largeImportStagingSha256([staging.validation_basis])===session.validation_context_sha256,'بصمة سياق staging التاريخي مختلفة.',409);
+  const documentRows=rows.filter(row=>row.kind==='invoice'||row.kind==='purchase');
+  if(documentRows.length){
+    ensure(Boolean(input.expected_document_evidence_sha256),'اعتماد المستندات التاريخية يتطلب بصمة دليل المستندات المراجع.',409);
+    ensure(session.document_evidence_sha256===input.expected_document_evidence_sha256&&staging.document_evidence_sha256===input.expected_document_evidence_sha256,'تغير دليل المستندات التاريخية؛ أعد فتح الجلسة وراجعها.',409);
+    ensure(await largeImportStagingSha256([staging.document_evidence as Document])===input.expected_document_evidence_sha256,'بصمة دليل المستندات التاريخية مختلفة.',409);
+  }
   const validation=validateHistoricalImport(rows,context.validation);
   ensure(validation.can_stage&&!validation.accounting_block,'تغيرت بيانات المؤسسة أو ظهرت فروقات؛ أعد التحقق وأنشئ staging جديداً.',409);
-  const unsupported=rows.filter(row=>row.kind==='invoice'||row.kind==='purchase');
+  const unsupported=documentRows;
   ensure(!unsupported.length,'اعتماد الفواتير والمشتريات التاريخية يتطلب أدلة مستقلة للدفعات والمخزون وCOGS والضريبة؛ هذه الجلسة تبقى للمراجعة دون كتابة.',409);
 
   const accountIndex=new Map(context.accounts.map(account=>[account.code,account]));

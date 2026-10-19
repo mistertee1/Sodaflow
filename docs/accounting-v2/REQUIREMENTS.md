@@ -175,7 +175,7 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 169 | Opening Balance Import Security | Excel2.2a strict parser plus Excel2.2b session/org guards, review preview and existing Owner reauthentication/atomic commit |
 | 170 | Post-import Reconciliation | Excel2.2b hands off to C2 opening journals; Excel2.3b requires explicit row matching then uses existing atomic bank reconciliation save and reload synchronization; Render acceptance pending |
 | 171 | Accounting Import Block | Excel4.1b blocks invalid staging; Excel4.1c records post-commit reconciliation blocks and prevents final Period Close until resolved |
-| 172 | Historical Invoice Import | Excel4.1d.2 stores complete native party/AR/AP/payment/tax/inventory/COGS evidence in protected staging with an independent SHA-256; Excel4.1d.3a binds the reviewed evidence hash to commit; atomic native source creation remains Excel4.1d.3b |
+| 172 | Historical Invoice Import | Excel4.1d.2 stores complete native evidence; Excel4.1d.3a binds its reviewed hash; Excel4.1d.3b.1 deterministically plans native sales invoices/payments/inventory/GL without writes; atomic persistence and purchase planning remain |
 | 173 | Advanced Accountant Import | Excel4.1a validates, Excel4.1b securely stages, and Excel4.1c atomically commits historical journals and balanced legacy trial-balance groups |
 | 174 | Journal Import Safety | Excel4.1c revalidates live context and SHA-256 evidence, limits atomic commit to 200 rows, uses deterministic journal IDs and reconciles before completion |
 | 175 | Onboarding Migration Wizard | Excel 1-4 |

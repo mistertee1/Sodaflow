@@ -174,14 +174,14 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 168 | Import Permissions | Live module permission for queue/commit; Viewer hidden; undo restricted to Owner/Admin with recent reauthentication |
 | 169 | Opening Balance Import Security | Excel2.2a strict parser plus Excel2.2b session/org guards, review preview and existing Owner reauthentication/atomic commit |
 | 170 | Post-import Reconciliation | Excel2.2b hands off to C2 opening journals; Excel2.3b requires explicit row matching then uses existing atomic bank reconciliation save and reload synchronization; Render acceptance pending |
-| 171 | Accounting Import Block | Excel4.1b persists staged_accounting_block and prevents financial commit while validation or balance differences remain |
-| 172 | Historical Invoice Import | Excel4.1a validates dates, accounts, counterparties, totals and payments without writes; staging/commit remain later |
-| 173 | Advanced Accountant Import | Excel4.1a validates and Excel4.1b securely stages historical journals, invoices, purchases and legacy trial balance rows |
-| 174 | Journal Import Safety | Excel4.1a enforces balanced entries, valid accounts/period/currency/branch/dimensions and unique references before staging |
+| 171 | Accounting Import Block | Excel4.1b blocks invalid staging; Excel4.1c records post-commit reconciliation blocks and prevents final Period Close until resolved |
+| 172 | Historical Invoice Import | Excel4.1a validates and Excel4.1b stages; Excel4.1c deliberately refuses commit until native AR/payment/tax evidence is implemented in Excel4.1d |
+| 173 | Advanced Accountant Import | Excel4.1a validates, Excel4.1b securely stages, and Excel4.1c atomically commits historical journals and balanced legacy trial-balance groups |
+| 174 | Journal Import Safety | Excel4.1c revalidates live context and SHA-256 evidence, limits atomic commit to 200 rows, uses deterministic journal IDs and reconciles before completion |
 | 175 | Onboarding Migration Wizard | Excel 1-4 |
-| 176 | Migration Readiness Gate | Excel4.1a emits an accounting block for validation differences; full reconciliation readiness gate remains later |
-| 177 | Import Audit | Excel4.1b records DATA_IMPORT_STARTED for protected historical staging; completion/failure/rollback remain with commit stages |
-| 178 | Import Audit Metadata | Excel4.1b records actor/org/session/import type/file hash/row count/status without client-supplied protected context |
+| 176 | Migration Readiness Gate | Excel4.1c requires a clean baseline and records post-commit trial-balance/AR/AP/inventory/cash reconciliation; differences remain accounting-blocked |
+| 177 | Import Audit | Excel4.1b records DATA_IMPORT_STARTED and Excel4.1c records DATA_IMPORT_COMPLETED with deterministic commit evidence and reconciliation |
+| 178 | Import Audit Metadata | Excel4.1c records actor/org/session, file and row hashes, counts, journal count, completion code and bounded reconciliation evidence |
 | 179 | Excel Module Commercial Acceptance Criteria | Excel 1-4 |
 | 180 | Excel Module Test Suites | Excel 1-4 |
 | 181 | Excel Module Implementation Phases | Excel 1-4 |

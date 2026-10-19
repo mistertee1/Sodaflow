@@ -175,11 +175,11 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 169 | Opening Balance Import Security | Excel2.2a strict parser plus Excel2.2b session/org guards, review preview and existing Owner reauthentication/atomic commit |
 | 170 | Post-import Reconciliation | Excel2.2b hands off to C2 opening journals; Excel2.3b requires explicit row matching then uses existing atomic bank reconciliation save and reload synchronization; Render acceptance pending |
 | 171 | Accounting Import Block | Excel4.1b blocks invalid staging; Excel4.1c records post-commit reconciliation blocks and prevents final Period Close until resolved |
-| 172 | Historical Invoice Import | Excel4.1a validates and Excel4.1b stages; Excel4.1c deliberately refuses commit until native AR/payment/tax evidence is implemented in Excel4.1d |
+| 172 | Historical Invoice Import | Excel4.1d.1 defines fail-closed native party/AR/payment/tax/COGS evidence; protected staging and atomic source creation remain Excel4.1d.2 |
 | 173 | Advanced Accountant Import | Excel4.1a validates, Excel4.1b securely stages, and Excel4.1c atomically commits historical journals and balanced legacy trial-balance groups |
 | 174 | Journal Import Safety | Excel4.1c revalidates live context and SHA-256 evidence, limits atomic commit to 200 rows, uses deterministic journal IDs and reconciles before completion |
 | 175 | Onboarding Migration Wizard | Excel 1-4 |
-| 176 | Migration Readiness Gate | Excel4.1c requires a clean baseline and records post-commit trial-balance/AR/AP/inventory/cash reconciliation; differences remain accounting-blocked |
+| 176 | Migration Readiness Gate | Excel4.1c requires a clean baseline; Excel4.1d.1 additionally blocks documents missing native party, payment, inventory, COGS or tax-version evidence |
 | 177 | Import Audit | Excel4.1b records DATA_IMPORT_STARTED and Excel4.1c records DATA_IMPORT_COMPLETED with deterministic commit evidence and reconciliation |
 | 178 | Import Audit Metadata | Excel4.1c records actor/org/session, file and row hashes, counts, journal count, completion code and bounded reconciliation evidence |
 | 179 | Excel Module Commercial Acceptance Criteria | Excel 1-4 |

@@ -75,3 +75,17 @@ test('a lost cloud acknowledgement retries after reload with the same Firebase I
   const commands = merchant.mutations.filter(row => row.action === 'settings.update');
   expect(commands).toHaveLength(2); expect(commands[0].operationId).toBe(commands[1].operationId);
 });
+
+test('a confirmed save remains successful when cloud retry cleanup fails and reload cannot duplicate it', async ({ page, merchant }) => {
+  await openMerchant(page); await page.getByTitle('الإعدادات', { exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'إعدادات المؤسسة' });
+  await dialog.getByRole('textbox', { name: 'اسم المتجر أو المؤسسة' }).fill('حفظ مؤكد رغم فشل التنظيف');
+  merchant.failNextAcknowledgement(); await dialog.getByRole('button', { name: 'حفظ كافة الإعدادات' }).click();
+  await expect(dialog).toHaveCount(0); await expect(page.locator('header')).toContainText('حفظ مؤكد رغم فشل التنظيف');
+  await expect(page.getByRole('alert')).toHaveCount(0); const committed = await cloudRecords(page);
+  await page.reload(); await expect(page.locator('header')).toContainText('حفظ مؤكد رغم فشل التنظيف');
+  await page.getByTitle('الإعدادات', { exact: true }).click(); await dialog.getByRole('button', { name: 'حفظ كافة الإعدادات' }).click();
+  await expect(dialog).toHaveCount(0); expect(await cloudRecords(page)).toEqual(committed);
+  const commands = merchant.mutations.filter(row => row.action === 'settings.update');
+  expect(commands).toHaveLength(2); expect(commands[0].operationId).toBe(commands[1].operationId);
+});

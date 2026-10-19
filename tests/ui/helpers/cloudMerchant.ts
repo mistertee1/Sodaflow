@@ -30,6 +30,7 @@ interface MerchantHarness {
   abortAfterCommit(): void;
   failCloudReads(): void;
   recoverCloudReads(): void;
+  failNextAcknowledgement(): void;
   requests: string[];
   mutations: Document[];
 }
@@ -60,7 +61,7 @@ export async function openMerchant(page: Page, waitForCompany = true) {
 export const test = base.extend<{ merchant: MerchantHarness }>({
   merchant: [async ({ page }, use) => {
     let records = defaultMerchantRecords(), store: MemoryStore | undefined;
-    let failWrite = false, abortNext = false, failReads = false, clock = Date.now();
+    let failWrite = false, abortNext = false, failReads = false, failAck = false, clock = Date.now();
     const actor = { ...guestActor, authTime: Math.floor(clock / 1000) };
     const issued = new Set<string>();
     let token = '';
@@ -108,6 +109,7 @@ export const test = base.extend<{ merchant: MerchantHarness }>({
       expect(issued.has(bearer.replace(/^Bearer /, ''))).toBe(true);
       const body = request.postData(), isBusinessWrite = !!body && !path.startsWith('/api/operation-intents');
       if (isBusinessWrite) mutations.push(JSON.parse(body));
+      if (failAck && path === '/api/operation-intents/acknowledge') { failAck = false; await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'تعذر تنظيف نية إعادة المحاولة' }) }); return; }
       if (failReads && request.method() === 'GET') { await route.fulfill({ status: 503, contentType: 'application/json', headers: { 'Cache-Control': 'no-store' }, body: JSON.stringify({ error: 'خدمة Firebase غير متاحة في الاختبار', code: 'service_unavailable' }) }); return; }
       const response = await fetch(backendUrl + path, { method: request.method(), headers: { Authorization: bearer, 'Content-Type': 'application/json' }, ...(body ? { body } : {}) });
       if (abortNext && isBusinessWrite && response.ok) { abortNext = false; await response.text(); await route.abort('failed'); return; }
@@ -118,6 +120,7 @@ export const test = base.extend<{ merchant: MerchantHarness }>({
       records: () => Object.fromEntries(Object.entries(store ? store.dump() : structuredClone(records)).filter(([path]) => !path.includes('/operationIntents/') && !path.startsWith('platformOperationIntents/'))), requests, mutations,
       failNextWrite: () => { failWrite = true; }, abortAfterCommit: () => { abortNext = true; },
       failCloudReads: () => { failReads = true; }, recoverCloudReads: () => { failReads = false; },
+      failNextAcknowledgement: () => { failAck = true; },
     };
     harnesses.set(page, harness);
     try { await use(harness); }

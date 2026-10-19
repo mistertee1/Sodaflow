@@ -9,8 +9,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     const token = await user.getIdToken(forceRefresh);
     if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
     try {
-      return await fetch(`/api${path}`, { ...init, cache: 'no-store', headers: { ...(init.body instanceof Blob ? {} : { 'Content-Type': 'application/json' }), ...init.headers, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(60000) });
-    } catch { throw new BusinessError('تعذر تأكيد الحفظ من الخادم. أعد المحاولة بنفس البيانات؛ معرّف إعادة المحاولة محفوظ في السحابة لمنع التكرار.', 503); }
+      return await fetch(`/api${path}`, { ...init, cache: 'no-store', headers: { ...(init.body instanceof Blob ? {} : { 'Content-Type': 'application/json' }), ...init.headers, Authorization: `Bearer ${token}` }, signal: init.signal || AbortSignal.timeout(60000) });
+    } catch { throw new BusinessError('تعذر تأكيد الحفظ من الخادم. أعد المحاولة بنفس البيانات بعد عودة الاتصال.', 503); }
   };
   let response = await request();
   if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
@@ -30,7 +30,7 @@ function requireSession(uid: string) {
 // Retry IDs are persisted by the Firebase-backed API, including across reloads.
 // Acknowledgement cleanup must never turn a confirmed business commit into a failure.
 async function acknowledgeIntent(intent: { organizationId?: string; fingerprint: string; operationId: string }, uid: string) {
-  try { requireSession(uid); await api('/operation-intents/acknowledge', { method: 'POST', body: JSON.stringify(intent) }); }
+  try { requireSession(uid); await api('/operation-intents/acknowledge', { method: 'POST', body: JSON.stringify(intent), signal: AbortSignal.timeout(4000) }); }
   catch { /* The cloud keeps this ID for a safe repeat; never fall back to browser storage. */ }
 }
 export async function platformMutation<T>(path: string, payload: Record<string, unknown>): Promise<T> {

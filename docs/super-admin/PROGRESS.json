@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-19T05:14:43.044Z",
+  "updatedAt": "2026-10-19T05:16:41.780379+00:00",
   "activeRunId": "firebase-cloud-only-20261019",
   "leaseUntil": "2026-10-19T09:14:43.044Z",
   "automationId": "6ac35722234c819194e0535527c23124",
@@ -590,20 +590,24 @@
     }
   },
   "firebaseCloudOnly": {
-    "status": "fixing_acceptance",
+    "status": "awaiting_corrected_acceptance",
     "baseSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
     "request": "Firebase is the only business datastore; remove guest/local persistence and confirmed disk snapshot hydration while retaining Super Admin and server subscription enforcement.",
     "productionChanges": 0,
-    "acceptance": "failed_emulator_fixture_assertion",
+    "acceptance": "pending",
     "authSession": "Firebase SDK-managed login session retained. No ERP records, settings, selected organization, snapshots or retry IDs are written to browser storage.",
     "legacyRecovery": "Existing browser/server files remain untouched and are not automatically imported or read.",
     "retryAuthority": "Firestore: private per-user/tenant operationIntents and exclusive platformOperationIntents, served through verified API only.",
     "localValidation": {
       "initialUnitApi": 363,
-      "cloudIntentFocused": 6,
-      "expandedRegression": "running",
+      "cloudIntentFocused": 9,
+      "expandedRegression": "passed",
       "emulator": "blocked locally: Java 17; CI requires Java 21",
-      "browser": "Chromium download is truncated; CI acceptance pending"
+      "browser": "Chromium download is truncated; CI acceptance pending",
+      "unitApi": 369,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed"
     },
     "lastCI": {
       "id": 39166413987,
@@ -619,6 +623,12 @@
       "ui": "not_run_after_emulator_failure",
       "conclusion": "failure",
       "failure": "Two added tests assert legacy .data file absent after earlier fixtures deliberately created it; verify unchanged bytes/existence instead. Actual cloud retry IDs/concurrency assertions before that check passed."
-    }
+    },
+    "pullRequest": 103,
+    "changesAfterFirstCI": [
+      "Preserve pre-existing legacy fixture bytes rather than assert file absence in two emulator cases",
+      "Bound acknowledgement cleanup to 4 seconds without turning an already confirmed business write into failure",
+      "Add rollback and confirmed-write/cleanup-failure regression tests"
+    ]
   }
 }

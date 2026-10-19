@@ -100,3 +100,15 @@ test('cloud retry creation is bounded per actor while an already pending ID rema
   await assert.rejects(service.begin(f.owner, input(120)), (e: any) => e.status === 429);
   await service.begin(f.owner, input(0)); assert.deepEqual(f.store.dump(), before);
 });
+
+test('failed cloud retry persistence rolls back metadata and no business operation is acknowledged', async () => {
+  let blocked = false;
+  const fault = Object.assign(Error('Synthetic cloud storage unavailable'), { code: 14 });
+  const f = await platformFixture(() => { if (blocked) throw fault; });
+  const before = f.store.dump(), input = { organizationId: f.org.id, fingerprint };
+  blocked = true; await assert.rejects(new OperationIntents(f.store).begin(f.owner, input), error => error === fault);
+  assert.deepEqual(f.store.dump(), before);
+  blocked = false; const retry = await new OperationIntents(f.store).begin(f.owner, input);
+  assert.deepEqual(await new OperationIntents(f.store).begin(f.owner, input), retry);
+  assert.deepEqual(retryMetadata(f.store.dump()), before);
+});

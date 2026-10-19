@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-18T21:06:39.158982+00:00",
-  "activeRunId": "firebase-cloud-only-20261018",
-  "leaseUntil": "2026-10-19T01:06:39.158982+00:00",
+  "updatedAt": "2026-10-19T05:14:43.044Z",
+  "activeRunId": "firebase-cloud-only-20261019",
+  "leaseUntil": "2026-10-19T09:14:43.044Z",
   "automationId": "6ac35722234c819194e0535527c23124",
   "currentStage": 6,
   "workBranch": "codex/firebase-cloud-only-20261018",
@@ -590,11 +590,11 @@
     }
   },
   "firebaseCloudOnly": {
-    "status": "awaiting_acceptance",
+    "status": "fixing_acceptance",
     "baseSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
     "request": "Firebase is the only business datastore; remove guest/local persistence and confirmed disk snapshot hydration while retaining Super Admin and server subscription enforcement.",
     "productionChanges": 0,
-    "acceptance": "pending",
+    "acceptance": "failed_emulator_fixture_assertion",
     "authSession": "Firebase SDK-managed login session retained. No ERP records, settings, selected organization, snapshots or retry IDs are written to browser storage.",
     "legacyRecovery": "Existing browser/server files remain untouched and are not automatically imported or read.",
     "retryAuthority": "Firestore: private per-user/tenant operationIntents and exclusive platformOperationIntents, served through verified API only.",
@@ -604,6 +604,21 @@
       "expandedRegression": "running",
       "emulator": "blocked locally: Java 17; CI requires Java 21",
       "browser": "Chromium download is truncated; CI acceptance pending"
+    },
+    "lastCI": {
+      "id": 39166413987,
+      "jobId": 117790178632,
+      "sha": "389f26d2d57ea69cdd3730944eadb6a50b1dc9f3",
+      "unitApi": 368,
+      "emulator": {
+        "tests": 45,
+        "passed": 43,
+        "failed": 2,
+        "skipped": 0
+      },
+      "ui": "not_run_after_emulator_failure",
+      "conclusion": "failure",
+      "failure": "Two added tests assert legacy .data file absent after earlier fixtures deliberately created it; verify unchanged bytes/existence instead. Actual cloud retry IDs/concurrency assertions before that check passed."
     }
   }
 }

@@ -5,9 +5,17 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-documents-20261019",
+  "active_branch": "codex/accounting-v2-excel4-historical-document-commit-20261019",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel4-historical-document-staging-ci-fix-20261019",
+    "round_id": "20261019T054403Z-excel4.1d.2-ci-fix",
+    "acquired_at": "2026-10-19T05:44:03.571Z",
+    "expires_at": "2026-10-19T07:14:03.571Z",
+    "branch": "codex/accounting-v2-excel4-historical-document-commit-20261019",
+    "pr": 106,
+    "purpose": "Fix Excel4.1d.2 regression CI failure, verify, and checkpoint the milestone"
+  },
   "milestones": [
     {
       "id": "A1",

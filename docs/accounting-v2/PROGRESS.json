@@ -7,7 +7,14 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-documents-20261019",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel4-historical-document-commit-20261019",
+    "round_id": "20261019T051500Z-excel4.1d.2",
+    "acquired_at": "2026-10-19T05:15:00Z",
+    "expires_at": "2026-10-19T06:45:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-document-commit-20261019",
+    "scope": "Excel4.1d.2 protected staging and atomic native historical document commit"
+  },
   "milestones": [
     {
       "id": "A1",

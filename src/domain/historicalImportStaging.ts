@@ -2,12 +2,14 @@ import type { Document } from './store';
 import { ensure, text } from './validation';
 import { validateHistoricalImport, type HistoricalImportContext, type HistoricalImportRow } from './historicalImport';
 import { largeImportStagingSha256 } from './largeImportEvidence';
+import { validateHistoricalDocumentEvidence, type HistoricalDocumentEvidence, type HistoricalDocumentEvidenceContext } from './historicalDocumentEvidence';
 
 export interface HistoricalImportStageInput {
   file_name:string;
   file_hash:string;
   schema_version:number;
   rows:HistoricalImportRow[];
+  document_evidence?:Record<string,HistoricalDocumentEvidence>;
 }
 
 export interface HistoricalImportStageContext {
@@ -17,12 +19,13 @@ export interface HistoricalImportStageContext {
   createdAt:string;
   validation:HistoricalImportContext;
   previousSessions:Document[];
+  documentEvidence?:HistoricalDocumentEvidenceContext;
 }
 
 export function assertHistoricalImportStagePayload(value:unknown):asserts value is HistoricalImportStageInput {
   ensure(Boolean(value)&&typeof value==='object'&&!Array.isArray(value),'بيانات الاستيراد التاريخي غير صالحة.');
   const input=value as HistoricalImportStageInput;
-  ensure(Object.keys(input).every(key=>['file_name','file_hash','schema_version','rows'].includes(key)),'حقول الاستيراد التاريخي غير صالحة أو محمية.');
+  ensure(Object.keys(input).every(key=>['file_name','file_hash','schema_version','rows','document_evidence'].includes(key)),'حقول الاستيراد التاريخي غير صالحة أو محمية.');
   ensure(Array.isArray(input.rows),'صفوف الاستيراد التاريخي مطلوبة.');
 }
 
@@ -46,9 +49,18 @@ export async function buildHistoricalImportStage(input:HistoricalImportStageInpu
   } satisfies HistoricalImportContext;
   const validation=validateHistoricalImport(input.rows,validationBasis);
   ensure(validation.can_stage,'ملف الاستيراد التاريخي يحتوي أخطاء حاجبة ولا يمكن نقله إلى staging.',409);
+  const documentRows=input.rows.filter(row=>row.kind==='invoice'||row.kind==='purchase');
+  const evidence=input.document_evidence||{};
+  ensure(Object.keys(evidence).every(key=>documentRows.some(row=>String(row.row_number)===key)),'دليل مستند تاريخي لا يطابق صفاً في الملف.',409);
+  for(const row of documentRows){
+    const proof=evidence[String(row.row_number)];
+    ensure(Boolean(proof),'كل فاتورة أو مشتريات تاريخية تتطلب دليلاً أصلياً كاملاً قبل staging.',409);
+    validateHistoricalDocumentEvidence(row,proof,context.documentEvidence||{customers:[],suppliers:[],products:[],accounts:[]});
+  }
   const rows=input.rows.map(row=>structuredClone(row)) as unknown as Document[];
   const rowsSha256=await largeImportStagingSha256(rows);
   const contextSha256=await largeImportStagingSha256([validationBasis as unknown as Document]);
+  const documentEvidenceSha256=await largeImportStagingSha256([evidence as unknown as Document]);
   const kinds=[...new Set(input.rows.map(row=>row.kind))].sort();
   const importType=kinds.length===1?`historical_${kinds[0]}`:'legacy_migration';
   const id=`historical-import-${context.operationId}`;
@@ -60,7 +72,7 @@ export async function buildHistoricalImportStage(input:HistoricalImportStageInpu
     rows_failed:0,rows_imported:0,rows_skipped:0,status,file_duplicate:fileDuplicate,rows_sha256:rowsSha256,
     validation_context_sha256:contextSha256,accounting_block:validation.accounting_block,validation:{...validation,blocking_issues:[]},
   };
-  const staging={id,org_id:context.orgId,session_id:id,schema_version:input.schema_version,rows,rows_sha256:rowsSha256,validation_basis:validationBasis,validation_context_sha256:contextSha256,created_at:context.createdAt};
+  const staging={id,org_id:context.orgId,session_id:id,schema_version:input.schema_version,rows,rows_sha256:rowsSha256,validation_basis:validationBasis,validation_context_sha256:contextSha256,document_evidence:structuredClone(evidence),document_evidence_sha256:documentEvidenceSha256,created_at:context.createdAt};
   ensure(new TextEncoder().encode(JSON.stringify(staging)).length<=620000,'حجم staging التاريخي يتجاوز الحد؛ قسّم الملف إلى دفعات أصغر.',413);
   return{session,staging,result:{...session,file_duplicate_warning:fileDuplicate?'سبق تجهيز ملف بالبصمة والإصدار نفسيهما؛ راجع جلسات الاستيراد السابقة.':''}};
 }

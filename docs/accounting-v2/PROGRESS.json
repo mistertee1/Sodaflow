@@ -7,7 +7,16 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel4-historical-sales-plan-20261019",
+    "round_id": "20261019T132244Z-excel4.1d.3b.1",
+    "base_branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
+    "acquired_at": "2026-10-19T13:22:44Z",
+    "expires_at": "2026-10-19T14:52:44Z",
+    "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+    "pr": null,
+    "purpose": "Excel4.1d.3b.1 deterministic native historical sales document accounting plan"
+  },
   "milestones": [
     {
       "id": "A1",

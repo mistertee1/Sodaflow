@@ -1,0 +1,155 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-20T06:50:44.399Z",
+  "repository": "mistertee1/Sodaflow",
+  "source": {
+    "mainAtAcceptance": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+    "branch": "codex/firebase-cloud-acceptance-fix-20261020",
+    "pullRequest": 109,
+    "commit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+    "tree": "07af1b9bf0270818bf12ec8f33a3acccfa04d3c4",
+    "userMergesOnly": true,
+    "originalCloudPullRequest": 103,
+    "originalCloudMergeCommit": "0bd2f05d4121bad50be30249e8959c78bc039f01"
+  },
+  "acceptance": {
+    "unitApi": 369,
+    "firestoreEmulator": 45,
+    "ui": 65,
+    "superAdminUi": 11,
+    "failed": 0,
+    "skipped": 0,
+    "productionAuditVulnerabilities": 0,
+    "types": "passed",
+    "core": "passed",
+    "build": "passed",
+    "emulatorProject": "demo-sudaflow",
+    "productionFinancialTestWrites": 0,
+    "checks": {
+      "id": 39382069194,
+      "jobId": 118493201568,
+      "sha": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39382069194"
+    },
+    "scope": "PR109 candidate integrated against unchanged main 0bd2f05; synthetic MemoryStore/API, demo-sudaflow Rules/Emulator and full UI; not production"
+  },
+  "logResultLines": [
+    "2026-10-20T06:44:34.1905533Z ℹ tests 369",
+    "2026-10-20T06:44:34.1905988Z ℹ pass 369",
+    "2026-10-20T06:44:34.1906509Z ℹ fail 0",
+    "2026-10-20T06:44:34.1906934Z ℹ skipped 0",
+    "2026-10-20T06:44:41.6025985Z found 0 vulnerabilities",
+    "2026-10-20T06:46:22.5064949Z ℹ tests 45",
+    "2026-10-20T06:46:22.5065874Z ℹ pass 45",
+    "2026-10-20T06:46:22.5066194Z ℹ fail 0",
+    "2026-10-20T06:46:22.5066963Z ℹ skipped 0",
+    "2026-10-20T06:49:12.5362686Z   65 passed (2.4m)"
+  ],
+  "counterfactual": {
+    "uiBeforeFix": {
+      "passed": 1,
+      "failed": 1,
+      "expectedStatusCount": 0,
+      "observedStatusCount": 1,
+      "interpretation": "strengthened test catches stale prior save success at second review"
+    },
+    "sameTestAfterFix": "passed locally and in full GitHub CI",
+    "financialAssertionsPreserved": [
+      "double click each save",
+      "no success and unchanged events before request is released",
+      "exactly one new event after confirmation",
+      "two owner events and two journals total",
+      "reload reads persisted server history",
+      "non-owner cannot create"
+    ]
+  },
+  "local": {
+    "unitApi": 369,
+    "ui": 65,
+    "superAdminUi": 11,
+    "types": "passed",
+    "core": "passed",
+    "build": "passed",
+    "productionAuditVulnerabilities": 0,
+    "emulator": "Not executed locally (Java17); verified by CI Java21",
+    "browser": "Isolated Chromium153 test runtime outside repository; web security not disabled; package/lock unchanged"
+  },
+  "production": {
+    "checkedAt": "2026-10-20T06:46:06.669Z",
+    "serviceId": "srv-db4lfrvavr4c73fn1hl0",
+    "workspaceId": "tea-db20pccs728c73ald730",
+    "branch": "codex/wafer-ux-phase1",
+    "commit": "af3acda73b24cbde0457349df76fb00e81a0e3d0",
+    "deployId": "dep-db7341psrm7s73bs37bg",
+    "deployStatus": "live",
+    "observedErpAutoDeploy": "yes",
+    "autoDeployChanged": false,
+    "probes": [
+      {
+        "path": "/api/health",
+        "status": 200,
+        "body": "{\"status\":\"ok\",\"app\":\"SudaFlow\",\"version\":\"3.0.0\",\"release\":\"2026-10-05-central-sync-recovery\"}"
+      },
+      {
+        "path": "/api/health/ready",
+        "status": 503,
+        "body": "{\"status\":\"error\",\"firebase_project_id\":\"sodaflow\",\"firestore_database_id\":\"(default)\",\"checks\":{\"firebase\":{\"status\":\"error\",\"code\":\"service_unavailable\",\"message\":\"تعذر تأكيد الحفظ. أعد المحاولة بعد التحقق من إعداد الخادم والاتصال.\"}}}"
+      },
+      {
+        "path": "/api/super-admin/session",
+        "status": 401,
+        "body": "{\"error\":\"تسجيل الدخول مطلوب.\"}"
+      }
+    ],
+    "productionActivated": false,
+    "selectedUidVerified": false
+  },
+  "safety": {
+    "productionFinancialTestWrites": 0,
+    "productionEnvironmentChanges": 0,
+    "productionDeploys": 0,
+    "authPasswordRetried": false,
+    "passwordStored": false,
+    "rulesOrClaimsChanged": false,
+    "commercialMigrationApplied": false,
+    "legacyFilesImportedOrDeleted": false,
+    "accountingDomainChangedInFollowup": false,
+    "otherAgentFilesOverwritten": false,
+    "mainMergedByAgent": false
+  },
+  "remainingBlockers": [
+    {
+      "id": "firebase_runtime_credentials",
+      "evidence": "2026-10-20 read-only readiness503 at checks.firebase with service_unavailable before Firestore.",
+      "required": "Working server-side Firebase Admin credentials for the original customer project in protected Render secrets; an application password cannot replace them."
+    },
+    {
+      "id": "selected_account_identity_unverified",
+      "evidence": "Selected email approved/configured; one 2026-10-13 Auth attempt returned INVALID_LOGIN_CREDENTIALS. UID/email verification remain unresolved.",
+      "required": "Trusted Admin SDK getUserByEmail(SUPER_ADMIN_EMAIL) after access is ready; confirm enabled/verified exact UID and review bootstrap. No rejected-password retry without new information."
+    },
+    {
+      "id": "customer_datastore_and_legacy_recovery_review",
+      "evidence": "Original Firestore/IAM/indexes/Storage and any old .data file remain unverified.",
+      "required": "Locate and preserve original data/backups; review local-file recovery and migration preview before applying."
+    },
+    {
+      "id": "coordinated_production_release",
+      "evidence": "2026-10-20 Render still serves af3acda on codex/wafer-ux-phase1; main0bd2f05 and accepted PR109 sourcebde2b695 are not deployed.",
+      "required": "After prerequisites and review, coordinate frontend/API/Rules/indexes/bootstrap/live acceptance. No real financial test transactions or unreviewed migration."
+    }
+  ],
+  "pendingReview": {
+    "pullRequest": 109,
+    "mainStillNeedsFix": true
+  },
+  "checkpoint": {
+    "activeRunId": null,
+    "leaseUntil": null,
+    "branch": "codex/firebase-cloud-acceptance-fix-20261020",
+    "acceptedSourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+    "documentationOnlyFollowup": true
+  }
+}

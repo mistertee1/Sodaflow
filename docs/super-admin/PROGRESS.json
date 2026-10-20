@@ -2,64 +2,13 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-19T05:16:41.780379+00:00",
-  "activeRunId": "firebase-cloud-only-20261019",
-  "leaseUntil": "2026-10-19T09:14:43.044Z",
+  "updatedAt": "2026-10-20T06:50:44.399Z",
+  "activeRunId": null,
+  "leaseUntil": null,
   "automationId": "6ac35722234c819194e0535527c23124",
   "currentStage": 6,
-  "workBranch": "codex/firebase-cloud-only-20261018",
-  "ownedPaths": [
-    "docs/super-admin/PLAN.md",
-    "docs/super-admin/PROGRESS.json",
-    "docs/super-admin/REPORT.md",
-    "package.json",
-    "server/api.ts",
-    "server/operationIntents.ts",
-    "server/resilientStore.ts",
-    "src/App.tsx",
-    "src/components/ExpensesView.tsx",
-    "src/components/Header.tsx",
-    "src/components/LandingPageView.tsx",
-    "src/components/LoginView.tsx",
-    "src/components/ProductsView.tsx",
-    "src/components/SettingsModal.tsx",
-    "src/components/TeamManagementSection.tsx",
-    "src/components/accounting/OwnerReauthenticationDialog.tsx",
-    "src/context/AppContext.tsx",
-    "src/domain/store.ts",
-    "src/lib/firebase.ts",
-    "src/services/businessApi.ts",
-    "src/services/firebaseSync.ts",
-    "src/services/guestStore.ts",
-    "src/services/organizationService.ts",
-    "src/services/pendingOperations.ts",
-    "src/services/snapshotCache.ts",
-    "src/services/storageService.ts",
-    "tests/cloudPersistence.test.ts",
-    "tests/correctionDocuments.test.ts",
-    "tests/fixtures/cloudIdentity.ts",
-    "tests/platformFirestore.test.ts",
-    "tests/serverAuthority.test.ts",
-    "tests/serverAuthorityFirestore.test.ts",
-    "tests/snapshotCache.test.ts",
-    "tests/ui/accountingPeriods.spec.ts",
-    "tests/ui/app.spec.ts",
-    "tests/ui/auth.spec.ts",
-    "tests/ui/cloudOnly.spec.ts",
-    "tests/ui/fixedAssets.spec.ts",
-    "tests/ui/fxRevaluation.spec.ts",
-    "tests/ui/helpers/accountingPeriods.ts",
-    "tests/ui/helpers/cloudMerchant.ts",
-    "tests/ui/helpers/correctionDocuments.ts",
-    "tests/ui/helpers/platform.ts",
-    "tests/ui/helpers/purchaseCorrections.ts",
-    "tests/ui/helpers/salesCorrections.ts",
-    "tests/ui/openingWizard.spec.ts",
-    "tests/ui/ownerEquity.spec.ts",
-    "tests/ui/super-admin.spec.ts",
-    "tests/ui/taxCenter.spec.ts",
-    "tsconfig.core.json"
-  ],
+  "workBranch": "codex/firebase-cloud-acceptance-fix-20261020",
+  "ownedPaths": [],
   "stages": [
     {
       "id": 0,
@@ -221,18 +170,50 @@
           }
         }
       ]
+    },
+    {
+      "id": 6,
+      "status": "completed_in_review_branch",
+      "scope": "Firebase-only business persistence and durable cloud retry IDs; owner-equity status regression fixed",
+      "sourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+      "pullRequest": 109,
+      "originalMergedPullRequest": 103,
+      "originalMergeCommit": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+      "evidence": {
+        "unitApi": 369,
+        "firestoreEmulator": 45,
+        "ui": 65,
+        "superAdminUi": 11,
+        "failed": 0,
+        "skipped": 0,
+        "productionAuditVulnerabilities": 0,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "emulatorProject": "demo-sudaflow",
+        "productionFinancialTestWrites": 0
+      },
+      "githubChecks": {
+        "id": 39382069194,
+        "jobId": 118493201568,
+        "sha": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39382069194"
+      },
+      "productionActivated": false
     }
   ],
   "productionValidated": false,
-  "lastCompletedStage": 4,
-  "unmergedWorkBranch": "codex/firebase-cloud-only-20261018",
-  "lastSourceCommit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
-  "sourceStagesComplete": false,
-  "status": "in_progress",
-  "resumeFrom": "firebase_only_acceptance",
+  "lastCompletedStage": 6,
+  "unmergedWorkBranch": "codex/firebase-cloud-acceptance-fix-20261020",
+  "lastSourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+  "sourceStagesComplete": true,
+  "status": "source_candidate_accepted_user_merge_and_production_setup_pending",
+  "resumeFrom": "user_review_pr109_then_external_production_prerequisites",
   "lastReport": "docs/super-admin/REPORT_FIREBASE_ONLY_20261018.md",
   "productionReadiness": {
-    "checkedAt": "2026-10-18T20:41:24.569048+00:00",
+    "checkedAt": "2026-10-20T06:46:06.669Z",
     "provider": "Render",
     "workspaceId": "tea-db20pccs728c73ald730",
     "serviceId": "srv-db4lfrvavr4c73fn1hl0",
@@ -246,7 +227,7 @@
     "firestoreStatus": "unverified_after_firebase_probe_failed",
     "verifiedPlatformAdminUidProvided": false,
     "productionWrites": 0,
-    "diagnostic": "Current read-only readiness fails at checks.firebase before Firestore. No auth password retry, environment change, deployment or bootstrap in this closeout.",
+    "diagnostic": "Read-only 2026-10-20 health200/readiness503 before Firestore/anonymous session401. No runtime configuration, deployment, Auth password retry, bootstrap, Rules, claims or migration change.",
     "previousNetlifyDiagnosis": {
       "checkedAt": "2026-10-05T13:28:33Z",
       "firestoreCode": "firestore_database_missing",
@@ -258,10 +239,12 @@
     "httpHealth": 200,
     "selectedAdministratorEmailApproved": true,
     "latestDeployId": "dep-db7341psrm7s73bs37bg",
-    "latestDeployCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0"
+    "latestDeployCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0",
+    "observedErpAutoDeploy": "yes",
+    "productionAutoDeployChanged": false
   },
-  "observedMainSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
-  "workBaseSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
+  "observedMainSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+  "workBaseSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
   "userMergesOnly": true,
   "dependencies": [
     {
@@ -299,15 +282,14 @@
   },
   "acceptance": {
     "provider": "GitHub Actions",
-    "scope": "merged source, synthetic authorization/Rules/UI",
-    "sourceCommit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
-    "sourceTree": "90b85c652d76568cd6eb7dbb805cb5984e878ec8",
-    "sourceTreeMatchesPr67": true,
+    "scope": "PR109 candidate integrated against unchanged main 0bd2f05; synthetic MemoryStore/API, demo-sudaflow Rules/Emulator and full UI; not production",
+    "sourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+    "sourceTree": "07af1b9bf0270818bf12ec8f33a3acccfa04d3c4",
     "status": "passed",
     "evidence": {
-      "unitApi": 363,
-      "firestoreEmulator": 42,
-      "ui": 60,
+      "unitApi": 369,
+      "firestoreEmulator": 45,
+      "ui": 65,
       "superAdminUi": 11,
       "failed": 0,
       "skipped": 0,
@@ -319,14 +301,15 @@
       "productionFinancialTestWrites": 0
     },
     "githubChecks": {
-      "id": 38595659249,
-      "jobId": 115961593584,
-      "sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+      "id": 39382069194,
+      "jobId": 118493201568,
+      "sha": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
       "status": "completed",
       "conclusion": "success",
-      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38595659249"
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39382069194"
     },
-    "productionActivated": false
+    "productionActivated": false,
+    "userMergePending": true
   },
   "sourceIntegrationValidated": true,
   "acceptanceHistory": [
@@ -360,6 +343,37 @@
       "finishedAt": "2026-10-11T06:52:55.856871Z",
       "candidateGithubRun": 38119218903,
       "candidateGithubStatus": "failed_brand_asset_readiness_race_resolved_by_8bc3573"
+    },
+    {
+      "provider": "GitHub Actions",
+      "scope": "merged source, synthetic authorization/Rules/UI",
+      "sourceCommit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+      "sourceTree": "90b85c652d76568cd6eb7dbb805cb5984e878ec8",
+      "sourceTreeMatchesPr67": true,
+      "status": "passed",
+      "evidence": {
+        "unitApi": 363,
+        "firestoreEmulator": 42,
+        "ui": 60,
+        "superAdminUi": 11,
+        "failed": 0,
+        "skipped": 0,
+        "productionAuditVulnerabilities": 0,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "emulatorProject": "demo-sudaflow",
+        "productionFinancialTestWrites": 0
+      },
+      "githubChecks": {
+        "id": 38595659249,
+        "jobId": 115961593584,
+        "sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38595659249"
+      },
+      "productionActivated": false
     }
   ],
   "mergedPullRequests": [
@@ -378,29 +392,44 @@
       "mergeCommit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
       "mergedBy": "mistertee1",
       "mergedAt": "2026-10-14T16:09:27Z"
+    },
+    {
+      "number": 103,
+      "mergeCommit": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+      "mergedBy": "mistertee1",
+      "mergedAt": "2026-10-20T05:33:59Z"
     }
   ],
   "coordination": {
-    "checkedAt": "2026-10-18T20:44:01.922Z",
-    "mainSha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
-    "openSuperAdminPullRequestsBeforeCloseout": 0,
-    "sourceChanges": 0,
-    "scope": "Only docs/super-admin paths. No accounting/UI/Rules/package/source changes."
+    "checkedAt": "2026-10-20T06:50:44.399Z",
+    "mainSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+    "accountingLease": null,
+    "openPullRequests": 0,
+    "scope": "Owner save status lifecycle and its UI acceptance only; domain accounting, branding, API and Rules unchanged in PR109.",
+    "mainUnchangedDuringAcceptance": true,
+    "sourceChanges": [
+      "src/components/accounting/OwnerEquityCenter.tsx",
+      "tests/ui/ownerEquity.spec.ts"
+    ]
   },
   "lastOwnedPaths": [
-    "docs/super-admin/**"
+    "docs/super-admin/**",
+    "src/components/accounting/OwnerEquityCenter.tsx",
+    "tests/ui/ownerEquity.spec.ts"
   ],
-  "lastCompletedSubstep": "5c",
-  "documentationPullRequest": 49,
+  "lastCompletedSubstep": "6_firebase_only_candidate",
+  "documentationPullRequest": 109,
   "sourceSnapshot": {
-    "mainSha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
-    "acceptedHeadSha": "a314b3330c687a7e5f68f9d1bf2be3cb9b757da2",
+    "mainSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+    "acceptedHeadSha": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
     "authorityCodeCommit": "29a8c48bc251a6084f856d8ca0ed8b7f04584754",
     "testHarnessCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
-    "productCodeUnchangedFromMergedMain": true,
-    "mergedSourceSha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
-    "sourceTree": "90b85c652d76568cd6eb7dbb805cb5984e878ec8",
-    "exclusiveIdentityCommit": "a314b3330c687a7e5f68f9d1bf2be3cb9b757da2"
+    "productCodeUnchangedFromMergedMain": false,
+    "mergedSourceSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+    "sourceTree": "07af1b9bf0270818bf12ec8f33a3acccfa04d3c4",
+    "exclusiveIdentityCommit": "a314b3330c687a7e5f68f9d1bf2be3cb9b757da2",
+    "originalCloudSourceSha": "fa8d8e6848cbc4ec9669c6b757caccee36aeb9d0",
+    "pendingFixPullRequest": 109
   },
   "githubChecksHistory": [
     {
@@ -420,12 +449,49 @@
       "failure": "RTL brand asset readiness assertion checks all img.complete/naturalWidth immediately; trace confirms all logo URLs HTTP200. Use bounded async poll with unchanged predicate and re-test.",
       "artifactId": 11694249893,
       "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38119218903"
+    },
+    {
+      "runId": 39166413987,
+      "sha": "389f26d2d57ea69cdd3730944eadb6a50b1dc9f3",
+      "conclusion": "failure",
+      "unitApi": 368,
+      "emulator": {
+        "passed": 43,
+        "failed": 2
+      },
+      "failure": "New emulator fixtures checked absence of a legacy file intentionally created by earlier fixtures; corrected to verify unchanged existence/bytes."
+    },
+    {
+      "runId": 39203740467,
+      "sha": "fa8d8e6848cbc4ec9669c6b757caccee36aeb9d0",
+      "conclusion": "failure",
+      "unitApi": 369,
+      "firestoreEmulator": 45,
+      "ui": {
+        "passed": 64,
+        "failed": 1
+      },
+      "failure": "Owner-equity stale success status during second reauthentication."
+    },
+    {
+      "id": 39375579262,
+      "jobId": 118472847877,
+      "sha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+      "conclusion": "failure",
+      "unitApi": 369,
+      "firestoreEmulator": 45,
+      "ui": {
+        "passed": 64,
+        "failed": 1,
+        "tests": 65
+      },
+      "failure": "Owner capital/drawings test observes prior success before the second asynchronous reauthentication/save has completed; inspect and fix status lifecycle plus transaction completion assertion."
     }
   ],
   "blockers": [
     {
       "id": "firebase_runtime_credentials",
-      "evidence": "2026-10-18 readiness503 at checks.firebase with service_unavailable.",
+      "evidence": "2026-10-20 read-only readiness503 at checks.firebase with service_unavailable before Firestore.",
       "required": "Working server-side Firebase Admin credentials for the original customer project in protected Render secrets; an application password cannot replace them."
     },
     {
@@ -440,20 +506,27 @@
     },
     {
       "id": "coordinated_production_release",
-      "evidence": "Render still serves af3acda from codex/wafer-ux-phase1; merged main is c04e6d6.",
+      "evidence": "2026-10-20 Render still serves af3acda on codex/wafer-ux-phase1; main0bd2f05 and accepted PR109 sourcebde2b695 are not deployed.",
       "required": "After prerequisites and review, coordinate frontend/API/Rules/indexes/bootstrap/live acceptance. No real financial test transactions or unreviewed migration."
     }
   ],
   "lastRun": {
-    "id": "super-admin-merged-acceptance-closeout-20261018",
-    "status": "source_complete_production_blocked",
-    "endedAt": "2026-10-18T20:44:01.922Z",
-    "branch": "codex/super-admin-merged-acceptance-20261018",
-    "acceptedSourceCommit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
-    "sourcePullRequest": 67,
-    "githubRun": 38595659249,
+    "id": "firebase-cloud-acceptance-20261020",
+    "status": "source_candidate_accepted_user_merge_and_production_setup_pending",
+    "endedAt": "2026-10-20T06:50:44.399Z",
+    "branch": "codex/firebase-cloud-acceptance-fix-20261020",
+    "pullRequest": 109,
+    "headBeforeDocumentationCheckpoint": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+    "acceptedSourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+    "githubRun": 39382069194,
+    "evidence": "docs/super-admin/EVIDENCE_FIREBASE_ONLY_20261020.json",
+    "report": "docs/super-admin/REPORT_FIREBASE_ONLY_20261018.md",
+    "mainAtAcceptance": "0bd2f05d4121bad50be30249e8959c78bc039f01",
     "productionWrites": 0,
-    "sourceChanges": 0
+    "sourceChanges": 2,
+    "documentationOnlyCheckpoint": true,
+    "userMergePending": true,
+    "productionActivated": false
   },
   "leaseHistory": [
     {
@@ -467,9 +540,23 @@
       "runId": "super-admin-exclusive-account-20261013",
       "releasedAt": "2026-10-18T20:44:01.922Z",
       "reason": "Merged source accepted; only external activation prerequisites remain."
+    },
+    {
+      "runId": "firebase-cloud-only-20261019",
+      "expiredAt": "2026-10-19T09:14:43.044Z",
+      "recoveredBy": "firebase-cloud-acceptance-20261020",
+      "reason": "PR103 merged its expired checkpoint; no other active lease or open PR at resumption."
+    },
+    {
+      "runId": "firebase-cloud-acceptance-20261020",
+      "releasedAt": "2026-10-20T06:50:44.399Z",
+      "branch": "codex/firebase-cloud-acceptance-fix-20261020",
+      "acceptedSourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+      "pullRequest": 109,
+      "reason": "Independent source accepted; user review and external production access/data/identity/release prerequisites remain."
     }
   ],
-  "automationState": "paused_external_requirements",
+  "automationState": "paused_user_review_and_external_requirements",
   "exclusiveAccount": {
     "emailExplicitlyApproved": true,
     "uidVerified": false,
@@ -590,45 +677,76 @@
     }
   },
   "firebaseCloudOnly": {
-    "status": "awaiting_corrected_acceptance",
+    "status": "candidate_accepted_user_merge_pending",
     "baseSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
     "request": "Firebase is the only business datastore; remove guest/local persistence and confirmed disk snapshot hydration while retaining Super Admin and server subscription enforcement.",
     "productionChanges": 0,
-    "acceptance": "pending",
+    "acceptance": "passed",
     "authSession": "Firebase SDK-managed login session retained. No ERP records, settings, selected organization, snapshots or retry IDs are written to browser storage.",
     "legacyRecovery": "Existing browser/server files remain untouched and are not automatically imported or read.",
     "retryAuthority": "Firestore: private per-user/tenant operationIntents and exclusive platformOperationIntents, served through verified API only.",
     "localValidation": {
-      "initialUnitApi": 363,
-      "cloudIntentFocused": 9,
-      "expandedRegression": "passed",
-      "emulator": "blocked locally: Java 17; CI requires Java 21",
-      "browser": "Chromium download is truncated; CI acceptance pending",
       "unitApi": 369,
+      "ui": 65,
+      "superAdminUi": 11,
       "types": "passed",
       "core": "passed",
-      "build": "passed"
+      "build": "passed",
+      "productionAuditVulnerabilities": 0,
+      "preFixUi": {
+        "passed": 1,
+        "failed": 1,
+        "interpretation": "strengthened test detects stale prior success before the fix"
+      },
+      "emulator": "Verified in GitHub CI with Java21; not run on local Java17"
     },
     "lastCI": {
-      "id": 39166413987,
-      "jobId": 117790178632,
-      "sha": "389f26d2d57ea69cdd3730944eadb6a50b1dc9f3",
-      "unitApi": 368,
-      "emulator": {
-        "tests": 45,
-        "passed": 43,
-        "failed": 2,
-        "skipped": 0
-      },
-      "ui": "not_run_after_emulator_failure",
-      "conclusion": "failure",
-      "failure": "Two added tests assert legacy .data file absent after earlier fixtures deliberately created it; verify unchanged bytes/existence instead. Actual cloud retry IDs/concurrency assertions before that check passed."
+      "id": 39382069194,
+      "jobId": 118493201568,
+      "sha": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39382069194"
     },
-    "pullRequest": 103,
+    "pullRequest": 109,
     "changesAfterFirstCI": [
       "Preserve pre-existing legacy fixture bytes rather than assert file absence in two emulator cases",
       "Bound acknowledgement cleanup to 4 seconds without turning an already confirmed business write into failure",
-      "Add rollback and confirmed-write/cleanup-failure regression tests"
-    ]
+      "Add rollback and confirmed-write/cleanup-failure regression tests",
+      "Clear prior owner success before new review; deterministic held-write UI assertions verify server confirmation and exact two-event/two-journal reload persistence."
+    ],
+    "mergedSourceCommit": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+    "mergedPullRequest": 103,
+    "originalPullRequest": 103,
+    "correctedSourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+    "correctedSourceTree": "07af1b9bf0270818bf12ec8f33a3acccfa04d3c4",
+    "evidence": {
+      "unitApi": 369,
+      "firestoreEmulator": 45,
+      "ui": 65,
+      "superAdminUi": 11,
+      "failed": 0,
+      "skipped": 0,
+      "productionAuditVulnerabilities": 0,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "emulatorProject": "demo-sudaflow",
+      "productionFinancialTestWrites": 0
+    }
+  },
+  "mergedMainAcceptance": {
+    "sha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+    "runId": 39375579262,
+    "status": "failed_one_ui_case",
+    "unitApi": 369,
+    "firestoreEmulator": 45,
+    "ui": {
+      "passed": 64,
+      "failed": 1,
+      "tests": 65
+    },
+    "fixPullRequest": 109,
+    "fixSourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6"
   }
 }

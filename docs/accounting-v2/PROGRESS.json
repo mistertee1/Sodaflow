@@ -5,9 +5,17 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-sales-commit-20261020",
+  "active_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel4-historical-purchase-plan-20261020",
+    "round_id": "20261020T192641Z-excel4.1d.3b.3",
+    "acquired_at": "2026-10-20T19:26:41.402Z",
+    "expires_at": "2026-10-20T20:56:41.402Z",
+    "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+    "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+    "purpose": "Implement native historical purchase/AP/receipt/WAC planning with fail-closed validation"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -2315,7 +2323,7 @@
     "Then implement atomic purchase persistence and strict post-import reconciliation",
     "Independent authenticated Render acceptance on a matching staging commit"
   ],
-  "updated_at": "2026-10-20T18:43:03.508Z",
+  "updated_at": "2026-10-20T19:26:41.402Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2341,7 +2349,7 @@
     }
   ],
   "active_substep": "Excel4.1d.3b.3",
-  "observed_main_sha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+  "observed_main_sha": "ddb00e8491f72134d523bb0632ed901df9f8078a",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",

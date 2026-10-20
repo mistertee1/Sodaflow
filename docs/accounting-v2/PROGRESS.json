@@ -5,9 +5,17 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+  "active_branch": "codex/accounting-v2-excel4-historical-sales-commit-20261020",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel4-historical-sales-commit-20261020",
+    "round_id": "20261020T074505Z-excel4.1d.3b.2",
+    "acquired_at": "2026-10-20T07:45:05.409Z",
+    "expires_at": "2026-10-20T09:15:05.409Z",
+    "branch": "codex/accounting-v2-excel4-historical-sales-commit-20261020",
+    "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+    "purpose": "Implement atomic historical sales persistence and post-import reconciliation"
+  },
   "milestones": [
     {
       "id": "A1",

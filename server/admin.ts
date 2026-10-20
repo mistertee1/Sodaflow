@@ -15,11 +15,15 @@ export function selectedFirebaseProjectId() {
   return projectId;
 }
 
-function serverCredential() {
+export function serverCredential() {
   const raw = serverEnv('FIREBASE_SERVICE_ACCOUNT_JSON')?.trim();
   if (!raw) {
     if (onNetlify() || serverEnv('NETLIFY') === 'true' || serverEnv('AWS_LAMBDA_FUNCTION_NAME')) {
       throw new BusinessError('إعداد Firebase في الخادم ناقص: أضف FIREBASE_SERVICE_ACCOUNT_JSON في متغيرات بيئة Netlify ثم أعد النشر.', 503, 'firebase_configuration_missing');
+    }
+    const onRender = serverEnv('RENDER') === 'true' || Boolean(serverEnv('RENDER_SERVICE_ID'));
+    if (onRender && !serverEnv('GOOGLE_APPLICATION_CREDENTIALS')?.trim()) {
+      throw new BusinessError('اعتماد Firebase للخادم غير مضبوط على Render. أضف FIREBASE_SERVICE_ACCOUNT_JSON في متغيرات البيئة أو اضبط GOOGLE_APPLICATION_CREDENTIALS على ملف اعتماد آمن.', 503, 'firebase_configuration_missing');
     }
     return applicationDefault();
   }

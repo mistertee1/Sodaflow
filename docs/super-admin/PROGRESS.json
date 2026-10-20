@@ -2,63 +2,16 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-19T05:16:41.780379+00:00",
-  "activeRunId": "firebase-cloud-only-20261019",
-  "leaseUntil": "2026-10-19T09:14:43.044Z",
+  "updatedAt": "2026-10-20T06:40:20.293Z",
+  "activeRunId": "firebase-cloud-acceptance-20261020",
+  "leaseUntil": "2026-10-20T09:40:20.293Z",
   "automationId": "6ac35722234c819194e0535527c23124",
   "currentStage": 6,
-  "workBranch": "codex/firebase-cloud-only-20261018",
+  "workBranch": "codex/firebase-cloud-acceptance-fix-20261020",
   "ownedPaths": [
-    "docs/super-admin/PLAN.md",
-    "docs/super-admin/PROGRESS.json",
-    "docs/super-admin/REPORT.md",
-    "package.json",
-    "server/api.ts",
-    "server/operationIntents.ts",
-    "server/resilientStore.ts",
-    "src/App.tsx",
-    "src/components/ExpensesView.tsx",
-    "src/components/Header.tsx",
-    "src/components/LandingPageView.tsx",
-    "src/components/LoginView.tsx",
-    "src/components/ProductsView.tsx",
-    "src/components/SettingsModal.tsx",
-    "src/components/TeamManagementSection.tsx",
-    "src/components/accounting/OwnerReauthenticationDialog.tsx",
-    "src/context/AppContext.tsx",
-    "src/domain/store.ts",
-    "src/lib/firebase.ts",
-    "src/services/businessApi.ts",
-    "src/services/firebaseSync.ts",
-    "src/services/guestStore.ts",
-    "src/services/organizationService.ts",
-    "src/services/pendingOperations.ts",
-    "src/services/snapshotCache.ts",
-    "src/services/storageService.ts",
-    "tests/cloudPersistence.test.ts",
-    "tests/correctionDocuments.test.ts",
-    "tests/fixtures/cloudIdentity.ts",
-    "tests/platformFirestore.test.ts",
-    "tests/serverAuthority.test.ts",
-    "tests/serverAuthorityFirestore.test.ts",
-    "tests/snapshotCache.test.ts",
-    "tests/ui/accountingPeriods.spec.ts",
-    "tests/ui/app.spec.ts",
-    "tests/ui/auth.spec.ts",
-    "tests/ui/cloudOnly.spec.ts",
-    "tests/ui/fixedAssets.spec.ts",
-    "tests/ui/fxRevaluation.spec.ts",
-    "tests/ui/helpers/accountingPeriods.ts",
-    "tests/ui/helpers/cloudMerchant.ts",
-    "tests/ui/helpers/correctionDocuments.ts",
-    "tests/ui/helpers/platform.ts",
-    "tests/ui/helpers/purchaseCorrections.ts",
-    "tests/ui/helpers/salesCorrections.ts",
-    "tests/ui/openingWizard.spec.ts",
-    "tests/ui/ownerEquity.spec.ts",
-    "tests/ui/super-admin.spec.ts",
-    "tests/ui/taxCenter.spec.ts",
-    "tsconfig.core.json"
+    "docs/super-admin/**",
+    "src/components/accounting/OwnerEquityCenter.tsx",
+    "tests/ui/ownerEquity.spec.ts"
   ],
   "stages": [
     {
@@ -225,11 +178,11 @@
   ],
   "productionValidated": false,
   "lastCompletedStage": 4,
-  "unmergedWorkBranch": "codex/firebase-cloud-only-20261018",
+  "unmergedWorkBranch": "codex/firebase-cloud-acceptance-fix-20261020",
   "lastSourceCommit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
   "sourceStagesComplete": false,
   "status": "in_progress",
-  "resumeFrom": "firebase_only_acceptance",
+  "resumeFrom": "owner_equity_cloud_ui_acceptance",
   "lastReport": "docs/super-admin/REPORT_FIREBASE_ONLY_20261018.md",
   "productionReadiness": {
     "checkedAt": "2026-10-18T20:41:24.569048+00:00",
@@ -260,8 +213,8 @@
     "latestDeployId": "dep-db7341psrm7s73bs37bg",
     "latestDeployCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0"
   },
-  "observedMainSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
-  "workBaseSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
+  "observedMainSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+  "workBaseSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
   "userMergesOnly": true,
   "dependencies": [
     {
@@ -381,11 +334,11 @@
     }
   ],
   "coordination": {
-    "checkedAt": "2026-10-18T20:44:01.922Z",
-    "mainSha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
-    "openSuperAdminPullRequestsBeforeCloseout": 0,
-    "sourceChanges": 0,
-    "scope": "Only docs/super-admin paths. No accounting/UI/Rules/package/source changes."
+    "checkedAt": "2026-10-20T06:40:20.293Z",
+    "mainSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+    "accountingLease": null,
+    "openPullRequests": 0,
+    "scope": "Only owner-equity status lifecycle and its cloud API UI acceptance; no domain accounting or Rules changes."
   },
   "lastOwnedPaths": [
     "docs/super-admin/**"
@@ -590,7 +543,7 @@
     }
   },
   "firebaseCloudOnly": {
-    "status": "awaiting_corrected_acceptance",
+    "status": "merged_acceptance_regression_fix",
     "baseSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
     "request": "Firebase is the only business datastore; remove guest/local persistence and confirmed disk snapshot hydration while retaining Super Admin and server subscription enforcement.",
     "productionChanges": 0,
@@ -610,25 +563,26 @@
       "build": "passed"
     },
     "lastCI": {
-      "id": 39166413987,
-      "jobId": 117790178632,
-      "sha": "389f26d2d57ea69cdd3730944eadb6a50b1dc9f3",
-      "unitApi": 368,
-      "emulator": {
-        "tests": 45,
-        "passed": 43,
-        "failed": 2,
-        "skipped": 0
-      },
-      "ui": "not_run_after_emulator_failure",
+      "id": 39375579262,
+      "jobId": 118472847877,
+      "sha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
       "conclusion": "failure",
-      "failure": "Two added tests assert legacy .data file absent after earlier fixtures deliberately created it; verify unchanged bytes/existence instead. Actual cloud retry IDs/concurrency assertions before that check passed."
+      "unitApi": 369,
+      "firestoreEmulator": 45,
+      "ui": {
+        "passed": 64,
+        "failed": 1,
+        "tests": 65
+      },
+      "failure": "Owner capital/drawings test observes prior success before the second asynchronous reauthentication/save has completed; inspect and fix status lifecycle plus transaction completion assertion."
     },
     "pullRequest": 103,
     "changesAfterFirstCI": [
       "Preserve pre-existing legacy fixture bytes rather than assert file absence in two emulator cases",
       "Bound acknowledgement cleanup to 4 seconds without turning an already confirmed business write into failure",
       "Add rollback and confirmed-write/cleanup-failure regression tests"
-    ]
+    ],
+    "mergedSourceCommit": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+    "mergedPullRequest": 103
   }
 }

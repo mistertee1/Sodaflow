@@ -8,13 +8,13 @@
   "active_branch": "codex/accounting-v2-excel4-historical-sales-commit-20261020",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "excel4-historical-sales-commit-20261020",
-    "round_id": "20261020T133010Z-excel4.1d.3b.2",
-    "acquired_at": "2026-10-20T13:30:10.511Z",
-    "expires_at": "2026-10-20T15:00:10.513Z",
+    "worker": "excel4-historical-sales-closeout-20261020",
+    "round_id": "20261020T184226Z-excel4.1d.3b.2-closeout",
+    "acquired_at": "2026-10-20T18:42:26.285Z",
+    "expires_at": "2026-10-20T19:42:26.285Z",
     "branch": "codex/accounting-v2-excel4-historical-sales-commit-20261020",
     "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-    "purpose": "Implement atomic historical sales persistence and post-import reconciliation"
+    "purpose": "Record successful CI, finalize report, and release Excel4.1d.3b.2 checkpoint"
   },
   "milestones": [
     {
@@ -2316,7 +2316,7 @@
     "Implement the native historical purchase/AP/receipt/WAC plan",
     "Independent authenticated Render acceptance on a matching staging commit"
   ],
-  "updated_at": "2026-10-20T13:35:35Z",
+  "updated_at": "2026-10-20T18:42:26.285Z",
   "deferred_requirements": [
     {
       "prd_sections": [

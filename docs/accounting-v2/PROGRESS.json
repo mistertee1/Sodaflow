@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
+  "active_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -2087,15 +2087,15 @@
     {
       "id": "Excel4",
       "status": "in_progress",
-      "branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
-      "pr": 107,
+      "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+      "pr": 108,
       "steps": [
         {
           "id": "Excel4.1",
           "scope": "Controlled historical invoices/purchases/journals and legacy migration",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
-          "pr": 107,
+          "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+          "pr": 108,
           "substeps": [
             {
               "id": "Excel4.1a",
@@ -2240,6 +2240,33 @@
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "limitations": "Native invoice/purchase/payment/inventory/GL creation remains fail-closed until Excel4.1d.3b."
+            },
+            {
+              "id": "Excel4.1d.3b.1",
+              "scope": "Deterministic read-only native historical sales invoice/payment/inventory/GL plan",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+              "pr": 108,
+              "code_commit": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
+              "report": "REPORT_EXCEL4_1D_3B_1_HISTORICAL_SALES_PLAN.md",
+              "checks": {
+                "targeted": 5,
+                "targeted_excel_import": 57,
+                "unit_api": 373,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0,
+                "firestore_emulator": "passed",
+                "ui_regression": "passed"
+              },
+              "ci": {
+                "run_id": 39260368179,
+                "commit_sha": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "limitations": "Read-only plan only; atomic persistence/reconciliation and purchase planning remain."
             }
           ]
         },
@@ -2253,12 +2280,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_EXCEL4_1D_3A_HISTORICAL_DOCUMENT_COMMIT_GUARD.md",
+  "last_report": "REPORT_EXCEL4_1D_3B_1_HISTORICAL_SALES_PLAN.md",
   "next_steps": [
-    "Proceed to Excel4.1d.3b atomic native historical invoice/purchase/payment/inventory/GL creation and reconciliation from PR107",
+    "Proceed to Excel4.1d.3b.2 atomic persistence and reconciliation of the native historical sales plan from PR108",
+    "Then implement the native historical purchase/AP/inventory plan",
     "Independent authenticated Render acceptance on a matching staging commit"
   ],
-  "updated_at": "2026-10-19T11:00:00Z",
+  "updated_at": "2026-10-19T13:31:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2283,7 +2311,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1d.3a",
+  "active_substep": "Excel4.1d.3b.1",
   "observed_main_sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
   "lease_history": [
     {
@@ -2759,24 +2787,41 @@
         "conclusion": "success"
       },
       "next": "Proceed to Excel4.1d.3b atomic native historical document creation and reconciliation; Render acceptance remains independent"
+    },
+    {
+      "worker": "excel4-historical-sales-plan-20261019",
+      "round_id": "20261019T132244Z-excel4.1d.3b.1",
+      "base_branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
+      "acquired_at": "2026-10-19T13:22:44Z",
+      "released_at": "2026-10-19T13:31:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+      "pr": 108,
+      "code_commit": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
+      "status": "Excel4.1d.3b.1_implemented_ci_passed_render_acceptance_pending",
+      "ci": {
+        "run_id": 39260368179,
+        "commit_sha": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
+        "conclusion": "success"
+      },
+      "next": "Proceed to Excel4.1d.3b.2 atomic sales-plan persistence and reconciliation, then historical purchase planning; Render acceptance remains independent"
     }
   ],
   "last_lease": {
-    "worker": "excel4-historical-native-commit-20261019",
-    "round_id": "20261019T103500Z-excel4.1d.3a",
-    "base_branch": "codex/accounting-v2-excel4-historical-document-commit-20261019",
-    "acquired_at": "2026-10-19T10:35:00Z",
-    "released_at": "2026-10-19T11:00:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
-    "pr": 107,
-    "code_commit": "e2cb20f23bd1506a74e23285fbfefd6abaeb99a5",
-    "status": "Excel4.1d.3a_implemented_ci_passed_render_acceptance_pending",
+    "worker": "excel4-historical-sales-plan-20261019",
+    "round_id": "20261019T132244Z-excel4.1d.3b.1",
+    "base_branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
+    "acquired_at": "2026-10-19T13:22:44Z",
+    "released_at": "2026-10-19T13:31:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+    "pr": 108,
+    "code_commit": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
+    "status": "Excel4.1d.3b.1_implemented_ci_passed_render_acceptance_pending",
     "ci": {
-      "run_id": 39238894878,
-      "commit_sha": "e2cb20f23bd1506a74e23285fbfefd6abaeb99a5",
+      "run_id": 39260368179,
+      "commit_sha": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
       "conclusion": "success"
     },
-    "next": "Proceed to Excel4.1d.3b atomic native historical document creation and reconciliation; Render acceptance remains independent"
+    "next": "Proceed to Excel4.1d.3b.2 atomic sales-plan persistence and reconciliation, then historical purchase planning; Render acceptance remains independent"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -2790,7 +2835,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to Excel4.1d.3b atomic native historical document creation and reconciliation; Render acceptance remains independent",
+  "next": "Proceed to Excel4.1d.3b.2 atomic sales-plan persistence and reconciliation, then historical purchase planning; Render acceptance remains independent",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2811,21 +2856,21 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "excel4-historical-native-commit-20261019",
-    "round_id": "20261019T103500Z-excel4.1d.3a",
-    "base_branch": "codex/accounting-v2-excel4-historical-document-commit-20261019",
-    "acquired_at": "2026-10-19T10:35:00Z",
-    "released_at": "2026-10-19T11:00:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
-    "pr": 107,
-    "code_commit": "e2cb20f23bd1506a74e23285fbfefd6abaeb99a5",
-    "status": "Excel4.1d.3a_implemented_ci_passed_render_acceptance_pending",
+    "worker": "excel4-historical-sales-plan-20261019",
+    "round_id": "20261019T132244Z-excel4.1d.3b.1",
+    "base_branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
+    "acquired_at": "2026-10-19T13:22:44Z",
+    "released_at": "2026-10-19T13:31:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+    "pr": 108,
+    "code_commit": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
+    "status": "Excel4.1d.3b.1_implemented_ci_passed_render_acceptance_pending",
     "ci": {
-      "run_id": 39238894878,
-      "commit_sha": "e2cb20f23bd1506a74e23285fbfefd6abaeb99a5",
+      "run_id": 39260368179,
+      "commit_sha": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
       "conclusion": "success"
     },
-    "next": "Proceed to Excel4.1d.3b atomic native historical document creation and reconciliation; Render acceptance remains independent"
+    "next": "Proceed to Excel4.1d.3b.2 atomic sales-plan persistence and reconciliation, then historical purchase planning; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

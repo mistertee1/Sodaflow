@@ -5,6 +5,10 @@ import { Operations, type Actor } from '../src/domain/operations';
 import { Organizations } from '../server/organizations';
 import { INITIAL_SETTINGS } from '../src/data/initialData';
 import type { HistoricalImportRow } from '../src/domain/historicalImport';
+import type { HistoricalDocumentEvidence } from '../src/domain/historicalDocumentEvidence';
+import { costState } from '../src/domain/inventoryCost';
+import { journal, journalLine } from '../src/domain/financial';
+import { reconcileFinancialData, type FinancialData } from '../src/domain/reconciliation';
 
 const now=new Date('2026-10-18T23:30:00Z');
 const owner:Actor={uid:'owner',email:'owner@example.com',emailVerified:true,authTime:Math.floor(now.getTime()/1000)};
@@ -18,10 +22,25 @@ async function fixture(){
     tx.set(`${root}/members/accountant`,{uid:'accountant',role:'Accountant',status:'active',org_id:org.id});
     tx.set(`${root}/accounting_periods/2026`,{id:'2026',org_id:org.id,schema_version:1,start_date:'2026-01-01',end_date:'2026-01-31',status:'OPEN',revision:1,created_by:'owner',created_at:'2026-01-01',operation_id:'period'});
   });
-  const ops=new Operations(store,()=>now),stage=async(rows:HistoricalImportRow[],operationId='history-stage')=>(await ops.execute(org.id,accountant,{action:'historicalImport.stage',operationId,data:{file_name:'history.xlsx',file_hash:'e'.repeat(64),schema_version:1,rows}})).result;
-  const commit=async(session:Record<string,any>,operationId='history-commit')=>ops.execute(org.id,accountant,{action:'historicalImport.commit',operationId,data:{id:session.id,expected_rows_sha256:session.rows_sha256,expected_validation_context_sha256:session.validation_context_sha256,reason:'اعتماد تاريخي مراجع'}});
+  const ops=new Operations(store,()=>now),stage=async(rows:HistoricalImportRow[],operationId='history-stage',document_evidence?:Record<string,HistoricalDocumentEvidence>)=>(await ops.execute(org.id,accountant,{action:'historicalImport.stage',operationId,data:{file_name:'history.xlsx',file_hash:'e'.repeat(64),schema_version:1,rows,...(document_evidence?{document_evidence}:{})}})).result;
+  const commit=async(session:Record<string,any>,operationId='history-commit')=>ops.execute(org.id,accountant,{action:'historicalImport.commit',operationId,data:{id:session.id,expected_rows_sha256:session.rows_sha256,expected_validation_context_sha256:session.validation_context_sha256,...(session.document_evidence_sha256?{expected_document_evidence_sha256:session.document_evidence_sha256}:{}),reason:'اعتماد تاريخي مراجع'}});
   return{store,org,root,ops,stage,commit};
 }
+
+async function seedSalesBaseline(f:Awaited<ReturnType<typeof fixture>>){
+  const date='2026-01-01',opening=journal('jv-opening-product-1',f.org.id,'owner',date,'inventory','opening-product-1','مخزون افتتاحي موثق',[journalLine('1300','المخزون',1000),journalLine('3100','رأس المال',0,1000)]);
+  await f.store.transaction(async tx=>{
+    tx.set(`${f.root}/customers/customer-1`,{id:'customer-1',org_id:f.org.id,name:'Historical customer',phone:'',preferred_currency:'SDG',balance_sdg:0,balance_usd:0,created_at:date,updated_at:date,schema_version:3});
+    tx.set(`${f.root}/products/product-1`,{id:'product-1',org_id:f.org.id,name:'Historical product',unit:'قطعة',price_sdg:50,price_usd:0,tax_rate:0,is_active:true,track_inventory:true,...costState(10,1000,0,date),created_at:date,created_by:'owner',schema_version:3});
+    tx.set(`${f.root}/inventory_movements/opening-product-1`,{id:'opening-product-1',org_id:f.org.id,product_id:'product-1',product_name:'Historical product',type:'OPENING_BALANCE',quantity:10,previous_stock:0,resulting_stock:10,reference_type:'manual',reference_id:'opening-product-1',value_delta_sdg:1000,value_delta_usd:0,unit_cost_sdg:100,unit_cost_usd:0,costing_version:2,journal_id:opening.id,operation_id:'opening-product-1',branch_id:'main',created_by:'owner',created_at:date,schema_version:3});
+    tx.set(`${f.root}/journal_entries/${opening.id}`,opening as unknown as Record<string,unknown>);
+  });
+  const snapshot=await f.ops.snapshot(f.org.id,owner,true);
+  assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
+}
+
+const salesRow=(overrides:Partial<HistoricalImportRow>={}):HistoricalImportRow=>({row_number:7,kind:'invoice',reference:'INV-H-7',date:'2026-01-10',currency:'SDG',branch_id:'main',account_code:'4100',counterparty_code:'customer-1',total:100,paid:40,debit:100,credit:100,...overrides});
+const salesEvidence=(overrides:Partial<HistoricalDocumentEvidence>={}):HistoricalDocumentEvidence=>({party_id:'customer-1',due_date:'2026-02-10',exchange_rate_used:0,control_account_code:'1200',lines:[{product_id:'product-1',description:'بضاعة تاريخية',quantity:2,net:100,tax:0,cogs:200}],payments:[{date:'2026-01-20',amount:40,account_code:'1110',exchange_rate_used:0,reference:'RCPT-H-7'}],...overrides});
 
 test('Excel4.1c atomically commits reviewed journals once with immutable proof and audit',async()=>{
   const f=await fixture(),staged=await f.stage([journalRow()]),first=await f.commit(staged),again=await f.commit(staged);
@@ -57,6 +76,36 @@ test('Excel4.1c completes with an accounting block and prevents final period clo
   await f.ops.execute(f.org.id,owner,{action:'period.softClose',operationId:'soft-close',data:{id:'2026',expected_revision:1,reason:'مراجعة'}});
   await assert.rejects(f.ops.execute(f.org.id,owner,{action:'period.close',operationId:'final-close',data:{id:'2026',expected_revision:2,reason:'إغلاق',fx_review_completed:true}}),/فشل فحص الإغلاق/);
   assert.equal(f.store.dump()[`${f.root}/accounting_periods/2026`].status,'SOFT_CLOSED');
+});
+
+test('Excel4.1d.3b.2 atomically persists native historical sales and reconciles every source',async()=>{
+  const f=await fixture();await seedSalesBaseline(f);
+  const staged=await f.stage([salesRow()],'native-sales-stage',{'7':salesEvidence()}),first=await f.commit(staged,'native-sales-commit'),again=await f.commit(staged,'native-sales-commit');
+  assert.deepEqual(again,first);assert.equal(first.result.status,'completed');assert.equal(first.result.accounting_block,false);assert.equal(first.result.invoices_created,1);assert.equal(first.result.payments_created,1);assert.equal(first.result.inventory_movements_created,1);assert.equal(first.result.journals_created,2);assert.equal(first.result.reconciliation.findings_count,0);
+  const dump=f.store.dump(),session=dump[`${f.root}/historical_import_sessions/${staged.id}`];
+  assert.equal(session.status,'completed');assert.equal(session.commit_invoice_ids.length,1);assert.equal(session.commit_payment_ids.length,1);assert.equal(session.commit_inventory_movement_ids.length,1);
+  const invoice=dump[`${f.root}/invoices/${session.commit_invoice_ids[0]}`],payment=dump[`${f.root}/payments/${session.commit_payment_ids[0]}`],movement=dump[`${f.root}/inventory_movements/${session.commit_inventory_movement_ids[0]}`];
+  assert.equal(invoice.invoice_number,'INV-H-7');assert.equal(invoice.status,'partially_paid');assert.equal(invoice.grand_total_sdg,100);assert.equal(invoice.paid_amount_sdg,40);assert.equal(invoice.remaining_sdg,60);assert.equal(invoice.cogs_sdg,200);assert.equal(invoice.items[0].total_cost_sdg,200);assert.equal(invoice.historical_import_session_id,staged.id);
+  assert.equal(payment.invoice_id,invoice.id);assert.equal(payment.settled_amount_sdg,40);assert.equal(payment.cash_amount_sdg,40);assert.equal(payment.source_sequence,1);
+  assert.equal(movement.reference_id,invoice.id);assert.equal(movement.quantity,-2);assert.equal(movement.value_delta_sdg,-200);
+  assert.equal(dump[`${f.root}/products/product-1`].stock_quantity,8);assert.equal(dump[`${f.root}/products/product-1`].inventory_value_sdg,800);assert.equal(dump[`${f.root}/customers/customer-1`].balance_sdg,60);assert.equal(dump[`${f.root}/invoice_numbers/${encodeURIComponent('INV-H-7')}`].invoice_id,invoice.id);
+  const audit=dump[`${f.root}/audit_logs/audit-native-sales-commit`];assert.equal(audit.import_metadata.document_evidence_sha256,staged.document_evidence_sha256);assert.equal(audit.import_metadata.invoices_created,1);assert.equal(audit.import_metadata.reconciliation.findings_count,0);
+  const snapshot=await f.ops.snapshot(f.org.id,owner,true);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
+});
+
+test('Excel4.1d.3b.2 rolls back the complete native sales transaction when cost reconciliation cannot be proven',async()=>{
+  const f=await fixture();await seedSalesBaseline(f);
+  const evidence=salesEvidence({lines:[{product_id:'product-1',description:'تكلفة تتجاوز المخزون',quantity:2,net:100,tax:0,cogs:1200}]});
+  const staged=await f.stage([salesRow()],'native-sales-invalid-stage',{'7':evidence}),before=f.store.dump();
+  await assert.rejects(f.commit(staged,'native-sales-invalid-commit'),/تتجاوز قيمة المخزون/);assert.deepEqual(f.store.dump(),before);
+});
+
+test('Excel4.1d.3b.2 freezes a verified historical tax version into the native invoice and posting',async()=>{
+  const f=await fixture();await seedSalesBaseline(f);
+  const tax=(await f.ops.execute(f.org.id,owner,{action:'taxConfiguration.create',operationId:'historical-tax',data:{id:'historical-vat',name:'ضريبة تاريخية',jurisdiction:'اختبار',direction:'sales',rate:15,calculation:'exclusive',rounding:'half_up',recoverable:false,tax_account_code:'2130',effective_from:'2026-01-01',effective_to:null,active:true,reason:'إثبات سياسة الفاتورة القديمة'}})).result;
+  const row=salesRow({total:115,paid:0,debit:115,credit:115}),evidence=salesEvidence({tax_account_code:'2130',tax_configuration_version_hash:tax.version_hash,lines:[{product_id:'product-1',description:'بضاعة خاضعة',quantity:2,net:100,tax:15,cogs:200}],payments:[]});
+  const staged=await f.stage([row],'native-tax-sales-stage',{'7':evidence}),committed=await f.commit(staged,'native-tax-sales-commit'),dump=f.store.dump(),session=dump[`${f.root}/historical_import_sessions/${staged.id}`],invoice=dump[`${f.root}/invoices/${session.commit_invoice_ids[0]}`],entry=dump[`${f.root}/journal_entries/${session.commit_journal_ids[0]}`];
+  assert.equal(committed.result.reconciliation.findings_count,0);assert.equal(invoice.tax_total_sdg,15);assert.equal(invoice.grand_total_sdg,115);assert.equal(invoice.tax_evidence.configuration_id,'historical-vat');assert.equal(invoice.tax_evidence.configuration_version_hash,tax.version_hash);assert.equal(entry.lines.find((line:Record<string,any>)=>line.account_code==='2130').credit_sdg,15);
 });
 
 test('Excel4.1d.3a requires and replays the reviewed document evidence hash before native commit',async()=>{

@@ -2275,6 +2275,28 @@
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "limitations": "Read-only plan only; atomic persistence/reconciliation and purchase planning remain."
+            },
+            {
+              "id": "Excel4.1d.3b.2",
+              "scope": "Atomic native historical sales persistence and strict post-import reconciliation",
+              "status": "implemented_local_passed_ci_pending",
+              "branch": "codex/accounting-v2-excel4-historical-sales-commit-20261020",
+              "pr": null,
+              "report": "REPORT_EXCEL4_1D_3B_2_HISTORICAL_SALES_COMMIT.md",
+              "checks": {
+                "targeted_sales_commit": 8,
+                "targeted_sales_plan": 6,
+                "targeted_excel_import": 61,
+                "unit_api": 373,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0,
+                "firestore_emulator_local": "blocked_java_below_21_ci_required",
+                "ui_regression_local": "blocked_missing_chromium_ci_required"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "limitations": "Historical purchase/AP/receipt/WAC planning remains fail-closed and pending."
             }
           ]
         },
@@ -2288,13 +2310,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_EXCEL4_1D_3B_1_HISTORICAL_SALES_PLAN.md",
+  "last_report": "REPORT_EXCEL4_1D_3B_2_HISTORICAL_SALES_COMMIT.md",
   "next_steps": [
-    "Proceed to Excel4.1d.3b.2 atomic persistence and reconciliation of the native historical sales plan from PR108",
-    "Then implement the native historical purchase/AP/inventory plan",
+    "Confirm CI gates for Excel4.1d.3b.2 atomic native historical sales persistence",
+    "Implement the native historical purchase/AP/receipt/WAC plan",
     "Independent authenticated Render acceptance on a matching staging commit"
   ],
-  "updated_at": "2026-10-19T13:31:00Z",
+  "updated_at": "2026-10-20T13:35:35Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2319,8 +2341,8 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1d.3b.1",
-  "observed_main_sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+  "active_substep": "Excel4.1d.3b.2",
+  "observed_main_sha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",

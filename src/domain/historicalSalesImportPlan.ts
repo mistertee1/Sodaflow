@@ -23,9 +23,10 @@ export interface HistoricalSalesPlanInput {
 }
 export interface HistoricalSalesInvoicePlan {
   id:string;invoice_number:string;customer_id:string;issue_date:string;due_date:string;branch_id:string;
+  revenue_account_code:string;
   currency:'SDG'|'USD';exchange_rate_used:number;subtotal:Books;tax:Books;total:Books;paid:Books;remaining:Books;
   status:'sent'|'partially_paid'|'paid';cogs:Books;historical_import_session_id:string;historical_import_row_number:number;
-  lines:Array<HistoricalDocumentEvidence['lines'][number]&{id:string}>;
+  lines:Array<HistoricalDocumentEvidence['lines'][number]&{id:string;total_cost:Books}>;
 }
 export interface HistoricalSalesPaymentPlan {
   id:string;invoice_id:string;date:string;reference:string;account_code:string;currency:'SDG'|'USD';amount:number;
@@ -47,7 +48,7 @@ const books=(amount:number,currency:string,rate:number):Books=>currency==='USD'
 const add=(a:Books,b:Books):Books=>({sdg:rounded(new BigNumber(a.sdg).plus(b.sdg),'sdg'),usd:rounded(new BigNumber(a.usd).plus(b.usd),'usd')});
 const sub=(a:Books,b:Books):Books=>({sdg:rounded(new BigNumber(a.sdg).minus(b.sdg),'sdg'),usd:rounded(new BigNumber(a.usd).minus(b.usd),'usd')});
 const safeKey=(value:string)=>identifier(value).replace(/[^a-zA-Z0-9_-]/g,'-');
-const tagged=(line:JournalEntryLine,branch_id:string)=>({...line,branch_id});
+const tagged=(line:JournalEntryLine,branch_id:string)=>branch_id==='main'?line:{...line,branch_id};
 
 /**
  * Produces the deterministic, read-only accounting plan for historical sales.
@@ -85,17 +86,31 @@ export function buildHistoricalSalesImportPlan(input:HistoricalSalesPlanInput):H
       payments.push({id,invoice_id:invoiceId,date:dateOnly(payment.date),reference:payment.reference,account_code:identifier(payment.account_code),currency:row.currency as 'SDG'|'USD',amount:payment.amount,exchange_rate_used:payment.exchange_rate_used,cash,settled,historical_import_session_id:input.session_id,historical_import_row_number:row.row_number});
     }
     const cogs=books(evidence.lines.reduce((sum,line)=>sum.plus(line.cogs||0),new BigNumber(0)).toNumber(),row.currency,evidence.exchange_rate_used);
-    const invoice:HistoricalSalesInvoicePlan={id:invoiceId,invoice_number:row.reference,customer_id:evidence.party_id,issue_date:dateOnly(row.date),due_date:dateOnly(evidence.due_date),branch_id:row.branch_id,currency:row.currency as 'SDG'|'USD',exchange_rate_used:evidence.exchange_rate_used,subtotal:net,tax,total,paid,remaining,status:(remaining.sdg===0&&remaining.usd===0)?'paid':(paid.sdg||paid.usd)?'partially_paid':'sent',cogs,historical_import_session_id:input.session_id,historical_import_row_number:row.row_number,lines:evidence.lines.map((line,index)=>({...line,id:`line-${index+1}`}))};
+    let costRemaining={...cogs};
+    const plannedLines=evidence.lines.map((line,index)=>{
+      ensure(Boolean(line.product_id)||(line.cogs||0)===0,'تكلفة البيع التاريخية تتطلب منتج مخزون موثقاً.');
+      const last=index===evidence.lines.length-1,totalCost=last?{...costRemaining}:books(line.cogs||0,row.currency,evidence.exchange_rate_used);
+      ensure(totalCost.sdg<=costRemaining.sdg&&totalCost.usd<=costRemaining.usd,'توزيع تكلفة البيع التاريخية يتجاوز الإجمالي.');
+      costRemaining=sub(costRemaining,totalCost);
+      return{...line,id:`line-${index+1}`,total_cost:totalCost};
+    });
+    ensure(costRemaining.sdg===0&&costRemaining.usd===0,'توزيع تكلفة البيع التاريخية غير متوازن.');
+    const invoice:HistoricalSalesInvoicePlan={id:invoiceId,invoice_number:row.reference,customer_id:evidence.party_id,issue_date:dateOnly(row.date),due_date:dateOnly(evidence.due_date),branch_id:row.branch_id,revenue_account_code:row.account_code||'4100',currency:row.currency as 'SDG'|'USD',exchange_rate_used:evidence.exchange_rate_used,subtotal:net,tax,total,paid,remaining,status:(remaining.sdg===0&&remaining.usd===0)?'paid':(paid.sdg||paid.usd)?'partially_paid':'sent',cogs,historical_import_session_id:input.session_id,historical_import_row_number:row.row_number,lines:plannedLines};
     const invoiceLines=[tagged(journalLine('1200','ذمم العملاء',total.sdg,0,total.usd,0),row.branch_id),tagged(journalLine(row.account_code||'4100','إيراد المبيعات',0,net.sdg,0,net.usd),row.branch_id)];
     if(tax.sdg||tax.usd)invoiceLines.push(tagged(journalLine(evidence.tax_account_code!,'ضريبة المبيعات المستحقة',0,tax.sdg,0,tax.usd),row.branch_id));
     if(cogs.sdg||cogs.usd)invoiceLines.push(tagged(journalLine('5100','تكلفة البضاعة المباعة',cogs.sdg,0,cogs.usd,0),row.branch_id),tagged(journalLine('1300','المخزون',0,cogs.sdg,0,cogs.usd),row.branch_id));
     validateJournal(invoiceLines);result.journal_entries.push({...journal(journalId,input.org_id,input.actor_id,invoice.issue_date,'invoice',invoiceId,`استيراد الفاتورة التاريخية ${row.reference}`,invoiceLines,evidence.exchange_rate_used),historical_import_session_id:input.session_id,historical_import_row_numbers:[row.row_number]});
-    for(const [index,line] of evidence.lines.entries())if(line.product_id){
-      const product=productMap.get(line.product_id);ensure(product?.track_inventory,'منتج الفاتورة التاريخية غير متتبع في المخزون.');
-      ensure(product.stock_quantity>=line.quantity,`المخزون التاريخي غير كافٍ للمنتج: ${product.name}`);
-      const previous=product.stock_quantity;product.stock_quantity=new BigNumber(previous).minus(line.quantity).decimalPlaces(6).toNumber();
-      const value=books(line.cogs||0,row.currency,evidence.exchange_rate_used),id=`mov-${prefix}-${index+1}`;ensure(!existingIds.has(id),'معرف حركة مخزون تاريخية موجود مسبقاً.');
-      result.inventory_movements.push({id,product_id:product.id,product_name:product.name,quantity:-line.quantity,previous_stock:previous,resulting_stock:product.stock_quantity,value_delta:{sdg:-value.sdg,usd:-value.usd},journal_id:journalId,reference_id:invoiceId,historical_import_session_id:input.session_id,historical_import_row_number:row.row_number});
+    const movementGroups=new Map<string,{quantity:BigNumber;cost:Books;first:number}>();
+    for(const [index,line] of plannedLines.entries())if(line.product_id){
+      const old=movementGroups.get(line.product_id)||{quantity:new BigNumber(0),cost:{sdg:0,usd:0},first:index};
+      movementGroups.set(line.product_id,{quantity:old.quantity.plus(line.quantity),cost:add(old.cost,line.total_cost),first:old.first});
+    }
+    for(const [productId,movement] of [...movementGroups].sort((a,b)=>a[1].first-b[1].first)){
+      const product=productMap.get(productId);ensure(product?.track_inventory,'منتج الفاتورة التاريخية غير متتبع في المخزون.');
+      const quantity=movement.quantity.decimalPlaces(6).toNumber();ensure(product.stock_quantity>=quantity,`المخزون التاريخي غير كافٍ للمنتج: ${product.name}`);
+      const previous=product.stock_quantity;product.stock_quantity=new BigNumber(previous).minus(quantity).decimalPlaces(6).toNumber();
+      const id=`mov-${prefix}-${movement.first+1}`;ensure(!existingIds.has(id),'معرف حركة مخزون تاريخية موجود مسبقاً.');
+      result.inventory_movements.push({id,product_id:product.id,product_name:product.name,quantity:-quantity,previous_stock:previous,resulting_stock:product.stock_quantity,value_delta:{sdg:-movement.cost.sdg,usd:-movement.cost.usd},journal_id:journalId,reference_id:invoiceId,historical_import_session_id:input.session_id,historical_import_row_number:row.row_number});
     }
     for(const payment of payments){
       const lines=[tagged(journalLine(payment.account_code,'النقد والبنوك',payment.cash.sdg,0,payment.cash.usd,0),row.branch_id),tagged(journalLine('1200','ذمم العملاء',0,payment.settled.sdg,0,payment.settled.usd),row.branch_id)];

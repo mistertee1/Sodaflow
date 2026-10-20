@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-20T06:40:20.293Z",
+  "updatedAt": "2026-10-20T06:43:07.125Z",
   "activeRunId": "firebase-cloud-acceptance-20261020",
   "leaseUntil": "2026-10-20T09:40:20.293Z",
   "automationId": "6ac35722234c819194e0535527c23124",
@@ -543,7 +543,7 @@
     }
   },
   "firebaseCloudOnly": {
-    "status": "merged_acceptance_regression_fix",
+    "status": "awaiting_final_ui_acceptance",
     "baseSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
     "request": "Firebase is the only business datastore; remove guest/local persistence and confirmed disk snapshot hydration while retaining Super Admin and server subscription enforcement.",
     "productionChanges": 0,
@@ -552,15 +552,17 @@
     "legacyRecovery": "Existing browser/server files remain untouched and are not automatically imported or read.",
     "retryAuthority": "Firestore: private per-user/tenant operationIntents and exclusive platformOperationIntents, served through verified API only.",
     "localValidation": {
-      "initialUnitApi": 363,
-      "cloudIntentFocused": 9,
-      "expandedRegression": "passed",
-      "emulator": "blocked locally: Java 17; CI requires Java 21",
-      "browser": "Chromium download is truncated; CI acceptance pending",
       "unitApi": 369,
       "types": "passed",
       "core": "passed",
-      "build": "passed"
+      "build": "passed",
+      "preFixUi": {
+        "passed": 1,
+        "failed": 1,
+        "failure": "Expected no prior success status at the second review; received 1."
+      },
+      "correctedUi": "running",
+      "emulator": "GitHub CI Java21 pending; last merged source 45/45 passed"
     },
     "lastCI": {
       "id": 39375579262,
@@ -576,7 +578,7 @@
       },
       "failure": "Owner capital/drawings test observes prior success before the second asynchronous reauthentication/save has completed; inspect and fix status lifecycle plus transaction completion assertion."
     },
-    "pullRequest": 103,
+    "pullRequest": 109,
     "changesAfterFirstCI": [
       "Preserve pre-existing legacy fixture bytes rather than assert file absence in two emulator cases",
       "Bound acknowledgement cleanup to 4 seconds without turning an already confirmed business write into failure",

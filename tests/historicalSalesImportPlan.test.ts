@@ -40,3 +40,8 @@ test('Excel4.1d.3b.1 rejects duplicate native ids and invoice numbers before per
   assert.throws(()=>buildHistoricalSalesImportPlan({...input(),existing_ids:['inv-hist-session-1-7']}),/معرف مبيعات تاريخي/);
   assert.throws(()=>buildHistoricalSalesImportPlan({...input(),existing_invoice_numbers:['LEGACY-INV-7']}),/رقم فاتورة تاريخية/);
 });
+
+test('Excel4.1d.3b.2 aggregates repeated product lines into one source-verifiable inventory movement',()=>{
+  const source=input();source.rows[0]={...row,total:115,paid:0};source.evidence_by_row[7]={...evidence,lines:[{product_id:'product-1',description:'بند أول',quantity:1,net:40,tax:6,cogs:20},{product_id:'product-1',description:'بند ثان',quantity:2,net:60,tax:9,cogs:40}],payments:[]};
+  const plan=buildHistoricalSalesImportPlan(source);assert.equal(plan.inventory_movements.length,1);assert.deepEqual(plan.inventory_movements[0],{id:'mov-hist-session-1-7-1',product_id:'product-1',product_name:'منتج',quantity:-3,previous_stock:10,resulting_stock:7,value_delta:{sdg:-150000,usd:-60},journal_id:'jv-inv-hist-session-1-7',reference_id:'inv-hist-session-1-7',historical_import_session_id:'session-1',historical_import_row_number:7});assert.deepEqual(plan.invoices[0].lines.map(line=>line.total_cost),[{sdg:50000,usd:20},{sdg:100000,usd:40}]);
+});

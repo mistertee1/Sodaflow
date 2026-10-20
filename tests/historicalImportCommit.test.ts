@@ -58,3 +58,19 @@ test('Excel4.1c completes with an accounting block and prevents final period clo
   await assert.rejects(f.ops.execute(f.org.id,owner,{action:'period.close',operationId:'final-close',data:{id:'2026',expected_revision:2,reason:'إغلاق',fx_review_completed:true}}),/فشل فحص الإغلاق/);
   assert.equal(f.store.dump()[`${f.root}/accounting_periods/2026`].status,'SOFT_CLOSED');
 });
+
+test('Excel4.1d.3a requires and replays the reviewed document evidence hash before native commit',async()=>{
+  const f=await fixture();
+  await f.store.transaction(async tx=>{
+    tx.set(`${f.root}/customers/customer-1`,{id:'customer-1',org_id:f.org.id,name:'Historical customer',balance_sdg:0,balance_usd:0});
+    tx.set(`${f.root}/products/product-1`,{id:'product-1',org_id:f.org.id,name:'Historical product',track_inventory:true,stock_quantity:10,inventory_value_sdg:300,inventory_value_usd:0});
+  });
+  const row:HistoricalImportRow={row_number:7,kind:'invoice',reference:'INV-H-7',date:'2026-01-10',currency:'SDG',branch_id:'main',account_code:'4100',counterparty_code:'customer-1',total:115,paid:0,debit:115,credit:115};
+  const evidence={party_id:'customer-1',due_date:'2026-02-10',exchange_rate_used:0,control_account_code:'1200',tax_account_code:'2130',tax_configuration_version_hash:'a'.repeat(64),lines:[{product_id:'product-1',description:'بضاعة تاريخية',quantity:2,net:100,tax:15,cogs:60}]};
+  const staged=(await f.ops.execute(f.org.id,accountant,{action:'historicalImport.stage',operationId:'document-proof-stage',data:{file_name:'documents.xlsx',file_hash:'f'.repeat(64),schema_version:1,rows:[row],document_evidence:{'7':evidence}}})).result;
+  await assert.rejects(f.ops.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:'document-proof-missing',data:{id:staged.id,expected_rows_sha256:staged.rows_sha256,expected_validation_context_sha256:staged.validation_context_sha256,reason:'مراجعة الدليل'}}),/بصمة دليل المستندات/);
+  await f.store.transaction(async tx=>{const saved=await tx.get(`${f.root}/historical_import_staging/${staged.id}`);tx.set(`${f.root}/historical_import_staging/${staged.id}`,{...saved,document_evidence:{'7':{...evidence,due_date:'2026-03-01'}}});});
+  const before=f.store.dump();
+  await assert.rejects(f.ops.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:'document-proof-tampered',data:{id:staged.id,expected_rows_sha256:staged.rows_sha256,expected_validation_context_sha256:staged.validation_context_sha256,expected_document_evidence_sha256:staged.document_evidence_sha256,reason:'مراجعة الدليل'}}),/بصمة دليل المستندات التاريخية مختلفة/);
+  assert.deepEqual(f.store.dump(),before);
+});

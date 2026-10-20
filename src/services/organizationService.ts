@@ -5,8 +5,8 @@ import { cloudOrganizations } from './cloudOrganizations';
 import { BusinessError } from '../domain/validation';
 
 export const getUserOrganizations = (_userId: string): Promise<Organization[]> => cloudOrganizations();
-export const getOrganizationMembers = async (orgId: string): Promise<OrgMember[]> => orgId === 'local-guest-org' ? [] : (await firebaseSnapshot(orgId)).collections.members as OrgMember[];
-export const getOrgInvitations = async (orgId: string): Promise<OrgInvitation[]> => orgId === 'local-guest-org' ? [] : (await firebaseSnapshot(orgId)).collections.invitations as OrgInvitation[];
+export const getOrganizationMembers = async (orgId: string): Promise<OrgMember[]> => (await firebaseSnapshot(orgId)).collections.members as OrgMember[];
+export const getOrgInvitations = async (orgId: string): Promise<OrgInvitation[]> => (await firebaseSnapshot(orgId)).collections.invitations as OrgInvitation[];
 export const createOrgInvitation = async (orgId: string, email: string, role: OrgRole, _actorUid: string, _actorEmail: string): Promise<OrgInvitation> => (await firebaseCommand(orgId, 'invitation.create', { email, role })).result as OrgInvitation;
 export const revokeOrgInvitation = async (orgId: string, id: string, _actorUid: string, _actorEmail: string) => { await firebaseCommand(orgId, 'invitation.revoke', { id }); };
 export const acceptOrgInvitation = (orgId: string, id: string, _uid: string, _email: string, _displayName: string): Promise<OrgMember> => api(`/organizations/${encodeURIComponent(orgId)}/invitations/${encodeURIComponent(id)}/accept`, { method: 'POST', body: '{}' });

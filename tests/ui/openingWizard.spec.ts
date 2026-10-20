@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, cloudRecords, cloudMerchant, seedCloudMerchant, updateCloudMerchant, seedRows, openMerchant } from './helpers/cloudMerchant';
 import { freshOpeningBooksFixture } from '../fixtures/openingBooks';
 import { INITIAL_SETTINGS } from '../../src/data/initialData';
 import { createDefaultSubscription, getPlanConfig } from '../../src/lib/plans';
@@ -13,11 +13,8 @@ async function seed(page: Page, role = 'Owner') {
   };
   for (const [name, rows] of Object.entries(data)) for (const row of rows) records[`${root}/${name}/${name === 'accounts' ? row.code : row.id}`] = row;
   for (const row of data.financial_accounts) records[`${root}/financial_account_mappings/${row.account_code}`] = { id: row.id };
-  await page.addInitScript(records => {
-    localStorage.setItem('mohasbasd_guest_session', 'true'); localStorage.setItem('sudanese_merchant_has_seen_tour_v2', 'true');
-    if (!localStorage.getItem('sudaflow_guest_transactions_v3')) localStorage.setItem('sudaflow_guest_transactions_v3', JSON.stringify(records));
-  }, records);
-  await page.goto('/'); await page.locator('#tab-accounting').click();
+  await seedCloudMerchant(page, records);
+  await openMerchant(page); await page.locator('#tab-accounting').click();
   await page.getByRole('button', { name: 'الأرصدة الافتتاحية والسداد', exact: true }).click();
 }
 async function prepare(page: Page) {
@@ -33,7 +30,7 @@ async function prepare(page: Page) {
   await expect(center.getByRole('region', { name: 'مراجعة الأرصدة' })).toBeVisible();
   return center;
 }
-const records = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}'));
+const records = (page: Page) => cloudRecords(page);
 
 test('C2 wizard mobile read-only preview, owner confirmation, atomic commit and opening settlement persist after reload', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 }); await seed(page);
@@ -42,7 +39,7 @@ test('C2 wizard mobile read-only preview, owner confirmation, atomic commit and 
   await center.getByRole('button', { name: 'تحقق المالك وحفظ الأرصدة', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'تحقق المالك وحفظ الأرصدة' });
   await expect(dialog.getByLabel('سبب تأكيد الأرصدة')).toHaveValue('افتتاح تمت مراجعته');
-  await dialog.getByRole('checkbox').check(); await dialog.getByRole('button', { name: 'التحقق وحفظ الأرصدة', exact: true }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
+  await dialog.getByLabel('كلمة مرور الحساب').fill('synthetic-password'); await dialog.getByRole('button', { name: 'التحقق وحفظ الأرصدة', exact: true }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
   await expect(center.getByText('دفعة الأرصدة محفوظة.', { exact: false })).toBeVisible();
   let saved = await records(page); const batches = Object.entries(saved).filter(([path]) => path.includes('/opening_batches/')); expect(batches).toHaveLength(1);
   const lot = Object.entries(saved).find(([path]) => path.includes('/opening_lots/'))!;

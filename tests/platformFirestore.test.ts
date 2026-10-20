@@ -266,3 +266,19 @@ test('real Firestore exclusive bootstrap previews, commits one audit, and resume
   assert.deepEqual((await db.doc('organizations/seed-paid/invoices/history').get()).data(), invoice);
   assert.deepEqual((await db.doc('organizations/seed-paid/meta/counters').get()).data(), counters);
 });
+
+test('retry intent metadata is server-only even for tenant owners and the exclusive platform administrator', async () => {
+  const f = await fixture('private-retry-intent');
+  const tenantPath = `${f.root}/operationIntents/synthetic`, platformPath = 'platformOperationIntents/synthetic';
+  await db.doc(tenantPath).set({ uid: f.owner.uid, fingerprint: 'a'.repeat(64), operationId: 'private-tenant-retry' });
+  await db.doc(platformPath).set({ uid: admin.uid, fingerprint: 'a'.repeat(64), operationId: 'private-platform-retry' });
+  for (const actor of [f.owner, admin]) {
+    const sdk = client(actor.uid, actor.superAdmin ? { superAdmin: true } : {});
+    for (const path of [tenantPath, platformPath]) {
+      await assertFails(getDoc(doc(sdk, path)));
+      await assertFails(setDoc(doc(sdk, path), { operationId: 'forged' }));
+    }
+  }
+  assert.equal((await db.doc(tenantPath).get()).get('operationId'), 'private-tenant-retry');
+  assert.equal((await db.doc(platformPath).get()).get('operationId'), 'private-platform-retry');
+});

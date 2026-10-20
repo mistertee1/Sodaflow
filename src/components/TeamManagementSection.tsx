@@ -72,7 +72,7 @@ export const TeamManagementSection: React.FC = () => {
 
   // Load invitations when org changes
   const loadInvitations = async () => {
-    if (!currentOrg || currentOrg.id === 'local-guest-org' || !isActionAllowed('members:invite')) return;
+    if (!currentOrg || !isActionAllowed('members:invite')) return;
     setLoadingInvitations(true);
     try {
       const invs = await getOrgInvitations(currentOrg.id);

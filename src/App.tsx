@@ -26,7 +26,7 @@ import { RefreshCw, Store } from 'lucide-react';
 import { trackPageView } from './lib/analytics';
 
 function MainLayout() {
-  const { currentUser, authLoading, memberStatus, syncError, dismissSyncError, syncAllToCloud, isActionAllowed, currentOrg, invoices } = useApp();
+  const { currentUser, authLoading, memberStatus, syncStatus, syncError, lastSyncedAt, logoutUser, dismissSyncError, syncAllToCloud, isActionAllowed, currentOrg, invoices } = useApp();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
   const [prefilledCustomer, setPrefilledCustomer] = useState<Customer | null>(null);
@@ -54,38 +54,16 @@ function MainLayout() {
     trackPageView(`/${activeTab}`, `محاسبة وفواتير - ${activeTab}`);
   }, [activeTab, viewingInvoice?.id, viewingInvoice?.invoice_number]);
 
-  const [guestMode, setGuestMode] = useState<boolean>(() => {
-    return localStorage.getItem('mohasbasd_guest_session') === 'true';
-  });
-
   // Opening outside an embedded preview restores the browser's own sharing policy.
   // Resolve only against invoices already authorized and loaded by AppContext.
   useEffect(() => {
-    if (authLoading || !pendingShareId || (!currentUser && !guestMode)) return;
+    if (authLoading || !pendingShareId || !currentUser) return;
     const invoice = invoices.find(item => item.id === pendingShareId);
     if (!invoice) return;
     setStandaloneShareInvoice(invoice); setActiveTab('invoices'); setPendingShareId(null);
     const url = new URL(window.location.href); url.searchParams.delete('share-invoice');
     window.history.replaceState(window.history.state, '', url);
-  }, [authLoading, currentUser, guestMode, invoices, pendingShareId]);
-
-  // Synchronize guest state whenever auth user state changes
-  useEffect(() => {
-    if (!currentUser) {
-      setGuestMode(localStorage.getItem('mohasbasd_guest_session') === 'true');
-    } else {
-      setGuestMode(false);
-    }
-  }, [currentUser]);
-
-  // Check if first-time user to show onboarding tour
-  useEffect(() => {
-    const hasSeen = localStorage.getItem('sudanese_merchant_has_seen_tour_v2');
-    if (!hasSeen && (currentUser || guestMode)) {
-      setIsOnboardingOpen(true);
-      localStorage.setItem('sudanese_merchant_has_seen_tour_v2', 'true');
-    }
-  }, [currentUser, guestMode]);
+  }, [authLoading, currentUser, invoices, pendingShareId]);
 
   // Loading screen while Firebase Auth state initializes
   if (authLoading) {
@@ -102,21 +80,30 @@ function MainLayout() {
     );
   }
 
-  // If user is not logged in and hasn't chosen guest mode (or explicitly wants auth), show Landing Page
-  if ((!currentUser && !guestMode) || showAuthLanding) {
+  // Business screens require Firebase authentication; no local guest datastore.
+  if (!currentUser || showAuthLanding) {
     return (
       <LandingPageView
-        onContinueAsGuest={() => {
-          localStorage.setItem('mohasbasd_guest_session', 'true');
-          setGuestMode(true);
-          setShowAuthLanding(false);
-        }}
         onLoginSuccess={() => {
-          setGuestMode(false);
           setShowAuthLanding(false);
         }}
       />
     );
+  }
+
+  if (!lastSyncedAt) {
+    return <main className="min-h-screen bg-sf-canvas text-sf-text flex items-center justify-center p-4" dir="rtl">
+      <section className="sf-card w-full max-w-lg p-6 space-y-4" aria-label="الاتصال بالسحابة">
+        <Store className="w-8 h-8 text-sf-action" aria-hidden="true" />
+        <h1 className="text-xl font-semibold">الاتصال بمؤسستك على Firebase</h1>
+        <p className="text-sm text-sf-muted">يلزم اتصال بالسحابة لتحميل سجلاتك. لن تظهر أرصدة أو فواتير من نسخة محلية.</p>
+        {syncError ? <p role="alert" className="text-sf-danger">{syncError}</p> : <p role="status">جاري تحميل البيانات السحابية…</p>}
+        <div className="flex flex-wrap gap-3">
+          <button type="button" className="sf-action" disabled={syncStatus === 'syncing'} onClick={() => void syncAllToCloud()}>إعادة المحاولة</button>
+          <button type="button" className="sf-secondary" onClick={() => void logoutUser()}>تسجيل الخروج</button>
+        </div>
+      </section>
+    </main>;
   }
 
   const handleOpenNewInvoice = (customer?: Customer) => {

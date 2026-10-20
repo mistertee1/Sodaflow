@@ -75,7 +75,7 @@ export async function uploadOrganizationImage({
     throw new Error('يتطلب رفع الصور السحابية تسجيل الدخول بحساب نشط في المنشأة أولاً.');
   }
 
-  if (!orgId || orgId === 'local-guest-org') {
+  if (!orgId) {
     throw new Error('يرجى اختيار أو تفعيل منشأة معتمدة لرفع الملفات سحابياً.');
   }
 

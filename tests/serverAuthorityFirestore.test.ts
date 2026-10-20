@@ -6,6 +6,7 @@ import path from 'node:path';
 import { initializeApp, deleteApp, type App } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { ResilientStore } from '../server/resilientStore';
+import { OperationIntents } from '../server/operationIntents';
 import { Organizations } from '../server/organizations';
 import { PlatformBilling } from '../server/platformBilling';
 import { Operations, type Actor } from '../src/domain/operations';
@@ -35,6 +36,7 @@ async function company(uid: string) {
   return { org, actor, root: `organizations/${org.id}` };
 }
 const localFile = () => path.join(dir, '.data', 'sudaflow_server_store.json');
+const localContents = () => fs.existsSync(localFile()) ? fs.readFileSync(localFile(), 'utf8') : null;
 
 test('real Firestore retry creates one cloud company/event and never a local company', async () => {
   const actor = { ...owner, uid: 'remote-register' }, id = `org-${actor.uid}`;
@@ -92,4 +94,33 @@ test('recovery never resets lifetime 100 invoice quota or imports a local active
   const local = JSON.parse(fs.readFileSync(localFile(), 'utf8')); local[`platformAdmins/${admin.uid}`] = { active: true, role: 'super_admin' }; fs.writeFileSync(localFile(), JSON.stringify(local));
   await assert.rejects(new PlatformBilling(store).assertAdmin(admin), (e: unknown) => (e as { status: number }).status === 403);
   assert.equal((await db.doc(`platformAdmins/${admin.uid}`).get()).data()?.active, false);
+});
+
+test('real Firestore persists retry IDs across service restarts and concurrent begin calls', async () => {
+  const localBefore = localContents();
+  const f = await company('remote-retry-intent'), input = { organizationId: f.org.id, fingerprint: 'b'.repeat(64) };
+  const results = await Promise.all(Array.from({ length: 5 }, () => new OperationIntents(store).begin(f.actor, input)));
+  assert.equal(new Set(results.map(row => row.operationId)).size, 1);
+  const service = new OperationIntents(store), previous = results[0];
+  assert.deepEqual(await service.begin(f.actor, input), previous);
+  assert.equal(localContents(), localBefore);
+  await service.acknowledge(f.actor, { ...input, ...previous });
+  const next = await service.begin(f.actor, input); assert.notEqual(next.operationId, previous.operationId);
+  assert.equal((await service.acknowledge(f.actor, { ...input, ...previous })).acknowledged, false);
+  assert.deepEqual(await new OperationIntents(store).begin(f.actor, input), next);
+  assert.equal(localContents(), localBefore);
+});
+
+test('denied Firestore retry metadata never becomes a local ID success and recovers remotely', async () => {
+  const localBefore = localContents();
+  const f = await company('remote-retry-denied'), input = { organizationId: f.org.id, fingerprint: 'c'.repeat(64) };
+  const before = await db.collection(`${f.root}/operationIntents`).get(); assert.equal(before.size, 0);
+  denied = true;
+  try { await assert.rejects(new OperationIntents(store).begin(f.actor, input), error => error === fault); }
+  finally { denied = false; }
+  assert.equal(localContents(), localBefore);
+  assert.equal((await db.collection(`${f.root}/operationIntents`).get()).size, 0);
+  const confirmed = await new OperationIntents(store).begin(f.actor, input);
+  assert.deepEqual(await new OperationIntents(store).begin(f.actor, input), confirmed);
+  assert.equal(localContents(), localBefore);
 });

@@ -38,10 +38,11 @@ export const test = base.extend<Options & { platform: PlatformHarness }>({
       if (failOverview && url.pathname.endsWith('/overview')) { failOverview = false; await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'تعذر إحصاء الشركات مؤقتاً' }) }); return; }
       if (failRefresh && didCommit && /\/companies\/[^/]+$/.test(url.pathname)) { failRefresh = false; await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'تعذر قراءة العرض مؤقتاً' }) }); return; }
       const body = route.request().method() === 'POST' ? route.request().postDataJSON() : undefined;
-      if (body) mutations.push(body);
+      const isBusinessWrite = !!body && !path.startsWith('/operation-intents');
+      if (isBusinessWrite) mutations.push(body);
       const response = await backend.request(path, 'session', body);
-      if (body && response.ok) didCommit = true;
-      if (abortNext && body && response.ok) { abortNext = false; await route.abort('failed'); return; }
+      if (isBusinessWrite && response.ok) didCommit = true;
+      if (abortNext && isBusinessWrite && response.ok) { abortNext = false; await route.abort('failed'); return; }
       await route.fulfill({ status: response.status, contentType: 'application/json', body: await response.text() });
     });
     try { await use({ fixture, requests, mutations,

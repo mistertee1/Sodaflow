@@ -1,7 +1,7 @@
 import { correctionGuestFixture } from './salesCorrections';
 import { MemoryStore } from '../../../src/domain/store';
 import { Operations } from '../../../src/domain/operations';
-import { guestId, guestActor } from '../../../src/services/guestStore';
+import { guestId, guestActor } from '../../fixtures/cloudIdentity';
 export async function purchaseCorrectionGuestFixture() {
   const seed=await correctionGuestFixture(),store=new MemoryStore(seed.records),ops=new Operations(store,()=>new Date('2026-10-07T12:00:00Z'));
   const run=(action:string,data:Record<string,unknown>,operationId:string)=>ops.execute(guestId,guestActor,{action,data,operationId});

@@ -46,8 +46,9 @@ test('Excel4.1c rejects changed staging, blocked previews and unsupported subsid
   const blocked=await fixture(),blockedStage=await blocked.stage([{row_number:1,kind:'trial_balance',reference:'TB-1',date:'2026-01-01',currency:'SDG',branch_id:'main',account_code:'5200',debit:100,credit:0},{row_number:2,kind:'trial_balance',reference:'TB-2',date:'2026-01-01',currency:'SDG',branch_id:'main',account_code:'4100',debit:0,credit:90}]);
   before=blocked.store.dump();await assert.rejects(blocked.commit(blockedStage),/غير جاهز/);assert.deepEqual(blocked.store.dump(),before);
 
-  const documents=await fixture(),invoice=await documents.stage([{row_number:1,kind:'invoice',reference:'INV-H-1',date:'2026-01-01',currency:'SDG',branch_id:'main',account_code:'4100',counterparty_code:'customer-1',total:100,paid:0,debit:100,credit:100}]);
-  before=documents.store.dump();await assert.rejects(documents.commit(invoice),/المخزون وCOGS والضريبة/);assert.deepEqual(documents.store.dump(),before);
+  const documents=await fixture();before=documents.store.dump();
+  await assert.rejects(documents.stage([{row_number:1,kind:'invoice',reference:'INV-H-1',date:'2026-01-01',currency:'SDG',branch_id:'main',account_code:'4100',counterparty_code:'customer-1',total:100,paid:0,debit:100,credit:100}]),/دليلاً أصلياً كاملاً/);
+  assert.deepEqual(documents.store.dump(),before);
 });
 
 test('Excel4.1c completes with an accounting block and prevents final period close when subsidiary reconciliation differs',async()=>{

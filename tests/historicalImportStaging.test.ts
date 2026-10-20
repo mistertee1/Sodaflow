@@ -23,6 +23,15 @@ test('Excel4.1b refuses row errors, unsupported fields and closed or uncovered p
   await assert.rejects(buildHistoricalImportStage({file_name:'legacy.xlsx',file_hash:'b'.repeat(64),schema_version:1,rows:[journal()],context:'forged'} as never,{orgId:'org',actorUid:'owner',operationId:'forged',createdAt:'2026-10-18T18:00:00Z',validation,previousSessions:[]}),/حقول/);
 });
 
+test('Excel4.1d.2 stages complete native document evidence and rejects missing proof before writes',async()=>{
+  const row:HistoricalImportRow={row_number:7,kind:'invoice',reference:'INV-H-7',date:'2026-01-10',currency:'SDG',branch_id:'main',account_code:'4100',counterparty_code:'customer-1',total:115,paid:50,debit:115,credit:115};
+  const evidence={party_id:'customer-1',due_date:'2026-02-10',exchange_rate_used:0,control_account_code:'1200',tax_account_code:'2130',tax_configuration_version_hash:'a'.repeat(64),lines:[{product_id:'product-1',description:'بضاعة تاريخية',quantity:2,net:100,tax:15,cogs:60}],payments:[{date:'2026-01-20',amount:50,account_code:'1110',exchange_rate_used:0,reference:'RCPT-H-7'}]};
+  const context={orgId:'org',actorUid:'accountant',operationId:'document-stage',createdAt:'2026-10-19T05:15:00Z',validation:{...validation,accounts:[...validation.accounts,'1110','2130']},previousSessions:[],documentEvidence:{customers:['customer-1'],suppliers:[],products:['product-1'],accounts:['1200','4100','1110','2130']}};
+  const staged=await buildHistoricalImportStage({file_name:'documents.xlsx',file_hash:'f'.repeat(64),schema_version:1,rows:[row],document_evidence:{'7':evidence}},context);
+  assert.deepEqual(staged.staging.document_evidence['7'],evidence);assert.match(staged.staging.document_evidence_sha256,/^[a-f0-9]{64}$/);
+  await assert.rejects(buildHistoricalImportStage({file_name:'documents.xlsx',file_hash:'f'.repeat(64),schema_version:1,rows:[row]},context),/دليلاً أصلياً كاملاً/);
+});
+
 async function fixture(){
   const owner:Actor={uid:'owner',email:'owner@example.com',emailVerified:true},accountant:Actor={uid:'accountant',email:'accountant@example.com',emailVerified:true},viewer:Actor={uid:'viewer',email:'viewer@example.com',emailVerified:true};
   const store=new MemoryStore(),org=await new Organizations(store).create(owner,'Historical staging',{...INITIAL_SETTINGS},'setup',true),root=`organizations/${org.id}`;

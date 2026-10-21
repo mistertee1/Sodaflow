@@ -42,6 +42,39 @@ async function seedSalesBaseline(f:Awaited<ReturnType<typeof fixture>>){
 const salesRow=(overrides:Partial<HistoricalImportRow>={}):HistoricalImportRow=>({row_number:7,kind:'invoice',reference:'INV-H-7',date:'2026-01-10',currency:'SDG',branch_id:'main',account_code:'4100',counterparty_code:'customer-1',total:100,paid:40,debit:100,credit:100,...overrides});
 const salesEvidence=(overrides:Partial<HistoricalDocumentEvidence>={}):HistoricalDocumentEvidence=>({party_id:'customer-1',due_date:'2026-02-10',exchange_rate_used:0,control_account_code:'1200',lines:[{product_id:'product-1',description:'بضاعة تاريخية',quantity:2,net:100,tax:0,cogs:200}],payments:[{date:'2026-01-20',amount:40,account_code:'1110',exchange_rate_used:0,reference:'RCPT-H-7'}],...overrides});
 
+const purchaseRow=(overrides:Partial<HistoricalImportRow>={}):HistoricalImportRow=>({row_number:11,kind:'purchase',reference:'PB-H-11',date:'2026-01-10',currency:'SDG',branch_id:'main',account_code:'1300',counterparty_code:'supplier-1',total:100,paid:40,debit:100,credit:100,...overrides});
+const purchaseEvidence=(overrides:Partial<HistoricalDocumentEvidence>={}):HistoricalDocumentEvidence=>({party_id:'supplier-1',due_date:'2026-02-10',exchange_rate_used:0,control_account_code:'2110',lines:[{product_id:'product-1',description:'استلام تاريخي',quantity:2,net:100,tax:0,inventory_value:100}],payments:[{date:'2026-01-20',amount:40,account_code:'1110',exchange_rate_used:0,reference:'SP-H-11'}],...overrides});
+async function seedPurchaseBaseline(f:Awaited<ReturnType<typeof fixture>>){
+  await seedSalesBaseline(f);
+  await f.store.transaction(async tx=>tx.set(`${f.root}/suppliers/supplier-1`,{id:'supplier-1',org_id:f.org.id,name:'مورد تاريخي',phone:'',email:'',address:'',tax_number:'',default_currency:'SDG',payment_terms_days:0,credit_limit:0,status:'active',notes:'',payable_due_sdg:0,payable_due_usd:0,advance_balance_sdg:0,advance_balance_usd:0}));
+}
+
+test('Excel4.1d.3b.4 commits native purchases, AP, receipt, WAC and retry atomically',async()=>{
+  const f=await fixture();await seedPurchaseBaseline(f);
+  const staged=await f.stage([purchaseRow()],'purchase-stage',{'11':purchaseEvidence()}),first=await f.commit(staged,'purchase-commit');
+  assert.deepEqual(await f.commit(staged,'purchase-commit'),first);assert.equal(first.result.purchase_bills_created,1);assert.equal(first.result.supplier_payments_created,1);assert.equal(first.result.reconciliation.findings_count,0);
+  const dump=f.store.dump(),session=dump[`${f.root}/historical_import_sessions/${staged.id}`],bill=dump[`${f.root}/purchase_bills/${session.commit_purchase_bill_ids[0]}`];
+  assert.equal(bill.remaining_sdg,60);assert.equal(bill.payment_sequence,1);assert.equal(bill.items[0].value_sdg,100);assert.equal(dump[`${f.root}/suppliers/supplier-1`].payable_due_sdg,60);assert.equal(dump[`${f.root}/products/product-1`].stock_quantity,12);assert.equal(dump[`${f.root}/products/product-1`].inventory_value_sdg,1100);assert.equal(dump[`${f.root}/purchase_numbers/supplier-1.pb-h-11`].id,bill.id);
+  const snapshot=await f.ops.snapshot(f.org.id,owner,true);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
+});
+
+test('Excel4.1d.3b.4 rolls back reserved references and backdated receipts without partial financial state',async()=>{
+  for(const mode of ['reference','chronology']){
+    const f=await fixture();await seedPurchaseBaseline(f);const staged=await f.stage([purchaseRow()],'purchase-stage',{'11':purchaseEvidence()});
+    await f.store.transaction(async tx=>{if(mode==='reference')tx.set(`${f.root}/purchase_numbers/supplier-1.pb-h-11`,{id:'reserved'});else{const product=await tx.get(`${f.root}/products/product-1`);tx.set(`${f.root}/products/product-1`,{...product,cost_last_movement_date:'2026-01-11'});}});
+    const before=f.store.dump();await assert.rejects(f.commit(staged,'purchase-blocked'),mode==='reference'?/محجوز/:/يسبق/);assert.deepEqual(f.store.dump(),before);
+  }
+});
+
+test('Excel4.1d.3b.4 fails closed for taxed purchases until native correction sources support separate tax',async()=>{
+  const f=await fixture();await seedPurchaseBaseline(f);
+  await f.ops.execute(f.org.id,owner,{action:'account.create',operationId:'tax-account',data:{code:'1350',name_ar:'ضريبة مشتريات',name_en:'Input tax',type:'ASSET',nature:'DEBIT',reporting_group:'other_assets',is_active:true}});
+  const tax=(await f.ops.execute(f.org.id,owner,{action:'taxConfiguration.create',operationId:'purchase-tax',data:{id:'input-vat',name:'ضريبة تاريخية',jurisdiction:'اختبار',direction:'purchases',rate:15,calculation:'exclusive',rounding:'half_up',recoverable:true,tax_account_code:'1350',effective_from:'2026-01-01',effective_to:null,active:true,reason:'إثبات ضريبة قديمة'}})).result;
+  const proof=purchaseEvidence({tax_account_code:'1350',tax_configuration_version_hash:tax.version_hash,lines:[{product_id:'product-1',description:'خاضع',quantity:2,net:100,tax:15,inventory_value:100}],payments:[]});
+  const staged=await f.stage([purchaseRow({total:115,paid:0,debit:115,credit:115})],'tax-purchase-stage',{'11':proof}),before=f.store.dump();
+  await assert.rejects(f.commit(staged,'tax-purchase-commit'),/لا تطابق AP أو المخزون أو الدفتر/);assert.deepEqual(f.store.dump(),before);
+});
+
 test('Excel4.1c atomically commits reviewed journals once with immutable proof and audit',async()=>{
   const f=await fixture(),staged=await f.stage([journalRow()]),first=await f.commit(staged),again=await f.commit(staged);
   assert.deepEqual(again,first);assert.equal(first.result.status,'completed');assert.equal(first.result.accounting_block,false);assert.equal(first.result.rows_imported,1);assert.equal(first.result.journals_created,1);

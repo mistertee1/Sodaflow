@@ -66,13 +66,46 @@ test('Excel4.1d.3b.4 rolls back reserved references and backdated receipts witho
   }
 });
 
-test('Excel4.1d.3b.4 fails closed for taxed purchases until native correction sources support separate tax',async()=>{
+test('Excel4.1d.3b.4 replays frozen recoverable purchase tax and reconciles native sources',async()=>{
   const f=await fixture();await seedPurchaseBaseline(f);
   await f.ops.execute(f.org.id,owner,{action:'account.create',operationId:'tax-account',data:{code:'1350',name_ar:'ضريبة مشتريات',name_en:'Input tax',type:'ASSET',nature:'DEBIT',reporting_group:'other_assets',is_active:true}});
   const tax=(await f.ops.execute(f.org.id,owner,{action:'taxConfiguration.create',operationId:'purchase-tax',data:{id:'input-vat',name:'ضريبة تاريخية',jurisdiction:'اختبار',direction:'purchases',rate:15,calculation:'exclusive',rounding:'half_up',recoverable:true,tax_account_code:'1350',effective_from:'2026-01-01',effective_to:null,active:true,reason:'إثبات ضريبة قديمة'}})).result;
   const proof=purchaseEvidence({tax_account_code:'1350',tax_configuration_version_hash:tax.version_hash,lines:[{product_id:'product-1',description:'خاضع',quantity:2,net:100,tax:15,inventory_value:100}],payments:[]});
-  const staged=await f.stage([purchaseRow({total:115,paid:0,debit:115,credit:115})],'tax-purchase-stage',{'11':proof}),before=f.store.dump();
-  await assert.rejects(f.commit(staged,'tax-purchase-commit'),/لا تطابق AP أو المخزون أو الدفتر/);assert.deepEqual(f.store.dump(),before);
+  const staged=await f.stage([purchaseRow({total:115,paid:0,debit:115,credit:115})],'tax-purchase-stage',{'11':proof}),result=await f.commit(staged,'tax-purchase-commit');
+  assert.equal(result.result.reconciliation.findings_count,0);
+  const bill=Object.entries(f.store.dump()).find(([path])=>path.includes('/purchase_bills/'))![1];assert.equal(bill.tax_evidence.configuration_version_hash,tax.version_hash);assert.equal(bill.items[0].supplier_credit_sdg,115);assert.equal(bill.items[0].value_sdg,100);
+});
+
+test('Excel4.1d.3b.4 USD inclusive purchase retains frozen tax through FX payments, return and restore',async()=>{
+  const f=await fixture();await seedPurchaseBaseline(f);
+  await f.ops.execute(f.org.id,owner,{action:'account.create',operationId:'tax-account',data:{code:'1350',name_ar:'ضريبة مشتريات',name_en:'Input tax',type:'ASSET',nature:'DEBIT',reporting_group:'other_assets',is_active:true}});
+  const policy={id:'input-vat',name:'ضريبة تاريخية',jurisdiction:'اختبار',direction:'purchases',rate:15,calculation:'inclusive',rounding:'half_up',recoverable:true,tax_account_code:'1350',effective_from:'2026-01-01',effective_to:null,active:true,reason:'إثبات ضريبة قديمة'};
+  const tax=(await f.ops.execute(f.org.id,owner,{action:'taxConfiguration.create',operationId:'tax-create',data:policy})).result;
+  const proof=purchaseEvidence({exchange_rate_used:2500,tax_account_code:'1350',tax_configuration_version_hash:tax.version_hash,lines:[{product_id:'product-1',description:'الأول',quantity:1,net:40,tax:6,inventory_value:40},{product_id:'product-1',description:'الثاني',quantity:1,net:60,tax:9,inventory_value:60}],payments:[{date:'2026-01-15',amount:20,account_code:'1120',exchange_rate_used:2550,reference:'SP-1'},{date:'2026-01-20',amount:30,account_code:'1120',exchange_rate_used:2600,reference:'SP-2'}]});
+  const staged=await f.stage([purchaseRow({currency:'USD',total:115,paid:50,debit:115,credit:115})],'usd-purchase-stage',{'11':proof});
+  await f.ops.execute(f.org.id,owner,{action:'taxConfiguration.update',operationId:'tax-update',data:{...policy,expected_revision:1,rate:20,reason:'سياسة حالية جديدة'}});
+  const result=await f.commit(staged,'usd-purchase-commit');assert.equal(result.result.inventory_movements_created,1);assert.equal(result.result.supplier_payments_created,2);assert.equal(result.result.reconciliation.findings_count,0);
+  const dump=f.store.dump(),session=dump[`${f.root}/historical_import_sessions/${staged.id}`],billId=session.commit_purchase_bill_ids[0],bill=dump[`${f.root}/purchase_bills/${billId}`];
+  assert.equal(bill.remaining_usd,65);assert.equal(bill.remaining_sdg,162500);assert.equal(bill.tax_evidence.configuration_revision,1);assert.equal(bill.tax_evidence.configuration_version_hash,tax.version_hash);
+  assert.equal(session.commit_journal_ids.reduce((n:number,id:string)=>n+dump[`${f.root}/journal_entries/${id}`].lines.filter((l:any)=>l.account_code==='5500').reduce((s:number,l:any)=>s+l.debit_sdg,0),0),4000);
+  const returned=(await f.ops.execute(f.org.id,owner,{action:'purchaseReturn.create',operationId:'historical-return',data:{bill_id:billId,date:'2026-01-25',reason:'مردود مثبت',lines:[{line_id:'line-1',quantity:1}]}})).result;
+  assert.equal(returned.supplier_credit_usd,46);assert.equal(returned.recoverable_tax_usd,6);
+  const snapshot=await f.ops.snapshot(f.org.id,owner,true);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
+  const restoreOwner={...owner,uid:'historical-restore-owner',email:'historical-restore@example.com'};
+  const target=await new Organizations(f.store).create(restoreOwner,'Restored historical purchase',{...INITIAL_SETTINGS},'restore-target',true);
+  await f.store.transaction(async tx=>tx.set(`organizations/${target.id}`,{...await tx.get(`organizations/${target.id}`),planId:'Enterprise',subscriptionEnd:'2027-01-01'}));
+  await f.ops.execute(target.id,restoreOwner,{action:'backup.restore',operationId:'historical-restore',data:{backup:snapshot}});
+  const restored=await f.ops.snapshot(target.id,restoreOwner,true);assert.deepEqual(reconcileFinancialData(restored.collections as FinancialData,restored.settings,{requireCosting:true}),[]);
+});
+
+test('Excel4.1d.3b.4 rejects an altered frozen tax chain without any partial writes',async()=>{
+  const f=await fixture();await seedPurchaseBaseline(f);
+  await f.ops.execute(f.org.id,owner,{action:'account.create',operationId:'tax-account',data:{code:'1350',name_ar:'ضريبة مشتريات',name_en:'Input tax',type:'ASSET',nature:'DEBIT',reporting_group:'other_assets',is_active:true}});
+  const tax=(await f.ops.execute(f.org.id,owner,{action:'taxConfiguration.create',operationId:'tax-create',data:{id:'input-vat',name:'ضريبة تاريخية',jurisdiction:'اختبار',direction:'purchases',rate:15,calculation:'exclusive',rounding:'half_up',recoverable:true,tax_account_code:'1350',effective_from:'2026-01-01',effective_to:null,active:true,reason:'إثبات ضريبة قديمة'}})).result;
+  const proof=purchaseEvidence({tax_account_code:'1350',tax_configuration_version_hash:tax.version_hash,lines:[{product_id:'product-1',description:'خاضع',quantity:2,net:100,tax:15,inventory_value:100}],payments:[]});
+  const staged=await f.stage([purchaseRow({total:115,paid:0,debit:115,credit:115})],'tax-stage',{'11':proof});
+  await f.store.transaction(async tx=>{const path=`${f.root}/tax_configuration_versions/input-vat-r1`;tx.set(path,{...await tx.get(path),reason:'tampered chain metadata'});});
+  const before=f.store.dump();await assert.rejects(f.commit(staged,'tax-rejected'),/بصمة سلسلة/);assert.deepEqual(f.store.dump(),before);
 });
 
 test('Excel4.1c atomically commits reviewed journals once with immutable proof and audit',async()=>{

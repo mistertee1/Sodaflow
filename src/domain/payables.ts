@@ -9,14 +9,14 @@ import { getAccountCodeForPaymentMethod, getDefaultChartOfAccounts } from '../se
 import { classifyAccount } from './accountClassification';
 import { safeAdd, safeSub } from '../lib/currency';
 import { billSignedBalance, loadPurchaseSource, purchaseCaches, savePurchaseSupplier, verifyPurchaseSource } from './purchaseCorrections';
-import { allocatePurchaseTaxInventory, purchaseTaxSourceQuote } from './purchaseTaxSources';
+import { allocatePurchaseTaxLineValues, purchaseTaxSourceQuote, type PurchaseTaxSourceInput } from './purchaseTaxSources';
 import { validateTaxConfigurationVersions } from './taxConfigurationTransactions';
 import { dimensionTags } from './managementDimensions';
 
 export const payableCollections = ['suppliers', 'purchase_bills', 'supplier_payments'] as const;
-export interface PurchaseLine { id: string; product_id: string; product_name: string; quantity: number; unit_cost: number; value_sdg: number; value_usd: number; zero_cost_reason?: string; }
+export interface PurchaseLine { id: string; product_id: string; product_name: string; quantity: number; unit_cost: number; value_sdg: number; value_usd: number; supplier_credit_sdg?: number; supplier_credit_usd?: number; zero_cost_reason?: string; }
 export interface Supplier { id: string; name: string; phone: string; email: string; address: string; tax_number: string; default_currency: 'SDG' | 'USD'; payment_terms_days: number; credit_limit: number; status: 'active' | 'inactive'; notes: string; org_id: string; created_at: string; updated_at: string; }
-export interface PurchaseBill { branch_id?: string; cost_center_id?: string; project_id?: string; advance_balance_sdg?: number; advance_balance_usd?: number; returned_amount_sdg?: number; returned_amount_usd?: number; refunded_amount_sdg?: number; refunded_amount_usd?: number; source_event_sequence?: number; correction_count?: number; id: string; supplier_id: string; supplier_name: string; supplier_reference: string; issue_date: string; due_date: string; currency: 'SDG' | 'USD'; exchange_rate_used: number; items: PurchaseLine[]; grand_total_sdg: number; grand_total_usd: number; remaining_sdg: number; remaining_usd: number; paid_amount_sdg: number; paid_amount_usd: number; settlement: 'credit' | 'cash'; status: 'open' | 'partially_paid' | 'paid'; journal_id: string; org_id: string; created_at: string; }
+export interface PurchaseBill { tax_evidence?: Document; branch_id?: string; cost_center_id?: string; project_id?: string; advance_balance_sdg?: number; advance_balance_usd?: number; returned_amount_sdg?: number; returned_amount_usd?: number; refunded_amount_sdg?: number; refunded_amount_usd?: number; source_event_sequence?: number; correction_count?: number; id: string; supplier_id: string; supplier_name: string; supplier_reference: string; issue_date: string; due_date: string; currency: 'SDG' | 'USD'; exchange_rate_used: number; items: PurchaseLine[]; grand_total_sdg: number; grand_total_usd: number; remaining_sdg: number; remaining_usd: number; paid_amount_sdg: number; paid_amount_usd: number; settlement: 'credit' | 'cash'; status: 'open' | 'partially_paid' | 'paid'; journal_id: string; org_id: string; created_at: string; }
 export interface SupplierPayment { sequence: number; id: string; bill_id: string; supplier_id: string; amount: number; currency: 'SDG' | 'USD'; exchange_rate_used: number; payment_date: string; payment_method: string; payment_account_code: string; reference_number: string; notes: string; settled_amount_sdg: number; settled_amount_usd: number; cash_amount_sdg: number; cash_amount_usd: number; journal_id: string; org_id: string; created_at: string; }
 export interface PayableContext {
   tx: Transaction; root: string; orgId: string; actor: string; iso: string; operationId: string; settings: MerchantSettings;
@@ -25,6 +25,7 @@ export interface PayableContext {
   post: (entry: JournalEntry) => Promise<void>; counterAdd: (key: string, delta: number) => void;
 }
 const fields = ['name', 'phone', 'email', 'address', 'tax_number', 'default_currency', 'payment_terms_days', 'credit_limit', 'status', 'notes'];
+const taxPolicy=(row:Document)=>Object.fromEntries(['schema_version','id','org_id','revision','name','jurisdiction','direction','rate','calculation','rounding','recoverable','tax_account_code','effective_from','effective_to','active'].map(key=>[key,row[key]]));
 export function validateSupplier(data: Document) {
   text(data.name, 200, true); for (const key of ['phone', 'tax_number']) text(data[key], 100);
   text(data.email, 320); ensure(!data.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email), 'بريد المورد غير صالح.');
@@ -63,44 +64,45 @@ export async function payableCommand(action: string, data: Document, c: PayableC
     const reference = text(data.supplier_reference, 80, true);
     const refPath = `${c.root}/purchase_numbers/${supplier.id}.${encodeURIComponent(reference.toLowerCase())}`;
     ensure(!await c.tx.get(refPath), 'رقم فاتورة المورد مستخدم مسبقاً.', 409);
-    ensure(!data.tax_amount && !data.discount_amount, 'مبلغ الضريبة والخصم مشتقان خادمياً ولا يقبلان من العميل.');
+    ensure(data.tax_amount===undefined&&data.tax_rate===undefined&&data.discount_amount===undefined, 'الضريبة مشتقة من إعداد مركز الضرائب ولا تقبل مبلغاً أو نسبة من العميل.');
     ensure(Array.isArray(data.items) && data.items.length > 0 && data.items.length <= 100, 'فاتورة الشراء تتطلب 1–100 بند.');
-    let taxEvidence: Document | undefined;
-    if (data.tax_configuration_id !== undefined || data.expected_tax_configuration_revision !== undefined) {
-      ensure(data.tax_configuration_id && data.expected_tax_configuration_revision, 'معرف وإصدار إعداد ضريبة المشتريات مطلوبان معاً.');
-      const current = await c.required('tax_configurations', data.tax_configuration_id);
-      await validateTaxConfigurationVersions(c.tx, c.root, c.orgId, current);
-      const configuration = Object.fromEntries(['schema_version','id','org_id','revision','name','jurisdiction','direction','rate','calculation','rounding','recoverable','tax_account_code','effective_from','effective_to','active'].map(key => [key,current[key]]));
-      taxEvidence = purchaseTaxSourceQuote({ configuration_id:data.tax_configuration_id, expected_configuration_revision:data.expected_tax_configuration_revision, issue_date:issueDate, currency:data.currency, exchange_rate_used:data.exchange_rate_used||0, items:data.items }, { org_id:c.orgId, configurations:[configuration as any], accounts:await c.tx.list(`${c.root}/accounts`) as Account[] });
-      taxEvidence.configuration_version_hash = current.version_hash;
+    const requestedTax=data.tax_configuration_id!==undefined||data.expected_tax_configuration_revision!==undefined;
+    ensure(!requestedTax||(data.tax_configuration_id&&data.expected_tax_configuration_revision),'معرف وإصدار إعداد ضريبة المشتريات مطلوبان معاً.');
+    let taxEvidence:Document|undefined,taxInput:PurchaseTaxSourceInput|undefined,taxAllocations:ReturnType<typeof allocatePurchaseTaxLineValues>|undefined;
+    if(requestedTax){
+      const current=await c.required('tax_configurations',data.tax_configuration_id);
+      await validateTaxConfigurationVersions(c.tx,c.root,c.orgId,current);
+      taxInput={configuration_id:data.tax_configuration_id,expected_configuration_revision:data.expected_tax_configuration_revision,issue_date:issueDate,currency:data.currency,exchange_rate_used:data.exchange_rate_used||0,items:data.items};
+      taxEvidence=purchaseTaxSourceQuote(taxInput,{org_id:c.orgId,configurations:[taxPolicy(current) as any],accounts:await c.tx.list(`${c.root}/accounts`) as Account[]});
+      taxEvidence.configuration_version_hash=current.version_hash;
+      taxAllocations=allocatePurchaseTaxLineValues(taxInput,taxEvidence as any);
     }
-    const nativeAllocations = taxEvidence ? allocatePurchaseTaxInventory({ configuration_id:data.tax_configuration_id, expected_configuration_revision:data.expected_tax_configuration_revision, issue_date:issueDate, currency:data.currency, exchange_rate_used:data.exchange_rate_used||0, items:data.items }, taxEvidence as any) : undefined;
-    const raw = data.items.map((item:Document) => new BigNumber(item.quantity).times(item.unit_cost)), rawTotal = raw.reduce((sum:BigNumber,value:BigNumber)=>sum.plus(value),new BigNumber(0));
-    const allocateBook = (target:number,decimals:number) => {const values:number[]=[];let used=new BigNumber(0),total=new BigNumber(target);for(let i=0;i<raw.length;i++){const value=i===raw.length-1?total.minus(used):total.times(raw[i]).div(rawTotal).decimalPlaces(decimals,BigNumber.ROUND_HALF_UP);values.push(value.toNumber());used=used.plus(value);}return values;};
-    const sdgAllocations = taxEvidence ? allocateBook(taxEvidence.tax_treatment==='receivable'?taxEvidence.sdg.base:taxEvidence.sdg.total,0) : undefined;
-    const usdAllocations = taxEvidence ? allocateBook(taxEvidence.tax_treatment==='receivable'?taxEvidence.usd.base:taxEvidence.usd.total,2) : undefined;
     const products = new Map<string, Document>(), quantities = new Map<string, { quantity: number; sdg: number; usd: number }>();
     const items: PurchaseLine[] = [];
     for (const [i, item] of data.items.entries()) {
       const id = identifier(item.product_id); money(item.quantity, 6, true); money(item.unit_cost, 8);
-      ensure(!item.tax_rate && !item.discount_percent, 'أدخل تكلفة البند الصافية الموثقة.');
+      ensure(item.tax_rate===undefined&&item.tax_amount===undefined&&item.discount_percent===undefined, 'تكلفة البند موثقة والضريبة مشتقة من الإعداد.');
       let product = products.get(id); if (!product) { product = await c.required('products', id); products.set(id, product); }
       ensure(product.is_active && product.track_inventory, 'بند الشراء يتطلب منتج مخزون نشطاً.'); validateCostState(product as Product);
-      const delta = taxEvidence ? {sdg:sdgAllocations![i],usd:usdAllocations![i]} : acquisitionCost(item.quantity, { cost_currency: data.currency, unit_cost: item.unit_cost, exchange_rate_used: data.exchange_rate_used || 0, zero_cost_reason: item.zero_cost_reason });
+      const sourceCost=acquisitionCost(item.quantity, { cost_currency: data.currency, unit_cost: item.unit_cost, exchange_rate_used: data.exchange_rate_used || 0, zero_cost_reason: item.zero_cost_reason });
+      const allocation=taxAllocations?.[i],delta=allocation?{sdg:allocation.inventory.sdg,usd:allocation.inventory.usd}:sourceCost;
       const previous = quantities.get(id) || { quantity: 0, sdg: 0, usd: 0 };
       quantities.set(id, { quantity: safeAdd(previous.quantity, item.quantity, 6), sdg: safeAdd(previous.sdg, delta.sdg, 0), usd: safeAdd(previous.usd, delta.usd, 2) });
-      items.push({ id: `line-${i + 1}`, product_id: id, product_name: product.name, quantity: item.quantity, unit_cost: item.unit_cost, value_sdg: delta.sdg, value_usd: delta.usd, ...(nativeAllocations?{tax_inventory_value_native:nativeAllocations[i]}:{}), ...(item.zero_cost_reason ? { zero_cost_reason: text(item.zero_cost_reason, 500) } : {}) });
+      items.push({ id: `line-${i + 1}`, product_id: id, product_name: product.name, quantity: item.quantity, unit_cost: item.unit_cost, value_sdg: delta.sdg, value_usd: delta.usd, ...(allocation?{supplier_credit_sdg:allocation.supplier.sdg,supplier_credit_usd:allocation.supplier.usd}:{}), ...(item.zero_cost_reason ? { zero_cost_reason: text(item.zero_cost_reason, 500) } : {}) });
     }
-    const sdg = items.reduce((n, i) => n.plus(i.value_sdg), new BigNumber(0)).toNumber(), usd = items.reduce((n, i) => n.plus(i.value_usd), new BigNumber(0)).toNumber();
-    money(sdg, 0); money(usd, 2); ensure(sdg > 0 || usd > 0, 'إجمالي فاتورة الشراء يجب أن يكون موجباً.');
+    const inventorySdg=items.reduce((n,i)=>n.plus(i.value_sdg),new BigNumber(0)).toNumber(),inventoryUsd=items.reduce((n,i)=>n.plus(i.value_usd),new BigNumber(0)).toNumber();
+    const sdg=taxEvidence?taxEvidence.sdg.total:inventorySdg,usd=taxEvidence?taxEvidence.usd.total:inventoryUsd;
+    money(inventorySdg,0);money(inventoryUsd,2);money(sdg, 0); money(usd, 2); ensure(sdg > 0 || usd > 0, 'إجمالي فاتورة الشراء يجب أن يكون موجباً.');
+    if(taxEvidence){ensure(new BigNumber(items.reduce((n,i)=>n.plus(i.supplier_credit_sdg||0),new BigNumber(0))).eq(sdg)&&new BigNumber(items.reduce((n,i)=>n.plus(i.supplier_credit_usd||0),new BigNumber(0))).eq(usd),'توزيع إجمالي فاتورة المورد غير متوازن.');}
     const code = data.settlement === 'credit' ? '2110' : await cashAccount(c, data);
     const id = `pb-${c.operationId}`, journalId = `jv-purchase-${c.operationId}`;
-    const totalSdg=taxEvidence?.sdg.total??sdg,totalUsd=taxEvidence?.usd.total??usd,dimensions=dimensionTags(data);
-    const result = { ...stamp, ...dimensions, id, supplier_id: supplier.id, supplier_name: supplier.name, supplier_reference: reference, issue_date: issueDate, due_date: dueDate, currency: data.currency, exchange_rate_used: data.exchange_rate_used || 0, items, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), grand_total_sdg: totalSdg, grand_total_usd: totalUsd, remaining_sdg: data.settlement === 'credit' ? totalSdg : 0, remaining_usd: data.settlement === 'credit' ? totalUsd : 0, paid_amount_sdg: data.settlement === 'cash' ? totalSdg : 0, paid_amount_usd: data.settlement === 'cash' ? totalUsd : 0, settlement: data.settlement, status: data.settlement === 'cash' ? 'paid' : 'open', journal_id: journalId, payment_account_code: code, notes: text(data.notes || '', 2000), reason: text(data.reason, 500, true) };
+    const dimensions=dimensionTags(data);
+    const result = { ...stamp, ...dimensions, id, supplier_id: supplier.id, supplier_name: supplier.name, supplier_reference: reference, issue_date: issueDate, due_date: dueDate, currency: data.currency, exchange_rate_used: data.exchange_rate_used || 0, items, ...(taxEvidence?{tax_evidence:taxEvidence,subtotal_sdg:taxEvidence.sdg.base,subtotal_usd:taxEvidence.usd.base,tax_total_sdg:taxEvidence.sdg.tax,tax_total_usd:taxEvidence.usd.tax}:{}), grand_total_sdg: sdg, grand_total_usd: usd, remaining_sdg: data.settlement === 'credit' ? sdg : 0, remaining_usd: data.settlement === 'credit' ? usd : 0, paid_amount_sdg: data.settlement === 'cash' ? sdg : 0, paid_amount_usd: data.settlement === 'cash' ? usd : 0, settlement: data.settlement, status: data.settlement === 'cash' ? 'paid' : 'open', journal_id: journalId, payment_account_code: code, notes: text(data.notes || '', 2000), reason: text(data.reason, 500, true) };
     const changed = [...quantities].map(([productId, delta]) => ({ product: products.get(productId)!, delta, after: receiveCost(products.get(productId)! as Product, delta.quantity, delta, issueDate) }));
-    const tagged=(line:ReturnType<typeof journalLine>)=>({...line,...dimensions});
-    const lines=[tagged(journalLine('1300', 'المخزون', sdg, 0, usd, 0))];if(taxEvidence?.tax_treatment==='receivable')lines.push(tagged(journalLine(taxEvidence.tax_account_code,'ضريبة مشتريات مستردة',taxEvidence.sdg.tax,0,taxEvidence.usd.tax,0)));lines.push(tagged(journalLine(code, data.settlement === 'credit' ? 'ذمم الموردين' : 'النقد والبنوك', 0, totalSdg, 0, totalUsd)));
-    await c.post(journal(journalId, c.orgId, c.actor, issueDate, 'purchase_bill', id, `فاتورة شراء ${reference}: ${supplier.name}`, lines, result.exchange_rate_used));
+    const posting=[journalLine('1300','المخزون',inventorySdg,0,inventoryUsd,0)];
+    if(taxEvidence?.tax_treatment==='receivable'&&(taxEvidence.sdg.tax||taxEvidence.usd.tax))posting.push(journalLine(taxEvidence.tax_account_code,'ضريبة مشتريات قابلة للاسترداد',taxEvidence.sdg.tax,0,taxEvidence.usd.tax,0));
+    posting.push(journalLine(code,data.settlement==='credit'?'ذمم الموردين':'النقد والبنوك',0,sdg,0,usd));
+    await c.post(journal(journalId, c.orgId, c.actor, issueDate, 'purchase_bill', id, `فاتورة شراء ${reference}: ${supplier.name}`, posting.map(line=>({...line,...dimensions})), result.exchange_rate_used));
     for (const [index, { product, delta, after }] of changed.entries()) {
       c.set(`${c.root}/products/${product.id}`, { ...product, ...after });
       const movementId = `mov-purchase-${c.operationId}-${index + 1}`;
@@ -191,11 +193,12 @@ export function reconcilePayables(data: Record<string, Document[]>) {
     ensure(['open', 'partially_paid', 'paid'].includes(bill.status), 'حالة فاتورة الشراء غير صالحة.');
     ensure(Array.isArray(bill.items) && bill.items.length > 0 && bill.items.length <= 100, 'بنود فاتورة الشراء غير صالحة.');
     const originals = source('purchase_bill', bill.id); ensure(originals.length === 1 && originals[0].id === bill.journal_id && dateOnly(originals[0].date) === dateOnly(bill.issue_date), 'قيد الشراء ناقص أو مكرر أو تاريخه مختلف.');
+    const taxAllocations=bill.tax_evidence?allocatePurchaseTaxLineValues({configuration_id:bill.tax_evidence.configuration_id,expected_configuration_revision:bill.tax_evidence.configuration_revision,issue_date:bill.issue_date,currency:bill.currency,exchange_rate_used:bill.exchange_rate_used,items:bill.items.map((item:Document)=>({product_id:item.product_id,quantity:item.quantity,unit_cost:item.unit_cost}))},bill.tax_evidence):undefined;
     const received = new Map<string, { q: BigNumber; sdg: BigNumber; usd: BigNumber }>();
-    for (const item of bill.items) {
+    for (const [itemIndex,item] of bill.items.entries()) {
       ensure((data.products || []).some(p => p.id === item.product_id && p.track_inventory), 'مرجع المنتج ناقص.');
-      if (bill.tax_evidence) { money(item.value_sdg,0);money(item.value_usd,2);money(item.tax_inventory_value_native,bill.currency==='USD'?2:0); }
-      else { const delta = acquisitionCost(item.quantity, { cost_currency: bill.currency, unit_cost: item.unit_cost, exchange_rate_used: bill.exchange_rate_used, zero_cost_reason: item.zero_cost_reason }); compare('purchase_bills', bill.id, `${item.id}:sdg`, delta.sdg, item.value_sdg); compare('purchase_bills', bill.id, `${item.id}:usd`, delta.usd, item.value_usd); }
+      const raw=acquisitionCost(item.quantity, { cost_currency: bill.currency, unit_cost: item.unit_cost, exchange_rate_used: bill.exchange_rate_used, zero_cost_reason: item.zero_cost_reason }),delta=taxAllocations?.[itemIndex]?.inventory||raw;
+      compare('purchase_bills', bill.id, `${item.id}:sdg`, delta.sdg, item.value_sdg); compare('purchase_bills', bill.id, `${item.id}:usd`, delta.usd, item.value_usd);
       const old = received.get(item.product_id) || { q: new BigNumber(0), sdg: new BigNumber(0), usd: new BigNumber(0) };
       received.set(item.product_id, { q: old.q.plus(item.quantity), sdg: old.sdg.plus(item.value_sdg), usd: old.usd.plus(item.value_usd) });
     }
@@ -205,7 +208,7 @@ export function reconcilePayables(data: Record<string, Document[]>) {
       compare('purchase_bills', bill.id, `${productId}:quantity`, value.q.toNumber(), movements[0].quantity);
       for (const currency of ['sdg', 'usd'] as const) compare('purchase_bills', bill.id, `${productId}:value_${currency}`, value[currency].toNumber(), movements[0][`value_delta_${currency}`]);
     }
-    if ((data.purchase_returns || []).some(row => row.bill_id === bill.id) || (data.supplier_refunds || []).some(row => row.bill_id === bill.id)) verifyPurchaseSource(bill, data);
+    if (bill.tax_evidence || (data.purchase_returns || []).some(row => row.bill_id === bill.id) || (data.supplier_refunds || []).some(row => row.bill_id === bill.id)) verifyPurchaseSource(bill, data);
     else {
     const relatedPayments = payments.filter(p => p.bill_id === bill.id);
     if (bill.settlement === 'cash') ensure(!relatedPayments.length, 'شراء نقدي مرتبط بسداد إضافي.');
@@ -218,11 +221,9 @@ export function reconcilePayables(data: Record<string, Document[]>) {
       state.remaining_sdg = safeSub(state.remaining_sdg, quote.settledSdg, 0); state.remaining_usd = safeSub(state.remaining_usd, quote.settledUsd, 2);
     }
     for (const currency of ['sdg', 'usd']) {
-      const inventoryTotal = bill.items.reduce((n: BigNumber, i: Document) => n.plus(i[`value_${currency}`]), new BigNumber(0)).toNumber(); money(inventoryTotal, currency === 'sdg' ? 0 : 2);
-      const total=bill.tax_evidence?.[currency]?.total??inventoryTotal;money(total,currency==='sdg'?0:2);
-      if(bill.tax_evidence){ensure(bill.tax_evidence.configuration_version_hash&&bill.tax_evidence.effective_on===bill.issue_date,'دليل ضريبة الشراء ناقص أو تاريخه مختلف.');const expectedInventory=bill.tax_evidence.tax_treatment==='receivable'?bill.tax_evidence[currency].base:bill.tax_evidence[currency].total;compare('purchase_bills',bill.id,`tax_inventory_${currency}`,expectedInventory,inventoryTotal);const tax=bill.tax_evidence.tax_treatment==='receivable'?bill.tax_evidence[currency].tax:0;compare('purchase_bills',bill.id,`tax_${currency}`,tax,amount(originals,bill.tax_evidence.tax_account_code||'',''+currency,false));}
+      const total = bill.items.reduce((n: BigNumber, i: Document) => n.plus(i[`value_${currency}`]), new BigNumber(0)).toNumber(); money(total, currency === 'sdg' ? 0 : 2);
       compare('purchase_bills', bill.id, `grand_total_${currency}`, total, bill[`grand_total_${currency}`]);
-      compare('purchase_bills', bill.id, `inventory_${currency}`, inventoryTotal, amount(originals, '1300', currency, false));
+      compare('purchase_bills', bill.id, `inventory_${currency}`, total, amount(originals, '1300', currency, false));
       compare('purchase_bills', bill.id, `credit_${currency}`, total, amount(originals, bill.settlement === 'credit' ? '2110' : bill.payment_account_code, currency));
       const settled = bill.settlement === 'cash' ? total : relatedPayments.reduce((n: BigNumber, p: Document) => n.plus(p[`settled_amount_${currency}`]), new BigNumber(0)).toNumber();
       compare('purchase_bills', bill.id, `paid_amount_${currency}`, settled, bill[`paid_amount_${currency}`]);

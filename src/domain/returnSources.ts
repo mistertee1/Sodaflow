@@ -5,6 +5,7 @@ import { invoiceFinancials } from './financial';
 import { dateOnly, ensure, identifier, money, validateJournal } from './validation';
 import type { BookAmount, ReturnBasis } from './returnQuotes';
 import type { PurchaseBill } from './payables';
+import { allocatePurchaseTaxLineValues, type PurchaseTaxSourceInput } from './purchaseTaxSources';
 import { acquisitionCost } from './inventoryCost';
 
 const books = ['sdg', 'usd'] as const;
@@ -23,6 +24,9 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
   ensure(invoice.org_id === expectedOrgId, 'مصدر المردود يتبع مؤسسة أخرى.', 403);
   ensure(['sent', 'paid', 'partially_paid', 'overdue'].includes(invoice.status), 'الفاتورة ليست مصدراً مرحّلاً صالحاً للمردود.', 409);
   const issueDate = dateOnly(invoice.issue_date);
+  const taxEvidence = invoice.tax_evidence;
+  const taxAccountCode = taxEvidence ? identifier(taxEvidence.tax_account_code) : '2130';
+  ensure(!taxEvidence || !['1200', '1300', '4100', '5100'].includes(taxAccountCode), 'حساب ضريبة مصدر المردود متعارض مع حساب تحكم آخر.', 409);
   ensure(Array.isArray(invoice.items) && invoice.items.length > 0 && invoice.items.length <= 100, 'بنود مصدر المردود غير صالحة.');
   const ids = new Set<string>();
   for (const item of invoice.items) {
@@ -30,6 +34,18 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
     money(item.line_total, item.currency === 'USD' ? 2 : 0);
   }
   for (const field of fields) money(invoice[field], field.endsWith('_usd') ? 2 : 0);
+  if (taxEvidence) {
+    ensure(taxEvidence.schema_version === 1 && Number.isSafeInteger(taxEvidence.configuration_revision) && taxEvidence.configuration_revision > 0 &&
+      taxEvidence.effective_on === issueDate && ['exclusive', 'inclusive'].includes(taxEvidence.calculation) && ['SDG', 'USD'].includes(taxEvidence.source_currency), 'دليل ضريبة مصدر المردود غير صالح.', 409);
+    identifier(taxEvidence.configuration_id); money(taxEvidence.rate, 4);
+    for (const book of books) {
+      for (const field of ['base', 'tax', 'total'] as const) money(taxEvidence[book]?.[field], book === 'sdg' ? 0 : 2);
+      ensure(new BigNumber(taxEvidence[book].base).plus(taxEvidence[book].tax).eq(taxEvidence[book].total) &&
+        new BigNumber(taxEvidence[book].tax).eq(invoice[`tax_total_${book}`]) &&
+        new BigNumber(taxEvidence[book].total).eq(invoice[`grand_total_${book}`]) &&
+        new BigNumber(taxEvidence[book].base).plus(invoice[`discount_total_${book}`]).eq(invoice[`subtotal_${book}`]), 'دليل الضريبة لا يطابق إجماليات مصدر المردود.', 409);
+    }
+  }
   ensure(Array.isArray(originals) && originals.length === 1, 'قيد إصدار الفاتورة ناقص أو مكرر.', 409);
   const original = originals[0];
   ensure(original.org_id === expectedOrgId && original.reference_type === 'invoice' && original.reference_id === invoice.id && dateOnly(original.date) === issueDate, 'قيد الإصدار لا يطابق مصدر المردود.', 409);
@@ -49,7 +65,6 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
     money(invoice[`cogs_${book}`], book === 'sdg' ? 0 : 2);
     ensure(new BigNumber(cogs[book]).eq(invoice[`cogs_${book}`]!), 'تكلفة المصدر لا تطابق لقطات البنود.', 409);
   }
-  const taxAccountCode = invoice.tax_evidence?.tax_account_code || '2130';
   const expected: Record<string, { debit: BookAmount; credit: BookAmount }> = {
     '1200': { debit: { sdg: invoice.grand_total_sdg, usd: invoice.grand_total_usd }, credit: { sdg: 0, usd: 0 } },
     '4100': { debit: { sdg: 0, usd: 0 }, credit: { sdg: new BigNumber(invoice.grand_total_sdg).minus(invoice.tax_total_sdg).toNumber(), usd: new BigNumber(invoice.grand_total_usd).minus(invoice.tax_total_usd).toNumber() } },
@@ -63,56 +78,35 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
     const posted = original.lines.filter(line => line.account_code === code).reduce((n, line) => n.plus(line[`${side}_${book}`]), new BigNumber(0));
     ensure(posted.eq(amounts[side][book]), 'القيمة الأصلية لا تطابق الإيراد/الضريبة/التكلفة في قيد الإصدار.', 409);
   }
-  if (invoice.tax_evidence) {
-    const evidence = invoice.tax_evidence;
-    identifier(evidence.configuration_id); identifier(evidence.tax_account_code); dateOnly(evidence.effective_on);
-    ensure(evidence.effective_on === issueDate && evidence.tax_account_code === taxAccountCode && Number.isSafeInteger(evidence.configuration_revision) && evidence.configuration_revision > 0 && /^[a-f0-9]{64}$/.test(evidence.configuration_version_hash || ''), 'دليل الضريبة المجمد غير صالح.', 409);
-    ensure(['exclusive', 'inclusive'].includes(evidence.calculation) && ['SDG', 'USD'].includes(evidence.source_currency), 'سياسة الضريبة المجمدة غير صالحة.', 409);
-    for (const book of books) {
-      for (const field of ['base', 'tax', 'total']) money(evidence[book]?.[field], book === 'sdg' ? 0 : 2);
-      ensure(new BigNumber(evidence[book].base).plus(evidence[book].tax).eq(evidence[book].total) && new BigNumber(evidence[book].base).eq(expected['4100'].credit[book]) && new BigNumber(evidence[book].tax).eq(invoice[`tax_total_${book}`]) && new BigNumber(evidence[book].total).eq(invoice[`grand_total_${book}`]), 'دليل الضريبة المجمد لا يطابق الفاتورة وقيدها.', 409);
-    }
-    const untaxed = invoiceFinancials({ ...invoice, items: invoice.items.map(item => ({ ...item, tax_rate: 0 })) }, { sdg_decimals: 0, usd_decimals: 2, rounding_rule: 'round' } as MerchantSettings);
-    const bases = invoice.items.map((item, index): ReturnBasis => {
-      const revenue: BookAmount = { sdg: 0, usd: 0 }, tax: BookAmount = { sdg: 0, usd: 0 };
-      const beforeNative = invoice.items.slice(0, index).reduce((n, row) => n.plus(row.line_total), new BigNumber(0));
-      const afterNative = beforeNative.plus(item.line_total), nativeBook = evidence.source_currency === 'SDG' ? 'sdg' : 'usd';
-      const nativeSubtotal = new BigNumber(evidence.source_currency === 'SDG' ? untaxed.subtotal_sdg : untaxed.subtotal_usd);
-      ensure(nativeSubtotal.gt(0), 'أساس توزيع الضريبة المجمد غير صالح.', 409);
-      for (const book of books) {
-        const allocate = (total: number, point: BigNumber) => point.eq(nativeSubtotal) ? new BigNumber(total) : new BigNumber(total).times(point).div(nativeSubtotal).decimalPlaces(book === 'sdg' ? 0 : 2, BigNumber.ROUND_HALF_UP);
-        revenue[book] = allocate(evidence[book].base, afterNative).minus(allocate(evidence[book].base, beforeNative)).toNumber();
-        tax[book] = allocate(evidence[book].tax, afterNative).minus(allocate(evidence[book].tax, beforeNative)).toNumber();
-      }
-      void nativeBook;
-      return { source_id: returnSourceId(invoice.id, item.id), quantity: item.quantity, components: { revenue, tax, ...(item.cost_status === 'valued' ? { cost: { sdg: item.total_cost_sdg!, usd: item.total_cost_usd! } } : {}) } };
-    });
-    for (const book of books) for (const [component, target] of [['revenue', evidence[book].base], ['tax', evidence[book].tax], ['cost', cogs[book]]] as const) ensure(bases.reduce((n, base) => n.plus(base.components[component]?.[book] || 0), new BigNumber(0)).eq(target), 'توزيع التصحيح لا يحفظ الدليل الضريبي المجمد.', 409);
-    return { invoice_id: invoice.id, journal_id: original.id, issue_date: issueDate, org_id: expectedOrgId, rounding_rule: evidence.rounding === 'half_up' ? 'round' : evidence.rounding, bases, cost_statuses: Object.fromEntries(invoice.items.map(item => [returnSourceId(invoice.id, item.id), item.cost_status])) };
-  }
   const candidates: { rule: typeof rules[number]; bases: ReturnBasis[] }[] = [];
   for (const rule of rules) {
     const settings = { sdg_decimals: 0, usd_decimals: 2, rounding_rule: rule } as MerchantSettings;
-    const computed = invoiceFinancials(invoice, settings);
-    if (!fields.every(field => computed[field] === invoice[field]) || !computed.items.every((item, index) => item.line_total === invoice.items[index].line_total)) continue;
+    const computed = invoiceFinancials(taxEvidence ? { ...invoice, items: invoice.items.map(item => ({ ...item, tax_rate: 0 })) } : invoice, settings);
+    if (!computed.items.every((item, index) => item.line_total === invoice.items[index].line_total)) continue;
+    if (taxEvidence) {
+      if (!books.every(book => computed[`discount_total_${book}`] === invoice[`discount_total_${book}`] &&
+        new BigNumber(computed[`grand_total_${book}`]).eq(taxEvidence[book][taxEvidence.calculation === 'inclusive' ? 'total' : 'base']))) continue;
+    } else if (!fields.every(field => computed[field] === invoice[field])) continue;
     const components = invoice.items.map(item => {
-      const source = calculateLineItem(item.quantity, item.unit_price, item.discount_percent, item.tax_rate, item.currency === 'USD' ? 2 : 0, rule);
+      const source = calculateLineItem(item.quantity, item.unit_price, item.discount_percent, taxEvidence ? 0 : item.tax_rate, item.currency === 'USD' ? 2 : 0, rule);
       const translated = (amount: number, book: typeof books[number]) => item.currency === (book === 'sdg' ? 'SDG' : 'USD') ? amount : invoice.exchange_rate_used > 0 ? convertCurrency(amount, item.currency, book === 'sdg' ? 'SDG' : 'USD', invoice.exchange_rate_used, settings) : 0;
       return { net: { sdg: translated(source.net, 'sdg'), usd: translated(source.net, 'usd') }, tax: { sdg: translated(source.tax, 'sdg'), usd: translated(source.tax, 'usd') } };
     });
     const cumulative: BookAmount = { sdg: 0, usd: 0 };
     const bases = invoice.items.map((item, index): ReturnBasis => {
-      const revenue: BookAmount = { sdg: 0, usd: 0 };
+      const revenue: BookAmount = { sdg: 0, usd: 0 }, tax: BookAmount = { sdg: 0, usd: 0 };
       for (const book of books) {
-        const before = new BigNumber(cumulative[book]), after = before.plus(components[index].net[book]), total = invoice[`subtotal_${book}`], posted = expected['4100'].credit[book];
-        const entitlement = (value: BigNumber) => total ? value.eq(total) ? new BigNumber(posted) : new BigNumber(posted).times(value).div(total).decimalPlaces(book === 'sdg' ? 0 : 2, BigNumber.ROUND_HALF_UP) : new BigNumber(0);
-        revenue[book] = entitlement(after).minus(entitlement(before)).toNumber(); cumulative[book] = after.toNumber();
+        const before = new BigNumber(cumulative[book]), after = before.plus(components[index].net[book]), total = computed[`subtotal_${book}`];
+        const entitlement = (posted: number, value: BigNumber) => total ? value.eq(total) ? new BigNumber(posted) : new BigNumber(posted).times(value).div(total).decimalPlaces(book === 'sdg' ? 0 : 2, BigNumber.ROUND_HALF_UP) : new BigNumber(0);
+        revenue[book] = entitlement(expected['4100'].credit[book], after).minus(entitlement(expected['4100'].credit[book], before)).toNumber();
+        tax[book] = taxEvidence ? entitlement(invoice[`tax_total_${book}`], after).minus(entitlement(invoice[`tax_total_${book}`], before)).toNumber() : components[index].tax[book];
+        cumulative[book] = after.toNumber();
       }
       const sourceId = returnSourceId(invoice.id, item.id);
-      return { source_id: sourceId, quantity: item.quantity, components: { revenue, tax: components[index].tax, ...(item.cost_status === 'valued' ? { cost: { sdg: item.total_cost_sdg!, usd: item.total_cost_usd! } } : {}) } };
+      return { source_id: sourceId, quantity: item.quantity, components: { revenue, tax, ...(item.cost_status === 'valued' ? { cost: { sdg: item.total_cost_sdg!, usd: item.total_cost_usd! } } : {}) } };
     });
     for (const book of books) {
-      ensure(new BigNumber(cumulative[book]).eq(invoice[`subtotal_${book}`]), 'أساس بنود المصدر لا يطابق إجماليه.', 409);
+      ensure(new BigNumber(cumulative[book]).eq(computed[`subtotal_${book}`]), 'أساس بنود المصدر لا يطابق إجماليه.', 409);
       for (const [component, target] of [['revenue', expected['4100'].credit[book]], ['tax', invoice[`tax_total_${book}`]], ['cost', cogs[book]]] as const) {
         ensure(bases.reduce((n, base) => n.plus(base.components[component]?.[book] || 0), new BigNumber(0)).eq(target), 'توزيع مصدر المردود لا يحفظ القيمة الأصلية.', 409);
       }
@@ -135,13 +129,18 @@ export function buildPurchaseReturnBases(bill: PurchaseBill & { payment_account_
   ensure(bill.settlement !== 'cash' || !['2110', '1300'].includes(bill.payment_account_code), 'حساب السداد النقدي الأصلي غير صالح.');
   money(bill.exchange_rate_used, 8);
   ensure(Array.isArray(bill.items) && bill.items.length > 0 && bill.items.length <= 100, 'بنود مصدر مردود الشراء غير صالحة.');
+  const taxInput=bill.tax_evidence?{configuration_id:bill.tax_evidence.configuration_id,expected_configuration_revision:bill.tax_evidence.configuration_revision,issue_date:issueDate,currency:bill.currency,exchange_rate_used:bill.exchange_rate_used,items:bill.items.map(item=>({product_id:item.product_id,quantity:item.quantity,unit_cost:item.unit_cost}))} as PurchaseTaxSourceInput:undefined;
+  const taxAllocations=taxInput?allocatePurchaseTaxLineValues(taxInput,bill.tax_evidence as any):undefined;
   const ids = new Set<string>();
-  const bases = bill.items.map((item): ReturnBasis => {
+  const bases = bill.items.map((item,index): ReturnBasis => {
     identifier(item.id); identifier(item.product_id); ensure(!ids.has(item.id), 'معرف بند الشراء الأصلي مكرر.'); ids.add(item.id);
     const value = acquisitionCost(item.quantity, { cost_currency: bill.currency, unit_cost: item.unit_cost, exchange_rate_used: bill.exchange_rate_used, zero_cost_reason: item.zero_cost_reason });
-    ensure(new BigNumber(value.sdg).eq(item.value_sdg) && new BigNumber(value.usd).eq(item.value_usd), 'قيمة بند الشراء لا تطابق تكلفة الاستلام الأصلية.', 409);
+    const inventory=taxAllocations?.[index]?.inventory||value,supplier=taxAllocations?.[index]?.supplier||value;
+    ensure(new BigNumber(inventory.sdg).eq(item.value_sdg) && new BigNumber(inventory.usd).eq(item.value_usd), 'قيمة بند الشراء لا تطابق تكلفة الاستلام الأصلية.', 409);
+    ensure(!taxAllocations||(item.supplier_credit_sdg!==undefined&&item.supplier_credit_usd!==undefined&&new BigNumber(supplier.sdg).eq(item.supplier_credit_sdg)&&new BigNumber(supplier.usd).eq(item.supplier_credit_usd)),'حصة بند الشراء من إجمالي المورد لا تطابق دليل الضريبة.',409);
     const sourceId = returnSourceId(bill.id, item.id);
-    return { source_id: sourceId, quantity: item.quantity, components: { supplier_credit: value } };
+    const recoverableTax = bill.tax_evidence?.tax_treatment === 'receivable' ? { sdg: new BigNumber(supplier.sdg).minus(inventory.sdg).toNumber(), usd: new BigNumber(supplier.usd).minus(inventory.usd).toNumber() } : undefined;
+    return { source_id: sourceId, quantity: item.quantity, components: { supplier_credit: {sdg:supplier.sdg,usd:supplier.usd}, ...(recoverableTax ? { recoverable_tax: recoverableTax } : {}) } };
   });
   const total: BookAmount = { sdg: 0, usd: 0 };
   for (const book of books) {
@@ -156,11 +155,14 @@ export function buildPurchaseReturnBases(bill: PurchaseBill & { payment_account_
   money(original.exchange_rate_used, 8); ensure(original.exchange_rate_used === bill.exchange_rate_used, 'سعر صرف الشراء لا يطابق قيد المصدر.', 409);
   const checked = validateJournal(original.lines);
   ensure(original.is_balanced === true && (Object.keys(checked) as (keyof typeof checked)[]).every(key => checked[key] === original[key]), 'إجماليات قيد الشراء لا تطابق أطرافه.', 409);
-  ensure(original.lines.every(line => ['1300', bill.payment_account_code].includes(line.account_code)), 'قيد الشراء يتضمن حساباً مختلفاً.', 409);
-  for (const book of books) for (const [code, side] of [['1300', 'debit'], [bill.payment_account_code, 'credit']] as const) {
+  const taxCode=bill.tax_evidence?.tax_treatment==='receivable'?bill.tax_evidence.tax_account_code:null;
+  ensure(original.lines.every(line => ['1300', bill.payment_account_code,...(taxCode?[taxCode]:[])].includes(line.account_code)), 'قيد الشراء يتضمن حساباً مختلفاً.', 409);
+  const inventoryTotal={sdg:bill.items.reduce((n,item)=>n.plus(item.value_sdg),new BigNumber(0)).toNumber(),usd:bill.items.reduce((n,item)=>n.plus(item.value_usd),new BigNumber(0)).toNumber()};
+  for (const book of books) for (const [code, side,target] of [['1300', 'debit',inventoryTotal[book]], [bill.payment_account_code, 'credit',total[book]]] as const) {
     const opposite = side === 'debit' ? 'credit' : 'debit';
     const matching = original.lines.filter(line => line.account_code === code);
-    ensure(matching.reduce((n, line) => n.plus(line[`${side}_${book}`]), new BigNumber(0)).eq(total[book]) && matching.every(line => line[`${opposite}_${book}`] === 0), 'قيمة الشراء لا تطابق مخزونه/سداد مصدره.', 409);
+    ensure(matching.reduce((n, line) => n.plus(line[`${side}_${book}`]), new BigNumber(0)).eq(target) && matching.every(line => line[`${opposite}_${book}`] === 0), 'قيمة الشراء لا تطابق مخزونه/سداد مصدره.', 409);
   }
+  if(taxCode)for(const book of books){const matching=original.lines.filter(line=>line.account_code===taxCode);ensure(matching.reduce((n,line)=>n.plus(line[`debit_${book}`]),new BigNumber(0)).eq(bill.tax_evidence?.[book]?.tax||0)&&matching.every(line=>line[`credit_${book}`]===0),'قيمة ضريبة الشراء القابلة للاسترداد لا تطابق قيدها.',409);}
   return { bill_id: bill.id, journal_id: original.id, issue_date: issueDate, org_id: expectedOrgId, bases };
 }

@@ -8,7 +8,7 @@ import { financialCollections, reconcileFinancialData, type FinancialData } from
 import { calculateTrialBalance, calculateBalanceSheet } from '../src/services/accountingService';
 import { journalLine } from '../src/domain/financial';
 import type { Product, Account, JournalEntry } from '../src/types';
-const owner: Actor = { uid:'supplier-owner', email:'supplier@example.com', emailVerified:true, authTime:Math.floor(new Date('2026-10-05T12:00:00Z').getTime()/1000)-60 };
+const owner: Actor = { uid:'supplier-owner', email:'supplier@example.com', emailVerified:true, authTime:Math.floor(new Date('2026-10-05T12:00:00Z').getTime()/1000)-30 };
 async function fixture() {
   const store=new MemoryStore(), org=await new Organizations(store).create(owner,'موردون',INITIAL_SETTINGS,'setup',true), root=`organizations/${org.id}`;
   await store.transaction(async tx=>tx.set(root,{...await tx.get(root),planId:'Enterprise',subscriptionEnd:'2027-07-01T00:00:00Z'}));
@@ -39,10 +39,15 @@ test('D1.2b purchase dimensions persist on the bill and every journal line; inac
   await f.run('dimension.update',{kind:'cost_center',id:'buying',expected_revision:1,updates:{status:'inactive'}},'dimension-disable');const before=f.store.dump();await assert.rejects(f.run('purchase.create',{...f.purchase('DIM-2'),...dimensions},'dimension-rejected'),/غير موجود أو غير نشط/);assert.deepEqual(f.store.dump(),before);
 });
 test('C5.2c purchase freezes recoverable tax policy and posts inventory, tax asset and AP atomically',async()=>{
-  const f=await fixture();await f.run('account.create',{code:'1350',name_ar:'ضريبة مستردة',name_en:'Recoverable tax',type:'ASSET',nature:'DEBIT',reporting_group:'other_assets',is_active:true},'tax-account');
+  const f=await fixture();
+  await f.run('account.create',{code:'1350',name_ar:'ضريبة مستردة',name_en:'Recoverable tax',type:'ASSET',nature:'DEBIT',reporting_group:'other_assets',is_active:true},'tax-account');
   await f.run('taxConfiguration.create',{id:'purchase-vat',name:'ضريبة مشتريات',jurisdiction:'اختبار',direction:'purchases',rate:15,calculation:'exclusive',rounding:'half_up',recoverable:true,tax_account_code:'1350',effective_from:'2026-01-01',effective_to:null,active:true,reason:'اعتماد ضريبة المشتريات'},'tax-policy');
   const bill=(await f.run('purchase.create',{...f.purchase('TAX-1'),tax_configuration_id:'purchase-vat',expected_tax_configuration_revision:1},'tax-buy')).result,s=await f.books(),entry=s.collections.journal_entries.find(row=>row.reference_id===bill.id)!;
-  assert.equal(bill.grand_total_usd,23);assert.equal(bill.items[0].value_usd,20);assert.equal(bill.tax_evidence.usd.tax,3);assert.match(bill.tax_evidence.configuration_version_hash,/^[a-f0-9]{64}$/);assert.deepEqual(entry.lines.map((line:any)=>[line.account_code,line.debit_usd,line.credit_usd]),[['1300',20,0],['1350',3,0],['2110',0,23]]);
+  assert.equal(bill.grand_total_usd,23);
+  assert.equal(bill.items[0].value_usd,20);
+  assert.equal(bill.tax_evidence.usd.tax,3);
+  assert.match(bill.tax_evidence.configuration_version_hash,/^[a-f0-9]{64}$/);
+  assert.deepEqual(entry.lines.map((line:any)=>[line.account_code,line.debit_usd,line.credit_usd]),[['1300',20,0],['1350',3,0],['2110',0,23]]);
 });
 test('B1 partial/full multi-currency supplier payments settle historical carrying values and recognize FX loss/gain',async()=>{
   const f=await fixture(), bill=(await f.run('purchase.create',f.purchase(),'buy')).result;

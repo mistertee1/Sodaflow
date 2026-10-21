@@ -5,7 +5,7 @@ import type { HistoricalImportCommitContext } from './historicalImportCommit';
 import type { HistoricalDocumentEvidence } from './historicalDocumentEvidence';
 import type { HistoricalImportRow } from './historicalImport';
 import { buildHistoricalPurchaseImportPlan } from './historicalPurchaseImportPlan';
-import { purchaseTaxSourceQuote } from './purchaseTaxSources';
+import { allocatePurchaseTaxLineValues, purchaseTaxSourceQuote } from './purchaseTaxSources';
 import { classifyAccount } from './accountClassification';
 import { validateCostState } from './inventoryCost';
 import { ensure } from './validation';
@@ -33,6 +33,12 @@ export function buildHistoricalPurchaseWrites(rows:HistoricalImportRow[],evidenc
       ensure(quote.tax_treatment==='receivable'&&quote.tax_account_code===proof.tax_account_code,'سياسة الشراء التاريخية لا تثبت ضريبة مستردة بالحساب المراجع.',409);
       for(const book of ['sdg','usd'] as const)ensure(new BigNumber(quote[book].base).eq(bill.inventory_value[book])&&new BigNumber(quote[book].tax).eq(bill.tax[book])&&new BigNumber(quote[book].total).eq(bill.total[book]),'ضريبة الشراء التاريخية لا تطابق الإصدار المحفوظ.',409);
       tax={...quote,configuration_version_hash:version.version_hash};taxCodes.add(quote.tax_account_code!);
+      const allocations=allocatePurchaseTaxLineValues({configuration_id:version.configuration_id,expected_configuration_revision:version.revision,issue_date:bill.issue_date,currency:bill.currency,exchange_rate_used:bill.exchange_rate_used,items},quote);
+      for(const [index,item] of items.entries()){
+        const allocation=allocations[index];
+        ensure(new BigNumber(allocation.inventory.sdg).eq(item.value_sdg)&&new BigNumber(allocation.inventory.usd).eq(item.value_usd)&&new BigNumber(allocation.inventory.native).eq(bill.lines[index].inventory_value!),'توزيع تكلفة الشراء الضريبية لا يعيد إنتاج البنود التاريخية.',409);
+        Object.assign(item,{supplier_credit_sdg:allocation.supplier.sdg,supplier_credit_usd:allocation.supplier.usd});
+      }
     }
     const related=plan.payments.filter(r=>r.bill_id===bill.id);
     bills.push({...stamp,id:bill.id,supplier_id:bill.supplier_id,supplier_name:supplier.name,supplier_reference:bill.supplier_reference,issue_date:bill.issue_date,due_date:bill.due_date,currency:bill.currency,exchange_rate_used:bill.exchange_rate_used,items,...(tax?{tax_evidence:tax}:{}),grand_total_sdg:bill.total.sdg,grand_total_usd:bill.total.usd,remaining_sdg:bill.remaining.sdg,remaining_usd:bill.remaining.usd,paid_amount_sdg:bill.paid.sdg,paid_amount_usd:bill.paid.usd,advance_balance_sdg:0,advance_balance_usd:0,returned_amount_sdg:0,returned_amount_usd:0,refunded_amount_sdg:0,refunded_amount_usd:0,settlement:'credit',status:bill.status,journal_id:bill.journal_id,payment_account_code:'2110',source_event_sequence:related.length,payment_sequence:related.length,correction_count:0,...(related.length?{last_payment_date:related.at(-1)!.date}:{}),notes:'',reason:'استيراد شراء تاريخي مراجع',branch_id:bill.branch_id,created_at:bill.issue_date,historical_import_row_number:bill.historical_import_row_number});

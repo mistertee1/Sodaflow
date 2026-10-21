@@ -14,12 +14,15 @@
     "test:rules": "node --import tsx --test --test-concurrency=1 tests/firestore.test.ts tests/platformFirestore.test.ts tests/serverAuthorityFirestore.test.ts",
     "test:emulator": "firebase emulators:exec --config firebase.emulator.json --project demo-sudaflow --only firestore \"npm run test:rules\"",
     "test:ui": "node --import tsx node_modules/@playwright/test/cli.js test",
-    "check": "npm run lint && npm run lint:core && npm test && npm run build",
+    "check": "npm run lint && npm run lint:core && npm test && npm run test:netlify && npm run build",
     "lint:core": "node scripts/accounting-rules-hash.mjs --check && tsc --project tsconfig.core.json",
     "deploy:firebase:rules": "firebase deploy --only firestore:rules,firestore:indexes --project sodaflow",
     "billing:readiness": "node --import tsx scripts/check-cloud-readiness.ts",
     "billing:migrate": "node --import tsx scripts/migrate-platform-billing.ts",
-    "billing:bootstrap": "node --import tsx scripts/bootstrap-platform-admin.ts"
+    "billing:bootstrap": "node --import tsx scripts/bootstrap-platform-admin.ts",
+    "build:netlify": "node scripts/check-netlify-runtime.mjs && vite build",
+    "test:netlify": "node scripts/check-netlify-runtime.mjs && node --no-experimental-require-module --no-experimental-detect-module --test tests/netlifyRuntime.test.mjs tests/netlifyColdStart.test.mjs tests/jwksRuntime.test.mjs",
+    "postinstall": "node scripts/patch-jwks-runtime.mjs"
   },
   "dependencies": {
     "@netlify/functions": "^6.0.2",
@@ -37,7 +40,7 @@
     "react-dom": "^19.0.1",
     "recharts": "^3.10.1",
     "serverless-http": "^4.0.0",
-    "vite": "^6.2.3"
+    "vite": "^6.4.4"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.2",
@@ -52,10 +55,16 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.4.4"
   },
   "overrides": {
     "@grpc/grpc-js": "^1.14.5",
-    "uuid": "^11.1.1"
+    "uuid": "^11.1.1",
+    "firebase-admin": {
+      "jwks-rsa": "4.1.0"
+    }
+  },
+  "engines": {
+    "node": "^22.12.0 || >=24.0.0"
   }
 }

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-21T09:50:01.046Z",
+  "updatedAt": "2026-10-21T10:09:29.891Z",
   "activeRunId": "netlify-firebase-runtime-20261021",
   "leaseUntil": "2026-10-21T12:50:01.047Z",
   "automationId": "6ac35722234c819194e0535527c23124",
@@ -12,10 +12,12 @@
     "netlify.toml",
     "package.json",
     "package-lock.json",
-    ".github/workflows/check.yml",
+    ".github/workflows/netlify-runtime.yml",
     "scripts/check-netlify-runtime.mjs",
-    "scripts/test-netlify-runtime.mjs",
-    "tests/netlifyRuntime.test.ts",
+    "scripts/patch-jwks-runtime.mjs",
+    "tests/netlifyRuntime.test.mjs",
+    "tests/netlifyColdStart.test.mjs",
+    "tests/jwksRuntime.test.mjs",
     "docs/super-admin/**"
   ],
   "stages": [
@@ -220,7 +222,7 @@
   "sourceStagesComplete": false,
   "status": "in_progress",
   "resumeFrom": "netlify_function_cold_start_runtime_compatibility",
-  "lastReport": "docs/super-admin/REPORT_FIREBASE_ONLY_20261018.md",
+  "lastReport": "docs/super-admin/REPORT_NETLIFY_RUNTIME_20261021.md",
   "productionReadiness": {
     "checkedAt": "2026-10-20T06:46:06.669Z",
     "provider": "Render",
@@ -759,7 +761,7 @@
     "fixSourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6"
   },
   "netlifyRuntimeFix": {
-    "status": "investigating_runtime_compatibility",
+    "status": "awaiting_ci_acceptance",
     "sourceBase": "ddb00e8491f72134d523bb0632ed901df9f8078a",
     "liveUrl": "https://sodaflow.netlify.app",
     "observedFailure": {
@@ -768,8 +770,8 @@
       "chain": "firebase-admin -> jwks-rsa CommonJS require -> jose ES module",
       "beforeFirestore": true
     },
-    "actualDeployedNodeVersion": "unverified_no_site_access",
-    "deploymentAccess": "Connected Netlify account lists saboraa and sooda only, not sodaflow; no alternate site is used.",
+    "actualDeployedNodeVersion": "unverified; same failure reproduced on old Node20 and Node24 with Lambda require(esm) disabled",
+    "deploymentAccess": "Direct target-domain lookup resolves site and published main deploy; broad project listing omitted it. No deployment mutation or environment secret read.",
     "productionMutations": 0,
     "otherAgentPr": 111,
     "excludedOtherAgentPaths": [
@@ -780,6 +782,31 @@
       "tests/ui/app.spec.ts",
       "docs/free-render-spark.md"
     ],
-    "tests": "pending"
+    "tests": "CI pending",
+    "pullRequest": 113,
+    "targetSiteId": "35454707-bde1-4449-a522-9c1f0864fff6",
+    "publishedDeployId": "6ad7bfd80fef652f907ca829",
+    "publishedSourceCommit": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+    "lambdaRestrictions": [
+      "--no-experimental-require-module",
+      "--no-experimental-detect-module"
+    ],
+    "fix": "Pin Netlify Node24, validated two-file async jose import patch for exact jwks-rsa4.1.0, startup preflight and genuine signed-key/HTTP cold-start coverage. Vite security update to6.4.5.",
+    "localValidation": {
+      "unitApi": 369,
+      "netlifyLambdaRuntime": 14,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "officialPackager": "@netlify/zip-it-and-ship-it16.4.0; zip carries both reviewed patch hashes",
+      "artifactColdStart": {
+        "health": 200,
+        "anonymousOrganizations": 401,
+        "anonymousSuperAdmin": 401,
+        "missingCredentialsReadiness": 503
+      },
+      "freshInstallPostinstall": "passed",
+      "productionAudit": "rerunning after Vite6.4.5 update"
+    }
   }
 }

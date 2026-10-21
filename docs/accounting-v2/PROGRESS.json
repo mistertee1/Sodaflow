@@ -7,15 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "excel4-historical-purchase-plan-20261020c",
-    "round_id": "20261020T235104Z-excel4.1d.3b.3",
-    "acquired_at": "2026-10-20T23:51:04.000Z",
-    "expires_at": "2026-10-21T01:21:04.000Z",
-    "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
-    "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-    "purpose": "Implement native historical purchase/AP/receipt/WAC planning with fail-closed validation"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -2304,6 +2296,34 @@
                 "commit_sha": "31aa7005156b46ce25131d142e7d9fa59fec05a1",
                 "conclusion": "success"
               }
+            },
+            {
+              "id": "Excel4.1d.3b.3",
+              "scope": "Deterministic read-only native historical purchase/AP/receipt/WAC plan",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+              "pr": 112,
+              "code_commit": "043546309e2a45649f70eaeab1f08ef76211e172",
+              "report": "REPORT_EXCEL4_1D_3B_3_HISTORICAL_PURCHASE_PLAN.md",
+              "checks": {
+                "targeted_purchase_plan": 7,
+                "targeted_excel_import": 68,
+                "unit_api": 373,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0,
+                "firestore_emulator": 35,
+                "ui_regression": 92,
+                "ci_run_id": 39518461024
+              },
+              "ci": {
+                "run_id": 39518461024,
+                "commit_sha": "043546309e2a45649f70eaeab1f08ef76211e172",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "limitations": "Read-only plan only; atomic purchase persistence, frozen-tax replay and strict reconciliation remain Excel4.1d.3b.4."
             }
           ]
         },
@@ -2317,13 +2337,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_EXCEL4_1D_3B_2_HISTORICAL_SALES_COMMIT.md",
+  "last_report": "REPORT_EXCEL4_1D_3B_3_HISTORICAL_PURCHASE_PLAN.md",
   "next_steps": [
-    "Resume Excel4.1d.3b.3 native historical purchase/AP/receipt/WAC planning when the execution environment is available",
-    "Then implement atomic purchase persistence and strict post-import reconciliation",
+    "Implement Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation",
     "Independent authenticated Render acceptance on a matching staging commit"
   ],
-  "updated_at": "2026-10-20T23:51:04.000Z",
+  "updated_at": "2026-10-21T05:10:06.731Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2348,7 +2367,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1d.3b.3",
+  "active_substep": "Excel4.1d.3b.4",
   "observed_main_sha": "ddb00e8491f72134d523bb0632ed901df9f8078a",
   "lease_history": [
     {
@@ -2886,18 +2905,43 @@
       "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
       "status": "blocked_execution_environment_unavailable_no_code_changes",
       "next": "Resume Excel4.1d.3b.3 native historical purchase/AP/receipt/WAC planning when the execution environment is available"
+    },
+    {
+      "worker": "excel4-historical-purchase-plan-20261020c",
+      "round_id": "20261020T235104Z-excel4.1d.3b.3",
+      "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+      "acquired_at": "2026-10-20T23:51:04.000Z",
+      "expires_at": "2026-10-21T01:21:04.000Z",
+      "released_at": "2026-10-21T05:10:06.731Z",
+      "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+      "pr": 112,
+      "code_commit": "043546309e2a45649f70eaeab1f08ef76211e172",
+      "status": "Excel4.1d.3b.3_implemented_ci_passed_render_acceptance_pending",
+      "ci": {
+        "run_id": 39518461024,
+        "commit_sha": "043546309e2a45649f70eaeab1f08ef76211e172",
+        "conclusion": "success"
+      },
+      "next": "Proceed to Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation; Render acceptance remains independent"
     }
   ],
   "last_lease": {
-    "worker": "excel4-historical-purchase-plan-20261020",
-    "round_id": "20261020T192641Z-excel4.1d.3b.3",
+    "worker": "excel4-historical-purchase-plan-20261020c",
+    "round_id": "20261020T235104Z-excel4.1d.3b.3",
     "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-    "acquired_at": "2026-10-20T19:26:41.402Z",
-    "expires_at": "2026-10-20T20:56:41.402Z",
-    "released_at": "2026-10-20T19:27:27.712Z",
+    "acquired_at": "2026-10-20T23:51:04.000Z",
+    "expires_at": "2026-10-21T01:21:04.000Z",
+    "released_at": "2026-10-21T05:10:06.731Z",
     "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
-    "status": "blocked_execution_environment_unavailable_no_code_changes",
-    "next": "Resume Excel4.1d.3b.3 native historical purchase/AP/receipt/WAC planning when the execution environment is available"
+    "pr": 112,
+    "code_commit": "043546309e2a45649f70eaeab1f08ef76211e172",
+    "status": "Excel4.1d.3b.3_implemented_ci_passed_render_acceptance_pending",
+    "ci": {
+      "run_id": 39518461024,
+      "commit_sha": "043546309e2a45649f70eaeab1f08ef76211e172",
+      "conclusion": "success"
+    },
+    "next": "Proceed to Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation; Render acceptance remains independent"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -2911,7 +2955,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Resume Excel4.1d.3b.3 native historical purchase/AP/receipt/WAC planning when the execution environment is available",
+  "next": "Proceed to Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation; Render acceptance remains independent",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2932,15 +2976,22 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "excel4-historical-purchase-plan-20261020",
-    "round_id": "20261020T192641Z-excel4.1d.3b.3",
+    "worker": "excel4-historical-purchase-plan-20261020c",
+    "round_id": "20261020T235104Z-excel4.1d.3b.3",
     "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-    "acquired_at": "2026-10-20T19:26:41.402Z",
-    "expires_at": "2026-10-20T20:56:41.402Z",
-    "released_at": "2026-10-20T19:27:27.712Z",
+    "acquired_at": "2026-10-20T23:51:04.000Z",
+    "expires_at": "2026-10-21T01:21:04.000Z",
+    "released_at": "2026-10-21T05:10:06.731Z",
     "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
-    "status": "blocked_execution_environment_unavailable_no_code_changes",
-    "next": "Resume Excel4.1d.3b.3 native historical purchase/AP/receipt/WAC planning when the execution environment is available"
+    "pr": 112,
+    "code_commit": "043546309e2a45649f70eaeab1f08ef76211e172",
+    "status": "Excel4.1d.3b.3_implemented_ci_passed_render_acceptance_pending",
+    "ci": {
+      "run_id": 39518461024,
+      "commit_sha": "043546309e2a45649f70eaeab1f08ef76211e172",
+      "conclusion": "success"
+    },
+    "next": "Proceed to Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

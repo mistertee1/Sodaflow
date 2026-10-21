@@ -7,14 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "excel4-purchase-closeout-20261021",
-    "round_id": "20261021T1544Z-closeout",
-    "acquired_at": "2026-10-21T15:44:00Z",
-    "expires_at": "2026-10-21T16:04:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
-    "purpose": "Record verified CI, close Excel4.1d.3b.4 and release lease"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -2094,15 +2087,15 @@
     {
       "id": "Excel4",
       "status": "in_progress",
-      "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-      "pr": 108,
+      "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+      "pr": 114,
       "steps": [
         {
           "id": "Excel4.1",
           "scope": "Controlled historical invoices/purchases/journals and legacy migration",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-          "pr": 108,
+          "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+          "pr": 114,
           "substeps": [
             {
               "id": "Excel4.1a",
@@ -2331,6 +2324,38 @@
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "limitations": "Read-only plan only; atomic purchase persistence, frozen-tax replay and strict reconciliation remain Excel4.1d.3b.4."
+            },
+            {
+              "id": "Excel4.1d.3b.4",
+              "scope": "Atomic historical purchase persistence, frozen-tax replay, AP/receipt/WAC reconciliation and restoration",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+              "pr": 114,
+              "code_commit": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+              "report": "REPORT_EXCEL4_1D_3B_4_HISTORICAL_PURCHASE_COMMIT.md",
+              "checks": {
+                "excel_import": 73,
+                "unit_api": 381,
+                "firestore_emulator": 35,
+                "playwright": 92,
+                "production_audit_vulnerabilities": 0,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 39598908302,
+                "commit_sha": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+                "conclusion": "success"
+              },
+              "limitations": "Mixed sales/purchase sessions, unsupported dimensions, backdated cost replay and nonrecoverable historical tax remain fail-closed. Historical import UI/workbook remains Excel4.1e."
+            },
+            {
+              "id": "Excel4.1e",
+              "scope": "Historical evidence workbook/UI, staging preview/commit and legacy migration package",
+              "status": "pending",
+              "branch": null,
+              "pr": null
             }
           ]
         },
@@ -2344,11 +2369,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_EXCEL4_1D_3B_4_PURCHASE_COMMIT_WIP.md",
+  "last_report": "REPORT_EXCEL4_1D_3B_4_HISTORICAL_PURCHASE_COMMIT.md",
   "next_steps": [
-    "Complete frozen purchase-tax source/return reconciliation on PR #114; retain source_event_sequence and strict zero-finding gate. Add USD/FX, multi-line and restore tests. Excel4.1d.3b.4 remains incomplete; Render acceptance independent."
+    "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
+    "User reviews and merges PR #112 then PR #114; no deployment or main writes"
   ],
-  "updated_at": "2026-10-21T11:14:00Z",
+  "updated_at": "2026-10-21T15:45:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2373,7 +2399,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1d.3b.4",
+  "active_substep": "Excel4.1e",
   "observed_main_sha": "ddb00e8491f72134d523bb0632ed901df9f8078a",
   "lease_history": [
     {
@@ -2954,17 +2980,63 @@
         "conclusion": "pending"
       },
       "next": "Complete frozen purchase-tax source/return reconciliation on PR #114; retain source_event_sequence and strict zero-finding gate. Add USD/FX, multi-line and restore tests. Excel4.1d.3b.4 remains incomplete; Render acceptance independent."
+    },
+    {
+      "worker": "excel4-purchase-closeout-20261021",
+      "round_id": "20261021T1544Z-closeout",
+      "acquired_at": "2026-10-21T15:44:00Z",
+      "expires_at": "2026-10-21T16:04:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+      "purpose": "Record verified CI, close Excel4.1d.3b.4 and release lease",
+      "released_at": "2026-10-21T15:45:00Z",
+      "pr": 114,
+      "status": "Excel4.1d.3b.4_implemented_ci_passed_render_acceptance_pending",
+      "code_commit": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+      "checks": {
+        "excel_import": 73,
+        "unit_api": 381,
+        "firestore_emulator": 35,
+        "playwright": 92,
+        "production_audit_vulnerabilities": 0,
+        "types": "passed",
+        "lint_core": "passed",
+        "build": "passed"
+      },
+      "ci": {
+        "run_id": 39598908302,
+        "commit_sha": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+        "conclusion": "success"
+      },
+      "next": "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent."
     }
   ],
   "last_lease": {
-    "worker": "excel4-historical-purchase-commit-20261021",
-    "round_id": "20261021T1109Z-excel4.1d.3b.4",
-    "acquired_at": "2026-10-21T11:09:00Z",
-    "expires_at": "2026-10-21T12:39:00Z",
+    "worker": "excel4-purchase-closeout-20261021",
+    "round_id": "20261021T1544Z-closeout",
+    "acquired_at": "2026-10-21T15:44:00Z",
+    "expires_at": "2026-10-21T16:04:00Z",
     "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
-    "base_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
-    "purpose": "Implement atomic historical purchase persistence, frozen-tax replay and strict reconciliation",
-    "released_at": "2026-10-21T11:14:00Z"
+    "purpose": "Record verified CI, close Excel4.1d.3b.4 and release lease",
+    "released_at": "2026-10-21T15:45:00Z",
+    "pr": 114,
+    "status": "Excel4.1d.3b.4_implemented_ci_passed_render_acceptance_pending",
+    "code_commit": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+    "checks": {
+      "excel_import": 73,
+      "unit_api": 381,
+      "firestore_emulator": 35,
+      "playwright": 92,
+      "production_audit_vulnerabilities": 0,
+      "types": "passed",
+      "lint_core": "passed",
+      "build": "passed"
+    },
+    "ci": {
+      "run_id": 39598908302,
+      "commit_sha": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+      "conclusion": "success"
+    },
+    "next": "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -2978,7 +3050,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Complete frozen purchase-tax source/return reconciliation on PR #114; retain source_event_sequence and strict zero-finding gate. Add USD/FX, multi-line and restore tests. Excel4.1d.3b.4 remains incomplete; Render acceptance independent.",
+  "next": "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2999,29 +3071,32 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "excel4-historical-purchase-commit-20261021",
-    "round_id": "20261021T1109Z-excel4.1d.3b.4",
-    "acquired_at": "2026-10-21T11:09:00Z",
-    "expires_at": "2026-10-21T12:39:00Z",
+    "worker": "excel4-purchase-closeout-20261021",
+    "round_id": "20261021T1544Z-closeout",
+    "acquired_at": "2026-10-21T15:44:00Z",
+    "expires_at": "2026-10-21T16:04:00Z",
     "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
-    "base_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
-    "purpose": "Implement atomic historical purchase persistence, frozen-tax replay and strict reconciliation",
-    "released_at": "2026-10-21T11:14:00Z",
+    "purpose": "Record verified CI, close Excel4.1d.3b.4 and release lease",
+    "released_at": "2026-10-21T15:45:00Z",
     "pr": 114,
-    "code_commit": "b01f1730c059cf9280fc85748d5495112ffb7e64",
-    "status": "partial_implementation_draft_tax_source_reconciliation_blocker",
+    "status": "Excel4.1d.3b.4_implemented_ci_passed_render_acceptance_pending",
+    "code_commit": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
     "checks": {
-      "excel_import": 71,
-      "unit_api": 373,
-      "types_core_build": "passed",
+      "excel_import": 73,
+      "unit_api": 381,
+      "firestore_emulator": 35,
+      "playwright": 92,
       "production_audit_vulnerabilities": 0,
-      "emulator_ui": "pending_CI"
+      "types": "passed",
+      "lint_core": "passed",
+      "build": "passed"
     },
     "ci": {
-      "run_id": 39590389375,
-      "conclusion": "pending"
+      "run_id": 39598908302,
+      "commit_sha": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+      "conclusion": "success"
     },
-    "next": "Complete frozen purchase-tax source/return reconciliation on PR #114; retain source_event_sequence and strict zero-finding gate. Add USD/FX, multi-line and restore tests. Excel4.1d.3b.4 remains incomplete; Render acceptance independent."
+    "next": "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent."
   },
   "acceptance_environment": {
     "provider": "Render",
@@ -3039,6 +3114,18 @@
     "status": "resolved_ci_passed",
     "invoice_workspace": "Four document/correction tests explicitly enter معاينة المستند from invoice workspace; full UI suite passed.",
     "initial_cloud_outage": "Authoritative organization discovery no longer invents a tenant on outage; errors remain visible and retry through online/focus/30s reconciliation. Two recovery tests passed.",
-    "evidence": "GitHub Actions run 38050129713: 271 unit/API, 33 Firestore Emulator, 50 UI, zero production vulnerabilities."
+    "evidence": "GitHub Actions run 38050129713: 271 unit/API, 33 Firestore Emulator, 50 UI, zero production vulnerabilities.",
+    "purchase_tax_sources": {
+      "status": "resolved_ci_passed",
+      "source_pr": 53,
+      "integration_pr": 114,
+      "merge_parent": "b021a05c23f5ce2e20347f142eeb94ddcd9d0f55",
+      "ci": {
+        "run_id": 39598908302,
+        "commit_sha": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+        "conclusion": "success"
+      },
+      "notes": "Real Git merge restored tax allocation/correction/restore sources while preserving D1 dimensions and D4 supplier-refund approvals."
+    }
   }
 }

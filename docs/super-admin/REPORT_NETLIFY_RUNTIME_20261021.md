@@ -1,6 +1,6 @@
 # إصلاح بدء Firebase API على Netlify —21 أكتوبر2026
 
-الحالة: قيد قبول CI في PR113، لم يُنشر أو يُدمج بواسطة الإيجينت. الأساس main `ddb00e8491f72134d523bb0632ed901df9f8078a`، وفيه دمج المستخدم PR109.
+الحالة: المصدر مقبول في [PR113](https://github.com/mistertee1/Sodaflow/pull/113) لمراجعة ودمج المستخدم؛ لم يُنشر الإصلاح على الموقع بواسطة الإيجينت. الأساس main `ddb00e8491f72134d523bb0632ed901df9f8078a`، وفيه دمج المستخدم PR109.
 
 ## العطل المثبت
 
@@ -22,9 +22,11 @@
 - npm ci نظيف: postinstall ناجح، وإعادة التطبيق لا تغير الملفات.
 -14/14 اختبار توافق/بدء/صلاحيات ناجحة تحت قيود Lambda، بينها health200 وHEAD ورفض الشركات/Super Admin/معاملة مالية مجهولة بـ401. غياب الاعتماد يعطي readiness503 JSON واضحاً بعد نجاح بدء الدالة؛ لا نجاح وهمي أو fallback محلي.
 -369/369 unit/API، والأنواع وcore والبناء ناجحة محلياً. npm run build:netlify ناجح ويخرج الواجهة فقط، بلا dist/server.mjs منشور كملف ثابت.
-- npm audit --omit=dev: كشف اعتماد Vite القديم ثغرة عالية؛ تم تحديث lock إلى6.4.5، والتحقق النهائي جارٍ.
+- npm audit --omit=dev بعد تحديث Vite6.4.3 إلى6.4.5:0 ثغرات إنتاج. [مرجع الإصلاح الأمني](https://github.com/advisories/GHSA-587h-7wmj-h5pm).
 - أداة Netlify الرسمية @netlify/zip-it-and-ship-it16.4.0 أنشأت API ZIP بحجم5,347,927 بايت. فُحصت بصمتا الملفين داخل ZIP، وشُغلت الدالة من الحزمة المعزولة تحت قيود Lambda: health200، شركات/إدارة401، واعتماد ناقص503 JSON، وكلها no-store. هذا اختبار artifact محلي، وليس نشراً على Netlify.
-- قبول GitHub الكامل وNode22 الإضافي ما زال جارياً. لا يُعد الفرع جاهزاً قبله؛ الكتابات المالية الاختبارية محصورة في MemoryStore وEmulator demo-sudaflow ضمن المجموعة القائمة.
+- المصدر المقبول `f42e0075dfd6a243470f15a54c7857a20bb59b12`: [CI39582583979](https://github.com/mistertee1/Sodaflow/actions/runs/39582583979)، job119163530422، ناجح على Node24.21.0:369 Unit/API +14 Netlify runtime +45 Emulator +65 UI (11 Super Admin)،0 فشل/skip، types/core/build ناجحة و0 ثغرات إنتاج.
+- [CI39582584067](https://github.com/mistertee1/Sodaflow/actions/runs/39582584067)، job119163530650، ناجح على Node22.23.3:14/14 تحت نفس قيود Lambda، ثم build:netlify ناجح. الحالات14 نفسها نُفذت على كلا الإصدارين؛ لا تُعد حالات مختلفة إضافية.
+- الكتابات المالية الاختبارية محصورة في MemoryStore وEmulator demo-sudaflow ضمن المجموعة القائمة. لم يُنشأ أي مستند مالي إنتاجي للاختبار.
 
 ## النشر وما بقي غير متحقق
 
@@ -38,3 +40,8 @@
 - AWS Lambda experimental defaults: https://docs.aws.amazon.com/lambda/latest/dg/lambda-nodejs.html#nodejs-experimental-features
 - مصدر الاعتماد: https://github.com/auth0/node-jwks-rsa
 - SDK/JOSE والنسخ المحددة: package-lock.json وscripts/patch-jwks-runtime.mjs.
+
+
+## تسليم المراجعة
+
+main بقي `ddb00e8491f72134d523bb0632ed901df9f8078a` خلال القبول. ملفات PR111 وRules والمحاسبة والهوية والمزامنة لم تتغير في هذا الفرع. التوثيق اللاحق للمصدر المقبول لا يغير التطبيق أو الاختبارات. lease محررة؛ الفرع `codex/netlify-firebase-runtime-fix-20261021` وPR113 بانتظار المستخدم. [الأدلة الآلية](EVIDENCE_NETLIFY_RUNTIME_20261021.json) تحفظ الاختبارات وبصمات الإصلاح والحزمة وحدود قبول الإنتاج.

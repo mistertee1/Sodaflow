@@ -1,5 +1,11 @@
 # تقرير تنفيذ Super Admin
 
+تحديث **21 أكتوبر2026**: عطل Netlify الحالي هو API502 قبل Firebase بسبب تحميل JWKS/JOSE. إصلاح بدء الدالة مقبول في [PR113](https://github.com/mistertee1/Sodaflow/pull/113) بانتظار مراجعة ودمج المستخدم. المصدر `f42e0075` اجتاز **369 Unit/API +14 Netlify runtime +45 Emulator +65 UI (11 Super Admin)**، إضافة إلى14 حالة توافق على Node22، بلا فشل/skip و0 ثغرات إنتاج بعد تحديث Vite. [التقرير الحالي](REPORT_NETLIFY_RUNTIME_20261021.md) و[الأدلة](EVIDENCE_NETLIFY_RUNTIME_20261021.json).
+
+Netlify ينشر main عند `ddb00e8`، بعد دمج المستخدم PR109؛ الإصلاح الجديد لم يُنشر بعد. لا يثبت خطأ بدء الوحدة غياب أو صلاحية اعتماد Firebase أو حالة البيانات. يلزم نشر النسخة المراجعة ثم فحص جاهزية Firebase/Firestore فعلياً. لم تُقرأ قيم أسرار أو تُغير بيئة أو Rules/claims أو تُجرَ معاملات مالية إنتاجية للاختبار. تشخيص Render السابق أدناه تاريخي لخدمة منفصلة؛ لا يُخلط مع عطل Netlify الحالي.
+
+## تسليمات المصدر السابقة
+
 تحديث **20 أكتوبر 2026**: تحويل بيانات الأعمال إلى Firebase فقط مدمج عبر PR103، وإصلاح حالة نجاح حركة المالك وقبول المرحلة6 في [PR109](https://github.com/mistertee1/Sodaflow/pull/109) بانتظار مراجعة ودمج المستخدم. [CI39382069194](https://github.com/mistertee1/Sodaflow/actions/runs/39382069194) على `bde2b695` ناجح: **369 Unit/API، 45 Firestore Emulator، و65 UI منها11 للسوبر أدمن؛ 0 فشل/skip و0 ثغرات إنتاج**. [التقرير الحالي](REPORT_FIREBASE_ONLY_20261018.md) و[الأدلة](EVIDENCE_FIREBASE_ONLY_20261020.json).
 
 تفعيل الإنتاج ما زال غير مكتمل: فحص20 أكتوبر على Render أعاد health200 وreadiness503 في Firebase قبل Firestore؛ النسخة الحية ما زالت af3acda على الفرع القديم. يلزم اعتماد Firebase يعمل ومراجعة قاعدة العملاء والنسخ القديمة وتأكيد UID المختار ثم نشر منسق. لم تتغير أسرار أو Rules/claims أو خدمة الإنتاج ولم تُنشأ معاملات مالية حقيقية للاختبار.

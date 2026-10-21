@@ -7,15 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "excel4-historical-purchase-commit-20261021",
-    "round_id": "20261021T1109Z-excel4.1d.3b.4",
-    "acquired_at": "2026-10-21T11:09:00Z",
-    "expires_at": "2026-10-21T12:39:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
-    "base_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
-    "purpose": "Implement atomic historical purchase persistence, frozen-tax replay and strict reconciliation"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -2345,12 +2337,11 @@
       ]
     }
   ],
-  "last_report": "REPORT_EXCEL4_1D_3B_3_HISTORICAL_PURCHASE_PLAN.md",
+  "last_report": "REPORT_EXCEL4_1D_3B_4_PURCHASE_COMMIT_WIP.md",
   "next_steps": [
-    "Implement Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation",
-    "Independent authenticated Render acceptance on a matching staging commit"
+    "Complete frozen purchase-tax source/return reconciliation on PR #114; retain source_event_sequence and strict zero-finding gate. Add USD/FX, multi-line and restore tests. Excel4.1d.3b.4 remains incomplete; Render acceptance independent."
   ],
-  "updated_at": "2026-10-21T06:42:05.254Z",
+  "updated_at": "2026-10-21T11:14:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2931,25 +2922,42 @@
         "conclusion": "success"
       },
       "next": "Proceed to Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation; Render acceptance remains independent"
+    },
+    {
+      "worker": "excel4-historical-purchase-commit-20261021",
+      "round_id": "20261021T1109Z-excel4.1d.3b.4",
+      "acquired_at": "2026-10-21T11:09:00Z",
+      "expires_at": "2026-10-21T12:39:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+      "base_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+      "purpose": "Implement atomic historical purchase persistence, frozen-tax replay and strict reconciliation",
+      "released_at": "2026-10-21T11:14:00Z",
+      "pr": 114,
+      "code_commit": "b01f1730c059cf9280fc85748d5495112ffb7e64",
+      "status": "partial_implementation_draft_tax_source_reconciliation_blocker",
+      "checks": {
+        "excel_import": 71,
+        "unit_api": 373,
+        "types_core_build": "passed",
+        "production_audit_vulnerabilities": 0,
+        "emulator_ui": "pending_CI"
+      },
+      "ci": {
+        "run_id": 39590389375,
+        "conclusion": "pending"
+      },
+      "next": "Complete frozen purchase-tax source/return reconciliation on PR #114; retain source_event_sequence and strict zero-finding gate. Add USD/FX, multi-line and restore tests. Excel4.1d.3b.4 remains incomplete; Render acceptance independent."
     }
   ],
   "last_lease": {
-    "worker": "excel4-historical-purchase-plan-20261020c",
-    "round_id": "20261020T235104Z-excel4.1d.3b.3",
-    "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-    "acquired_at": "2026-10-20T23:51:04.000Z",
-    "expires_at": "2026-10-21T01:21:04.000Z",
-    "released_at": "2026-10-21T05:10:06.731Z",
-    "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
-    "pr": 112,
-    "code_commit": "043546309e2a45649f70eaeab1f08ef76211e172",
-    "status": "Excel4.1d.3b.3_implemented_ci_passed_render_acceptance_pending",
-    "ci": {
-      "run_id": 39518461024,
-      "commit_sha": "043546309e2a45649f70eaeab1f08ef76211e172",
-      "conclusion": "success"
-    },
-    "next": "Proceed to Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation; Render acceptance remains independent"
+    "worker": "excel4-historical-purchase-commit-20261021",
+    "round_id": "20261021T1109Z-excel4.1d.3b.4",
+    "acquired_at": "2026-10-21T11:09:00Z",
+    "expires_at": "2026-10-21T12:39:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+    "base_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+    "purpose": "Implement atomic historical purchase persistence, frozen-tax replay and strict reconciliation",
+    "released_at": "2026-10-21T11:14:00Z"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -2963,7 +2971,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation; Render acceptance remains independent",
+  "next": "Complete frozen purchase-tax source/return reconciliation on PR #114; retain source_event_sequence and strict zero-finding gate. Add USD/FX, multi-line and restore tests. Excel4.1d.3b.4 remains incomplete; Render acceptance independent.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2984,22 +2992,29 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "excel4-historical-purchase-plan-20261020c",
-    "round_id": "20261020T235104Z-excel4.1d.3b.3",
-    "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-    "acquired_at": "2026-10-20T23:51:04.000Z",
-    "expires_at": "2026-10-21T01:21:04.000Z",
-    "released_at": "2026-10-21T05:10:06.731Z",
-    "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
-    "pr": 112,
-    "code_commit": "043546309e2a45649f70eaeab1f08ef76211e172",
-    "status": "Excel4.1d.3b.3_implemented_ci_passed_render_acceptance_pending",
-    "ci": {
-      "run_id": 39518461024,
-      "commit_sha": "043546309e2a45649f70eaeab1f08ef76211e172",
-      "conclusion": "success"
+    "worker": "excel4-historical-purchase-commit-20261021",
+    "round_id": "20261021T1109Z-excel4.1d.3b.4",
+    "acquired_at": "2026-10-21T11:09:00Z",
+    "expires_at": "2026-10-21T12:39:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+    "base_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+    "purpose": "Implement atomic historical purchase persistence, frozen-tax replay and strict reconciliation",
+    "released_at": "2026-10-21T11:14:00Z",
+    "pr": 114,
+    "code_commit": "b01f1730c059cf9280fc85748d5495112ffb7e64",
+    "status": "partial_implementation_draft_tax_source_reconciliation_blocker",
+    "checks": {
+      "excel_import": 71,
+      "unit_api": 373,
+      "types_core_build": "passed",
+      "production_audit_vulnerabilities": 0,
+      "emulator_ui": "pending_CI"
     },
-    "next": "Proceed to Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation; Render acceptance remains independent"
+    "ci": {
+      "run_id": 39590389375,
+      "conclusion": "pending"
+    },
+    "next": "Complete frozen purchase-tax source/return reconciliation on PR #114; retain source_event_sequence and strict zero-finding gate. Add USD/FX, multi-line and restore tests. Excel4.1d.3b.4 remains incomplete; Render acceptance independent."
   },
   "acceptance_environment": {
     "provider": "Render",

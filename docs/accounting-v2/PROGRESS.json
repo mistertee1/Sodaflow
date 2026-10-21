@@ -5,9 +5,17 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+  "active_branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "excel4-historical-purchase-commit-20261021",
+    "round_id": "20261021T064205Z-excel4.1d.3b.4",
+    "acquired_at": "2026-10-21T06:42:05.254Z",
+    "expires_at": "2026-10-21T08:12:05.254Z",
+    "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+    "base_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+    "purpose": "Implement atomic historical purchase persistence, frozen-tax replay and strict reconciliation"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -2342,7 +2350,7 @@
     "Implement Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation",
     "Independent authenticated Render acceptance on a matching staging commit"
   ],
-  "updated_at": "2026-10-21T05:10:06.731Z",
+  "updated_at": "2026-10-21T06:42:05.254Z",
   "deferred_requirements": [
     {
       "prd_sections": [

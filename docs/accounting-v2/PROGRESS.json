@@ -8,12 +8,12 @@
   "active_branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "excel4-purchase-tax-integration-20261021",
-    "round_id": "20261021T1217Z-excel4.1d.3b.4",
-    "acquired_at": "2026-10-21T12:17:00Z",
-    "expires_at": "2026-10-21T13:47:00Z",
+    "worker": "excel4-purchase-closeout-20261021",
+    "round_id": "20261021T1544Z-closeout",
+    "acquired_at": "2026-10-21T15:44:00Z",
+    "expires_at": "2026-10-21T16:04:00Z",
     "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
-    "purpose": "Review missing integrated C5.2c tax source changes and complete historical purchase reconciliation"
+    "purpose": "Record verified CI, close Excel4.1d.3b.4 and release lease"
   },
   "milestones": [
     {

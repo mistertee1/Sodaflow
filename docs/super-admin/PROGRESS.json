@@ -2,13 +2,22 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-20T06:50:44.399Z",
-  "activeRunId": null,
-  "leaseUntil": null,
+  "updatedAt": "2026-10-21T09:50:01.046Z",
+  "activeRunId": "netlify-firebase-runtime-20261021",
+  "leaseUntil": "2026-10-21T12:50:01.047Z",
   "automationId": "6ac35722234c819194e0535527c23124",
-  "currentStage": 6,
-  "workBranch": "codex/firebase-cloud-acceptance-fix-20261020",
-  "ownedPaths": [],
+  "currentStage": 7,
+  "workBranch": "codex/netlify-firebase-runtime-fix-20261021",
+  "ownedPaths": [
+    "netlify.toml",
+    "package.json",
+    "package-lock.json",
+    ".github/workflows/check.yml",
+    "scripts/check-netlify-runtime.mjs",
+    "scripts/test-netlify-runtime.mjs",
+    "tests/netlifyRuntime.test.ts",
+    "docs/super-admin/**"
+  ],
   "stages": [
     {
       "id": 0,
@@ -206,11 +215,11 @@
   ],
   "productionValidated": false,
   "lastCompletedStage": 6,
-  "unmergedWorkBranch": "codex/firebase-cloud-acceptance-fix-20261020",
+  "unmergedWorkBranch": "codex/netlify-firebase-runtime-fix-20261021",
   "lastSourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
-  "sourceStagesComplete": true,
-  "status": "source_candidate_accepted_user_merge_and_production_setup_pending",
-  "resumeFrom": "user_review_pr109_then_external_production_prerequisites",
+  "sourceStagesComplete": false,
+  "status": "in_progress",
+  "resumeFrom": "netlify_function_cold_start_runtime_compatibility",
   "lastReport": "docs/super-admin/REPORT_FIREBASE_ONLY_20261018.md",
   "productionReadiness": {
     "checkedAt": "2026-10-20T06:46:06.669Z",
@@ -243,8 +252,8 @@
     "observedErpAutoDeploy": "yes",
     "productionAutoDeployChanged": false
   },
-  "observedMainSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
-  "workBaseSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+  "observedMainSha": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+  "workBaseSha": "ddb00e8491f72134d523bb0632ed901df9f8078a",
   "userMergesOnly": true,
   "dependencies": [
     {
@@ -748,5 +757,29 @@
     },
     "fixPullRequest": 109,
     "fixSourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6"
+  },
+  "netlifyRuntimeFix": {
+    "status": "investigating_runtime_compatibility",
+    "sourceBase": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+    "liveUrl": "https://sodaflow.netlify.app",
+    "observedFailure": {
+      "httpStatus": 502,
+      "code": "ERR_REQUIRE_ESM",
+      "chain": "firebase-admin -> jwks-rsa CommonJS require -> jose ES module",
+      "beforeFirestore": true
+    },
+    "actualDeployedNodeVersion": "unverified_no_site_access",
+    "deploymentAccess": "Connected Netlify account lists saboraa and sooda only, not sodaflow; no alternate site is used.",
+    "productionMutations": 0,
+    "otherAgentPr": 111,
+    "excludedOtherAgentPaths": [
+      "server/admin.ts",
+      "server/api.ts",
+      "tests/api.test.ts",
+      "tests/domain.test.ts",
+      "tests/ui/app.spec.ts",
+      "docs/free-render-spark.md"
+    ],
+    "tests": "pending"
   }
 }

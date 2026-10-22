@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-ui-20261022",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "historical-ui-closeout-20261022",
-    "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-    "acquired_at": "2026-10-22T22:29:00Z",
-    "expires_at": "2026-10-22T22:59:00Z",
-    "purpose": "Close verified local workbook review milestone"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -2418,7 +2412,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1e.2",
+  "active_substep": "Excel4.1e.2b",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3120,24 +3114,53 @@
         "conclusion": "success"
       },
       "next": "Verify valid-file UI test CI, add stale-context coverage, then server staging/preview/hash-bound commit. Excel4.1e.2 remains incomplete."
+    },
+    {
+      "worker": "historical-ui-closeout-20261022",
+      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+      "acquired_at": "2026-10-22T22:29:00Z",
+      "expires_at": "2026-10-22T22:59:00Z",
+      "purpose": "Close verified local workbook review milestone",
+      "released_at": "2026-10-22T22:30:00Z",
+      "pr": 119,
+      "status": "Excel4.1e.2a_implemented_ci_passed",
+      "ci": {
+        "run_id": 39858718951,
+        "commit_sha": "7e1a858007b081f9d18e1acc628679a360bbd61d",
+        "conclusion": "success"
+      },
+      "checks": {
+        "excel_import": 79,
+        "unit_api": 381,
+        "firestore": 35,
+        "ui": 94,
+        "production_audit_vulnerabilities": 0
+      },
+      "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance."
     }
   ],
   "last_lease": {
-    "worker": "historical-ui-valid-file-20261022",
+    "worker": "historical-ui-closeout-20261022",
     "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-    "acquired_at": "2026-10-22T21:37:00Z",
-    "expires_at": "2026-10-22T22:37:00Z",
-    "purpose": "Prove valid historical workbook UI read-only review",
-    "released_at": "2026-10-22T21:39:00Z",
+    "acquired_at": "2026-10-22T22:29:00Z",
+    "expires_at": "2026-10-22T22:59:00Z",
+    "purpose": "Close verified local workbook review milestone",
+    "released_at": "2026-10-22T22:30:00Z",
     "pr": 119,
-    "status": "initial_UI_ci_passed_valid_file_test_pending",
-    "code_commit": "f5318cc5217216c8c2f154b4358afbe682952a0e",
-    "accepted_ci": {
-      "run_id": 39848463542,
-      "commit_sha": "6462f8634b3464aa9c2c88be77cc04ea0c8295b4",
+    "status": "Excel4.1e.2a_implemented_ci_passed",
+    "ci": {
+      "run_id": 39858718951,
+      "commit_sha": "7e1a858007b081f9d18e1acc628679a360bbd61d",
       "conclusion": "success"
     },
-    "next": "Verify valid-file UI test CI, add stale-context coverage, then server staging/preview/hash-bound commit. Excel4.1e.2 remains incomplete."
+    "checks": {
+      "excel_import": 79,
+      "unit_api": 381,
+      "firestore": 35,
+      "ui": 94,
+      "production_audit_vulnerabilities": 0
+    },
+    "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3151,7 +3174,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Verify valid-file UI test CI, add stale-context coverage, then server staging/preview/hash-bound commit. Excel4.1e.2 remains incomplete.",
+  "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3172,21 +3195,27 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "historical-ui-valid-file-20261022",
+    "worker": "historical-ui-closeout-20261022",
     "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-    "acquired_at": "2026-10-22T21:37:00Z",
-    "expires_at": "2026-10-22T22:37:00Z",
-    "purpose": "Prove valid historical workbook UI read-only review",
-    "released_at": "2026-10-22T21:39:00Z",
+    "acquired_at": "2026-10-22T22:29:00Z",
+    "expires_at": "2026-10-22T22:59:00Z",
+    "purpose": "Close verified local workbook review milestone",
+    "released_at": "2026-10-22T22:30:00Z",
     "pr": 119,
-    "status": "initial_UI_ci_passed_valid_file_test_pending",
-    "code_commit": "f5318cc5217216c8c2f154b4358afbe682952a0e",
-    "accepted_ci": {
-      "run_id": 39848463542,
-      "commit_sha": "6462f8634b3464aa9c2c88be77cc04ea0c8295b4",
+    "status": "Excel4.1e.2a_implemented_ci_passed",
+    "ci": {
+      "run_id": 39858718951,
+      "commit_sha": "7e1a858007b081f9d18e1acc628679a360bbd61d",
       "conclusion": "success"
     },
-    "next": "Verify valid-file UI test CI, add stale-context coverage, then server staging/preview/hash-bound commit. Excel4.1e.2 remains incomplete."
+    "checks": {
+      "excel_import": 79,
+      "unit_api": 381,
+      "firestore": 35,
+      "ui": 94,
+      "production_audit_vulnerabilities": 0
+    },
+    "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance."
   },
   "acceptance_environment": {
     "provider": "Render",

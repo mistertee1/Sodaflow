@@ -5,9 +5,15 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
+  "active_branch": "codex/accounting-v2-excel4-historical-ui-20261022",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "historical-ui-20261022",
+    "acquired_at": "2026-10-22T19:32:00Z",
+    "expires_at": "2026-10-22T20:32:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+    "purpose": "Historical workbook UI local validation first"
+  },
   "milestones": [
     {
       "id": "A1",

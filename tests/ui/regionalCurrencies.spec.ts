@@ -40,9 +40,8 @@ test('KWD invoice, partial milliunit receipt and WhatsApp PDF retain the origina
   await form.getByLabel('سعر البند 1').fill('1.234'); await form.getByLabel('كمية البند 1').fill('3');
   await expect(form.getByTestId('invoice-native-preview')).toContainText('3.702 KWD');
   await form.evaluate(node => (node as HTMLFormElement).requestSubmit());
-  const detail = page.getByRole('dialog', { name: 'معاينة الفاتورة' });
-  await expect(detail.getByTestId('invoice-native-summary')).toContainText('3.702 KWD');
-  await detail.getByRole('button', { name: 'تسجيل دفعة', exact: true }).click();
+  await expect(page.getByTestId('invoice-native-workspace')).toContainText('3.702 KWD');
+  await page.getByRole('button', { name: 'تسجيل دفعة', exact: true }).click();
   await expect(page.getByLabel('عملة التحصيل', { exact: true })).toHaveValue('KWD');
   await page.getByLabel('مبلغ الدفعة').fill('1.001');
   await page.getByLabel('سعر عملة التحصيل لكل دولار', { exact: true }).fill('0.4');
@@ -51,6 +50,9 @@ test('KWD invoice, partial milliunit receipt and WhatsApp PDF retain the origina
   const receipt = page.getByRole('dialog', { name: 'سند قبض مالي', exact: true });
   await expect(receipt).toContainText('1.001 KWD');
   await receipt.getByRole('button', { name: 'إغلاق النافذة', exact: true }).click();
+  await expect(page.getByTestId('invoice-native-workspace')).toContainText('2.701 KWD');
+  await page.getByRole('button', { name: 'معاينة المستند', exact: true }).click();
+  const detail = page.getByRole('dialog', { name: 'معاينة الفاتورة' });
   await expect(detail.getByTestId('invoice-native-summary')).toContainText('2.701 KWD');
   await detail.getByRole('button', { name: /واتساب/ }).click();
   const share = page.getByRole('dialog', { name: 'مشاركة الفاتورة مع PDF' });

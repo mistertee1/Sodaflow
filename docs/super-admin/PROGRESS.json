@@ -1,40 +1,14 @@
 {
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
-  "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-22T08:30:43.798Z",
-  "activeRunId": "pause-platform-controls-20261022-1792657843798",
-  "leaseUntil": "2026-10-22T10:00:43.798Z",
+  "sourceBase": "706d101ce1b90dde0b767341105d9606fd9bded2",
+  "updatedAt": "2026-10-22T09:03:45.453Z",
+  "activeRunId": null,
+  "leaseUntil": null,
   "automationId": "6ac35722234c819194e0535527c23124",
   "currentStage": 8,
   "workBranch": "codex/pause-super-admin-controls-20261022",
-  "ownedPaths": [
-    "server/api.ts",
-    "server/organizations.ts",
-    "server/operationIntents.ts",
-    "server/revision.ts",
-    "server/platformBilling.ts",
-    "server/accountingRulesHash.ts",
-    "src/domain/operations.ts",
-    "src/domain/subscriptions.ts",
-    "src/config/platform-controls.json",
-    "src/context/AppContext.tsx",
-    "src/components/Subscription*",
-    "src/components/SuperAdminPage.tsx",
-    "src/components/SettingsModal.tsx",
-    "src/components/TeamManagementSection.tsx",
-    "src/components/accounting/*",
-    "firestore.rules",
-    "scripts/platform-controls.mjs",
-    "scripts/accounting-rules-hash.mjs",
-    "tests/*",
-    "docs/super-admin/*",
-    "package.json",
-    "src/services/firebaseOrganizations.ts",
-    "tsconfig.core.json",
-    "scripts/set-subscription.ts",
-    "tests/helpers/platformRules.ts"
-  ],
+  "ownedPaths": [],
   "stages": [
     {
       "id": 0,
@@ -279,17 +253,23 @@
     },
     {
       "id": 8,
-      "status": "implemented_acceptance_pending",
+      "status": "completed_in_review_branch",
       "scope": "User-requested reversible pause of platform/subscription/RBAC gates; authenticated tenant members retain full company operations while isolation and financial integrity stay enforced",
       "evidence": {
-        "localUnitApi": 378,
-        "localNetlifyLambdaRuntime": 16,
+        "unitApi": 379,
+        "netlifyLambdaRuntime": 16,
+        "firestoreEmulator": 49,
+        "ui": 68,
+        "superAdminUi": 11,
+        "pausedUi": 3,
+        "failed": 0,
+        "skipped": 0,
+        "productionAuditVulnerabilities": 0,
         "types": "passed",
         "core": "passed",
         "build": "passed",
-        "emulator": "pending",
-        "ui": "pending",
-        "productionWrites": 0
+        "emulatorProject": "demo-sudaflow",
+        "productionFinancialTestWrites": 0
       },
       "acceptanceAttempt": {
         "source": "f6990d9aca76539c097c691f54c2b5faa6b50365",
@@ -303,10 +283,14 @@
         "accepted": false
       },
       "pullRequest": 116,
-      "sourceCommit": "a04181d7a548d8151780386ced0a7299036879e8",
+      "sourceCommit": "109be5c814675f6eadc3421579fec83a9b4db83e",
       "latestCi": {
-        "id": 39750496282,
-        "status": "in_progress"
+        "id": 39751440691,
+        "jobId": 119732724819,
+        "sha": "109be5c814675f6eadc3421579fec83a9b4db83e",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440691"
       },
       "acceptanceAttempt2": {
         "source": "a04181d7a548d8151780386ced0a7299036879e8",
@@ -320,16 +304,39 @@
         "newPausedUiPassed": 3,
         "fix": "Strict isolation assertions now allow exactly public mode read plus authenticated session; all data endpoints still denied",
         "accepted": false
-      }
+      },
+      "githubChecks": {
+        "id": 39751440691,
+        "jobId": 119732724819,
+        "sha": "109be5c814675f6eadc3421579fec83a9b4db83e",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440691"
+      },
+      "node22Compatibility": {
+        "id": 39751440876,
+        "jobId": 119732725553,
+        "sha": "109be5c814675f6eadc3421579fec83a9b4db83e",
+        "status": "completed",
+        "conclusion": "success",
+        "runtime": "22.23.3",
+        "tests": 16,
+        "passed": 16,
+        "failed": 0,
+        "skipped": 0,
+        "build": "passed",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440876"
+      },
+      "productionActivated": false
     }
   ],
   "productionValidated": false,
-  "lastCompletedStage": 7,
-  "unmergedWorkBranch": "codex/netlify-firebase-runtime-fix-20261021",
-  "lastSourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+  "lastCompletedStage": 8,
+  "unmergedWorkBranch": "codex/pause-super-admin-controls-20261022",
+  "lastSourceCommit": "109be5c814675f6eadc3421579fec83a9b4db83e",
   "sourceStagesComplete": true,
-  "status": "acceptance_in_progress_strict_ui_request_assertions_updated",
-  "resumeFrom": "finish_stage8_acceptance_then_user_review_merge_release_only",
+  "status": "source_accepted_user_requested_controls_pause_pending_merge_release",
+  "resumeFrom": "User review/merge and coordinated paused API/frontend/Rules release only. Do not resume Super Admin development or activation without an explicit new user request.",
   "lastReport": "docs/super-admin/REPORT_PLATFORM_PAUSE_20261022.md",
   "productionReadiness": {
     "checkedAt": "2026-10-20T06:46:06.669Z",
@@ -401,16 +408,17 @@
   },
   "acceptance": {
     "provider": "GitHub Actions",
-    "scope": "PR113 source against unchanged main ddb00e8; real SDK/Lambda-profile startup and signing tests, MemoryStore/domain/API, demo-sudaflow Rules/Emulator and full UI; no live deployment",
-    "sourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
-    "sourceTree": "ec287f28743c07757145e1c4e8dc25bf7804bcd3",
+    "scope": "Paused release policy and preserved restrictive policy, real Netlify startup, MemoryStore/API, demo-sudaflow Rules/Firestore and full Chromium regression; no production publication",
+    "sourceCommit": "109be5c814675f6eadc3421579fec83a9b4db83e",
+    "sourceTree": "e5e19f432ffa0cc28fabd63ed44c2561b8d4c297",
     "status": "passed",
     "evidence": {
-      "unitApi": 369,
-      "netlifyLambdaRuntime": 14,
-      "firestoreEmulator": 45,
-      "ui": 65,
+      "unitApi": 379,
+      "netlifyLambdaRuntime": 16,
+      "firestoreEmulator": 49,
+      "ui": 68,
       "superAdminUi": 11,
+      "pausedUi": 3,
       "failed": 0,
       "skipped": 0,
       "productionAuditVulnerabilities": 0,
@@ -421,26 +429,26 @@
       "productionFinancialTestWrites": 0
     },
     "githubChecks": {
-      "id": 39582583979,
-      "jobId": 119163530422,
-      "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+      "id": 39751440691,
+      "jobId": 119732724819,
+      "sha": "109be5c814675f6eadc3421579fec83a9b4db83e",
       "status": "completed",
       "conclusion": "success",
-      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582583979"
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440691"
     },
     "node22Compatibility": {
-      "id": 39582584067,
-      "jobId": 119163530650,
-      "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+      "id": 39751440876,
+      "jobId": 119732725553,
+      "sha": "109be5c814675f6eadc3421579fec83a9b4db83e",
       "status": "completed",
       "conclusion": "success",
       "runtime": "22.23.3",
-      "tests": 14,
-      "passed": 14,
+      "tests": 16,
+      "passed": 16,
       "failed": 0,
       "skipped": 0,
       "build": "passed",
-      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582584067"
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440876"
     },
     "productionActivated": false,
     "userMergePending": true
@@ -539,6 +547,52 @@
       },
       "productionActivated": false,
       "userMergePending": true
+    },
+    {
+      "provider": "GitHub Actions",
+      "scope": "PR113 source against unchanged main ddb00e8; real SDK/Lambda-profile startup and signing tests, MemoryStore/domain/API, demo-sudaflow Rules/Emulator and full UI; no live deployment",
+      "sourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+      "sourceTree": "ec287f28743c07757145e1c4e8dc25bf7804bcd3",
+      "status": "passed",
+      "evidence": {
+        "unitApi": 369,
+        "netlifyLambdaRuntime": 14,
+        "firestoreEmulator": 45,
+        "ui": 65,
+        "superAdminUi": 11,
+        "failed": 0,
+        "skipped": 0,
+        "productionAuditVulnerabilities": 0,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "emulatorProject": "demo-sudaflow",
+        "productionFinancialTestWrites": 0
+      },
+      "githubChecks": {
+        "id": 39582583979,
+        "jobId": 119163530422,
+        "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582583979"
+      },
+      "node22Compatibility": {
+        "id": 39582584067,
+        "jobId": 119163530650,
+        "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+        "status": "completed",
+        "conclusion": "success",
+        "runtime": "22.23.3",
+        "tests": 14,
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0,
+        "build": "passed",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582584067"
+      },
+      "productionActivated": false,
+      "userMergePending": true
     }
   ],
   "mergedPullRequests": [
@@ -568,42 +622,63 @@
       "number": 109,
       "mergeCommit": "ddb00e8491f72134d523bb0632ed901df9f8078a",
       "mergedBy": "mistertee1"
+    },
+    {
+      "number": 113,
+      "mergeCommit": "706d101ce1b90dde0b767341105d9606fd9bded2",
+      "mergedBy": "mistertee1",
+      "mergedAt": "2026-10-22T08:20:54Z"
     }
   ],
   "coordination": {
-    "checkedAt": "2026-10-21T10:19:10.929Z",
-    "mainSha": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+    "checkedAt": "2026-10-22T09:03:45.453Z",
+    "mainSha": "706d101ce1b90dde0b767341105d9606fd9bded2",
     "mainUnchangedDuringAcceptance": true,
     "accountingLease": null,
     "otherAgentPr": 111,
-    "otherAgentFilesChanged": 0,
-    "scope": "Runtime/package/workflow/new runtime tests and own docs only. No PR111 server/admin/API/readiness/accounting/UI changes."
+    "otherAgentHead": "59115275b10a253170ec37d9a8379a70c57837d4",
+    "overlapWithOtherPr": [
+      "server/api.ts"
+    ],
+    "otherAgentBranchModified": false,
+    "scope": "Reviewed main and PR111. Retain main accounting/identity/Firebase-only persistence; only access checks and test harnesses changed. No other branch, production environment or deploy mutation."
   },
   "lastOwnedPaths": [
-    "netlify.toml",
+    "server/api.ts",
+    "server/organizations.ts",
+    "server/operationIntents.ts",
+    "server/revision.ts",
+    "server/platformBilling.ts",
+    "server/accountingRulesHash.ts",
+    "src/domain/operations.ts",
+    "src/domain/subscriptions.ts",
+    "src/config/platform-controls.json",
+    "src/context/AppContext.tsx",
+    "src/components/Subscription*",
+    "src/components/SuperAdminPage.tsx",
+    "src/components/SettingsModal.tsx",
+    "src/components/TeamManagementSection.tsx",
+    "src/components/accounting/*",
+    "firestore.rules",
+    "scripts/platform-controls.mjs",
+    "scripts/accounting-rules-hash.mjs",
+    "tests/*",
+    "docs/super-admin/*",
     "package.json",
-    "package-lock.json",
-    ".github/workflows/netlify-runtime.yml",
-    "scripts/check-netlify-runtime.mjs",
-    "scripts/patch-jwks-runtime.mjs",
-    "tests/netlifyRuntime.test.mjs",
-    "tests/netlifyColdStart.test.mjs",
-    "tests/jwksRuntime.test.mjs",
-    "docs/super-admin/**"
+    "src/services/firebaseOrganizations.ts",
+    "tsconfig.core.json",
+    "scripts/set-subscription.ts",
+    "tests/helpers/platformRules.ts"
   ],
-  "lastCompletedSubstep": "7_netlify_lambda_startup",
+  "lastCompletedSubstep": "8_user_requested_temporary_platform_controls_pause",
   "documentationPullRequest": 116,
   "sourceSnapshot": {
-    "mainSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
-    "acceptedHeadSha": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
-    "authorityCodeCommit": "29a8c48bc251a6084f856d8ca0ed8b7f04584754",
-    "testHarnessCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+    "mainSha": "706d101ce1b90dde0b767341105d9606fd9bded2",
+    "acceptedHeadSha": "109be5c814675f6eadc3421579fec83a9b4db83e",
+    "acceptedTree": "e5e19f432ffa0cc28fabd63ed44c2561b8d4c297",
+    "applicationCodeCommit": "a04181d7a548d8151780386ced0a7299036879e8",
     "productCodeUnchangedFromMergedMain": false,
-    "mergedSourceSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
-    "sourceTree": "07af1b9bf0270818bf12ec8f33a3acccfa04d3c4",
-    "exclusiveIdentityCommit": "a314b3330c687a7e5f68f9d1bf2be3cb9b757da2",
-    "originalCloudSourceSha": "fa8d8e6848cbc4ec9669c6b757caccee36aeb9d0",
-    "pendingFixPullRequest": 109
+    "preservedAccountingAlgorithmsAndBranding": true
   },
   "githubChecksHistory": [
     {
@@ -690,22 +765,14 @@
     }
   ],
   "lastRun": {
-    "id": "netlify-firebase-runtime-20261021",
-    "status": "source_candidate_accepted_user_merge_and_netlify_release_pending",
-    "endedAt": "2026-10-21T10:19:10.929Z",
-    "branch": "codex/netlify-firebase-runtime-fix-20261021",
-    "pullRequest": 113,
-    "headBeforeDocumentationCheckpoint": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
-    "acceptedSourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
-    "githubRun": 39582583979,
-    "node22Run": 39582584067,
-    "report": "docs/super-admin/REPORT_NETLIFY_RUNTIME_20261021.md",
-    "evidence": "docs/super-admin/EVIDENCE_NETLIFY_RUNTIME_20261021.json",
-    "mainAtAcceptance": "ddb00e8491f72134d523bb0632ed901df9f8078a",
-    "productionWrites": 0,
-    "productionEnvironmentChanges": 0,
-    "productionDeploys": 0,
-    "userMergePending": true
+    "runId": "pause-platform-controls-20261022-1792657843798",
+    "endedAt": "2026-10-22T09:03:45.453Z",
+    "leaseReleased": true,
+    "branch": "codex/pause-super-admin-controls-20261022",
+    "pullRequest": 116,
+    "sourceCommit": "109be5c814675f6eadc3421579fec83a9b4db83e",
+    "ci": 39751440691,
+    "status": "source_accepted_user_requested_controls_pause_pending_merge_release"
   },
   "leaseHistory": [
     {

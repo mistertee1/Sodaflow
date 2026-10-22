@@ -2,13 +2,35 @@
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-21T10:19:10.929Z",
-  "activeRunId": null,
-  "leaseUntil": null,
+  "updatedAt": "2026-10-22T08:30:43.798Z",
+  "activeRunId": "pause-platform-controls-20261022-1792657843798",
+  "leaseUntil": "2026-10-22T10:00:43.798Z",
   "automationId": "6ac35722234c819194e0535527c23124",
-  "currentStage": 7,
-  "workBranch": "codex/netlify-firebase-runtime-fix-20261021",
-  "ownedPaths": [],
+  "currentStage": 8,
+  "workBranch": "codex/pause-super-admin-controls-20261022",
+  "ownedPaths": [
+    "server/api.ts",
+    "server/organizations.ts",
+    "server/operationIntents.ts",
+    "server/revision.ts",
+    "server/platformBilling.ts",
+    "server/accountingRulesHash.ts",
+    "src/domain/operations.ts",
+    "src/domain/subscriptions.ts",
+    "src/config/platform-controls.json",
+    "src/context/AppContext.tsx",
+    "src/components/Subscription*",
+    "src/components/SuperAdminPage.tsx",
+    "src/components/SettingsModal.tsx",
+    "src/components/TeamManagementSection.tsx",
+    "src/components/accounting/*",
+    "firestore.rules",
+    "scripts/platform-controls.mjs",
+    "scripts/accounting-rules-hash.mjs",
+    "tests/*",
+    "docs/super-admin/*",
+    "package.json"
+  ],
   "stages": [
     {
       "id": 0,
@@ -207,7 +229,7 @@
     },
     {
       "id": 7,
-      "status": "completed_in_review_branch",
+      "status": "completed_merged_source_verified",
       "scope": "Netlify Firebase cold-start compatibility under Lambda module restrictions; Vite security patch",
       "sourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
       "pullRequest": 113,
@@ -248,7 +270,13 @@
         "build": "passed",
         "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582584067"
       },
-      "productionActivated": false
+      "productionActivated": false,
+      "mergedCommit": "706d101ce1b90dde0b767341105d9606fd9bded2"
+    },
+    {
+      "id": 8,
+      "status": "in_progress",
+      "scope": "User-requested reversible pause of platform/subscription/RBAC gates; authenticated tenant members retain full company operations while isolation and financial integrity stay enforced"
     }
   ],
   "productionValidated": false,
@@ -256,7 +284,7 @@
   "unmergedWorkBranch": "codex/netlify-firebase-runtime-fix-20261021",
   "lastSourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
   "sourceStagesComplete": true,
-  "status": "source_candidate_accepted_user_merge_and_netlify_release_pending",
+  "status": "in_progress_user_requested_temporary_pause",
   "resumeFrom": "review_pr113_then_publish_netlify_and_readiness",
   "lastReport": "docs/super-admin/REPORT_NETLIFY_RUNTIME_20261021.md",
   "productionReadiness": {
@@ -290,8 +318,8 @@
     "observedErpAutoDeploy": "yes",
     "productionAutoDeployChanged": false
   },
-  "observedMainSha": "ddb00e8491f72134d523bb0632ed901df9f8078a",
-  "workBaseSha": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+  "observedMainSha": "706d101ce1b90dde0b767341105d9606fd9bded2",
+  "workBaseSha": "706d101ce1b90dde0b767341105d9606fd9bded2",
   "userMergesOnly": true,
   "dependencies": [
     {

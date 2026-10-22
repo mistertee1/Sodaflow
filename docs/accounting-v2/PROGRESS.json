@@ -5,9 +5,15 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+  "active_branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "historical-staging-ui-20261022",
+    "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+    "acquired_at": "2026-10-22T23:28:00Z",
+    "expires_at": "2026-10-23T00:28:00Z",
+    "purpose": "Connect reviewed workbook to protected server staging"
+  },
   "milestones": [
     {
       "id": "A1",

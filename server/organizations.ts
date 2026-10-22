@@ -40,7 +40,8 @@ export class Organizations {
       const previous = await tx.get(`organizations/${id}`);
       if (previous) { ensure(previous.owner_uid === actor.uid, 'المؤسسة موجودة لمالك آخر.', 409); return previous; }
       const now = new Date().toISOString();
-      const free = await tx.get('plans/Free') || defaultPlatformPlans(now)[0];
+      // Registration must not depend on an unfinished/disabled commercial catalog while paused.
+      const free = this.controlsEnabled ? await tx.get('plans/Free') || defaultPlatformPlans(now)[0] : defaultPlatformPlans(now)[0];
       ensure(!this.controlsEnabled || free.active, 'التسجيل الجديد متوقف حالياً. تواصل مع إدارة المنصة.', 503);
       const usagePath = `user_organizations/${actor.uid}/meta/creation`, usage = await tx.get(usagePath);
       ensure(!usage || usage.day !== now.slice(0, 10) || usage.count < 5, 'تم بلوغ حد إنشاء المؤسسات اليومي.', 429);

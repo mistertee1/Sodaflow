@@ -160,3 +160,13 @@ test('source toggle restores both policy layers and their fingerprint exactly, a
     assert.throws(() => execFileSync(process.execPath, ['scripts/accounting-rules-hash.mjs', '--check'], { cwd: directory, stdio: 'pipe' }));
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+
+test('paused registration ignores an incomplete disabled plan without rewriting the commercial catalog', async () => {
+  const store = new MemoryStore({ 'plans/Free': { active: false } }), actor: Actor = { uid: 'new-owner', email: 'new-owner@example.test', emailVerified: true };
+  const org = await new Organizations(store, undefined, undefined, false).create(actor, 'شركة جديدة', {}, 'registration', true);
+  assert.equal(org.owner_uid, actor.uid); assert.equal(org.planId, 'Free'); assert.equal(org.maxUsers, 2);
+  assert.deepEqual(store.dump()['plans/Free'], { active: false });
+  assert.equal((await new Operations(store, undefined, undefined, undefined, false).snapshot(org.id, actor)).subscription.max_members, 999999);
+  await assert.rejects(new Organizations(store).create({ ...actor, uid: 'strict-new-owner' }, 'تسجيل صارم', {}, 'strict-registration', true), (error: any) => error.status === 503);
+});

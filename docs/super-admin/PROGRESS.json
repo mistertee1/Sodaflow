@@ -290,6 +290,17 @@
         "emulator": "pending",
         "ui": "pending",
         "productionWrites": 0
+      },
+      "acceptanceAttempt": {
+        "source": "f6990d9aca76539c097c691f54c2b5faa6b50365",
+        "ci": 39749975612,
+        "unitApi": 378,
+        "netlifyRuntime": 16,
+        "emulatorPassed": 48,
+        "emulatorFailed": 1,
+        "ui": "not_run_after_emulator_failure",
+        "fix": "Paused registration no longer depends on commercial plan limits; regression added",
+        "accepted": false
       }
     }
   ],
@@ -298,7 +309,7 @@
   "unmergedWorkBranch": "codex/netlify-firebase-runtime-fix-20261021",
   "lastSourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
   "sourceStagesComplete": true,
-  "status": "source_implemented_local_checks_passed_emulator_ui_pending",
+  "status": "acceptance_in_progress_registration_dependency_fixed",
   "resumeFrom": "stage8_paused_controls_ci_acceptance",
   "lastReport": "docs/super-admin/REPORT_PLATFORM_PAUSE_20261022.md",
   "productionReadiness": {

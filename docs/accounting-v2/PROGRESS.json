@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-ui-20261022",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "historical-ui-20261022",
-    "acquired_at": "2026-10-22T19:32:00Z",
-    "expires_at": "2026-10-22T20:32:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-    "purpose": "Historical workbook UI local validation first"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -2388,7 +2382,7 @@
       ]
     }
   ],
-  "last_report": "docs/accounting-v2/REPORT_EXCEL4_1E_1_HISTORICAL_WORKBOOK.md",
+  "last_report": "docs/accounting-v2/REPORT_EXCEL4_1E_2A_HISTORICAL_UI.md",
   "next_steps": [
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
@@ -3064,23 +3058,51 @@
         "conclusion": "success"
       },
       "next": "Implement Excel4.1e.2 historical workbook UI, server staging/preview and reviewed commit; then legacy migration and auditor/scheduled exports. Preserve main Super Admin/sync changes."
+    },
+    {
+      "worker": "historical-ui-20261022",
+      "acquired_at": "2026-10-22T19:32:00Z",
+      "expires_at": "2026-10-22T20:32:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+      "purpose": "Historical workbook UI local validation first",
+      "released_at": "2026-10-22T19:34:00Z",
+      "pr": 119,
+      "status": "Excel4.1e.2a_partial_ui_ci_pending",
+      "code_commit": "11a8705f0fee8c7cfe30df75e9cd2df075348878",
+      "checks": {
+        "types": "passed",
+        "build": "passed",
+        "xlsx": 6,
+        "ui": "local_browser_download_incomplete_CI_pending"
+      },
+      "ci": {
+        "run_id": 39840990009,
+        "conclusion": "in_progress"
+      },
+      "next": "Verify PR119 CI, complete valid-file/stale-context UI coverage, then server staging and reviewed hash-bound commit. Excel4.1e.2 incomplete."
     }
   ],
   "last_lease": {
-    "worker": "workbook-ci-close-20261022",
-    "acquired_at": "2026-10-22T18:15:00Z",
-    "expires_at": "2026-10-22T18:45:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
-    "purpose": "Record successful final workbook CI",
-    "released_at": "2026-10-22T18:16:00Z",
-    "status": "Excel4.1e.1_implemented_ci_passed",
-    "pr": 117,
-    "ci": {
-      "run_id": 39825084325,
-      "commit_sha": "f574a220a767ccb8252621b752fe8023954c7c06",
-      "conclusion": "success"
+    "worker": "historical-ui-20261022",
+    "acquired_at": "2026-10-22T19:32:00Z",
+    "expires_at": "2026-10-22T20:32:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+    "purpose": "Historical workbook UI local validation first",
+    "released_at": "2026-10-22T19:34:00Z",
+    "pr": 119,
+    "status": "Excel4.1e.2a_partial_ui_ci_pending",
+    "code_commit": "11a8705f0fee8c7cfe30df75e9cd2df075348878",
+    "checks": {
+      "types": "passed",
+      "build": "passed",
+      "xlsx": 6,
+      "ui": "local_browser_download_incomplete_CI_pending"
     },
-    "next": "Implement Excel4.1e.2 historical workbook UI, server staging/preview and reviewed commit; then legacy migration and auditor/scheduled exports. Preserve main Super Admin/sync changes."
+    "ci": {
+      "run_id": 39840990009,
+      "conclusion": "in_progress"
+    },
+    "next": "Verify PR119 CI, complete valid-file/stale-context UI coverage, then server staging and reviewed hash-bound commit. Excel4.1e.2 incomplete."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3094,7 +3116,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Implement Excel4.1e.2 historical workbook UI, server staging/preview and reviewed commit; then legacy migration and auditor/scheduled exports. Preserve main Super Admin/sync changes.",
+  "next": "Verify PR119 CI, complete valid-file/stale-context UI coverage, then server staging and reviewed hash-bound commit. Excel4.1e.2 incomplete.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3115,20 +3137,26 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "workbook-ci-close-20261022",
-    "acquired_at": "2026-10-22T18:15:00Z",
-    "expires_at": "2026-10-22T18:45:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
-    "purpose": "Record successful final workbook CI",
-    "released_at": "2026-10-22T18:16:00Z",
-    "status": "Excel4.1e.1_implemented_ci_passed",
-    "pr": 117,
-    "ci": {
-      "run_id": 39825084325,
-      "commit_sha": "f574a220a767ccb8252621b752fe8023954c7c06",
-      "conclusion": "success"
+    "worker": "historical-ui-20261022",
+    "acquired_at": "2026-10-22T19:32:00Z",
+    "expires_at": "2026-10-22T20:32:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+    "purpose": "Historical workbook UI local validation first",
+    "released_at": "2026-10-22T19:34:00Z",
+    "pr": 119,
+    "status": "Excel4.1e.2a_partial_ui_ci_pending",
+    "code_commit": "11a8705f0fee8c7cfe30df75e9cd2df075348878",
+    "checks": {
+      "types": "passed",
+      "build": "passed",
+      "xlsx": 6,
+      "ui": "local_browser_download_incomplete_CI_pending"
     },
-    "next": "Implement Excel4.1e.2 historical workbook UI, server staging/preview and reviewed commit; then legacy migration and auditor/scheduled exports. Preserve main Super Admin/sync changes."
+    "ci": {
+      "run_id": 39840990009,
+      "conclusion": "in_progress"
+    },
+    "next": "Verify PR119 CI, complete valid-file/stale-context UI coverage, then server staging and reviewed hash-bound commit. Excel4.1e.2 incomplete."
   },
   "acceptance_environment": {
     "provider": "Render",

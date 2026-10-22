@@ -140,7 +140,7 @@
     },
     {
       "id": 5,
-      "status": "blocked_external",
+      "status": "activation_deferred_by_user_request",
       "substeps": [
         {
           "id": "5a",
@@ -163,7 +163,7 @@
         },
         {
           "id": "5b",
-          "status": "blocked_external",
+          "status": "deferred_by_user_request",
           "scope": "Production activation with correct Firebase credentials/customer data, explicit verified admin UID and reviewed recovery/migration/release"
         },
         {
@@ -301,6 +301,25 @@
         "ui": "not_run_after_emulator_failure",
         "fix": "Paused registration no longer depends on commercial plan limits; regression added",
         "accepted": false
+      },
+      "pullRequest": 116,
+      "sourceCommit": "a04181d7a548d8151780386ced0a7299036879e8",
+      "latestCi": {
+        "id": 39750496282,
+        "status": "in_progress"
+      },
+      "acceptanceAttempt2": {
+        "source": "a04181d7a548d8151780386ced0a7299036879e8",
+        "ci": 39750496282,
+        "unitApi": 379,
+        "netlifyRuntime": 16,
+        "emulatorPassed": 49,
+        "emulatorFailed": 0,
+        "uiPassed": 66,
+        "uiFailed": 2,
+        "newPausedUiPassed": 3,
+        "fix": "Strict isolation assertions now allow exactly public mode read plus authenticated session; all data endpoints still denied",
+        "accepted": false
       }
     }
   ],
@@ -309,8 +328,8 @@
   "unmergedWorkBranch": "codex/netlify-firebase-runtime-fix-20261021",
   "lastSourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
   "sourceStagesComplete": true,
-  "status": "acceptance_in_progress_registration_dependency_fixed",
-  "resumeFrom": "stage8_paused_controls_ci_acceptance",
+  "status": "acceptance_in_progress_strict_ui_request_assertions_updated",
+  "resumeFrom": "finish_stage8_acceptance_then_user_review_merge_release_only",
   "lastReport": "docs/super-admin/REPORT_PLATFORM_PAUSE_20261022.md",
   "productionReadiness": {
     "checkedAt": "2026-10-20T06:46:06.669Z",
@@ -573,7 +592,7 @@
     "docs/super-admin/**"
   ],
   "lastCompletedSubstep": "7_netlify_lambda_startup",
-  "documentationPullRequest": 113,
+  "documentationPullRequest": 116,
   "sourceSnapshot": {
     "mainSha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
     "acceptedHeadSha": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
@@ -1015,5 +1034,20 @@
     "actualDeployedNodeVersion": "unverified",
     "firebaseCredentialsAndDatabaseReadiness": "unverified; module crashes before these checks",
     "productionWrites": 0
+  },
+  "platformControlsEnabled": false,
+  "superAdminEnabled": false,
+  "activationDeferredByUser": true,
+  "userPause": {
+    "requestedAt": "2026-10-22",
+    "scope": [
+      "super_admin",
+      "subscription",
+      "feature_limits",
+      "role_gates"
+    ],
+    "retainCanonicalRolesAndBilling": true,
+    "resumeOnlyOnExplicitUserRequest": true,
+    "productionApplied": false
   }
 }

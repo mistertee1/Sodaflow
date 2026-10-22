@@ -1,4 +1,4 @@
-import { normalizeWhatsAppPhone, transactionCurrency, whatsAppUrl } from '../lib/currencyCatalog';
+import { normalizeWhatsAppPhone, whatsAppUrl } from '../lib/currencyCatalog';
 import React, { useState, useEffect } from 'react';
 import {
   X,
@@ -54,7 +54,7 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
   const publicUrl = generateInvoicePublicUrl(invoice, settings, invoicePayments);
   const messageText = buildInvoiceWhatsAppMessage(invoice, settings, invoicePayments, publicUrl);
 
-  const formattedPhone = normalizeWhatsAppPhone(invoice.customer_phone, invoice.pricing?.currency || transactionCurrency(settings), transactionCurrency(settings));
+  const formattedPhone = normalizeWhatsAppPhone(invoice.customer_phone, invoice.pricing?.currency || 'SDG', 'SDG');
 
   // Pre-generate PDF file on modal open
   useEffect(() => {
@@ -119,7 +119,7 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
     }
 
     // Launch WhatsApp
-    const whatsappUrl = whatsAppUrl(invoice.customer_phone, messageText, invoice.pricing?.currency || transactionCurrency(settings), transactionCurrency(settings));
+    const whatsappUrl = whatsAppUrl(invoice.customer_phone, messageText, invoice.pricing?.currency || 'SDG', 'SDG');
 
     window.open(whatsappUrl, '_blank');
     setStatusMessage('تم فتح واتساب مع التفاصيل ورابط الـ PDF، وتم تنزيل ملف الـ PDF في جهازك لإرفاقه بنقرة واحدة.');

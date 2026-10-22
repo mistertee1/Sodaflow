@@ -1,4 +1,4 @@
-import { transactionCurrency, whatsAppUrl } from '../lib/currencyCatalog';
+import { whatsAppUrl } from '../lib/currencyCatalog';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Payment } from '../types';
@@ -76,7 +76,7 @@ ${payment.reference_number ? `رقم العملية: ${payment.reference_number}
 *${settings.business_name}*`;
 
     const invoice = invoices.find(row => row.id === payment.invoice_id);
-    window.open(whatsAppUrl(invoice?.customer_phone, text, payment.currency, transactionCurrency(settings)), '_blank');
+    window.open(whatsAppUrl(invoice?.customer_phone, text, invoice?.pricing?.currency || 'SDG', 'SDG'), '_blank');
   };
 
   return (

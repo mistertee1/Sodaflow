@@ -1,4 +1,4 @@
-import { transactionCurrency, whatsAppUrl } from '../lib/currencyCatalog';
+import { whatsAppUrl } from '../lib/currencyCatalog';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Loader2, Share2, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -58,7 +58,7 @@ ${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك 
   const shareData: ShareData = { files:file ? [file] : [], text };
   let supportsFiles = false;
   try { supportsFiles = !!file && typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files:[file] }); } catch { /* Offer manual attachment. */ }
-  const whatsappUrl = whatsAppUrl(invoice.customer_phone, text, invoice.pricing?.currency || transactionCurrency(settings), transactionCurrency(settings));
+  const whatsappUrl = whatsAppUrl(invoice.customer_phone, text, invoice.pricing?.currency || 'SDG', 'SDG');
   const embedded = window.self !== window.top;
   const standaloneUrl = new URL(window.location.href);
   standaloneUrl.searchParams.set('share-invoice', invoice.id);

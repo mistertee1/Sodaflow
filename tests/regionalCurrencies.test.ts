@@ -185,3 +185,14 @@ test('voiding a native invoice clears both native and accounting due balances wi
   assert.equal(saved.status, 'void'); assert.equal(saved.pricing_remaining, 0); assert.equal(saved.remaining_usd, 0);
   assert.deepEqual(saved.pricing, invoice.pricing);
 });
+
+test('legacy local Sudanese numbers retain their country when company and customer currency change', async () => {
+  const f = await fixture(false);
+  await f.store.transaction(async tx => tx.set(`${f.root}/customers/${f.customer.id}`, { ...f.customer, phone: '0912345678', preferred_currency: 'USD' }));
+  await f.run('settings.update', { updates: { default_transaction_currency: 'KWD' } }, 'country-change');
+  const invoice = (await f.run('invoice.create', f.sale('KWD', 3, 1), 'sale')).result;
+  assert.equal(invoice.customer_phone, '+249912345678');
+  assert.equal(new URL(whatsAppUrl(invoice.customer_phone, 'تذكير', 'KWD')).searchParams.get('phone'), '249912345678');
+  const customer = (await f.run('customer.update', { id: f.customer.id, updates: { phone: '0912345678', preferred_currency: 'SAR' } }, 'customer-change')).result;
+  assert.equal(customer.phone, '+249912345678'); assert.equal(customer.preferred_currency, 'SAR');
+});

@@ -5,7 +5,7 @@
   "workBranch": "codex/gulf-currencies-whatsapp-20261022",
   "activeRunId": "gulf-currencies-20261022",
   "leaseUntil": "2026-10-22T21:28:24.703669+00:00",
-  "updatedAt": "2026-10-22T19:34:10.360106+00:00",
+  "updatedAt": "2026-10-22T19:37:36.493326+00:00",
   "status": "implemented_waiting_ci_acceptance",
   "ownedPaths": [
     "src/lib/currencyCatalog.ts",
@@ -40,7 +40,7 @@
     "package-lock.json"
   ],
   "acceptance": {
-    "localUnitApi": 390,
+    "localUnitApi": 391,
     "localRuntime": 16,
     "localTypes": "passed",
     "localCoreTypes": "passed",
@@ -64,7 +64,9 @@
       "run": 39840568984,
       "job": 120040174101,
       "status": "success"
-    }
+    },
+    "productionAuditVulnerabilities": 0,
+    "installedDomPurify": "3.4.17"
   },
   "productionWrites": 0,
   "rulesChanged": false,
@@ -79,10 +81,11 @@
     "Release this lease at handoff; do not merge main or deploy production."
   ],
   "pullRequest": 118,
-  "previousSource": "ea6b2521bb1fa8e76fecd4b6a84228b173da4179",
+  "previousSource": "defd09e47b2b00344eed337f842229cdfbe1a992",
   "securityFix": {
     "dompurify": "3.4.17",
     "scope": "compatible transitive override and lockfile only",
-    "advisory": "GHSA-cg2g-xh64-v4q7"
+    "advisory": "GHSA-cg2g-xh64-v4q7",
+    "localAudit": "passed_zero_production_vulnerabilities"
   }
 }

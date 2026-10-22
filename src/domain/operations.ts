@@ -499,7 +499,7 @@ export class Operations {
           ensure(isSupportedCurrency(result.preferred_currency || 'SDG'), 'عملة العميل غير مدعومة.');
           if (result.phone) {
             const region = updating && result.phone === old.phone ? old.preferred_currency : result.preferred_currency;
-            const normalized = normalizeWhatsAppPhone(result.phone, region, transactionCurrency(settings));
+            const normalized = normalizeWhatsAppPhone(result.phone, region, updating && result.phone === old.phone ? 'SDG' : transactionCurrency(settings));
             ensure(!!normalized, 'رقم الهاتف غير صالح. اكتب الرقم الدولي كاملاً بمفتاح الدولة.');
             result.phone = '+' + normalized;
           }
@@ -633,7 +633,9 @@ export class Operations {
           while (await tx.get(numberKey)) { number++; numberKey = `${root}/invoice_numbers/${encodeURIComponent(`${prefix}${String(number).padStart(4, '0')}`)}`; }
           ensure(Number.isSafeInteger(number) && number <= 999999999, 'تسلسل الفواتير يحتاج مراجعة.');
           const id = `inv-${command.operationId}`;
-          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone ? '+' + (normalizeWhatsAppPhone(customer.phone, customer.preferred_currency, transactionCurrency(settings)) || customer.phone.replace(/^\+/, '')) : '', customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
+          const rawCustomerPhone = typeof customer.phone === 'string' ? customer.phone : '';
+          const customerPhone = normalizeWhatsAppPhone(rawCustomerPhone, customer.preferred_currency, 'SDG');
+          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customerPhone ? '+' + customerPhone : rawCustomerPhone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
           invoice.receivable_currency = receivableCurrency(invoice);
           let cogsSdg = 0, cogsUsd = 0;
           for (const item of invoice.items) item.cost_status = item.product_id ? 'unknown' : 'not_tracked';

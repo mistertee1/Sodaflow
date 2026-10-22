@@ -39,7 +39,7 @@
 | الفحص | النتيجة المحلية |
 | --- | --- |
 | `npm run lint` / `npm run lint:core` | ناجح |
-| Unit/API بما فيها 11 حالة جديدة | 390 ناجح، دون فشل/skip |
+| Unit/API بما فيها 12 حالة جديدة | 391 ناجح، دون فشل/skip |
 | توافق Netlify/Lambda | 16 ناجح |
 | `npm run build` | ناجح |
 | Firebase Emulator `demo-sudaflow` | ينتظر CI باستخدام Java21؛ المحلي Java17 |
@@ -59,3 +59,6 @@
 الفرع في [PR118](https://github.com/mistertee1/Sodaflow/pull/118). المصدر الأول `ea6b2521bb1fa8e76fecd4b6a84228b173da4179` اجتاز [CI39840568730](https://github.com/mistertee1/Sodaflow/actions/runs/39840568730) في TypeScript/build و390 Unit/API و16 runtime، لكنه توقف عند `npm audit --omit=dev`: نسخة DOMPurify العابرة `3.4.16` مصنفة حرجة حسب [GHSA-cg2g-xh64-v4q7](https://github.com/advisories/GHSA-cg2g-xh64-v4q7) المحدث في 22 أكتوبر. لم تعمل Emulator أو UI في تلك الجولة؛ لا تُسجلان كنجاح. [توافق Node22](https://github.com/mistertee1/Sodaflow/actions/runs/39840568984) نجح.
 
 أضيف override متوافق `dompurify: ^3.4.17` وحدث إدخال DOMPurify وحده في lockfile إلى `3.4.17` مع integrity؛ دون ترقية عشوائية لبقية المكتبات. [إصدار المصحح من الجهة المطورة](https://github.com/cure53/DOMPurify/releases/tag/3.4.17). يجري إعادة القبول الفعلي على المصدر المحدّث. أُكمل أيضاً إظهار المبالغ الأصلية في مساحة تشغيل الفاتورة وقائمتها ورابط العميل، وربط اختبار المتصفح بمسار تشغيل الفاتورة الفعلي ثم معاينة المستند.
+
+
+فحص محلي جديد بعد تثبيت المكتبة المصححة في مساحة العمل المعزولة: 391 Unit/API و16 runtime وTypeScript/core/build ناجحة، و`npm audit --omit=dev` يثبت صفر ثغرات إنتاج. أضيف اختبار يحفظ دولة الرقم السوداني المحلي القديم عند تغيير عملة المؤسسة والعميل؛ لا يُضاف `+` إلى رقم تعذر تطبيعه ولا يعاد تفسير مستلم فاتورة قديمة حسب إعداد العملة الجديد.

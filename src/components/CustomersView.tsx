@@ -172,7 +172,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 شكراً لتعاملكم الدائم معنا.
 ${settings.phone}`;
 
-    const url = whatsAppUrl(cust.phone, text, cust.preferred_currency, transactionCurrency(settings));
+    const url = whatsAppUrl(cust.phone, text, cust.preferred_currency, 'SDG');
 
     window.open(url, '_blank');
   };

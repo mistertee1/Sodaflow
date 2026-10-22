@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "excel4-workbook-closeout-20261022",
-    "acquired_at": "2026-10-22T17:43:00Z",
-    "expires_at": "2026-10-22T18:43:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
-    "purpose": "Publish whitespace validation and verify workbook milestone"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -2375,7 +2369,7 @@
       ]
     }
   ],
-  "last_report": "REPORT_EXCEL4_1D_3B_4_HISTORICAL_PURCHASE_COMMIT.md",
+  "last_report": "docs/accounting-v2/REPORT_EXCEL4_1E_1_HISTORICAL_WORKBOOK.md",
   "next_steps": [
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
@@ -2406,7 +2400,7 @@
     }
   ],
   "active_substep": "Excel4.1e.1",
-  "observed_main_sha": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+  "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",
@@ -3014,35 +3008,49 @@
         "conclusion": "success"
       },
       "next": "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent."
+    },
+    {
+      "worker": "excel4-workbook-closeout-20261022",
+      "acquired_at": "2026-10-22T17:43:00Z",
+      "expires_at": "2026-10-22T18:43:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
+      "purpose": "Publish whitespace validation and verify workbook milestone",
+      "released_at": "2026-10-22T17:43:00Z",
+      "pr": 117,
+      "status": "workbook_base_ci_passed_whitespace_followup_ci_pending",
+      "code_commit": "1318aaf6ea63001317eb9f9d65c4108a59c30955",
+      "checks": {
+        "targeted_xlsx": 6,
+        "status": "passed"
+      },
+      "base_ci": {
+        "run_id": 39632722205,
+        "commit_sha": "050faa10d02318ba4dea68751a80d7a8d529d46a",
+        "conclusion": "success"
+      },
+      "next": "Verify PR117 CI and integration, then Excel4.1e.2 workbook UI/staging/preview/commit. Preserve current main Super Admin pause changes."
     }
   ],
   "last_lease": {
-    "worker": "excel4-purchase-closeout-20261021",
-    "round_id": "20261021T1544Z-closeout",
-    "acquired_at": "2026-10-21T15:44:00Z",
-    "expires_at": "2026-10-21T16:04:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
-    "purpose": "Record verified CI, close Excel4.1d.3b.4 and release lease",
-    "released_at": "2026-10-21T15:45:00Z",
-    "pr": 114,
-    "status": "Excel4.1d.3b.4_implemented_ci_passed_render_acceptance_pending",
-    "code_commit": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+    "worker": "excel4-workbook-closeout-20261022",
+    "acquired_at": "2026-10-22T17:43:00Z",
+    "expires_at": "2026-10-22T18:43:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
+    "purpose": "Publish whitespace validation and verify workbook milestone",
+    "released_at": "2026-10-22T17:43:00Z",
+    "pr": 117,
+    "status": "workbook_base_ci_passed_whitespace_followup_ci_pending",
+    "code_commit": "1318aaf6ea63001317eb9f9d65c4108a59c30955",
     "checks": {
-      "excel_import": 73,
-      "unit_api": 381,
-      "firestore_emulator": 35,
-      "playwright": 92,
-      "production_audit_vulnerabilities": 0,
-      "types": "passed",
-      "lint_core": "passed",
-      "build": "passed"
+      "targeted_xlsx": 6,
+      "status": "passed"
     },
-    "ci": {
-      "run_id": 39598908302,
-      "commit_sha": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+    "base_ci": {
+      "run_id": 39632722205,
+      "commit_sha": "050faa10d02318ba4dea68751a80d7a8d529d46a",
       "conclusion": "success"
     },
-    "next": "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent."
+    "next": "Verify PR117 CI and integration, then Excel4.1e.2 workbook UI/staging/preview/commit. Preserve current main Super Admin pause changes."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3056,7 +3064,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
+  "next": "Verify PR117 CI and integration, then Excel4.1e.2 workbook UI/staging/preview/commit. Preserve current main Super Admin pause changes.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3077,32 +3085,25 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "excel4-purchase-closeout-20261021",
-    "round_id": "20261021T1544Z-closeout",
-    "acquired_at": "2026-10-21T15:44:00Z",
-    "expires_at": "2026-10-21T16:04:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
-    "purpose": "Record verified CI, close Excel4.1d.3b.4 and release lease",
-    "released_at": "2026-10-21T15:45:00Z",
-    "pr": 114,
-    "status": "Excel4.1d.3b.4_implemented_ci_passed_render_acceptance_pending",
-    "code_commit": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+    "worker": "excel4-workbook-closeout-20261022",
+    "acquired_at": "2026-10-22T17:43:00Z",
+    "expires_at": "2026-10-22T18:43:00Z",
+    "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
+    "purpose": "Publish whitespace validation and verify workbook milestone",
+    "released_at": "2026-10-22T17:43:00Z",
+    "pr": 117,
+    "status": "workbook_base_ci_passed_whitespace_followup_ci_pending",
+    "code_commit": "1318aaf6ea63001317eb9f9d65c4108a59c30955",
     "checks": {
-      "excel_import": 73,
-      "unit_api": 381,
-      "firestore_emulator": 35,
-      "playwright": 92,
-      "production_audit_vulnerabilities": 0,
-      "types": "passed",
-      "lint_core": "passed",
-      "build": "passed"
+      "targeted_xlsx": 6,
+      "status": "passed"
     },
-    "ci": {
-      "run_id": 39598908302,
-      "commit_sha": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+    "base_ci": {
+      "run_id": 39632722205,
+      "commit_sha": "050faa10d02318ba4dea68751a80d7a8d529d46a",
       "conclusion": "success"
     },
-    "next": "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent."
+    "next": "Verify PR117 CI and integration, then Excel4.1e.2 workbook UI/staging/preview/commit. Preserve current main Super Admin pause changes."
   },
   "acceptance_environment": {
     "provider": "Render",

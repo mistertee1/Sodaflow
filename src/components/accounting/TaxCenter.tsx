@@ -16,7 +16,7 @@ export function TaxCenter() {
   const mounted = useRef(true), working = useRef(false), scope = useRef({org: a.currentOrg?.id, uid: a.currentUser?.uid});
   const current = useRef(scope.current); current.current = {org: a.currentOrg?.id, uid: a.currentUser?.uid};
   useEffect(() => {mounted.current = true; return () => {mounted.current = false;};}, []);
-  const canManage = a.userRole === 'Owner' && a.isActionAllowed('tax:manage');
+  const canManage = a.isActionAllowed('tax:manage');
   const permissionNow = useRef(canManage); permissionNow.current = canManage;
   const accounts = useMemo(() => a.accounts.filter(account => {
     if (!account.is_active) return false;

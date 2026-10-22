@@ -34,7 +34,7 @@ export const test = base.extend<Options & { platform: PlatformHarness }>({
     let abortNext = false, failRefresh = false, didCommit = false, failOverview = false;
     await page.route('**/api/**', async route => {
       const url = new URL(route.request().url()), path = url.pathname.slice(4) + url.search;
-      requests.push(path); expect(route.request().headers().authorization).toBe('Bearer ' + token);
+      requests.push(path); if (path !== '/platform-controls') expect(route.request().headers().authorization).toBe('Bearer ' + token);
       if (failOverview && url.pathname.endsWith('/overview')) { failOverview = false; await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'تعذر إحصاء الشركات مؤقتاً' }) }); return; }
       if (failRefresh && didCommit && /\/companies\/[^/]+$/.test(url.pathname)) { failRefresh = false; await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'تعذر قراءة العرض مؤقتاً' }) }); return; }
       const body = route.request().method() === 'POST' ? route.request().postDataJSON() : undefined;

@@ -99,7 +99,7 @@ test.describe('exclusive account isolation', () => {
     await platform.login(); await expect(page.getByRole('heading', { name: 'تعذر فتح الإدارة' })).toBeVisible();
     await expect(page.getByRole('alert')).toContainText('محصور');
     await expect(page.getByRole('navigation', { name: 'أقسام إدارة المنصة' })).toHaveCount(0);
-    expect(platform.requests.every(path => path === '/super-admin/session')).toBe(true); expect(platform.mutations).toEqual([]);
+    expect(platform.requests).toContain('/platform-controls'); expect(platform.requests).toContain('/super-admin/session'); expect(platform.requests.every(path => ['/platform-controls', '/super-admin/session'].includes(path))).toBe(true); expect(platform.mutations).toEqual([]);
   });
 });
 
@@ -107,7 +107,7 @@ test.describe('company Owner isolation', () => {
   test.use({ platformRole: 'owner' });
   test('Owner cannot open the commercial platform by visiting its URL', async ({ page, platform }) => {
     await platform.login(); await expect(page.getByRole('heading', { name: 'تعذر فتح الإدارة' })).toBeVisible(); await expect(page.getByRole('navigation', { name: 'أقسام إدارة المنصة' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'إعادة التحقق وتحديث جلسة الدخول' }).click(); await expect(page.getByRole('alert')).toContainText('لا يملك صلاحية إدارة المنصة'); expect(platform.requests.every(path => path === '/super-admin/session')).toBe(true);
+    await page.getByRole('button', { name: 'إعادة التحقق وتحديث جلسة الدخول' }).click(); await expect(page.getByRole('alert')).toContainText('لا يملك صلاحية إدارة المنصة'); expect(platform.requests).toContain('/platform-controls'); expect(platform.requests).toContain('/super-admin/session'); expect(platform.requests.every(path => ['/platform-controls', '/super-admin/session'].includes(path))).toBe(true);
   });
 });
 test.describe('unverified identity', () => {

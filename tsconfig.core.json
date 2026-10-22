@@ -51,6 +51,9 @@
     "tests/taxConfiguration.test.ts",
     "tests/serverAuthority.test.ts",
     "tests/serverAuthorityFirestore.test.ts",
-    "tests/platformAdminBootstrap.test.ts"
+    "tests/platformAdminBootstrap.test.ts",
+    "tests/platformPause.test.ts",
+    "tests/platformPauseFirestore.test.ts",
+    "tests/ui/platformPause.spec.ts"
   ]
 }

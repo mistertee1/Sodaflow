@@ -1,8 +1,8 @@
 import { useApp } from '../context/AppContext';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 export function SubscriptionBanner({ onManage }: { onManage: () => void }) {
-  const { currentUser, currentOrg, subscription, counters, memberStatus } = useApp();
-  if (!currentUser || !currentOrg || memberStatus === 'unknown') return null;
+  const { currentUser, currentOrg, subscription, counters, memberStatus, platformControlsEnabled } = useApp();
+  if (!platformControlsEnabled || !currentUser || !currentOrg || memberStatus === 'unknown') return null;
   const status = subscription.effective_status || subscription.status;
   const inactive = currentOrg.status !== 'active' || !['active', 'trial', 'trialing'].includes(status) || Boolean(subscription.subscription_end && Date.parse(subscription.subscription_end) <= Date.now());
   const reached = invoiceQuotaReached(subscription, counters.lifetime_invoice_count || counters.invoice_count, counters.monthly_invoice_count || 0);

@@ -1,3 +1,4 @@
+import { strictPlatformRules } from './helpers/platformRules';
 import { before, after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -34,7 +35,7 @@ const eventCount = async (id: string) => (await db.collection('subscriptionEvent
 
 before(async () => {
   assert.match(process.env.FIRESTORE_EMULATOR_HOST || '', /^(127\.0\.0\.1|localhost):8091$/, 'Only the local demo-sudaflow emulator may receive test writes');
-  env = await initializeTestEnvironment({ projectId: project, firestore: { host: '127.0.0.1', port: 8091, rules: await readFile('firestore.rules', 'utf8') } });
+  env = await initializeTestEnvironment({ projectId: project, firestore: { host: '127.0.0.1', port: 8091, rules: await strictPlatformRules() } });
   await env.clearFirestore();
   app = initializeApp({ projectId: project }, 'super-admin-acceptance'); db = getFirestore(app); store = new FirestoreStore(db); platform = new PlatformBilling(store, db);
   const plans = defaultPlatformPlans(), professional = plans.find(p => p.id === 'Professional')!;

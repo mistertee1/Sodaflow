@@ -91,6 +91,7 @@ interface AppContextType {
   currentOrg: Organization | null;
   userOrgs: Organization[];
   userRole: OrgRole;
+  platformControlsEnabled: boolean;
   memberStatus: 'active' | 'suspended' | 'unknown';
   orgMembers: OrgMember[];
   switchOrganization: (orgId: string) => Promise<void>;
@@ -178,7 +179,7 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 type Snapshot = Awaited<ReturnType<Operations['snapshot']>>;
-const emptySnapshot = (): Snapshot => ({ schema_version: 3, org: null as unknown as Organization, role: 'Viewer', member: undefined, settings: INITIAL_SETTINGS, collections: {}, counters: { ...DEFAULT_ORGANIZATION_COUNTERS }, subscription: createDefaultSubscription(''), exported_at: '' });
+const emptySnapshot = (): Snapshot => ({ schema_version: 3, org: null as unknown as Organization, role: 'Viewer', member: undefined, platform_controls_enabled: true, settings: INITIAL_SETTINGS, collections: {}, counters: { ...DEFAULT_ORGANIZATION_COUNTERS }, subscription: createDefaultSubscription(''), exported_at: '' });
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -337,7 +338,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const run = <T extends Document = Document>(action: string, data: Document, suggestedId?: string): Promise<T> => {
     const epoch = session.current, id = activeOrg.current, activeUser = userRef.current;
     const work = queue.current.then(async () => {
-      if (!activeUser || userRef.current?.uid !== activeUser.uid || !id || epoch !== session.current || !snapshot.current.exported_at || snapshot.current.role === 'Viewer') throw new BusinessError('المؤسسة لم تُحمّل أو صلاحية الكتابة غير متاحة.', 403);
+      if (!activeUser || userRef.current?.uid !== activeUser.uid || !id || epoch !== session.current || !snapshot.current.exported_at || (snapshot.current.platform_controls_enabled !== false && snapshot.current.role === 'Viewer')) throw new BusinessError('المؤسسة لم تُحمّل أو صلاحية الكتابة غير متاحة.', 403);
       setSyncStatus('syncing'); setSyncError(null);
       try {
         const response = await firebaseCommand(id, action, data, suggestedId);
@@ -355,7 +356,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const expenses = rows<Expense>('expenses').filter(e => !e.voided_at), inventoryMovements = rows<InventoryMovement>('inventory_movements');
   const accounts = rows<Account>('accounts'), journalEntries = rows<JournalEntry>('journal_entries');
   const isActionAllowed = (action: ActionType) => {
-    if (!state.org || !state.exported_at || !hasPermission(state.role, action)) return false;
+    if (!state.org || !state.exported_at) return false;
+    if (state.platform_controls_enabled === false) return hasPermission('Owner', action);
+    if (!hasPermission(state.role, action)) return false;
     const status = state.subscription.effective_status || state.subscription.status;
     const active = state.org.status === 'active' && ['active', 'trial', 'trialing'].includes(status) && (!state.subscription.subscription_end || Date.parse(state.subscription.subscription_end) > Date.now());
     const sensitive = ['payables:read', 'audit_logs:view', 'journal:read', 'accounts:read', 'periods:read'];
@@ -447,7 +450,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     },
     confirmOwnerReauthentication: async (method, password) => {
       const id = activeOrg.current, epoch = session.current, uid = userRef.current?.uid;
-      if (!id || snapshot.current.role !== 'Owner' || !isActionAllowed('org:update_settings')) throw new BusinessError('إعادة الفتح متاحة لمالك المؤسسة فقط.', 403);
+      if (!id || (snapshot.current.platform_controls_enabled !== false && snapshot.current.role !== 'Owner') || !isActionAllowed('org:update_settings')) throw new BusinessError('إعادة الفتح متاحة لمالك المؤسسة فقط.', 403);
       if (!uid) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
       await reauthenticateOwner(method, password, uid);
       if (id !== activeOrg.current || epoch !== session.current || uid !== userRef.current?.uid) throw new BusinessError('تغيرت المؤسسة أو الجلسة أثناء التحقق.', 409);
@@ -455,7 +458,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     },
     exportCorrectionDocument: (kind, id) => run<CorrectionDocument>('correctionDocument.export', { kind, id }),
     currentUser, authLoading, syncStatus, syncError, dismissSyncError: () => setSyncError(null), lastSyncedAt,
-    currentOrg: state.org, userOrgs, userRole: state.role, memberStatus: state.exported_at ? state.member?.status || (state.role === 'Owner' ? 'active' : 'unknown') : 'unknown', orgMembers: rows<OrgMember>('members'),
+    currentOrg: state.org, userOrgs, userRole: state.role, platformControlsEnabled: state.platform_controls_enabled !== false, memberStatus: state.exported_at ? state.platform_controls_enabled === false ? 'active' : state.member?.status || (state.role === 'Owner' ? 'active' : 'unknown') : 'unknown', orgMembers: rows<OrgMember>('members'),
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
     creditNotes: rows<Document>('credit_notes'), customerRefunds: rows<Document>('customer_refunds'),
     createCreditNote: data => run('creditNote.create', data), refundCustomer: data => run('customerRefund.create', data),

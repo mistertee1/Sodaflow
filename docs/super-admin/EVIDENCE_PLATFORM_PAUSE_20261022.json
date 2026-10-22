@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "stage": 8,
+  "requestDate": "2026-10-22",
+  "repository": "mistertee1/Sodaflow",
+  "pullRequest": 116,
+  "source": {
+    "base": "706d101ce1b90dde0b767341105d9606fd9bded2",
+    "commit": "109be5c814675f6eadc3421579fec83a9b4db83e",
+    "tree": "e5e19f432ffa0cc28fabd63ed44c2561b8d4c297",
+    "applicationCodeCommit": "a04181d7a548d8151780386ced0a7299036879e8"
+  },
+  "status": "passed",
+  "releasePolicy": {
+    "enabled": false,
+    "source": "src/config/platform-controls.json",
+    "rulesSha256": "3fcd855fcff67da86ab7c3d1512976db859127cd718e76efeefb7c8c470e9ece",
+    "persistedRolesChanged": false,
+    "persistedSubscriptionsMigrated": false,
+    "tenantIsolationRequired": true,
+    "serverOnlyFinancialWrites": true
+  },
+  "ci": {
+    "id": 39751440691,
+    "jobId": 119732724819,
+    "status": "completed",
+    "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440691",
+    "conclusion": "success"
+  },
+  "node22": {
+    "id": 39751440876,
+    "jobId": 119732725553,
+    "status": "completed",
+    "conclusion": "success",
+    "tests": 16,
+    "build": "passed",
+    "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440876",
+    "runtime": "22.23.3"
+  },
+  "attempts": [
+    {
+      "source": "f6990d9aca76539c097c691f54c2b5faa6b50365",
+      "ci": 39749975612,
+      "unitApi": 378,
+      "netlifyRuntime": 16,
+      "firestoreEmulator": {
+        "passed": 48,
+        "failed": 1
+      },
+      "ui": "not_run",
+      "cause": "Paused registration still depended on missing commercial limits; production code fixed and regression added"
+    },
+    {
+      "source": "a04181d7a548d8151780386ced0a7299036879e8",
+      "ci": 39750496282,
+      "unitApi": 379,
+      "netlifyRuntime": 16,
+      "firestoreEmulator": {
+        "passed": 49,
+        "failed": 0
+      },
+      "ui": {
+        "passed": 66,
+        "failed": 2,
+        "newPausedUiPassed": 3
+      },
+      "cause": "Strict isolation network assertions did not include public platform-controls request; adjusted to require exactly public status and authenticated session"
+    }
+  ],
+  "testData": {
+    "emulatorProject": "demo-sudaflow",
+    "memoryStore": true,
+    "productionFinancialWrites": 0
+  },
+  "coordination": {
+    "otherAgentPr": 111,
+    "otherAgentHead": "59115275b10a253170ec37d9a8379a70c57837d4",
+    "branchUntouched": true,
+    "forcePush": false,
+    "mainMerged": false
+  },
+  "production": {
+    "applied": false,
+    "deploymentChanged": false,
+    "credentialsOrClaimsChanged": false,
+    "rulesPublished": false,
+    "migrationPerformed": false,
+    "remaining": "User review/merge and coordinated API/frontend/Rules publication; future Super Admin activation deferred by user"
+  },
+  "completedAt": "2026-10-22T09:02:15.081Z",
+  "checks": {
+    "unitApi": 379,
+    "netlifyLambdaRuntime": 16,
+    "firestoreEmulator": 49,
+    "ui": 68,
+    "superAdminUi": 11,
+    "pausedUi": 3,
+    "failed": 0,
+    "skipped": 0,
+    "productionAuditVulnerabilities": 0,
+    "types": "passed",
+    "core": "passed",
+    "build": "passed",
+    "emulatorProject": "demo-sudaflow",
+    "productionFinancialTestWrites": 0
+  },
+  "runtime": "24.22.0"
+}

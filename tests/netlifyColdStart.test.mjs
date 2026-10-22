@@ -48,9 +48,9 @@ test('the Netlify function rejects anonymous company discovery with JSON401', as
   assert.equal(typeof body.error, 'string');
 });
 
-test('the Netlify function rejects anonymous Super Admin access with JSON401', async () => {
-  const body = await json(await request('/api/super-admin/session'), 401);
-  assert.equal(typeof body.error, 'string');
+test('the paused Netlify function rejects Super Admin access before Firebase initialization', async () => {
+  const body = await json(await request('/api/super-admin/session'), 403);
+  assert.equal(body.code, 'platform_controls_paused');
 });
 
 test('the Netlify function rejects an anonymous financial request without a database write', async () => {
@@ -61,4 +61,16 @@ test('the Netlify function rejects an anonymous financial request without a data
 test('missing runtime credentials produce a structured readiness503 after successful startup', async () => {
   const body = await json(await request('/api/health/ready'), 503);
   assert.equal(body.checks.firebase.code, 'firebase_configuration_missing');
+});
+
+// This is the actual release factory/bundle, not an injected MemoryStore policy.
+test('Netlify exposes the paused release policy without initializing credentials', async () => {
+  assert.deepEqual(await json(await request('/api/platform-controls'), 200), { enabled: false });
+});
+
+test('Netlify blocks every commercial mutation while paused', async () => {
+  for (const path of ['/api/super-admin/companies/synthetic/subscription', '/api/super-admin/plans/Free']) {
+    const body = await json(await request(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }), 403);
+    assert.equal(body.code, 'platform_controls_paused');
+  }
 });

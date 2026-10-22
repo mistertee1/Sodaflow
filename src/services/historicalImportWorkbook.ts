@@ -53,7 +53,8 @@ function cellValue(value:CellValue):string|number{
   if(value===null||value===undefined)return'';
   ensure(typeof value==='string'||typeof value==='number','الصيغ والروابط وكائنات الخلايا غير مقبولة؛ استخدم قيماً ثابتة.');
   if(typeof value==='number'){ensure(Number.isFinite(value),'خلية رقمية غير منتهية.');return value;}
-  ensure(value.length<=2000,'نص الخلية يتجاوز الحد.');return value.trim();
+  ensure(value.length<=2000,'نص الخلية يتجاوز الحد.');
+  ensure(value===value.trim(),'أزل المسافات الطرفية في الملف قبل المراجعة؛ لا يصحح القارئ القيم التاريخية بصمت.');return value;
 }
 function readSheet(sheet:Worksheet,name:SheetName):Row[]{
   const headers=historicalWorkbookHeaders[name];

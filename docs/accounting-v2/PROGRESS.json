@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-ui-20261022",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "historical-ui-audit-20261022",
-    "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-    "acquired_at": "2026-10-22T20:24:00Z",
-    "expires_at": "2026-10-22T21:24:00Z",
-    "purpose": "Fix CI production DOMPurify audit blocker"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -3086,29 +3080,41 @@
         "conclusion": "in_progress"
       },
       "next": "Verify PR119 CI, complete valid-file/stale-context UI coverage, then server staging and reviewed hash-bound commit. Excel4.1e.2 incomplete."
+    },
+    {
+      "worker": "historical-ui-audit-20261022",
+      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+      "acquired_at": "2026-10-22T20:24:00Z",
+      "expires_at": "2026-10-22T21:24:00Z",
+      "purpose": "Fix CI production DOMPurify audit blocker",
+      "released_at": "2026-10-22T20:26:00Z",
+      "pr": 119,
+      "status": "partial_UI_audit_fixed_CI_pending",
+      "code_commit": "6462f8634b3464aa9c2c88be77cc04ea0c8295b4",
+      "ci": {
+        "run_id": 39848463542,
+        "conclusion": "in_progress"
+      },
+      "production_audit_vulnerabilities": 0,
+      "next": "Verify repaired PR119 CI including real UI/emulator; finish valid-file and stale-context coverage then protected server staging and hash-bound approval."
     }
   ],
   "last_lease": {
-    "worker": "historical-ui-20261022",
-    "acquired_at": "2026-10-22T19:32:00Z",
-    "expires_at": "2026-10-22T20:32:00Z",
+    "worker": "historical-ui-audit-20261022",
     "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-    "purpose": "Historical workbook UI local validation first",
-    "released_at": "2026-10-22T19:34:00Z",
+    "acquired_at": "2026-10-22T20:24:00Z",
+    "expires_at": "2026-10-22T21:24:00Z",
+    "purpose": "Fix CI production DOMPurify audit blocker",
+    "released_at": "2026-10-22T20:26:00Z",
     "pr": 119,
-    "status": "Excel4.1e.2a_partial_ui_ci_pending",
-    "code_commit": "11a8705f0fee8c7cfe30df75e9cd2df075348878",
-    "checks": {
-      "types": "passed",
-      "build": "passed",
-      "xlsx": 6,
-      "ui": "local_browser_download_incomplete_CI_pending"
-    },
+    "status": "partial_UI_audit_fixed_CI_pending",
+    "code_commit": "6462f8634b3464aa9c2c88be77cc04ea0c8295b4",
     "ci": {
-      "run_id": 39840990009,
+      "run_id": 39848463542,
       "conclusion": "in_progress"
     },
-    "next": "Verify PR119 CI, complete valid-file/stale-context UI coverage, then server staging and reviewed hash-bound commit. Excel4.1e.2 incomplete."
+    "production_audit_vulnerabilities": 0,
+    "next": "Verify repaired PR119 CI including real UI/emulator; finish valid-file and stale-context coverage then protected server staging and hash-bound approval."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3122,7 +3128,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Verify PR119 CI, complete valid-file/stale-context UI coverage, then server staging and reviewed hash-bound commit. Excel4.1e.2 incomplete.",
+  "next": "Verify repaired PR119 CI including real UI/emulator; finish valid-file and stale-context coverage then protected server staging and hash-bound approval.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3143,26 +3149,21 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "historical-ui-20261022",
-    "acquired_at": "2026-10-22T19:32:00Z",
-    "expires_at": "2026-10-22T20:32:00Z",
+    "worker": "historical-ui-audit-20261022",
     "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-    "purpose": "Historical workbook UI local validation first",
-    "released_at": "2026-10-22T19:34:00Z",
+    "acquired_at": "2026-10-22T20:24:00Z",
+    "expires_at": "2026-10-22T21:24:00Z",
+    "purpose": "Fix CI production DOMPurify audit blocker",
+    "released_at": "2026-10-22T20:26:00Z",
     "pr": 119,
-    "status": "Excel4.1e.2a_partial_ui_ci_pending",
-    "code_commit": "11a8705f0fee8c7cfe30df75e9cd2df075348878",
-    "checks": {
-      "types": "passed",
-      "build": "passed",
-      "xlsx": 6,
-      "ui": "local_browser_download_incomplete_CI_pending"
-    },
+    "status": "partial_UI_audit_fixed_CI_pending",
+    "code_commit": "6462f8634b3464aa9c2c88be77cc04ea0c8295b4",
     "ci": {
-      "run_id": 39840990009,
+      "run_id": 39848463542,
       "conclusion": "in_progress"
     },
-    "next": "Verify PR119 CI, complete valid-file/stale-context UI coverage, then server staging and reviewed hash-bound commit. Excel4.1e.2 incomplete."
+    "production_audit_vulnerabilities": 0,
+    "next": "Verify repaired PR119 CI including real UI/emulator; finish valid-file and stale-context coverage then protected server staging and hash-bound approval."
   },
   "acceptance_environment": {
     "provider": "Render",

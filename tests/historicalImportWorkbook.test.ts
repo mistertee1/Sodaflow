@@ -55,6 +55,7 @@ test('Excel4.1e.1 preserves numeric/date integrity and returns live validation b
     (w:ExcelJS.Workbook)=>{w.getWorksheet('Documents')!.getCell('N2').value='100';},
     (w:ExcelJS.Workbook)=>{w.getWorksheet('Documents')!.getCell('N2').value=100.5;},
     (w:ExcelJS.Workbook)=>{w.getWorksheet('Documents')!.getCell('D2').value='10/01/2026';},
+    (w:ExcelJS.Workbook)=>{w.getWorksheet('Documents')!.getCell('C2').value=' HIST-7 ';},
     (w:ExcelJS.Workbook)=>{w.getWorksheet('Payments')!.getCell('C2').value='2026-01-01';},
   ]){const workbook=await book();mutate(workbook);await assert.rejects(parse(workbook));}
   const result=await parseHistoricalImportWorkbook(await file(await book()),{...context,validation:{...context.validation,periodLockDate:'2026-01-31'}});assert.equal(result.validation.can_stage,false);assert.ok(result.validation.blocking_issues.some(issue=>issue.code==='CLOSED_PERIOD'));

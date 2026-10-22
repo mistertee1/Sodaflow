@@ -11,6 +11,7 @@ import type { HistoricalDocumentEvidence } from './historicalDocumentEvidence';
 import { classifyAccount } from './accountClassification';
 import { costState, validateCostState } from './inventoryCost';
 import { salesTaxSourceQuote } from './salesTaxSources';
+import { buildHistoricalPurchaseWrites } from './historicalPurchaseCommit';
 
 export interface HistoricalImportCommitInput {
   id:string;
@@ -156,9 +157,8 @@ function buildNativeSalesWrites(plan:HistoricalSalesImportPlan,evidenceByRow:Rec
  * Builds a bounded, deterministic posting plan. The caller persists every returned
  * journal and the updated session in the same transaction.
  *
- * Historical invoices and purchases deliberately remain blocked here: their current
- * staged rows do not yet carry enough payment/inventory/COGS/tax evidence to create
- * native subsidiary documents without inventing accounting history.
+ * Native documents require reviewed evidence and a zero-finding proposed state.
+ * Mixed sales/purchase sessions remain blocked until a unified cost replay exists.
  */
 export async function buildHistoricalImportCommit(input:HistoricalImportCommitInput,session:Document,staging:Document,context:HistoricalImportCommitContext){
   assertHistoricalImportCommitPayload(input);
@@ -180,13 +180,16 @@ export async function buildHistoricalImportCommit(input:HistoricalImportCommitIn
   }
   const validation=validateHistoricalImport(rows,context.validation);
   ensure(validation.can_stage&&!validation.accounting_block,'تغيرت بيانات المؤسسة أو ظهرت فروقات؛ أعد التحقق وأنشئ staging جديداً.',409);
-  ensure(!documentRows.some(row=>row.kind==='purchase'),'اعتماد المشتريات التاريخية ينتظر خطة AP والاستلام والتكلفة المتوسطة؛ لا تخلطها مع اعتماد المبيعات.',409);
+  ensure(!(documentRows.some(row=>row.kind==='purchase')&&documentRows.some(row=>row.kind==='invoice')),'افصل المبيعات والمشتريات التاريخية لضمان تسلسل تكلفة المخزون.',409);
+  ensure(!documentRows.some(row=>(row.dimensions||[]).length),'أبعاد المستندات التاريخية تحتاج خطة ترحيل موثقة.',409);
   const baseline=reconcileFinancialData(context.financialData,context.settings,{requireCosting:true});
   ensure(!baseline.length,'الدفاتر الحالية تحتوي فروقات؛ أصلحها قبل اعتماد استيراد تاريخي جديد.',409);
   const invoiceRows=rows.filter(row=>row.kind==='invoice'),evidenceByRow=(staging.document_evidence||{}) as Record<number,HistoricalDocumentEvidence>;
   const existingIds=[...context.financialData.invoices,...context.financialData.payments,...context.financialData.inventory_movements,...context.financialData.journal_entries].map(row=>row.id);
   const salesPlan=invoiceRows.length?buildHistoricalSalesImportPlan({org_id:context.orgId,actor_id:context.actorUid,session_id:session.id,created_at:context.committedAt,rows:invoiceRows,evidence_by_row:evidenceByRow,evidence_context:{customers:context.financialData.customers.map(row=>row.id),suppliers:context.financialData.suppliers.map(row=>row.id),products:context.financialData.products.map(row=>row.id),accounts:context.accounts.filter(account=>account.is_active).map(account=>account.code)},products:context.financialData.products.map(row=>({id:row.id,name:String(row.name||row.id),stock_quantity:Number(row.stock_quantity||0),track_inventory:Boolean(row.track_inventory)})),existing_ids:existingIds,existing_invoice_numbers:context.financialData.invoices.map(row=>row.invoice_number)}):undefined;
   const nativeSales=salesPlan?buildNativeSalesWrites(salesPlan,evidenceByRow,context):undefined;
+  const purchaseRows=rows.filter(row=>row.kind==='purchase');
+  const nativePurchases=purchaseRows.length?buildHistoricalPurchaseWrites(purchaseRows,evidenceByRow,context,session.id):undefined;
 
   const accountIndex=new Map(context.accounts.map(account=>[account.code,account]));
   const line=(code:string,debit:number,credit:number,currency:string,row:HistoricalImportRow)=>{
@@ -209,22 +212,30 @@ export async function buildHistoricalImportCommit(input:HistoricalImportCommitIn
     validateJournal(lines,context.settings);group++;
     postings.push({...journal(`jv-hist-${prefix}-tb-${group}`,context.orgId,context.actorUid,dateOnly(grouped[0].date),'manual',`hist-${prefix}-tb-${group}`,`ميزان مراجعة تاريخي: ${grouped.map(row=>row.reference).join('، ')}`.slice(0,500),lines),created_at:context.committedAt,historical_import_session_id:session.id,historical_import_row_numbers:grouped.map(row=>row.row_number),source_rows_sha256:session.rows_sha256});
   }
-  const allPostings=[...postings,...(salesPlan?.journal_entries||[])];
+  const allPostings=[...postings,...(salesPlan?.journal_entries||[]),...(nativePurchases?.postings||[])];
   ensure(allPostings.length>0&&allPostings.length<=400,'لم ينتج عن الجلسة قيود قابلة للاعتماد أو تجاوز عددها الحد الذري.',409);
   const existingJournalIds=new Set(context.financialData.journal_entries.map(row=>row.id));
   ensure(allPostings.every(entry=>!existingJournalIds.has(entry.id)),'سبق إنشاء قيد من هذه الجلسة؛ راجع سجل الاستيراد.',409);
   const nativeWriteCount=nativeSales?nativeSales.invoices.length+nativeSales.payments.length+nativeSales.inventoryMovements.length+nativeSales.products.length+nativeSales.customers.length+nativeSales.invoiceNumbers.length:0;
-  ensure(allPostings.length+nativeWriteCount<=400,'خطة الاعتماد التاريخي تتجاوز 400 كتابة مالية؛ قسّم الملف إلى دفعات أصغر.',413);
+  const purchaseWriteCount=nativePurchases?nativePurchases.bills.length*2+nativePurchases.payments.length+nativePurchases.movements.length+nativePurchases.products.length+nativePurchases.suppliers.length:0;
+  ensure(allPostings.length+nativeWriteCount+purchaseWriteCount<=400,'خطة الاعتماد التاريخي تتجاوز 400 كتابة مالية؛ قسّم الملف إلى دفعات أصغر.',413);
   const proposed=Object.fromEntries(financialCollections.map(name=>[name,[...(context.financialData[name]||[])]])) as FinancialData;
   proposed.journal_entries.push(...allPostings);
   if(nativeSales){
     proposed.invoices.push(...nativeSales.invoices);proposed.payments.push(...nativeSales.payments);proposed.inventory_movements.push(...nativeSales.inventoryMovements);
     for(const [collection,updates] of [['products',nativeSales.products],['customers',nativeSales.customers]] as const){const ids=new Set(updates.map(row=>row.id));proposed[collection]=[...proposed[collection].filter(row=>!ids.has(row.id)),...updates] as never;}
   }
+  if(nativePurchases){
+    proposed.purchase_bills.push(...nativePurchases.bills);proposed.supplier_payments.push(...nativePurchases.payments);proposed.inventory_movements.push(...nativePurchases.movements);
+    for(const [collection,updates] of [['products',nativePurchases.products],['suppliers',nativePurchases.suppliers]] as const){const ids=new Set(updates.map(row=>row.id));proposed[collection]=[...proposed[collection].filter(row=>!ids.has(row.id)),...updates];}
+  }
   const findings=reconcileFinancialData(proposed,context.settings,{requireCosting:true}),accountingBlock=findings.length>0;
+  ensure(!nativePurchases||!accountingBlock,'خطة الشراء التاريخي لا تطابق AP أو المخزون أو الدفتر؛ لم تحفظ أي كتابة.',409);
   ensure(!nativeSales||!accountingBlock,'خطة المبيعات التاريخية لا تطابق المستندات الفرعية والدفتر؛ لم تُحفظ أي كتابة.',409);
   const reconciliation={checked_at:context.committedAt,findings_count:findings.length,findings:findings.slice(0,100),checks:reconciliationSummary(findings)};
   const updatedSession={...session,status:accountingBlock?'completed_accounting_block':'completed',completion_code:accountingBlock?'IMPORT_COMPLETED_WITH_ACCOUNTING_BLOCK':'IMPORT_COMPLETED',accounting_block:accountingBlock,rows_imported:rows.length,committed_by:context.actorUid,committed_at:context.committedAt,commit_operation_id:context.operationId,commit_journal_ids:allPostings.map(entry=>entry.id),commit_invoice_ids:nativeSales?.invoices.map(row=>row.id)||[],commit_payment_ids:nativeSales?.payments.map(row=>row.id)||[],commit_inventory_movement_ids:nativeSales?.inventoryMovements.map(row=>row.id)||[],reconciliation};
+  Object.assign(updatedSession,{commit_purchase_bill_ids:nativePurchases?.bills.map(row=>row.id)||[],commit_supplier_payment_ids:nativePurchases?.payments.map(row=>row.id)||[]});
+  updatedSession.commit_inventory_movement_ids.push(...(nativePurchases?.movements.map(row=>row.id)||[]));
   ensure(new TextEncoder().encode(JSON.stringify(updatedSession)).length<=620000,'إثبات اعتماد الاستيراد التاريخي يتجاوز الحد.',413);
-  return{session:updatedSession,postings:allPostings,nativeSales,result:{id:session.id,import_type:session.import_type,file_hash:session.file_hash,schema_version:session.schema_version,status:updatedSession.status,completion_code:updatedSession.completion_code,accounting_block:accountingBlock,rows_total:session.rows_total,rows_imported:rows.length,rows_failed:0,journals_created:allPostings.length,invoices_created:nativeSales?.invoices.length||0,payments_created:nativeSales?.payments.length||0,inventory_movements_created:nativeSales?.inventoryMovements.length||0,rows_sha256:session.rows_sha256,validation_context_sha256:session.validation_context_sha256,document_evidence_sha256:session.document_evidence_sha256,reconciliation}};
+  return{session:updatedSession,postings:allPostings,nativeSales,nativePurchases,result:{id:session.id,import_type:session.import_type,file_hash:session.file_hash,schema_version:session.schema_version,status:updatedSession.status,completion_code:updatedSession.completion_code,accounting_block:accountingBlock,rows_total:session.rows_total,rows_imported:rows.length,rows_failed:0,journals_created:allPostings.length,invoices_created:nativeSales?.invoices.length||0,payments_created:nativeSales?.payments.length||0,purchase_bills_created:nativePurchases?.bills.length||0,supplier_payments_created:nativePurchases?.payments.length||0,inventory_movements_created:updatedSession.commit_inventory_movement_ids.length,rows_sha256:session.rows_sha256,validation_context_sha256:session.validation_context_sha256,document_evidence_sha256:session.document_evidence_sha256,reconciliation}};
 }

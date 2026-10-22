@@ -15,7 +15,8 @@ export class Organizations {
   constructor(
     private store: Store,
     private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = resolveSubscription,
-    private now: () => Date = () => new Date()
+    private now: () => Date = () => new Date(),
+    private controlsEnabled = true
   ) {}
   list(actor: Actor) {
     ensure(actor.emailVerified === true && actor.email, 'أكّد بريدك الإلكتروني قبل الوصول إلى المؤسسات.', 403);
@@ -26,7 +27,7 @@ export class Organizations {
       const orgs = [];
       for (const id of ids) {
         const org = await tx.get(`organizations/${identifier(id)}`), member = await tx.get(`organizations/${id}/members/${actor.uid}`);
-        if (org && (org.owner_uid === actor.uid || member?.status === 'active')) orgs.push(org);
+        if (org && (org.owner_uid === actor.uid || member?.status === 'active' || !this.controlsEnabled && member?.status === 'suspended')) orgs.push(org);
       }
       return orgs;
     });
@@ -40,7 +41,7 @@ export class Organizations {
       if (previous) { ensure(previous.owner_uid === actor.uid, 'المؤسسة موجودة لمالك آخر.', 409); return previous; }
       const now = new Date().toISOString();
       const free = await tx.get('plans/Free') || defaultPlatformPlans(now)[0];
-      ensure(free.active, 'التسجيل الجديد متوقف حالياً. تواصل مع إدارة المنصة.', 503);
+      ensure(!this.controlsEnabled || free.active, 'التسجيل الجديد متوقف حالياً. تواصل مع إدارة المنصة.', 503);
       const usagePath = `user_organizations/${actor.uid}/meta/creation`, usage = await tx.get(usagePath);
       ensure(!usage || usage.day !== now.slice(0, 10) || usage.count < 5, 'تم بلوغ حد إنشاء المؤسسات اليومي.', 429);
       const settings = validateSettings({ ...INITIAL_SETTINGS, ...input, business_name: text(name, 200, true), logo_url: input.logo_url || '' });
@@ -64,7 +65,7 @@ export class Organizations {
     ensure(actor.emailVerified && actor.email, 'أكّد بريدك الإلكتروني قبل قبول الدعوة.', 403);
     return this.store.transaction(async tx => {
       const root = `organizations/${orgId}`, org = await tx.get(root), invite = await tx.get(`${root}/invitations/${invitationId}`), old = await tx.get(`${root}/members/${actor.uid}`);
-      ensure(org?.status === 'active' && invite, 'الدعوة غير متاحة.', 404);
+      ensure(org && (!this.controlsEnabled || org.status === 'active') && invite, 'الدعوة غير متاحة.', 404);
       ensure((invite.recipient_email || invite.email).toLowerCase() === actor.email.toLowerCase(), 'الدعوة مخصصة لبريد آخر.', 403);
       if (invite.status === 'accepted' && (invite.accepted_by === actor.uid || old?.status === 'active')) {
         const member = old || await tx.get(`${root}/members/${actor.uid}`);
@@ -72,13 +73,13 @@ export class Organizations {
       }
       ensure(invite.status === 'pending' && new Date(invite.expires_at).getTime() > this.now().getTime(), 'الدعوة مستخدمة أو منتهية الصلاحية.', 409);
       ensure(!old, 'العضوية موجودة؛ يُعدّل دورها عبر الإدارة.', 409);
-      const subscription = await loadSubscription(tx, orgId, org as any, new Date(), this.subscriptionPolicy);
+      const subscription = await loadSubscription(tx, orgId, org as any, this.now(), this.subscriptionPolicy, this.controlsEnabled);
       assertSubscriptionActive(subscription);
       const members = await tx.list(`${root}/members`);
       const counters = await tx.get(`${root}/meta/counters`);
-      ensure(new Set([...members.map(member => member.uid), org.owner_uid]).size < subscription.max_members, 'تم بلوغ حد أعضاء الباقة.');
+      ensure(!this.controlsEnabled || new Set([...members.map(member => member.uid), org.owner_uid]).size < subscription.max_members, 'تم بلوغ حد أعضاء الباقة.');
       ensure(['Admin', 'Accountant', 'Sales', 'Cashier', 'Viewer'].includes(invite.role), 'دور الدعوة غير صالح.');
-      const inviter = await membership(tx, orgId, { uid: invite.inviter_uid, email: '', emailVerified: true });
+      const inviter = await membership(tx, orgId, { uid: invite.inviter_uid, email: '', emailVerified: true }, false, this.controlsEnabled);
       ensure(inviter.role === 'Owner' || inviter.role === 'Admin' && invite.role !== 'Admin', 'صلاحية مُصدر الدعوة لم تعد متاحة.', 403);
       const now = new Date().toISOString();
       const member = { uid: actor.uid, org_id: orgId, email: actor.email, display_name: actor.name || actor.email.split('@')[0], role: invite.role, status: 'active', joined_at: now, invitation_id: invitationId, invited_by: invite.invited_by };

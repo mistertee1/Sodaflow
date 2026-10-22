@@ -38,17 +38,30 @@ function AdminLogin() {
 
 export function SuperAdminPage() {
   const { currentUser, authLoading, logoutUser } = useApp();
+  const [controls, setControls] = useState<boolean | null>(null), [availabilityError, setAvailabilityError] = useState('');
   const [gate, setGate] = useState<'loading' | 'ready' | 'error'>('loading'), [gateError, setGateError] = useState('');
   const [tab, setTab] = useState<Tab>('dashboard'), [revision, setRevision] = useState(0), [plans, setPlans] = useState<PlatformPlan[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null), [planEditor, setPlanEditor] = useState<PlatformPlan | 'new' | null>(null);
   useEffect(() => {
-    let active = true; if (!currentUser) return;
+    const controller = new AbortController(); setAvailabilityError('');
+    void fetch('/api/platform-controls', { cache: 'no-store', signal: controller.signal }).then(async response => {
+      if (!response.ok) throw new Error('تعذر قراءة حالة إدارة المنصة.');
+      const policy = await response.json();
+      if (typeof policy.enabled !== 'boolean') throw new Error('استجابة حالة الإدارة غير صالحة.');
+      if (!controller.signal.aborted) setControls(policy.enabled);
+    }).catch(error => { if (!controller.signal.aborted) setAvailabilityError(errorText(error)); });
+    return () => controller.abort();
+  }, [revision]);
+  useEffect(() => {
+    let active = true; if (!currentUser || controls !== true) return;
     setGate('loading'); setGateError('');
     void currentUser.getIdToken(true).then(() => api('/super-admin/session')).then(() => api<PlatformPlan[]>('/super-admin/plans')).then(data => { if (active) { setPlans(data); setGate('ready'); } }).catch(error => { if (active) { setGateError(errorText(error)); setGate('error'); } });
     return () => { active = false; };
-  }, [currentUser?.uid, revision]);
+  }, [currentUser?.uid, revision, controls]);
   const reload = () => setRevision(value => value + 1);
-  if (authLoading) return <div role="status" className="p-8 text-sf-muted">جاري تهيئة جلسة الإدارة…</div>;
+  if (controls === false) return <main dir="rtl" className="min-h-screen bg-sf-canvas flex items-center justify-center p-6"><section className="sf-card p-6 space-y-4 max-w-lg"><BrandLogo showText /><h1 className="sf-heading-2">لوحة السوبر أدمن متوقفة مؤقتاً</h1><p className="text-sf-muted">يمكنك استخدام وظائف شركتك كاملة. سنعيد تفعيل إدارة المنصة بعد استكمالها.</p><a className="sf-secondary inline-flex" href="/">العودة إلى مساحة الشركة</a></section></main>;
+  if (availabilityError) return <main dir="rtl" className="sf-card m-6 p-6 space-y-4"><ErrorNotice text={availabilityError} /><button className="sf-secondary" onClick={reload}>إعادة المحاولة</button><a href="/" className="sf-secondary">العودة إلى مساحة الشركة</a></main>;
+  if (controls === null || authLoading) return <div role="status" className="p-8 text-sf-muted">جاري تهيئة جلسة الإدارة…</div>;
   if (!currentUser) return <AdminLogin />;
   return <div dir="rtl" className="min-h-screen bg-sf-canvas text-sf-text">
     <header className="bg-sf-surface border-b border-sf-border"><div className="max-w-7xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4"><div className="flex items-center gap-3"><BrandLogo /><div><h1 className="sf-heading-2">إدارة المنصة</h1><p className="text-xs text-sf-muted">SudaFlow · Super Admin</p></div></div><div className="flex flex-wrap items-center gap-3"><span className="text-sm" dir="ltr">{currentUser.email}</span><a className="sf-secondary" href="/">مساحة الشركة</a><button className="sf-secondary flex gap-2 items-center" onClick={() => void logoutUser()}><LogOut />خروج</button></div></div></header>

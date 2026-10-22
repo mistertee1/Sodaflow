@@ -8,7 +8,7 @@ export interface OperationIntentInput { organizationId?: string; fingerprint: st
 
 /** Server-only retry metadata. It confers no permission to execute a mutation. */
 export class OperationIntents {
-  constructor(private store: Store, private now: () => Date = () => new Date()) {}
+  constructor(private store: Store, private now: () => Date = () => new Date(), private controlsEnabled = true) {}
   private validate(input: OperationIntentInput) {
     ensure(input && typeof input === 'object' && !Array.isArray(input), 'بيانات الطلب غير صالحة.');
     ensure(Object.keys(input).every(key => ['organizationId', 'fingerprint', 'operationId'].includes(key)), 'حقول الطلب غير صالحة.');
@@ -22,11 +22,11 @@ export class OperationIntents {
     let prefix: string;
     if (input.organizationId !== undefined) {
       const orgId = identifier(input.organizationId);
-      const { role } = await membership(tx, orgId, actor);
+      const { role } = await membership(tx, orgId, actor, false, this.controlsEnabled);
       ensure(role !== 'Viewer', 'صلاحية الكتابة غير متاحة.', 403);
       prefix = `organizations/${orgId}/operationIntents`;
     } else {
-      await new PlatformBilling(this.store).assertAdmin(actor, tx);
+      await new PlatformBilling(this.store, undefined, this.controlsEnabled).assertAdmin(actor, tx);
       prefix = 'platformOperationIntents';
     }
     const key = createHash('sha256').update(`${actor.uid}:${input.fingerprint}`).digest('hex');

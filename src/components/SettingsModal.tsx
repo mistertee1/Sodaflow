@@ -68,6 +68,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     updateSubscriptionPlan,
     orgMembers,
     userRole,
+    isActionAllowed,
   } = useApp();
 
   const [businessName, setBusinessName] = useState(settings.business_name);
@@ -136,7 +137,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       return;
     }
 
-    if (!currentOrg || userRole === 'Viewer') {
+    if (!currentOrg || !isActionAllowed('org:update_settings')) {
       setLogoUploadError('لم يكتمل تحميل المؤسسة أو لا تتوفر صلاحية تعديلها. أعد المزامنة أولاً ثم ارفع الشعار.');
       return;
     }
@@ -821,7 +822,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </button>
             <button
               type="button"
-              disabled={isSaving || isUploadingLogo || (Boolean(currentUser) && userRole === 'Viewer')}
+              disabled={isSaving || isUploadingLogo || (Boolean(currentUser) && !isActionAllowed('org:update_settings'))}
               onClick={() => handleSave()}
               className="px-6 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-lg text-xs font-semibold shadow-lg shadow-sf-action/20 flex items-center gap-2 transition-colors "
             >

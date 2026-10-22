@@ -1,3 +1,4 @@
+import platformControls from '../src/config/platform-controls.json';
 import 'dotenv/config';
 import { adminServices } from '../server/admin';
 import { FirestoreStore } from '../server/firestoreStore';
@@ -12,7 +13,7 @@ const operationId = identifier(option('--operation-id')), reason = text(option('
 const { auth, db } = adminServices(), user = await auth.getUser(uid);
 ensure(user.emailVerified && !user.disabled, 'Operator account must be enabled and verified.');
 const actor = { uid, email: user.email || '', emailVerified: user.emailVerified, superAdmin: user.customClaims?.superAdmin === true };
-const billing = new PlatformBilling(new FirestoreStore(db), db);
+const billing = new PlatformBilling(new FirestoreStore(db), db, platformControls.enabled);
 await billing.assertAdmin(actor);
 const company = await billing.company(actor, orgId), days = option('--days');
 await billing.updateSubscription(actor, orgId, { action: 'change_plan', expectedRevision: company.billingRevision, operationId, reason, method: 'manual', payload: { planId, ...(days ? { days: Number(days) } : {}) } });

@@ -73,30 +73,32 @@ export function canonical(value: unknown): string {
   if (value && typeof value === 'object') return `{${Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(',')}}`;
   return JSON.stringify(value) ?? 'null';
 }
-export async function membership(tx: Transaction, orgId: string, actor: Actor, allowInactive = false) {
+export async function membership(tx: Transaction, orgId: string, actor: Actor, allowInactive = false, controlsEnabled = true) {
   ensure(actor.emailVerified === true, 'أكّد بريدك الإلكتروني قبل الوصول إلى بيانات المؤسسة.', 403);
   const org = await tx.get(`organizations/${identifier(orgId)}`) as Organization | undefined;
-  ensure(org && (allowInactive || org.status === 'active'), 'المؤسسة غير متاحة أو معلقة.', 403);
+  ensure(org && (!controlsEnabled || allowInactive || org.status === 'active'), 'المؤسسة غير متاحة أو معلقة.', 403);
   const member = await tx.get(`organizations/${orgId}/members/${identifier(actor.uid)}`);
   const role: OrgRole = org.owner_uid === actor.uid ? 'Owner' : member?.role;
-  ensure(org.owner_uid === actor.uid || member?.status === 'active', 'لا توجد عضوية نشطة في هذه المؤسسة.', 403);
+  ensure(org.owner_uid === actor.uid || member?.status === 'active' || !controlsEnabled && member?.status === 'suspended', 'لا توجد عضوية نشطة في هذه المؤسسة.', 403);
   ensure(org.owner_uid === actor.uid || member?.role !== 'Owner', 'صفة المالك تتحدد من مالك المؤسسة الفعلي.', 403);
   ensure(hasPermission(role, 'org:read'), 'صلاحية المؤسسة غير متاحة.', 403);
-  return { org, role, member };
+  // Elevation is request-scoped. The stored role/owner/status are never rewritten.
+  return { org, role: controlsEnabled ? role : 'Owner' as OrgRole, storedRole: role, member };
 }
 const pick = (value: Document, keys: string[]): Document => Object.fromEntries(keys.filter(k => value[k] !== undefined).map(k => [k, value[k]]));
 function monthKey(now: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat('en', { timeZone, year: 'numeric', month: '2-digit' }).formatToParts(now);
   return `${parts.find(p => p.type === 'year')!.value}-${parts.find(p => p.type === 'month')!.value}`;
 }
+/** Strict by default for embedded callers; the production API injects its reviewed release policy. */
 export class Operations {
-  constructor(public store: Store, private now: () => Date = () => new Date(), private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = (_saved, orgId) => createDefaultSubscription(orgId), private verifyCostingSecurity?: () => Promise<void>) {}
+  constructor(public store: Store, private now: () => Date = () => new Date(), private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = (_saved, orgId) => createDefaultSubscription(orgId), private verifyCostingSecurity?: () => Promise<void>, public readonly controlsEnabled = true) {}
   async openingPreview(orgId:string,actor:Actor,request:{input:OpeningInput;terms:OpeningTerms[]}) {
     ensure(request && typeof request==='object' && !Array.isArray(request) && Object.keys(request).every(key=>['input','terms'].includes(key)),'حقول طلب معاينة الأرصدة غير صالحة أو محمية.');
     ensure(request.input && typeof request.input==='object' && !Array.isArray(request.input) && Array.isArray(request.terms) && request.terms.length<=97,'بيانات الأرصدة والاستحقاقات مطلوبة للمعاينة.');
     return this.store.transaction(async tx=>{
-      const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'opening:preview'),'معاينة الأرصدة متاحة للمالك والمحاسب فقط.',403);
-      const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');
+      const {org,role}=await membership(tx, orgId, actor, false, this.controlsEnabled);ensure(hasPermission(role,'opening:preview'),'معاينة الأرصدة متاحة للمالك والمحاسب فقط.',403);
+      const now=this.now(),subscription=await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');
       ensure(org.accounting_version===2,'معاينة الأرصدة تتطلب محاسبة V2.',409);
       if(request.input?.currency_policy==='dual')assertFeature(subscription,'multi_currency');
       if(request.input?.inventory?.length)assertFeature(subscription,'inventory_tracking');
@@ -110,8 +112,8 @@ export class Operations {
   }
   async fxRevaluationPreview(orgId:string,actor:Actor,input:FxRevaluationInput) {
     return this.store.transaction(async tx=>{
-      const {org,role}=await membership(tx,orgId,actor);ensure(['Owner','Accountant'].includes(role),'معاينة إعادة التقييم متاحة للمالك والمحاسب فقط.',403);
-      const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'multi_currency');
+      const {org,role}=await membership(tx, orgId, actor, false, this.controlsEnabled);ensure(['Owner','Accountant'].includes(role),'معاينة إعادة التقييم متاحة للمالك والمحاسب فقط.',403);
+      const now=this.now(),subscription=await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'multi_currency');
       ensure(org.accounting_version===2,'إعادة التقييم تتطلب محاسبة V2.',409);
       if(this.store.authority==='browser')throw new BusinessError('معاينة إعادة التقييم المحمية تتطلب خدمة الخادم.',403,'accounting_server_required');
       if(this.store.authority==='server'){if(!this.verifyCostingSecurity)throw new BusinessError('تعذر تأكيد قواعد حماية V2 المنشورة.',503,'accounting_rules_not_verified');await this.verifyCostingSecurity();}
@@ -122,11 +124,11 @@ export class Operations {
   }
   async fixedAssetPreview(orgId: string, actor: Actor, request: FixedAssetPreviewRequest) {
     return this.store.transaction(async tx => {
-      const {org, role} = await membership(tx, orgId, actor);
+      const {org, role} = await membership(tx, orgId, actor, false, this.controlsEnabled);
       ensure(['Owner', 'Accountant'].includes(role), 'معاينة الأصول متاحة للمالك والمحاسب فقط.', 403);
       ensure(request && ['fixedAsset.register', 'fixedAsset.depreciate'].includes(request.action), 'عملية معاينة الأصل غير صالحة.');
       ensure(hasPermission(role, actions[request.action]), 'صلاحية معاينة الأصل غير متاحة.', 403);
-      const now = this.now(), subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+      const now = this.now(), subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);
       assertSubscriptionActive(subscription); assertFeature(subscription, 'accounting');
       ensure(org.accounting_version === 2, 'الأصول الثابتة تتطلب محاسبة V2.', 409);
       if (this.store.authority === 'browser') throw new BusinessError('معاينة الأصول المحمية تتطلب خدمة الخادم.', 403, 'accounting_server_required');
@@ -146,9 +148,9 @@ export class Operations {
   }
   async advancedReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}) {
     return this.store.transaction(async tx => {
-      const { org, role } = await membership(tx, orgId, actor);
+      const { org, role } = await membership(tx, orgId, actor, false, this.controlsEnabled);
       ensure(hasPermission(role, 'reports:advanced'), 'التقارير المتقدمة غير مسموحة لهذا الدور.', 403);
-      const subscription = await loadSubscription(tx, orgId, org, this.now(), this.subscriptionPolicy);
+      const subscription = await loadSubscription(tx, orgId, org, this.now(), this.subscriptionPolicy, this.controlsEnabled);
       assertSubscriptionActive(subscription); assertFeature(subscription, 'accounting'); assertFeature(subscription, 'advanced_reports');
       const accounts = await tx.list(`organizations/${orgId}/accounts`) as Account[], entries = await tx.list(`organizations/${orgId}/journal_entries`) as JournalEntry[];
       const invoices = await tx.list(`organizations/${orgId}/invoices`) as Invoice[], products = await tx.list(`organizations/${orgId}/products`) as Product[];
@@ -157,9 +159,9 @@ export class Operations {
   }
   async payableReports(orgId: string, actor: Actor, period: { start?: string; end?: string } = {}) {
     return this.store.transaction(async tx => {
-      const { org, role } = await membership(tx, orgId, actor);
+      const { org, role } = await membership(tx, orgId, actor, false, this.controlsEnabled);
       ensure(hasPermission(role, 'payables:read'), 'ليس لديك صلاحية ذمم الموردين.', 403);
-      const subscription = await loadSubscription(tx, orgId, org, this.now(), this.subscriptionPolicy);
+      const subscription = await loadSubscription(tx, orgId, org, this.now(), this.subscriptionPolicy, this.controlsEnabled);
       assertSubscriptionActive(subscription); assertFeature(subscription, 'accounting');
       const root = `organizations/${orgId}`;
       return { organizationId: orgId, generatedAt: this.now().toISOString(), ...await readPayableReport(tx,root,period,this.now().toISOString()) };
@@ -167,9 +169,9 @@ export class Operations {
   }
   async operationalReport<View extends keyof OperationalReportTypes>(orgId: string, actor: Actor, view: View, query: ReportPeriod & Partial<LedgerQuery> = {}): Promise<{ organizationId: string; generatedAt: string; view: View } & OperationalReportTypes[View]> {
     return this.store.transaction(async tx => {
-      const { org, role } = await membership(tx, orgId, actor);
+      const { org, role } = await membership(tx, orgId, actor, false, this.controlsEnabled);
       ensure(operationalPermissions(view).every(permission => hasPermission(role, permission)), 'ليس لديك صلاحية هذا التقرير.', 403);
-      const now = this.now(), subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+      const now = this.now(), subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);
       assertSubscriptionActive(subscription); assertFeature(subscription, 'accounting');
       const report = await readOperationalReport(tx, `organizations/${orgId}`, view, query, merchantDay(now, org.settings.timezone || 'Africa/Khartoum'));
       return { organizationId: orgId, generatedAt: now.toISOString(), view, ...report } as { organizationId: string; generatedAt: string; view: View } & OperationalReportTypes[View];
@@ -177,15 +179,15 @@ export class Operations {
   }
   async cashReconciliationReports(orgId: string, actor: Actor, asOf?: string) {
     return this.store.transaction(async tx => {
-      const { org, role } = await membership(tx, orgId, actor); ensure(operationalPermissions('cash').every(permission=>hasPermission(role,permission)), 'ليس لديك صلاحية المطابقة.',403);
-      const now=this.now(), subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');
+      const { org, role } = await membership(tx, orgId, actor, false, this.controlsEnabled); ensure(operationalPermissions('cash').every(permission=>hasPermission(role,permission)), 'ليس لديك صلاحية المطابقة.',403);
+      const now=this.now(), subscription=await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');
       return {organizationId:orgId,generatedAt:now.toISOString(),...await cashReconciliationReports(tx,`organizations/${orgId}`,asOf||merchantDay(now,org.settings.timezone||'Africa/Khartoum'))};
     });
   }
   async periodReports(orgId:string,actor:Actor,periodId?:string) {
     return this.store.transaction(async tx=>{
-      const {org,role}=await membership(tx,orgId,actor);ensure(hasPermission(role,'periods:read'),'ليس لديك صلاحية الفترات.',403);
-      const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');
+      const {org,role}=await membership(tx, orgId, actor, false, this.controlsEnabled);ensure(hasPermission(role,'periods:read'),'ليس لديك صلاحية الفترات.',403);
+      const now=this.now(),subscription=await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');
       const root=`organizations/${orgId}`,periods=validatePeriods(await tx.list(`${root}/accounting_periods`),orgId);
       await verifyClosedPeriodHashes(periods,await tx.list(`${root}/journal_entries`));
       const period=periodId?periods.find(row=>row.id===identifier(periodId)):undefined;ensure(!periodId||period,'الفترة غير موجودة.',404);
@@ -195,15 +197,15 @@ export class Operations {
   }
   async snapshot(orgId: string, actor: Actor, backup = false) {
     return this.store.transaction(async tx => {
-      const { org, role, member } = await membership(tx, orgId, actor, true);
+      const { org, role, storedRole, member } = await membership(tx, orgId, actor, true, this.controlsEnabled);
       ensure(!backup || hasPermission(role, 'backup:export'), 'تصدير النسخة الاحتياطية غير مسموح.', 403);
       const root = `organizations/${orgId}`;
-      const subscription = await loadSubscription(tx, orgId, org, this.now(), this.subscriptionPolicy);
-      if (backup) { ensure(org.status === 'active', 'المؤسسة متوقفة؛ التصدير المحمي غير متاح.', 403); assertSubscriptionActive(subscription); }
+      const subscription = await loadSubscription(tx, orgId, org, this.now(), this.subscriptionPolicy, this.controlsEnabled);
+      if (backup) { ensure(!this.controlsEnabled || org.status === 'active', 'المؤسسة متوقفة؛ التصدير المحمي غير متاح.', 403); assertSubscriptionActive(subscription); }
       const collections: Record<string, Document[]> = {};
       for (const [name, permission] of Object.entries(readPermissions)) {
         const feature = ['audit_logs','audit_archives'].includes(name) ? 'audit_trail' : name === 'inventory_movements' ? 'inventory_tracking' : ['accounts', 'journal_entries', ...taxConfigurationCollections, ...fixedAssetCollections,...payableCollections, ...cashCollections, ...cashReconciliationCollections, ...salesCorrectionCollections, ...purchaseCorrectionCollections, ...periodCollections, ...openingCollections, ...equityCollections,...fxRevaluationCollections].includes(name) ? 'accounting' : null;
-        const activeSubscription = ['active', 'trial'].includes(subscription.effective_status || subscription.status) && org.status === 'active';
+        const activeSubscription = ['active', 'trial'].includes(subscription.effective_status || subscription.status) && (!this.controlsEnabled || org.status === 'active');
         collections[name] = hasPermission(role, permission) && (backup || !feature || activeSubscription && subscription.features[feature] === true) ? await tx.list(`${root}/${name}`) : [];
       }
       if (backup) { await verifyTaxConfigurationSources(collections,orgId);verifyFixedAssetSources(collections,orgId);verifyFxRevaluationSources(collections,orgId);verifyEquitySources(collections,orgId); await verifyAuditArchives(collections.audit_archives); await verifyClosedPeriodHashes(collections.accounting_periods,collections.journal_entries,collections); if(hasOpeningSources(collections))verifyOpeningSources(collections,orgId); }
@@ -214,7 +216,7 @@ export class Operations {
       counters.monthly_invoice_count = (collections.invoices || []).filter(i => Number.isFinite(new Date(i.created_at).getTime()) && monthKey(new Date(i.created_at), org.settings.timezone || 'Africa/Khartoum') === currentMonth).length;
       const usage = await tx.get(`${root}/meta/usage`);
       counters.lifetime_invoice_count = Math.max(usage?.lifetimeInvoiceCount || 0, counters.invoice_count || 0, collections.invoices.length);
-      return { schema_version: 3, ...(backup ? { audit_schema_version: 1, tax_configuration_schema_version:1, period_schema_version: 1, opening_schema_version:1, owner_equity_schema_version:1,fx_revaluation_schema_version:1,fixed_asset_schema_version:1 } : {}), org, role, member, settings: { ...INITIAL_SETTINGS, ...org.settings }, collections, counters, subscription, exported_at: this.now().toISOString() };
+      return { schema_version: 3, ...(backup ? { audit_schema_version: 1, tax_configuration_schema_version:1, period_schema_version: 1, opening_schema_version:1, owner_equity_schema_version:1,fx_revaluation_schema_version:1,fixed_asset_schema_version:1 } : {}), org, role: storedRole, member, platform_controls_enabled: this.controlsEnabled, settings: { ...INITIAL_SETTINGS, ...org.settings }, collections, counters, subscription, exported_at: this.now().toISOString() };
     });
   }
   async execute(orgId: string, actor: Actor, command: Command): Promise<OperationResult> {
@@ -226,17 +228,17 @@ export class Operations {
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(serialized));
     const fingerprint = Array.from(new Uint8Array(digest), n => n.toString(16).padStart(2, '0')).join('');
     return this.store.transaction(async tx => {
-      const { org, role } = await membership(tx, orgId, actor, command.action === 'subscription.request');
+      const { org, role, storedRole } = await membership(tx, orgId, actor, command.action === 'subscription.request', this.controlsEnabled);
       ensure(actions[command.action] && hasPermission(role, actions[command.action]), 'ليس لديك صلاحية هذه العملية.', 403);
       if (command.action === 'operational.export') {
         ensure(operationalPermissions(command.data.view).every(permission => hasPermission(role, permission)), 'ليس لديك صلاحية هذا التقرير.', 403);
-        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);
         assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
       }
       if (command.action === 'correctionDocument.export') {
         const kind = correctionDocumentKind(command.data.kind);
         ensure(hasPermission(role, kind === 'credit_note' || kind === 'customer_refund' ? 'journal:read' : 'payables:read'), 'ليس لديك صلاحية مستند التصحيح.', 403);
-        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);
         assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
         ensure(org.accounting_version === 2, 'مستند التصحيح يتطلب محاسبة V2.', 409);
       }
@@ -250,14 +252,14 @@ export class Operations {
       };
       if (org.accounting_version === 2 || ['taxConfiguration.create','taxConfiguration.update','fixedAsset.register','fixedAsset.depreciate','fxRevaluation.create','ownerEquity.create', ...openingActions, 'accounting.activate', 'product.cost.establish', 'inventory.receive', 'purchase.create', 'supplierPayment.create', 'cashTransfer.create', 'bankReconciliation.create', 'cashCount.create', 'creditNote.create', 'customerRefund.create', 'purchaseReturn.create', 'supplierRefund.create'].includes(command.action)) await requireCostAuthority();
       if (['bankReconciliation.create', 'cashCount.create'].includes(command.action)) {
-        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);
         assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
         ensure(org.accounting_version === 2, 'المطابقة والجرد يتطلبان محاسبة V2.', 409);
         const account = await tx.get(`${root}/financial_accounts/${identifier(command.data.financial_account_id)}`);
         if (account?.currency === 'USD') assertFeature(entitlement, 'multi_currency');
       }
       if (['creditNote.create', 'customerRefund.create'].includes(command.action)) {
-        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);
         assertSubscriptionActive(entitlement); assertFeature(entitlement, 'accounting');
         assertOpenPeriod(command.data.date, org.settings);
         ensure(org.accounting_version === 2, 'التصحيحات والردود تتطلب محاسبة V2.', 409);
@@ -270,7 +272,7 @@ export class Operations {
         }
       }
       if (['purchaseReturn.create','supplierRefund.create','supplierPayment.create'].includes(command.action)) {
-        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy); assertSubscriptionActive(entitlement); assertFeature(entitlement,'accounting'); assertOpenPeriod(command.action==='supplierPayment.create'?command.data.payment_date:command.data.date,org.settings);
+        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled); assertSubscriptionActive(entitlement); assertFeature(entitlement,'accounting'); assertOpenPeriod(command.action==='supplierPayment.create'?command.data.payment_date:command.data.date,org.settings);
         ensure(org.accounting_version===2,'تصحيحات المورد تتطلب محاسبة V2.',409); if(command.action==='purchaseReturn.create') assertFeature(entitlement,'inventory_tracking');
         const bill=await tx.get(`${root}/purchase_bills/${identifier(command.data.bill_id)}`); if(bill?.currency==='USD'||command.data.currency==='USD') assertFeature(entitlement,'multi_currency');
         if(command.action==='supplierRefund.create') {const account=await tx.get(`${root}/financial_accounts/${identifier(command.data.financial_account_id)}`); if(account?.currency==='USD') assertFeature(entitlement,'multi_currency');}
@@ -280,7 +282,7 @@ export class Operations {
       const guardPeriod=(value:unknown)=>{ assertOpenPeriod(value,org.settings); assertPeriodPosting(periods,value,role,adjusting,command.data.reason); };
       if(command.action.startsWith('period.') || periods.length) await requireCostAuthority();
       if(command.action.startsWith('period.')) {
-        const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');ensure(org.accounting_version===2,'الفترات تتطلب محاسبة V2.',409);
+        const entitlement=await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');ensure(org.accounting_version===2,'الفترات تتطلب محاسبة V2.',409);
         text(command.data.reason,1000,true);if(command.action==='period.reopen')assertRecentOwner(role,actor.authTime,now);
       }
       const dates:unknown[]=[];
@@ -293,11 +295,11 @@ export class Operations {
         if(source)dates.push(command.action==='expense.void'?source.date:source.issue_date);
         if(command.action!=='invoice.update')dates.push(iso);
       }
-      if(dates.length) { const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);for(const date of dates)guardPeriod(date); }
+      if(dates.length) { const entitlement=await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);assertSubscriptionActive(entitlement);for(const date of dates)guardPeriod(date); }
       if(command.action==='settings.update' && org.settings.period_lock_date && Object.prototype.hasOwnProperty.call(command.data.updates||{},'period_lock_date') && (command.data.updates.period_lock_date||'')<org.settings.period_lock_date) {assertRecentOwner(role,actor.authTime,now);text(command.data.reason,1000,true);}
       const isOpening=openingActions.some(action=>action===command.action);
       if(isOpening) {
-        const date=validateOpeningRequest(command.action,command.data),entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);
+        const date=validateOpeningRequest(command.action,command.data),entitlement=await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);
         assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');ensure(org.accounting_version===2,'الأرصدة والتسويات تتطلب محاسبة V2.',409);
         ensure(periods.length>0,'أنشئ فترة محاسبية مفتوحة تغطي تاريخ الأرصدة أولاً.',409);
         ensure(dateOnly(date)===date && date<=merchantDay(now,org.settings.timezone||'Africa/Khartoum'),'حدد تاريخاً صحيحاً لا يقع في المستقبل.',409);guardPeriod(date);
@@ -316,17 +318,17 @@ export class Operations {
       if(isEquity) {
         assertRecentOwner(role,actor.authTime,now,'حركة رأس المال والمسحوبات');
         ensure(org.accounting_version===2,'حركات المالك تتطلب محاسبة V2.',409);
-        const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');
+        const entitlement=await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');
         if(command.data.currency_policy==='dual')assertFeature(entitlement,'multi_currency');
         ensure(periods.length>0,'أنشئ فترة محاسبية أولاً.',409);const date=dateOnly(command.data.date);ensure(date===command.data.date&&date<=merchantDay(now,org.settings.timezone||'Africa/Khartoum'),'تاريخ حركة المالك غير صالح أو مستقبلي.',409);guardPeriod(date);
         const cash=await tx.get(`${root}/financial_accounts/${identifier(command.data.financial_account_id)}`);ensure(cash&&cash.org_id===orgId&&cash.status==='active','حساب حركة المالك غير متاح.',409);
       }
       const isFx=command.action==='fxRevaluation.create';
-      if(isFx){ensure(org.accounting_version===2,'إعادة تقييم العملة تتطلب محاسبة V2.',409);const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');assertFeature(entitlement,'multi_currency');ensure(['Owner','Accountant'].includes(role),'ترحيل إعادة التقييم متاح للمالك والمحاسب فقط.',403);ensure(periods.length>0,'أنشئ فترة محاسبية أولاً.',409);const date=dateOnly(command.data.date);ensure(date===command.data.date&&date<=merchantDay(now,org.settings.timezone||'Africa/Khartoum'),'تاريخ إعادة التقييم غير صالح أو مستقبلي.',409);guardPeriod(date);}
+      if(isFx){ensure(org.accounting_version===2,'إعادة تقييم العملة تتطلب محاسبة V2.',409);const entitlement=await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');assertFeature(entitlement,'multi_currency');ensure(['Owner','Accountant'].includes(role),'ترحيل إعادة التقييم متاح للمالك والمحاسب فقط.',403);ensure(periods.length>0,'أنشئ فترة محاسبية أولاً.',409);const date=dateOnly(command.data.date);ensure(date===command.data.date&&date<=merchantDay(now,org.settings.timezone||'Africa/Khartoum'),'تاريخ إعادة التقييم غير صالح أو مستقبلي.',409);guardPeriod(date);}
       const isFixed=command.action==='fixedAsset.register'||command.action==='fixedAsset.depreciate';
-      if(isFixed){ensure(org.accounting_version===2,'الأصول الثابتة تتطلب محاسبة V2.',409);const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');ensure(['Owner','Accountant'].includes(role),'إدارة الأصول متاحة للمالك والمحاسب فقط.',403);if(command.action==='fixedAsset.depreciate'){ensure(periods.length>0,'أنشئ فترة محاسبية أولاً.',409);const date=dateOnly(command.data.date);ensure(date===command.data.date&&date<=merchantDay(now,org.settings.timezone||'Africa/Khartoum'),'تاريخ الإهلاك غير صالح أو مستقبلي.',409);guardPeriod(date);}}
+      if(isFixed){ensure(org.accounting_version===2,'الأصول الثابتة تتطلب محاسبة V2.',409);const entitlement=await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');ensure(['Owner','Accountant'].includes(role),'إدارة الأصول متاحة للمالك والمحاسب فقط.',403);if(command.action==='fixedAsset.depreciate'){ensure(periods.length>0,'أنشئ فترة محاسبية أولاً.',409);const date=dateOnly(command.data.date);ensure(date===command.data.date&&date<=merchantDay(now,org.settings.timezone||'Africa/Khartoum'),'تاريخ الإهلاك غير صالح أو مستقبلي.',409);guardPeriod(date);}}
       const isTaxConfiguration=command.action==='taxConfiguration.create'||command.action==='taxConfiguration.update';
-      if(isTaxConfiguration){ensure(org.accounting_version===2,'إعدادات الضرائب تتطلب محاسبة V2.',409);ensure(role==='Owner','إعدادات الضرائب متاحة للمالك فقط.',403);assertRecentOwner(role,actor.authTime,now,'تعديل إعدادات الضرائب');text(command.data.reason,1000,true);const entitlement=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');}
+      if(isTaxConfiguration){ensure(org.accounting_version===2,'إعدادات الضرائب تتطلب محاسبة V2.',409);ensure(role==='Owner','إعدادات الضرائب متاحة للمالك فقط.',403);assertRecentOwner(role,actor.authTime,now,'تعديل إعدادات الضرائب');text(command.data.reason,1000,true);const entitlement=await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);assertSubscriptionActive(entitlement);assertFeature(entitlement,'accounting');}
       const operationPath = `${root}/idempotency/${command.operationId}`;
       const previous = await tx.get(operationPath);
       if (previous) {
@@ -355,8 +357,9 @@ export class Operations {
       const settings = { ...INITIAL_SETTINGS, ...org.settings };
       const storedCounters = await tx.get(`${root}/meta/counters`);
       const counters: Document = { ...DEFAULT_ORGANIZATION_COUNTERS, ...storedCounters };
-      const subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+      const subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);
       const plan = subscriptionLimits(subscription);
+      if (!this.controlsEnabled && command.action === 'subscription.request') throw new BusinessError('إدارة الاشتراكات متوقفة مؤقتاً.', 403, 'platform_controls_paused');
       if (command.action === 'subscription.request') ensure(role === 'Owner', 'طلب تغيير الباقة متاح لمالك الشركة فقط.', 403);
       if (command.action !== 'subscription.request') assertSubscriptionActive(subscription);
       if (['product.stock', 'product.cost.establish', 'inventory.receive'].includes(command.action) || command.action === 'product.create' && data.track_inventory) assertFeature(subscription, 'inventory_tracking');
@@ -488,7 +491,7 @@ export class Operations {
           const input = updating ? data.updates : data;
           ensure(input && typeof input === 'object', 'بيانات العميل غير صالحة.');
           ensure(!['balance_sdg', 'balance_usd'].some(k => input[k] !== undefined && input[k] !== (old[k] || 0)), 'أرصدة العملاء تتغير بالسندات والقيود فقط.');
-          if (!updating) { const count = (await tx.list(`${root}/customers`)).length; ensure(count < plan.max_customers, 'تم بلوغ حد العملاء في الباقة.'); counters.customer_count = count; counterAdd('customer_count', 1); }
+          if (!updating) { const count = (await tx.list(`${root}/customers`)).length; ensure(!this.controlsEnabled || count < plan.max_customers, 'تم بلوغ حد العملاء في الباقة.'); counters.customer_count = count; counterAdd('customer_count', 1); }
           result = { ...old, ...pick(input, ['name', 'phone', 'email', 'address', 'preferred_currency', 'notes']), ...(!updating ? stamp : {}), id, balance_sdg: old.balance_sdg || 0, balance_usd: old.balance_usd || 0, updated_at: iso };
           result.phone ??= ''; result.preferred_currency ??= 'SDG';
           text(result.name, 200, true); text(result.phone ?? '', 100);
@@ -511,7 +514,7 @@ export class Operations {
           if (input.stock_quantity !== undefined) money(input.stock_quantity, 6);
           ensure(!updating || input.stock_quantity === undefined || input.stock_quantity === old.stock_quantity, 'تعديل الكمية يتطلب عملية تسوية مخزون.');
           ensure(!updating || input.track_inventory === undefined || input.track_inventory === old.track_inventory, 'غيّر تتبع المخزون عبر إنشاء منتج مستقل للحفاظ على الجرد.');
-          if (!updating) { const count = (await tx.list(`${root}/products`)).length; ensure(count < plan.max_products, 'تم بلوغ حد المنتجات في الباقة.'); counters.product_count = count; counterAdd('product_count', 1); }
+          if (!updating) { const count = (await tx.list(`${root}/products`)).length; ensure(!this.controlsEnabled || count < plan.max_products, 'تم بلوغ حد المنتجات في الباقة.'); counters.product_count = count; counterAdd('product_count', 1); }
           result = { ...old, ...pick(input, ['name', 'description', 'unit', 'price_sdg', 'price_usd', 'tax_rate', 'category', 'is_active', 'min_stock_alert', 'track_inventory']), ...(!updating ? { ...stamp, stock_quantity: input.stock_quantity || 0 } : {}), id };
           text(result.name, 200, true); text(result.unit || '', 50, true);
           money(result.price_sdg, 0); money(result.price_usd, 2); money(result.tax_rate ?? 0, 4); ensure((result.tax_rate || 0) <= 100, 'نسبة الضريبة غير صالحة.');
@@ -820,7 +823,7 @@ export class Operations {
           ensure(['Admin', 'Accountant', 'Sales', 'Cashier', 'Viewer'].includes(data.role) && (role === 'Owner' || data.role !== 'Admin'), 'الدور المطلوب غير مسموح.', 403);
           const members = await tx.list(`${root}/members`), pending = (await tx.list(`${root}/invitations`)).filter(i => i.status === 'pending' && new Date(i.expires_at) > now);
           ensure(!members.some(member => member.email?.toLowerCase() === email) && !pending.some(invitation => (invitation.recipient_email || invitation.email).toLowerCase() === email), 'هذا البريد لديه عضوية أو دعوة قائمة.', 409);
-          ensure(new Set([...members.map(member => member.uid), org.owner_uid]).size + pending.length < plan.max_members, `حد أعضاء الباقة ${plan.max_members} شاملاً المالك والدعوات القائمة. المجانية تسمح بموظف واحد إضافي.`);
+          ensure(!this.controlsEnabled || new Set([...members.map(member => member.uid), org.owner_uid]).size + pending.length < plan.max_members, `حد أعضاء الباقة ${plan.max_members} شاملاً المالك والدعوات القائمة. المجانية تسمح بموظف واحد إضافي.`);
           result = { id: `invite-${command.operationId}`, org_id: orgId, email, recipient_email: email, role: data.role, token: command.operationId, created_at: iso, expires_at: new Date(now.getTime() + 7 * 86400000).toISOString(), invited_by: actor.email, inviter_uid: actor.uid, status: 'pending' }; set(`${root}/invitations/${result.id}`, result); break;
         }
         case 'invitation.revoke': {
@@ -840,8 +843,8 @@ export class Operations {
           ensure(names.reduce((n, key) => n + backup.collections[key].length, 0) <= 350, 'الاستعادة الذرية تدعم 350 سجلاً. استخدم إجراء ترحيل خادمي للنسخ الأكبر.');
           const usage = await tx.get(`${root}/meta/usage`);
           const priorLifetime = Math.max(usage?.lifetimeInvoiceCount || 0, counters.lifetime_invoice_count || 0, counters.invoice_count || 0);
-          ensure(priorLifetime + backup.collections.invoices.length <= (subscription.max_invoices_total ?? 999999), 'عدد فواتير النسخة يتجاوز إجمالي حصة الباقة.', 403);
-          ensure(backup.collections.customers.length <= plan.max_customers && backup.collections.products.length <= plan.max_products, 'النسخة تتجاوز حدود العملاء أو المنتجات في الباقة.', 403);
+          ensure(!this.controlsEnabled || priorLifetime + backup.collections.invoices.length <= (subscription.max_invoices_total ?? 999999), 'عدد فواتير النسخة يتجاوز إجمالي حصة الباقة.', 403);
+          ensure(!this.controlsEnabled || backup.collections.customers.length <= plan.max_customers && backup.collections.products.length <= plan.max_products, 'النسخة تتجاوز حدود العملاء أو المنتجات في الباقة.', 403);
           if (backup.collections.products.some((product: Document) => product.track_inventory) || backup.collections.inventory_movements.length) assertFeature(subscription, 'inventory_tracking');
           if (backup.collections.financial_accounts.some((account: Document) => account.currency === 'USD') || backup.collections.internal_transfers.some((transfer: Document) => transfer.currency === 'USD')) assertFeature(subscription, 'multi_currency');
           if (backup.collections.invoices.some((invoice: Document) => invoice.currency_mode !== 'single_sdg')) assertFeature(subscription, 'multi_currency');
@@ -880,7 +883,7 @@ export class Operations {
           for (const [name, field] of Object.entries({ invoices: 'invoice_count', customers: 'customer_count', products: 'product_count', payments: 'payment_count', expenses: 'expense_count', inventory_movements: 'inventory_movement_count', credit_notes: 'credit_note_count', customer_refunds: 'customer_refund_count', purchase_returns: 'purchase_return_count', supplier_refunds: 'supplier_refund_count' })) counters[field] = backup.collections[name].length;
           const importedMonth = monthKey(now, importedSettings.timezone || org.timezone || 'Africa/Khartoum');
           const importedMonthly = backup.collections.invoices.filter((invoice: Document) => monthKey(new Date(invoice.created_at), importedSettings.timezone || org.timezone || 'Africa/Khartoum') === importedMonth).length;
-          ensure(importedMonthly <= subscription.max_invoices_per_month, 'فواتير الشهر في النسخة تتجاوز حصة الباقة.', 403);
+          ensure(!this.controlsEnabled || importedMonthly <= subscription.max_invoices_per_month, 'فواتير الشهر في النسخة تتجاوز حصة الباقة.', 403);
           counters.lifetime_invoice_count = priorLifetime + backup.collections.invoices.length;
           set(`${root}/meta/usage`, { ...usage, lifetimeInvoiceCount: counters.lifetime_invoice_count, firstActualUseAt: usage?.firstActualUseAt || (backup.collections.invoices.length ? iso : null), updatedAt: iso });
           counters.audit_archive_count = backup.collections.audit_archives.length;
@@ -894,7 +897,7 @@ export class Operations {
       const auditFields=isTaxConfiguration?[...auditKeys,...taxAuditKeys]:auditKeys;
       const previousState = Object.fromEntries(changes.filter(change => beforeValues.has(change.path)).map(change => [change.path, pick(beforeValues.get(change.path)!, auditFields)]));
       const newState = Object.fromEntries(changes.filter(change => !change.path.includes('/meta/')).map(change => [change.path, change.value ? pick(change.value, auditFields) : null]));
-      const audit = {...(isEquity?{reauthentication:{auth_time:actor.authTime},owner_equity_evidence:{event_id:result.id,journal_id:result.journal_id,sequence:result.sequence,quote:result.quote}}:{}), ...(isTaxConfiguration?{reauthentication:{auth_time:actor.authTime},tax_configuration_evidence:{configuration_id:result.id,revision:result.revision,version_id:`${result.id}-r${result.revision}`}}:{}), ...(openingProof?{opening_evidence:openingProof,...(command.action==='opening.commit'?{reauthentication:{auth_time:actor.authTime}}:{})}:{}), ...(command.action==='period.reopen'?{reauthentication:{auth_time:actor.authTime}}:{}), ...(command.action==='settings.update' && Object.prototype.hasOwnProperty.call(data.updates,'period_lock_date')?{legacy_period_lock:{previous:settings.period_lock_date||null,new:data.updates.period_lock_date||null}}:{}), ...(command.action === 'correctionDocument.export' ? { event_type: 'DATA_EXPORT_CREATED', export_metadata: { format: 'pdf', document_type: result.document_type, document_id: result.document.id, source_id: result.source.id, schema_version: result.schema_version, record_count: 1 } } : {}), ...(command.action === 'operational.export' ? { export_metadata: { report: data.view, period: result.period, account_code: data.query?.accountCode || '', currency: data.query?.currency || 'SDG/USD' } } : {}), ...(command.action === 'payables.export' ? { export_metadata: { report: 'payables', period: result.period } } : {}), actor_role: role, reason: isEquity?result.input.reason:isOpening?result.reason:data.reason || '', cost_evidence: costEvidence, previous_state: previousState, new_state: newState, id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
+      const audit = {...(isEquity?{reauthentication:{auth_time:actor.authTime},owner_equity_evidence:{event_id:result.id,journal_id:result.journal_id,sequence:result.sequence,quote:result.quote}}:{}), ...(isTaxConfiguration?{reauthentication:{auth_time:actor.authTime},tax_configuration_evidence:{configuration_id:result.id,revision:result.revision,version_id:`${result.id}-r${result.revision}`}}:{}), ...(openingProof?{opening_evidence:openingProof,...(command.action==='opening.commit'?{reauthentication:{auth_time:actor.authTime}}:{})}:{}), ...(command.action==='period.reopen'?{reauthentication:{auth_time:actor.authTime}}:{}), ...(command.action==='settings.update' && Object.prototype.hasOwnProperty.call(data.updates,'period_lock_date')?{legacy_period_lock:{previous:settings.period_lock_date||null,new:data.updates.period_lock_date||null}}:{}), ...(command.action === 'correctionDocument.export' ? { event_type: 'DATA_EXPORT_CREATED', export_metadata: { format: 'pdf', document_type: result.document_type, document_id: result.document.id, source_id: result.source.id, schema_version: result.schema_version, record_count: 1 } } : {}), ...(command.action === 'operational.export' ? { export_metadata: { report: data.view, period: result.period, account_code: data.query?.accountCode || '', currency: data.query?.currency || 'SDG/USD' } } : {}), ...(command.action === 'payables.export' ? { export_metadata: { report: 'payables', period: result.period } } : {}), actor_role: storedRole, effective_actor_role: role, platform_controls_enabled: this.controlsEnabled, reason: isEquity?result.input.reason:isOpening?result.reason:data.reason || '', cost_evidence: costEvidence, previous_state: previousState, new_state: newState, id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
       if(isOpening)ensure(new TextEncoder().encode(JSON.stringify(audit)).length<=650000,'حجم تدقيق الأرصدة يتجاوز حد المستند.',413);
       tx.set(`${root}/audit_logs/${audit.id}`, audit);
       const visible = changes.filter(c => {

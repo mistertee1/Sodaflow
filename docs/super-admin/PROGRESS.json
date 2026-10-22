@@ -29,7 +29,11 @@
     "scripts/accounting-rules-hash.mjs",
     "tests/*",
     "docs/super-admin/*",
-    "package.json"
+    "package.json",
+    "src/services/firebaseOrganizations.ts",
+    "tsconfig.core.json",
+    "scripts/set-subscription.ts",
+    "tests/helpers/platformRules.ts"
   ],
   "stages": [
     {
@@ -275,8 +279,18 @@
     },
     {
       "id": 8,
-      "status": "in_progress",
-      "scope": "User-requested reversible pause of platform/subscription/RBAC gates; authenticated tenant members retain full company operations while isolation and financial integrity stay enforced"
+      "status": "implemented_acceptance_pending",
+      "scope": "User-requested reversible pause of platform/subscription/RBAC gates; authenticated tenant members retain full company operations while isolation and financial integrity stay enforced",
+      "evidence": {
+        "localUnitApi": 378,
+        "localNetlifyLambdaRuntime": 16,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "emulator": "pending",
+        "ui": "pending",
+        "productionWrites": 0
+      }
     }
   ],
   "productionValidated": false,
@@ -284,9 +298,9 @@
   "unmergedWorkBranch": "codex/netlify-firebase-runtime-fix-20261021",
   "lastSourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
   "sourceStagesComplete": true,
-  "status": "in_progress_user_requested_temporary_pause",
-  "resumeFrom": "review_pr113_then_publish_netlify_and_readiness",
-  "lastReport": "docs/super-admin/REPORT_NETLIFY_RUNTIME_20261021.md",
+  "status": "source_implemented_local_checks_passed_emulator_ui_pending",
+  "resumeFrom": "stage8_paused_controls_ci_acceptance",
+  "lastReport": "docs/super-admin/REPORT_PLATFORM_PAUSE_20261022.md",
   "productionReadiness": {
     "checkedAt": "2026-10-20T06:46:06.669Z",
     "provider": "Render",

@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
+const mode = JSON.parse(readFileSync('src/config/platform-controls.json', 'utf8'));
+if (typeof mode.enabled !== 'boolean' || !readFileSync('firestore.rules', 'utf8').includes(`function platformControlsEnabled() { return ${mode.enabled}; }`)) throw new Error('Platform controls mode differs between API and Rules. Use scripts/platform-controls.mjs.');
 const hash = createHash('sha256').update(readFileSync('firestore.rules', 'utf8').replace(/\r\n/g, '\n').trim()).digest('hex');
 const path = 'server/accountingRulesHash.ts';
 const expected = `/** Generated from reviewed firestore.rules. Run node scripts/accounting-rules-hash.mjs after a rules change. */\nexport const ACCOUNTING_RULES_SHA256 = '${hash}';\n`;

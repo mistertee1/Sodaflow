@@ -58,8 +58,9 @@ export async function openMerchant(page: Page, waitForCompany = true) {
   if (waitForCompany) await expect(page.locator('.sf-app-shell')).toBeVisible();
 }
 
-export const test = base.extend<{ merchant: MerchantHarness }>({
-  merchant: [async ({ page }, use) => {
+export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: boolean }>({
+  controlsEnabled: [true, { option: true }],
+  merchant: [async ({ page, controlsEnabled }, use) => {
     let records = defaultMerchantRecords(), store: MemoryStore | undefined;
     let failWrite = false, abortNext = false, failReads = false, failAck = false, clock = Date.now();
     const actor = { ...guestActor, authTime: Math.floor(clock / 1000) };
@@ -89,13 +90,13 @@ export const test = base.extend<{ merchant: MerchantHarness }>({
     const initializeBackend = async () => {
       if (server) return;
       const org = records[root];
-      records = { ...records, [root]: { ...org, id: guestId, settings: { ...INITIAL_SETTINGS, ...org.settings }, planId: 'Enterprise', subscriptionStatus: 'active', subscriptionStart: '2026-01-01T00:00:00Z', subscriptionEnd: '2099-01-01T00:00:00Z', billingRevision: 1 },
+      records = { ...records, [root]: { ...org, id: guestId, settings: { ...INITIAL_SETTINGS, ...org.settings }, ...(controlsEnabled ? { planId: 'Enterprise', subscriptionStatus: 'active', subscriptionStart: '2026-01-01T00:00:00Z', subscriptionEnd: '2099-01-01T00:00:00Z', billingRevision: 1 } : {}) },
         [`${root}/meta/counters`]: { ...DEFAULT_ORGANIZATION_COUNTERS, ...records[`${root}/meta/counters`] },
         [`user_organizations/${actor.uid}/orgs/${guestId}`]: { org_id: guestId },
       };
       store = new MemoryStore(records, () => { if (failWrite) { failWrite = false; throw Object.assign(Error('Synthetic cloud commit unavailable'), { code: 14 }); } });
       const app = express(); app.use(express.json({ limit: '10mb' }));
-      app.use('/api', createApi({ operations: new Operations(store, () => new Date(clock)), verify: async value => { if (!issued.has(value)) throw Error('Invalid synthetic token'); return { ...actor }; } }));
+      app.use('/api', createApi({ operations: new Operations(store, () => new Date(clock), undefined, undefined, controlsEnabled), verify: async value => { if (!issued.has(value)) throw Error('Invalid synthetic token'); return { ...actor }; } }));
       server = app.listen(0, '127.0.0.1');
       await new Promise<void>((resolve, reject) => { server!.once('listening', resolve); server!.once('error', reject); });
       const address = server.address(); if (!address || typeof address === 'string') throw Error('Missing synthetic API address');
@@ -106,7 +107,7 @@ export const test = base.extend<{ merchant: MerchantHarness }>({
       const request = route.request(), url = new URL(request.url()), path = url.pathname + url.search;
       requests.push(path);
       const bearer = request.headers().authorization || '';
-      expect(issued.has(bearer.replace(/^Bearer /, ''))).toBe(true);
+      if (path !== '/api/platform-controls') expect(issued.has(bearer.replace(/^Bearer /, ''))).toBe(true);
       const body = request.postData(), isBusinessWrite = !!body && !path.startsWith('/api/operation-intents');
       if (isBusinessWrite) mutations.push(JSON.parse(body));
       if (failAck && path === '/api/operation-intents/acknowledge') { failAck = false; await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'تعذر تنظيف نية إعادة المحاولة' }) }); return; }

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "repository": "mistertee1/Sodaflow",
+  "sourceBase": "be2523e6ee0538f874a4d12c0250df3328aa614b",
+  "workBranch": "codex/gulf-currencies-whatsapp-20261022",
+  "activeRunId": "gulf-currencies-20261022",
+  "leaseUntil": "2026-10-22T21:28:24.703669+00:00",
+  "updatedAt": "2026-10-22T19:28:24.703669+00:00",
+  "status": "implemented_waiting_ci_acceptance",
+  "ownedPaths": [
+    "src/lib/currencyCatalog.ts",
+    "src/lib/currency.ts",
+    "src/domain/financial.ts",
+    "src/domain/operations.ts",
+    "src/domain/salesCorrections.ts",
+    "src/domain/returnSources.ts",
+    "src/domain/reconciliation.ts",
+    "src/domain/validation.ts",
+    "src/types/index.ts",
+    "src/data/initialData.ts",
+    "src/context/AppContext.tsx",
+    "src/components/SettingsModal.tsx",
+    "src/components/CustomersView.tsx",
+    "src/components/InvoiceFormModal.tsx",
+    "src/components/PaymentModal.tsx",
+    "src/components/InvoiceDetailModal.tsx",
+    "src/components/InvoiceShareDialog.tsx",
+    "src/components/WhatsAppShareModal.tsx",
+    "src/components/PaymentReceiptModal.tsx",
+    "src/services/pdfService.ts",
+    "tests/regionalCurrencies.test.ts",
+    "tests/ui/regionalCurrencies.spec.ts",
+    "tests/platformPauseFirestore.test.ts",
+    "package.json",
+    "tsconfig.core.json",
+    "docs/currencies/"
+  ],
+  "acceptance": {
+    "localUnitApi": 390,
+    "localRuntime": 16,
+    "localTypes": "passed",
+    "localCoreTypes": "passed",
+    "localBuild": "passed",
+    "firestoreEmulator": "pending_GitHub_Java21",
+    "ui": "pending_GitHub_Chromium"
+  },
+  "productionWrites": 0,
+  "rulesChanged": false,
+  "superAdminControlsEnabled": false,
+  "userMergesOnly": true,
+  "otherAgentsReviewed": {
+    "PR117": "historical workbook service/test/doc only; untouched",
+    "PR111": "older Firebase/Render readiness branch; untouched; no server/api.ts changes here"
+  },
+  "next": [
+    "Wait for actual Firebase Emulator and UI acceptance in CI; fix failures before ready for review.",
+    "Release this lease at handoff; do not merge main or deploy production."
+  ]
+}

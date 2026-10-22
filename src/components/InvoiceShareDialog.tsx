@@ -1,7 +1,8 @@
+import { transactionCurrency, whatsAppUrl } from '../lib/currencyCatalog';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Download, Loader2, Share2, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { formatMoney } from '../lib/currency';
+import { formatMoney, invoicePricingBalance } from '../lib/currency';
 import type { Invoice } from '../types';
 import { Dialog } from './Dialog';
 
@@ -35,7 +36,11 @@ ${reminder ? 'نود تذكيركم بلطف بسداد الفاتورة الم�
 العميل: ${invoice.customer_name}
 التاريخ: ${invoice.issue_date}${invoice.due_date ? `\nتاريخ الاستحقاق: ${invoice.due_date}` : ''}
 
-المبلغ الإجمالي:
+${invoice.pricing ? `إجمالي عملة الفاتورة: *${formatMoney(invoice.pricing.total, invoice.pricing.currency)}*
+المتبقي بعملة الفاتورة: *${formatMoney(invoicePricingBalance(invoice), invoice.pricing.currency)}*
+سعر العملة المجمّد: 1 USD = ${invoice.pricing.units_per_usd} ${invoice.pricing.currency}
+
+` : ''}المبلغ الإجمالي:
 • بالجنيه السوداني: *${formatMoney(invoice.grand_total_sdg, 'SDG', settings)}*
 • بالدولار الأمريكي: *${formatMoney(invoice.grand_total_usd, 'USD', settings)}*
 سعر الصرف المجمّد: 1 USD = ${formatMoney(invoice.exchange_rate_used, 'SDG', settings)}
@@ -53,9 +58,7 @@ ${invoice.payment_instructions || settings.bank_details || 'تطبيق بنكك 
   const shareData: ShareData = { files:file ? [file] : [], text };
   let supportsFiles = false;
   try { supportsFiles = !!file && typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && navigator.canShare({ files:[file] }); } catch { /* Offer manual attachment. */ }
-  const phone = (invoice.customer_phone || '').replace(/[^0-9]/g, '');
-  const normalizedPhone = phone.startsWith('249') ? phone : '249' + (phone.startsWith('0') ? phone.slice(1) : phone);
-  const whatsappUrl = `https://api.whatsapp.com/send?${phone ? `phone=${normalizedPhone}&` : ''}text=${encodeURIComponent(text)}`;
+  const whatsappUrl = whatsAppUrl(invoice.customer_phone, text, invoice.pricing?.currency || transactionCurrency(settings), transactionCurrency(settings));
   const embedded = window.self !== window.top;
   const standaloneUrl = new URL(window.location.href);
   standaloneUrl.searchParams.set('share-invoice', invoice.id);

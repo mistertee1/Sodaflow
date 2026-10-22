@@ -4,7 +4,7 @@ import { createDocumentPdfBlob, downloadDocumentPdf } from './documentPdf';
 import identity from '../styles/sudaflow.tokens.json';
 const printTheme = identity.theme.light;
 import { Invoice, Payment, MerchantSettings } from '../types';
-import { formatMoney, getInvoiceStatusInfo, getPaymentMethodLabel } from '../lib/currency';
+import { formatMoney, invoicePricingBalance, getInvoiceStatusInfo, getPaymentMethodLabel } from '../lib/currency';
 
 /**
  * Creates a clean, dedicated, standalone printable HTML representation
@@ -128,6 +128,11 @@ export const buildInvoiceHtml = (
         </tbody>
       </table>
 
+      ${invoice.pricing ? `<div style="margin:16px 0;padding:12px;border:1px solid ${printTheme.border};border-radius:8px;break-inside:avoid;">
+        <div>إجمالي عملة الفاتورة: <bdi dir="ltr">${formatMoney(invoice.pricing.total, invoice.pricing.currency)}</bdi></div>
+        <div>المتبقي بعملة الفاتورة: <bdi dir="ltr">${formatMoney(invoicePricingBalance(invoice), invoice.pricing.currency)}</bdi></div>
+        <div>سعر عملة الفاتورة المجمّد: <bdi dir="ltr">1 USD = ${invoice.pricing.units_per_usd} ${invoice.pricing.currency}</bdi></div>
+      </div>` : ''}
       <!-- Financial Totals (Dual Currency) -->
       <div style="display: flex; justify-content: space-between; gap: 16px; margin-bottom: 24px;">
         <!-- Notes & Payment Info -->
@@ -439,6 +444,7 @@ export const downloadReceiptPdf = async (
         ${payment.amount_in_other_currency ? `
           <div style="font-size: 14px; color: ${printTheme.textMuted};">(ما يعادل: ${formatMoney(payment.amount_in_other_currency, payment.currency === 'SDG' ? 'USD' : 'SDG', settings)})</div>
         ` : ''}
+        ${payment.currency_rates_used?.[payment.currency] ? `<div>سعر عملة التحصيل المجمّد: <bdi dir="ltr">1 USD = ${payment.currency_rates_used[payment.currency]} ${payment.currency}</bdi></div>` : ''}
         <div>سداداً عن الفاتورة رقم: <strong style="font-family:'IBM Plex Sans Arabic', sans-serif; font-variant-numeric:tabular-nums; direction:ltr; unicode-bidi:isolate;">${payment.invoice_number}</strong></div>
         <div>طريقة السداد: <strong>${getPaymentMethodLabel(payment.payment_method)}</strong></div>
         ${payment.reference_number ? `<div>رقم العملية / الإشعار: <span style="font-family:'IBM Plex Sans Arabic', sans-serif; font-variant-numeric:tabular-nums; direction:ltr; unicode-bidi:isolate;">${payment.reference_number}</span></div>` : ''}
@@ -570,6 +576,11 @@ export function buildInvoiceWhatsAppMessage(
     lines.push(`${idx + 1}. ${item.description} × ${item.quantity} = ${itemTotal}`);
   });
   lines.push(`────────────────────`);
+  if (invoice.pricing) {
+    lines.push(`💰 *إجمالي عملة الفاتورة:* *${formatMoney(invoice.pricing.total, invoice.pricing.currency)}*`);
+    lines.push(`المتبقي بعملة الفاتورة: ${formatMoney(invoicePricingBalance(invoice), invoice.pricing.currency)}`);
+    lines.push(`سعر العملة المجمّد: 1 USD = ${invoice.pricing.units_per_usd} ${invoice.pricing.currency}`);
+  }
   lines.push(`💰 *الإجمالي:* *${totalSdg}* (${totalUsd})`);
 
   if (remainingSdg > 0 || remainingUsd > 0) {

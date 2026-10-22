@@ -54,6 +54,8 @@
     "tests/platformAdminBootstrap.test.ts",
     "tests/platformPause.test.ts",
     "tests/platformPauseFirestore.test.ts",
-    "tests/ui/platformPause.spec.ts"
+    "tests/ui/platformPause.spec.ts",
+    "tests/regionalCurrencies.test.ts",
+    "tests/ui/regionalCurrencies.spec.ts"
   ]
 }

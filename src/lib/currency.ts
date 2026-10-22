@@ -1,5 +1,6 @@
 import BigNumber from 'bignumber.js';
-import { Currency, MerchantSettings } from '../types';
+import { Currency, MerchantSettings, InvoicePricing } from '../types';
+import { currencyDecimals, currencyInfo, isForeignCurrency } from './currencyCatalog';
 
 // Configure BigNumber global precision defaults for financial engine
 BigNumber.config({
@@ -182,24 +183,7 @@ export function safeEqual(a: number | string, b: number | string, decimals: numb
  * Returns the localized or standard currency symbol for any currency code
  */
 export function getCurrencySymbol(currency: Currency | string): string {
-  switch (currency) {
-    case 'SDG':
-      return 'ج.س';
-    case 'USD':
-      return '$';
-    case 'SAR':
-      return 'ر.س';
-    case 'AED':
-      return 'د.إ';
-    case 'EUR':
-      return '€';
-    case 'GBP':
-      return '£';
-    case 'EGP':
-      return 'ج.م';
-    default:
-      return currency || '';
-  }
+  return currencyInfo(currency)?.symbol || currency || '';
 }
 
 /**
@@ -217,7 +201,7 @@ export function formatMoney(
       ? settings?.sdg_decimals ?? DEFAULT_SETTINGS.sdg_decimals
       : currency === 'USD'
       ? settings?.usd_decimals ?? DEFAULT_SETTINGS.usd_decimals
-      : 2;
+      : currencyDecimals(currency);
 
   const rule = settings?.rounding_rule ?? DEFAULT_SETTINGS.rounding_rule;
   const rounded = applyRounding(num, decimals, rule);
@@ -253,35 +237,24 @@ export function convertCurrency(
   }
 
   const rate = validation.rate;
-  const decimals =
-    to === 'SDG'
-      ? settings?.sdg_decimals ?? DEFAULT_SETTINGS.sdg_decimals
-      : to === 'USD'
-      ? settings?.usd_decimals ?? DEFAULT_SETTINGS.usd_decimals
-      : 2;
-
+  const decimals = to === 'SDG' ? settings?.sdg_decimals ?? 0 : to === 'USD' ? settings?.usd_decimals ?? 2 : currencyDecimals(to);
   const rule = settings?.rounding_rule ?? DEFAULT_SETTINGS.rounding_rule;
-
-  if (from === 'USD' && to === 'SDG') {
-    return safeMul(num, rate, decimals, rule);
-  } else if (from === 'SDG' && to === 'USD') {
-    return safeDiv(num, rate, decimals, rule);
-  }
-
-  // Cross conversion where rate represents units of 'to' per 1 unit of 'from'
-  return safeMul(num, rate, decimals, rule);
+  const unitsPerUsd = (currency: string) => {
+    if (currency === 'USD') return new BigNumber(1);
+    if (currency === 'SDG') return new BigNumber(rate);
+    const quote = settings?.currency_rates?.[currency as Currency];
+    if (!isForeignCurrency(currency) || !validateExchangeRate(quote).isValid) throw new Error(`حدد سعر صرف ${currency} لكل دولار أولاً.`);
+    return new BigNumber(quote!);
+  };
+  return applyRounding(new BigNumber(num).dividedBy(unitsPerUsd(from)).times(unitsPerUsd(to)), decimals, rule);
 }
 
 /**
  * Translates currency code to Arabic label
  */
 export function getCurrencyLabel(currency: Currency | string): string {
-  if (currency === 'SDG') return 'جنيه سوداني (ج.س)';
-  if (currency === 'USD') return 'دولار أمريكي ($)';
-  if (currency === 'SAR') return 'ريال سعودي (ر.س)';
-  if (currency === 'AED') return 'درهم إماراتي (د.إ)';
-  if (currency === 'EUR') return 'يورو (€)';
-  return currency || '';
+  const row = currencyInfo(currency);
+  return row ? `${row.name} (${row.symbol})` : currency || '';
 }
 
 /**
@@ -327,6 +300,7 @@ export function getInvoiceStatusInfo(status: string): { label: string; color: st
 }
 
 export interface InvoiceFinancials {
+  pricing?: InvoicePricing;
   subtotal_sdg: number;
   subtotal_usd: number;
   discount_total_sdg: number;
@@ -385,6 +359,34 @@ export function calculateInvoiceFinancials(
   paidUsd: number = 0,
   settings?: Partial<MerchantSettings>
 ): InvoiceFinancials {
+  const foreign = items.find(item => isForeignCurrency(item.currency));
+  if (foreign) {
+    const currency = foreign.currency as Currency;
+    if (!items.every(item => item.currency === currency)) throw new Error('استخدم عملة تسعير واحدة للفاتورة الأجنبية.');
+    if (!validateExchangeRate(exchangeRate).isValid) throw new Error('حدد سعر صرف الجنيه لكل دولار أولاً.');
+    const quote = settings?.currency_rates?.[currency];
+    if (!validateExchangeRate(quote).isValid) throw new Error(`حدد سعر صرف ${currency} لكل دولار أولاً.`);
+    const dp = currencyDecimals(currency), rule = settings?.rounding_rule ?? 'round';
+    let subtotal = 0, tax = 0, sdg = 0, usd = 0, taxSdg = 0, taxUsd = 0;
+    for (const item of items) {
+      const line = calculateLineItem(item.quantity, item.unit_price, item.discount_percent, item.tax_rate, dp, rule);
+      subtotal = safeAdd(subtotal, line.net, dp, rule); tax = safeAdd(tax, line.tax, dp, rule);
+      sdg = safeAdd(sdg, convertCurrency(line.net, currency, 'SDG', exchangeRate, settings), 0, rule);
+      usd = safeAdd(usd, convertCurrency(line.net, currency, 'USD', exchangeRate, settings), 2, rule);
+      taxSdg = safeAdd(taxSdg, convertCurrency(line.tax, currency, 'SDG', exchangeRate, settings), 0, rule);
+      taxUsd = safeAdd(taxUsd, convertCurrency(line.tax, currency, 'USD', exchangeRate, settings), 2, rule);
+    }
+    const discount = discountType === 'percent' ? safePercentage(subtotal, Math.min(100, Math.max(0, discountValue)), dp, rule) : Math.min(subtotal, applyRounding(Math.max(0, discountValue), dp, rule));
+    const discountSdg = Math.min(sdg, convertCurrency(discount, currency, 'SDG', exchangeRate, settings));
+    const discountUsd = Math.min(usd, convertCurrency(discount, currency, 'USD', exchangeRate, settings));
+    const grandSdg = safeAdd(safeSub(sdg, discountSdg, 0, rule), taxSdg, 0, rule);
+    const grandUsd = safeAdd(safeSub(usd, discountUsd, 2, rule), taxUsd, 2, rule);
+    return { subtotal_sdg: sdg, subtotal_usd: usd, discount_total_sdg: discountSdg, discount_total_usd: discountUsd,
+      tax_total_sdg: taxSdg, tax_total_usd: taxUsd, grand_total_sdg: grandSdg, grand_total_usd: grandUsd,
+      remaining_sdg: Math.max(0, safeSub(grandSdg, paidSdg, 0)), remaining_usd: Math.max(0, safeSub(grandUsd, paidUsd, 2)),
+      pricing: { currency, units_per_usd: quote!, subtotal, discount, tax, total: safeAdd(safeSub(subtotal, discount, dp, rule), tax, dp, rule), rounding_rule: rule } };
+  }
+  if (items.some(item => item.currency !== 'SDG' && item.currency !== 'USD')) throw new Error('عملة الفاتورة غير مدعومة.');
   const sdgDecimals = settings?.sdg_decimals ?? DEFAULT_SETTINGS.sdg_decimals;
   const usdDecimals = settings?.usd_decimals ?? DEFAULT_SETTINGS.usd_decimals;
   const rule = settings?.rounding_rule ?? DEFAULT_SETTINGS.rounding_rule;
@@ -470,4 +472,16 @@ export function calculateInvoiceFinancials(
     remaining_sdg: remainingSdg,
     remaining_usd: remainingUsd,
   };
+}
+
+/** Uses the frozen commercial total and settled historical receivable, never current settings. */
+export function invoicePricingBalance(invoice: Pick<import('../types').Invoice, 'pricing' | 'pricing_remaining' | 'grand_total_usd' | 'remaining_usd'>): number {
+  if (!invoice.pricing || !invoice.grand_total_usd) return 0;
+  if (invoice.pricing_remaining !== undefined) return invoice.pricing_remaining;
+  return applyRounding(new BigNumber(invoice.pricing.total).times(Math.max(0, invoice.remaining_usd)).div(invoice.grand_total_usd), currencyDecimals(invoice.pricing.currency));
+}
+
+export function invoicePricingShare(invoice: Pick<import('../types').Invoice, 'pricing' | 'grand_total_usd'>, usd: number): number {
+  if (!invoice.pricing || !invoice.grand_total_usd) return 0;
+  return applyRounding(new BigNumber(invoice.pricing.total).times(usd).div(invoice.grand_total_usd), currencyDecimals(invoice.pricing.currency));
 }

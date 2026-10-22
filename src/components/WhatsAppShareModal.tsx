@@ -1,3 +1,4 @@
+import { normalizeWhatsAppPhone, transactionCurrency, whatsAppUrl } from '../lib/currencyCatalog';
 import React, { useState, useEffect } from 'react';
 import {
   X,
@@ -53,12 +54,7 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
   const publicUrl = generateInvoicePublicUrl(invoice, settings, invoicePayments);
   const messageText = buildInvoiceWhatsAppMessage(invoice, settings, invoicePayments, publicUrl);
 
-  const rawPhone = invoice.customer_phone ? invoice.customer_phone.replace(/[^0-9]/g, '') : '';
-  const formattedPhone = rawPhone
-    ? rawPhone.startsWith('249')
-      ? rawPhone
-      : '249' + (rawPhone.startsWith('0') ? rawPhone.slice(1) : rawPhone)
-    : '';
+  const formattedPhone = normalizeWhatsAppPhone(invoice.customer_phone, invoice.pricing?.currency || transactionCurrency(settings), transactionCurrency(settings));
 
   // Pre-generate PDF file on modal open
   useEffect(() => {
@@ -123,10 +119,7 @@ export const WhatsAppShareModal: React.FC<WhatsAppShareModalProps> = ({
     }
 
     // Launch WhatsApp
-    const encoded = encodeURIComponent(messageText);
-    const whatsappUrl = formattedPhone
-      ? `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encoded}`
-      : `https://api.whatsapp.com/send?text=${encoded}`;
+    const whatsappUrl = whatsAppUrl(invoice.customer_phone, messageText, invoice.pricing?.currency || transactionCurrency(settings), transactionCurrency(settings));
 
     window.open(whatsappUrl, '_blank');
     setStatusMessage('تم فتح واتساب مع التفاصيل ورابط الـ PDF، وتم تنزيل ملف الـ PDF في جهازك لإرفاقه بنقرة واحدة.');

@@ -10,6 +10,7 @@ import { verifyAccountingRulesSource } from '../server/accountingSecurity';
 import { Organizations } from '../server/organizations';
 import { Operations, readPermissions, type Actor } from '../src/domain/operations';
 import { INITIAL_SETTINGS } from '../src/data/initialData';
+import { reconcileFinancialData, type FinancialData } from '../src/domain/reconciliation';
 
 let env: RulesTestEnvironment, app: App, db: Firestore, rules: string;
 const root = 'organizations/paused-org';
@@ -81,4 +82,31 @@ test('real Firestore server transactions allow invoice 101 for Viewer and restor
   assert.deepEqual((await db.doc(path).get()).data(), before);
   const entries = await assertSucceeds(getDocs(collection(client('cloud-viewer'), `${path}/journal_entries`))); assert.equal(entries.size, 1);
   await assert.rejects(new Operations(store).snapshot(org.id, viewer), (error: any) => error.status === 403);
+});
+
+test('real Firestore persists all Gulf/Egypt prices and native receipts once with isolated server-only writes', async () => {
+  const quotes = { SAR: 4, AED: 4, KWD: .3, QAR: 4, BHD: .4, OMR: .4, EGP: 50 };
+  const store = new FirestoreStore(db), actor: Actor = { uid: 'regional-owner', email: 'regional@example.test', emailVerified: true };
+  const org = await new Organizations(store, undefined, undefined, false).create(actor, 'عملات اصطناعية', { ...INITIAL_SETTINGS, default_exchange_rate: 2000, currency_rates: quotes }, 'regional-cloud', true), path = `organizations/${org.id}`;
+  const ops = new Operations(store, undefined, undefined, async () => verifyAccountingRulesSource([{ content: rules }]), false);
+  const run = (action: string, data: Record<string, unknown>, operationId: string, who = actor) => ops.execute(org.id, who, { action, data, operationId });
+  const customer = (await run('customer.create', { name: 'عميل', phone: '01012345678', preferred_currency: 'EGP' }, 'customer')).result;
+  await run('accounting.activate', { reason: 'اختبار اصطناعي' }, 'activate');
+  for (const [currency, quote] of Object.entries(quotes)) {
+    const value = { customer_id: customer.id, issue_date: new Date().toISOString().slice(0, 10), currency_mode: 'single_foreign', exchange_rate_used: 2000, currency_rates_used: { [currency]: quote }, discount_type: 'fixed', discount_value: 0, items: [{ description: 'خدمة', unit: 'ساعة', quantity: 1, unit_price: 3, currency, tax_rate: 0, discount_percent: 0 }] };
+    const first = await run('invoice.create', value, 'sale-' + currency);
+    assert.deepEqual(await run('invoice.create', value, 'sale-' + currency), first);
+    const payment = { invoice_id: first.result.id, amount: 3, currency, currency_rates_used: { [currency]: quote * 2 }, exchange_rate_used: 3000, payment_method: 'cash' };
+    const receipt = await run('payment.create', payment, 'pay-' + currency);
+    assert.deepEqual(await run('payment.create', payment, 'pay-' + currency), receipt);
+    const saved = (await db.doc(`${path}/invoices/${first.result.id}`).get()).data()!;
+    assert.equal(saved.pricing.total, 3); assert.equal(saved.pricing_remaining, 0); assert.equal(saved.status, 'paid');
+    assert.equal(saved.currency_rates_used[currency], quote); assert.equal(saved.customer_phone, '+201012345678');
+  }
+  const snapshot = await new Operations(new FirestoreStore(db), undefined, undefined, undefined, false).snapshot(org.id, actor, true);
+  assert.equal(snapshot.collections.invoices.length, 7); assert.equal(snapshot.collections.payments.length, 7);
+  assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData, snapshot.settings), []);
+  await assertFails(setDoc(doc(client(actor.uid), `${path}/payments/forged`), { amount: 1, currency: 'KWD' }));
+  await assertFails(getDoc(doc(client('foreign'), `${path}/invoices/inv-sale-KWD`)));
+  await assert.rejects(run('customer.create', { name: 'غير مسموح' }, 'foreign', { ...actor, uid: 'foreign' }), (error: any) => error.status === 403);
 });

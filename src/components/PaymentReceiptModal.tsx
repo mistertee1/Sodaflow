@@ -1,3 +1,4 @@
+import { transactionCurrency, whatsAppUrl } from '../lib/currencyCatalog';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Payment } from '../types';
@@ -13,7 +14,7 @@ interface PaymentReceiptModalProps {
 }
 
 export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({ payment, onClose }) => {
-  const { settings } = useApp();
+  const { settings, invoices } = useApp();
   const [isExportingPdf, setIsExportingPdf] = useState(false);
 
   if (!payment) return null;
@@ -67,15 +68,15 @@ export const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({ paymen
       settings
     )})
 
-سدادًا عن الفاتورة رقم: *${payment.invoice_number}*
+${payment.currency_rates_used?.[payment.currency] ? `سعر عملة التحصيل المجمّد: 1 USD = ${payment.currency_rates_used[payment.currency]} ${payment.currency}\n` : ''}سدادًا عن الفاتورة رقم: *${payment.invoice_number}*
 طريقة السداد: ${getPaymentMethodLabel(payment.payment_method)}
 ${payment.reference_number ? `رقم العملية: ${payment.reference_number}` : ''}
 
 شكراً لتعاملكم معنا.
 *${settings.business_name}*`;
 
-    const encoded = encodeURIComponent(text);
-    window.open(`https://api.whatsapp.com/send?text=${encoded}`, '_blank');
+    const invoice = invoices.find(row => row.id === payment.invoice_id);
+    window.open(whatsAppUrl(invoice?.customer_phone, text, payment.currency, transactionCurrency(settings)), '_blank');
   };
 
   return (
@@ -179,6 +180,7 @@ ${payment.reference_number ? `رقم العملية: ${payment.reference_number}
               </div>
             </div>
 
+            {payment.currency_rates_used?.[payment.currency] && <p className="text-xs text-sf-muted">سعر عملة التحصيل المجمّد: <bdi dir="ltr">1 USD = {payment.currency_rates_used[payment.currency]} {payment.currency}</bdi></p>}
             <div className="flex items-center justify-between border-t border-sf-border pt-2">
               <span className="text-sf-muted">وذلك سداداً عن:</span>
               <span className="font-semibold font-mono text-sf-text">فاتورة #{payment.invoice_number}</span>

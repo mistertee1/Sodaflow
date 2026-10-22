@@ -2,7 +2,7 @@ import express from 'express';
 import { createApi } from './api';
 import config from '../firebase-applet-config.json';
 
-export function createApp() {
+export function createApp(storageContext?: string) {
   const app = express();
   app.disable('x-powered-by');
   app.use((_req, res, next) => { res.setHeader('X-Content-Type-Options', 'nosniff'); res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin'); res.setHeader('Permissions-Policy', 'web-share=(self)'); next(); });
@@ -20,7 +20,7 @@ export function createApp() {
       res.send(Buffer.from(await response.arrayBuffer()));
     } catch { res.status(502).send('تعذر الاتصال بخدمة تسجيل الدخول.'); }
   });
-  app.use('/api', createApi());
+  app.use('/api', createApi({ storageContext }));
   app.use((error: { type?: string }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     const status = error.type === 'entity.parse.failed' ? 400 : error.type === 'entity.too.large' ? 413 : 503;
     res.status(status).json({ error: status === 400 ? 'بيانات الطلب غير صالحة.' : status === 413 ? 'الطلب أكبر من الحد المسموح.' : 'تعذر إكمال طلب الخادم.', code: status === 400 ? 'invalid_json' : 'request_failed' });

@@ -156,7 +156,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       await updateSettings({ logo_url: downloadUrl });
       setLogoUrl(downloadUrl);
     } catch (err: any) {
-      console.error('Failed to upload logo to Firebase Storage:', err);
+      console.error('Failed to upload logo to cloud file storage:', err);
       setLogoUploadError(err.message || 'فشل رفع الشعار إلى التخزين السحابي.');
     } finally {
       setIsUploadingLogo(false);

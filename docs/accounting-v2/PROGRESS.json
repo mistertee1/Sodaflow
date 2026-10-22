@@ -7,7 +7,13 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-ui-20261022",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "historical-ui-audit-20261022",
+    "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+    "acquired_at": "2026-10-22T20:24:00Z",
+    "expires_at": "2026-10-22T21:24:00Z",
+    "purpose": "Fix CI production DOMPurify audit blocker"
+  },
   "milestones": [
     {
       "id": "A1",

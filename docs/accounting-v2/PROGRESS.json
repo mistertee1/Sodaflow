@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "historical-approval-receipt-fix-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
-    "acquired_at": "2026-10-23T16:26:09Z",
-    "expires_at": "2026-10-23T16:56:09.000Z",
-    "purpose": "Add tenant binding to historical commit receipt after CI finding"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -3426,27 +3420,51 @@
         "new_ui": "pending_CI"
       },
       "next": "Verify PR126 explicit approval/retry/stale/context-switch CI; repair failures. Then reviewed-contract enforcement and safe session/receipt recovery before full historical migration acceptance. Live Firebase acceptance independent."
+    },
+    {
+      "worker": "historical-approval-receipt-fix-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
+      "acquired_at": "2026-10-23T16:26:09Z",
+      "expires_at": "2026-10-23T16:56:09.000Z",
+      "purpose": "Add tenant binding to historical commit receipt after CI finding",
+      "released_at": "2026-10-23T16:26:46Z",
+      "pr": 126,
+      "status": "approval_receipt_tenant_binding_fixed_CI_pending",
+      "code_commit": "00de5a00092e9b0a1ebe62e8aa40e37d96fcf90f",
+      "checks": {
+        "historical_commit": 18,
+        "types": "passed",
+        "new_ui": "pending_CI"
+      },
+      "previous_ci": {
+        "run_id": 39974838023,
+        "conclusion": "failure",
+        "reason": "Commit receipt omitted org_id required by unchanged UI binding guard; 99 UI passed"
+      },
+      "next": "Verify repaired PR126 CI including commit retry receipt, stale state and tenant switch. Keep unchanged tenant guard and no-duplication assertions; then enforce reviewed contract and session recovery."
     }
   ],
   "last_lease": {
-    "worker": "historical-approval-ui-20261023",
+    "worker": "historical-approval-receipt-fix-20261023",
     "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
-    "acquired_at": "2026-10-23T15:00:16Z",
-    "expires_at": "2026-10-23T15:45:16.000Z",
-    "purpose": "Implement explicit reviewed historical approval UI and retained retry",
-    "released_at": "2026-10-23T15:03:05Z",
+    "acquired_at": "2026-10-23T16:26:09Z",
+    "expires_at": "2026-10-23T16:56:09.000Z",
+    "purpose": "Add tenant binding to historical commit receipt after CI finding",
+    "released_at": "2026-10-23T16:26:46Z",
     "pr": 126,
-    "status": "Excel4.1e.2c.2b.2_explicit_approval_UI_implemented_CI_pending",
-    "code_commit": "acc486f786ee3f772ae5cd34de3ef32c825eccfa",
+    "status": "approval_receipt_tenant_binding_fixed_CI_pending",
+    "code_commit": "00de5a00092e9b0a1ebe62e8aa40e37d96fcf90f",
     "checks": {
+      "historical_commit": 18,
       "types": "passed",
-      "lint_core": "passed",
-      "excel_import": 84,
-      "unit_api": 382,
-      "build": "passed",
       "new_ui": "pending_CI"
     },
-    "next": "Verify PR126 explicit approval/retry/stale/context-switch CI; repair failures. Then reviewed-contract enforcement and safe session/receipt recovery before full historical migration acceptance. Live Firebase acceptance independent."
+    "previous_ci": {
+      "run_id": 39974838023,
+      "conclusion": "failure",
+      "reason": "Commit receipt omitted org_id required by unchanged UI binding guard; 99 UI passed"
+    },
+    "next": "Verify repaired PR126 CI including commit retry receipt, stale state and tenant switch. Keep unchanged tenant guard and no-duplication assertions; then enforce reviewed contract and session recovery."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3460,7 +3478,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Verify PR126 explicit approval/retry/stale/context-switch CI; repair failures. Then reviewed-contract enforcement and safe session/receipt recovery before full historical migration acceptance. Live Firebase acceptance independent.",
+  "next": "Verify repaired PR126 CI including commit retry receipt, stale state and tenant switch. Keep unchanged tenant guard and no-duplication assertions; then enforce reviewed contract and session recovery.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3481,24 +3499,26 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "historical-approval-ui-20261023",
+    "worker": "historical-approval-receipt-fix-20261023",
     "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
-    "acquired_at": "2026-10-23T15:00:16Z",
-    "expires_at": "2026-10-23T15:45:16.000Z",
-    "purpose": "Implement explicit reviewed historical approval UI and retained retry",
-    "released_at": "2026-10-23T15:03:05Z",
+    "acquired_at": "2026-10-23T16:26:09Z",
+    "expires_at": "2026-10-23T16:56:09.000Z",
+    "purpose": "Add tenant binding to historical commit receipt after CI finding",
+    "released_at": "2026-10-23T16:26:46Z",
     "pr": 126,
-    "status": "Excel4.1e.2c.2b.2_explicit_approval_UI_implemented_CI_pending",
-    "code_commit": "acc486f786ee3f772ae5cd34de3ef32c825eccfa",
+    "status": "approval_receipt_tenant_binding_fixed_CI_pending",
+    "code_commit": "00de5a00092e9b0a1ebe62e8aa40e37d96fcf90f",
     "checks": {
+      "historical_commit": 18,
       "types": "passed",
-      "lint_core": "passed",
-      "excel_import": 84,
-      "unit_api": 382,
-      "build": "passed",
       "new_ui": "pending_CI"
     },
-    "next": "Verify PR126 explicit approval/retry/stale/context-switch CI; repair failures. Then reviewed-contract enforcement and safe session/receipt recovery before full historical migration acceptance. Live Firebase acceptance independent."
+    "previous_ci": {
+      "run_id": 39974838023,
+      "conclusion": "failure",
+      "reason": "Commit receipt omitted org_id required by unchanged UI binding guard; 99 UI passed"
+    },
+    "next": "Verify repaired PR126 CI including commit retry receipt, stale state and tenant switch. Keep unchanged tenant guard and no-duplication assertions; then enforce reviewed contract and session recovery."
   },
   "acceptance_environment": {
     "provider": "Render",

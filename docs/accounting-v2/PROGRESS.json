@@ -7,7 +7,14 @@
   "active_milestone": "C",
   "active_branch": "codex/accounting-v2-c5-tax-ui-20261012",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "inventory-workspace-request-20261023",
+    "acquired_at": "2026-10-23T17:36:57.832Z",
+    "expires_at": "2026-10-23T18:40:16.095Z",
+    "purpose": "User request: inventory suppliers, repeat purchases and product costing UI",
+    "branch": "codex/inventory-purchasing-workspace-20261023",
+    "heartbeat_at": "2026-10-23T18:10:16.095Z"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -1442,5 +1449,20 @@
     "invoice_workspace": "Four document/correction tests explicitly enter معاينة المستند from invoice workspace; full UI suite passed.",
     "initial_cloud_outage": "Authoritative organization discovery no longer invents a tenant on outage; errors remain visible and retry through online/focus/30s reconciliation. Two recovery tests passed.",
     "evidence": "GitHub Actions run 38050129713: 271 unit/API, 33 Firestore Emulator, 50 UI, zero production vulnerabilities."
+  },
+  "user_requested_inventory_workspace": {
+    "pr": 135,
+    "branch": "codex/inventory-purchasing-workspace-20261023",
+    "status": "fractional_cost_and_test_teardown_CI_pending",
+    "code_sha": "139141781e2e4b269d1ff8bdf6d4f3546d1cbe39",
+    "ci_run": 39998645523,
+    "upstream_accounting_checkpoint": {
+      "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
+      "pr": 126,
+      "status": "approval_regressions_passed_full_CI_retry_pending"
+    },
+    "note": "This branch builds on product/display-currency integration. Resume Accounting V2 from its latest checkpoint, not this branch's older base milestones.",
+    "previous_code_sha": "c401cec855e17868115e50c8249a0c54f89db964",
+    "conflict_resolution_preference": "accept incoming change"
   }
 }

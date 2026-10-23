@@ -6,10 +6,11 @@ import type { PlatformPlan } from '../types';
 
 export const subscriptionLabels: Record<string, string> = { trial: 'تجريبي', trialing: 'تجريبي', active: 'نشط', suspended: 'معلّق', expired: 'منتهٍ', past_due: 'منتهٍ', cancelled: 'ملغي', canceled: 'ملغي' };
 export function SubscriptionPanel() {
-  const { currentUser, currentOrg, subscription, counters, orgMembers, userRole, updateSubscriptionPlan } = useApp();
+  const { currentUser, currentOrg, subscription, counters, orgMembers, userRole, updateSubscriptionPlan, platformControlsEnabled } = useApp();
   const [plans, setPlans] = useState<PlatformPlan[]>(defaultPlatformPlans), [busy, setBusy] = useState(false), [message, setMessage] = useState(''), [error, setError] = useState(''), [platformAdmin, setPlatformAdmin] = useState(false);
-  useEffect(() => { let active = true; setPlatformAdmin(false); if (currentUser) void currentUser.getIdTokenResult().then(result => { if (active) setPlatformAdmin(result.claims.superAdmin === true); }).catch(() => {}); return () => { active = false; }; }, [currentUser?.uid]);
-  useEffect(() => { let active = true; if (currentUser) void api<PlatformPlan[]>('/plans').then(data => { if (active) setPlans(data); }).catch(() => {}); return () => { active = false; }; }, [currentUser?.uid]);
+  useEffect(() => { let active = true; setPlatformAdmin(false); if (currentUser && platformControlsEnabled) void currentUser.getIdTokenResult().then(result => { if (active) setPlatformAdmin(result.claims.superAdmin === true); }).catch(() => {}); return () => { active = false; }; }, [currentUser?.uid, platformControlsEnabled]);
+  useEffect(() => { let active = true; if (currentUser && platformControlsEnabled) void api<PlatformPlan[]>('/plans').then(data => { if (active) setPlans(data); }).catch(() => {}); return () => { active = false; }; }, [currentUser?.uid, platformControlsEnabled]);
+  if (!platformControlsEnabled) return <section className="sf-card p-4 space-y-2" aria-label="وضع الوصول الكامل"><h3 className="sf-heading-3">كل المزايا متاحة</h3><p className="text-sf-muted">قيود الباقات والأدوار متوقفة مؤقتاً. جميع أعضاء الشركة يمكنهم استخدام وظائفها.</p></section>;
   if (!currentUser) return <section className="sf-card p-4"><h3 className="sf-heading-3">اشتراك الشركة</h3><p className="text-sf-muted mt-2">وضع الضيف تجربة محلية. حساب الشركة المجاني يشمل 100 فاتورة إجمالاً والمالك مع موظف واحد.</p></section>;
   const plan = subscription.plan_definition || plans.find(item => item.id === (subscription.plan_id || subscription.plan)) || plans[0];
   const period = subscription.invoice_period || (subscription.plan === 'Free' ? 'lifetime' : 'month');

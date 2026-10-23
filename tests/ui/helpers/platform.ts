@@ -11,12 +11,14 @@ interface PlatformHarness {
   failCompanyRefresh(): void;
   failOverview(): void;
 }
-type Options = { platformRole: 'admin' | 'owner'; verifiedEmail: boolean };
+type Options = { platformRole: 'admin' | 'owner' | 'other_admin'; verifiedEmail: boolean };
 export const test = base.extend<Options & { platform: PlatformHarness }>({
   platformRole: ['admin', { option: true }], verifiedEmail: [true, { option: true }],
   platform: async ({ page, platformRole, verifiedEmail }, use) => {
     const fixture = await platformFixture();
-    const actor: Actor = { ...(platformRole === 'admin' ? fixture.admin : fixture.owner), emailVerified: verifiedEmail };
+    const actor: Actor = { ...(platformRole === 'owner' ? fixture.owner : fixture.admin), emailVerified: verifiedEmail,
+      ...(platformRole === 'other_admin' ? { uid: 'other-platform-admin', email: 'other-admin@example.test' } : {}) };
+    if (platformRole === 'other_admin') await fixture.store.transaction(async tx => tx.set(`platformAdmins/${actor.uid}`, { uid: actor.uid, active: true, role: 'super_admin' }));
     const backend = await servePlatform(fixture, { session: actor });
     const now = Math.floor(Date.now() / 1000);
     const token = [{ alg: 'RS256', typ: 'JWT' }, { aud: 'sodaflow', iss: 'https://securetoken.google.com/sodaflow', sub: actor.uid, user_id: actor.uid, auth_time: now, iat: now, exp: now + 3600, email: actor.email, email_verified: verifiedEmail, superAdmin: actor.superAdmin === true, firebase: { sign_in_provider: 'password' } }].map(v => Buffer.from(JSON.stringify(v)).toString('base64url')).join('.') + '.test-signature';
@@ -32,14 +34,15 @@ export const test = base.extend<Options & { platform: PlatformHarness }>({
     let abortNext = false, failRefresh = false, didCommit = false, failOverview = false;
     await page.route('**/api/**', async route => {
       const url = new URL(route.request().url()), path = url.pathname.slice(4) + url.search;
-      requests.push(path); expect(route.request().headers().authorization).toBe('Bearer ' + token);
+      requests.push(path); if (path !== '/platform-controls') expect(route.request().headers().authorization).toBe('Bearer ' + token);
       if (failOverview && url.pathname.endsWith('/overview')) { failOverview = false; await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'تعذر إحصاء الشركات مؤقتاً' }) }); return; }
       if (failRefresh && didCommit && /\/companies\/[^/]+$/.test(url.pathname)) { failRefresh = false; await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'تعذر قراءة العرض مؤقتاً' }) }); return; }
       const body = route.request().method() === 'POST' ? route.request().postDataJSON() : undefined;
-      if (body) mutations.push(body);
+      const isBusinessWrite = !!body && !path.startsWith('/operation-intents');
+      if (isBusinessWrite) mutations.push(body);
       const response = await backend.request(path, 'session', body);
-      if (body && response.ok) didCommit = true;
-      if (abortNext && body && response.ok) { abortNext = false; await route.abort('failed'); return; }
+      if (isBusinessWrite && response.ok) didCommit = true;
+      if (abortNext && isBusinessWrite && response.ok) { abortNext = false; await route.abort('failed'); return; }
       await route.fulfill({ status: response.status, contentType: 'application/json', body: await response.text() });
     });
     try { await use({ fixture, requests, mutations,

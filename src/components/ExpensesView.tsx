@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { classifyAccount } from '../domain/accountClassification';
 import { getAccountCodeForPaymentMethod } from '../services/accountingService';
@@ -19,6 +19,7 @@ import {
 import { formatMoney, convertCurrency, safeAdd, validateExchangeRate } from '../lib/currency';
 import {
   uploadOrganizationImage,
+  loadCustomerImageForPreview,
   validateImageFile,
   MAX_IMAGE_FILE_SIZE_BYTES,
 } from '../services/storageService';
@@ -103,7 +104,8 @@ export const ExpensesView: React.FC = () => {
       return;
     }
 
-    const orgId = currentOrg && currentOrg.id !== 'local-guest-org' ? currentOrg.id : `org-${currentUser.uid}`;
+    const orgId = currentOrg?.id;
+    if (!orgId) { setUploadError('انتظر تحميل المؤسسة من السحابة قبل رفع الإيصال.'); return; }
 
     setIsUploadingReceipt(true);
     setUploadProgress(0);
@@ -117,7 +119,7 @@ export const ExpensesView: React.FC = () => {
       });
       setReceiptImage(downloadUrl);
     } catch (err: any) {
-      console.error('Failed to upload receipt to Firebase Storage:', err);
+      console.error('Failed to upload receipt to cloud file storage:', err);
       setUploadError(err.message || 'فشل رفع صورة الإيصال إلى التخزين السحابي.');
     } finally {
       setIsUploadingReceipt(false);
@@ -528,27 +530,38 @@ export const ExpensesView: React.FC = () => {
       )}
 
       {/* Image Preview Modal */}
-      {previewImage && (
-        <Dialog label="صورة الإيصال المرفقة" onClose={() => setPreviewImage(null)} className="fixed inset-0 z-60 bg-sf-canvas/90 backdrop-blur-sm flex items-center justify-center p-4">
+      {previewImage && <ProtectedReceiptPreview reference={previewImage} onClose={() => setPreviewImage(null)} />}
+    </div>
+  );
+};
+
+function ProtectedReceiptPreview({ reference, onClose }: { reference: string; onClose: () => void }) {
+  const [image, setImage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true, revoke = () => {};
+    setImage(null); setError(null);
+    void loadCustomerImageForPreview(reference).then(result => {
+      if (active) { revoke = result.revoke; setImage(result.src); }
+      else result.revoke();
+    }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : 'تعذر تحميل الإيصال.'); });
+    return () => { active = false; revoke(); };
+  }, [reference]);
+  return (
+        <Dialog label="صورة الإيصال المرفقة" onClose={onClose} className="fixed inset-0 z-60 bg-sf-canvas/90 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-sf-surface border border-sf-border rounded-xl p-4 max-w-lg w-full max-h-[90vh] flex flex-col items-center shadow-2xl text-sf-text">
             <div className="w-full flex justify-between items-center mb-2 pb-2 border-b border-sf-border">
               <span className="font-semibold text-xs text-sf-text">صورة الإيصال المرفقة</span>
               <button aria-label="إغلاق النافذة"
-                onClick={() => setPreviewImage(null)}
+                onClick={onClose}
                 className="text-sf-muted hover:text-sf-text p-1 rounded-lg hover:bg-sf-raised"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <img
-              src={previewImage}
-              alt="Receipt"
-              className="max-h-[70vh] object-contain rounded-xl"
-            />
+            {image ? <img src={image} alt="Receipt" className="max-h-[70vh] object-contain rounded-xl" /> : error ? <p role="alert" className="text-sf-danger">{error}</p> : <p role="status">جاري تحميل الإيصال الآمن…</p>}
           </div>
         </Dialog>
-      )}
-    </div>
   );
-};
+}
 

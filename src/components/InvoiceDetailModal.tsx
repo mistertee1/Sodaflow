@@ -16,7 +16,7 @@ import {
   Download,
   Loader2,
 } from 'lucide-react';
-import { formatMoney, getInvoiceStatusInfo, getPaymentMethodLabel } from '../lib/currency';
+import { formatMoney, invoicePricingBalance, getInvoiceStatusInfo, getPaymentMethodLabel } from '../lib/currency';
 import { downloadInvoicePdf, printInvoiceThroughIsolatedIframe } from '../services/pdfService';
 import { Dialog } from './Dialog';
 import { DocumentWatermark } from './DocumentWatermark';
@@ -286,6 +286,11 @@ export const InvoiceDetailModal: React.FC<InvoiceDetailModalProps> = ({
                 </div>
               )}
 
+              {invoice.pricing && <div className="space-y-1 p-3 bg-sf-action/10 rounded-lg" data-testid="invoice-native-summary">
+                <p>إجمالي عملة الفاتورة: <bdi dir="ltr">{formatMoney(invoice.pricing.total, invoice.pricing.currency)}</bdi></p>
+                <p>المتبقي بعملة الفاتورة: <bdi dir="ltr">{formatMoney(invoicePricingBalance(invoice), invoice.pricing.currency)}</bdi></p>
+                <p className="text-xs" dir="ltr">1 USD = {invoice.pricing.units_per_usd} {invoice.pricing.currency}</p>
+              </div>}
               {/* Dual Grand Total Highlight Box */}
               <div className="pt-2 border-t-2 border-sf-border">
                 <span className="text-xs font-semibold text-sf-text block mb-1">

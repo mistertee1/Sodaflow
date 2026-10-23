@@ -1,4 +1,5 @@
 import BigNumber from 'bignumber.js';
+import { isForeignCurrency, isSupportedCurrency } from '../lib/currencyCatalog';
 import type { JournalEntryLine, MerchantSettings } from '../types';
 
 export class BusinessError extends Error {
@@ -52,6 +53,8 @@ export function validateJournal(lines: JournalEntryLine[], settings: Partial<Mer
 export function validateSettings(settings: MerchantSettings): MerchantSettings {
   text(settings.business_name, 200); text(settings.phone, 100); text(settings.invoice_prefix, 40, true);
   ensure(['SDG', 'USD'].includes(settings.primary_currency) && ['SDG', 'USD'].includes(settings.secondary_currency), 'المحاسبة تدعم الجنيه والدولار حالياً.');
+  if (settings.default_transaction_currency !== undefined) ensure(isSupportedCurrency(settings.default_transaction_currency), 'عملة التعامل غير مدعومة.');
+  validateCurrencyRates(settings.currency_rates);
   // The ledger uses whole SDG and USD cents; changing precision would reinterpret historical postings.
   ensure(settings.sdg_decimals === 0 && settings.usd_decimals === 2, 'دقة الدفاتر: الجنيه بدون كسور والدولار بدقتين عشريتين.');
   ensure(['round', 'ceil', 'floor'].includes(settings.rounding_rule), 'قاعدة التقريب غير صالحة.');
@@ -71,4 +74,14 @@ export function validateSettings(settings: MerchantSettings): MerchantSettings {
     if (typeof value === 'string') ensure(value.length <= (key === 'logo_url' ? 300000 : 5000), 'قيمة الإعداد طويلة جداً.');
   }
   return settings;
+}
+
+export function validateCurrencyRates(rates: unknown): asserts rates is import('../types').CurrencyRates | undefined {
+  if (rates === undefined) return;
+  ensure(!!rates && typeof rates === 'object' && !Array.isArray(rates) && Object.keys(rates).length <= 9, 'أسعار العملات غير صالحة.');
+  for (const [code, value] of Object.entries(rates as object)) {
+    ensure(isForeignCurrency(code), 'عملة سعر الصرف غير مدعومة.');
+    money(value, 8, true);
+    ensure(value <= 10_000_000_000, 'سعر العملة يتجاوز الحد المقبول.');
+  }
 }

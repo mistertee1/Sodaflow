@@ -1,9 +1,17 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function platformControlsEnabled() { return false; }
     function signedIn() { return request.auth != null && request.auth.token.get('email_verified', false) == true; }
     function platformAdmin() {
-      return signedIn() && request.auth.token.get('superAdmin', false) == true
+      let policy = get(/databases/$(database)/documents/platformAccess/superAdmin).data;
+      return platformControlsEnabled() && signedIn() && request.auth.token.get('superAdmin', false) == true
+        && policy.active == true && policy.mode == 'exclusive'
+        && policy.uid == request.auth.uid && policy.email is string
+        && policy.email == policy.email.lower()
+        && policy.email.matches('[^\\s@]+@[^\\s@]+[.][^\\s@]+')
+        && request.auth.token.get('email', '') is string
+        && request.auth.token.get('email', '').lower() == policy.email
         && get(/databases/$(database)/documents/platformAdmins/$(request.auth.uid)).data.active == true
         && get(/databases/$(database)/documents/platformAdmins/$(request.auth.uid)).data.role == 'super_admin';
     }
@@ -11,11 +19,11 @@ service cloud.firestore {
     function owner(orgId) { return signedIn() && organization(orgId).owner_uid == request.auth.uid; }
     function member(orgId) {
       return signedIn() && (owner(orgId) || (
-        get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.status == 'active'
+        get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.status in (platformControlsEnabled() ? ['active'] : ['active', 'suspended'])
         && get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.role in ['Admin', 'Accountant', 'Sales', 'Cashier', 'Viewer']));
     }
     function role(orgId, roles) {
-      return member(orgId) && (owner(orgId) && 'Owner' in roles || get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.role in roles);
+      return member(orgId) && (!platformControlsEnabled() || owner(orgId) && 'Owner' in roles || get(/databases/$(database)/documents/organizations/$(orgId)/members/$(request.auth.uid)).data.role in roles);
     }
     // Canonical billing fields are server-only. Missing migration data fails closed for protected reads.
     function subscribed(orgId) {
@@ -27,10 +35,11 @@ service cloud.firestore {
     }
     function feature(orgId, name) {
       let planId = organization(orgId).get('planId', '');
-      return subscribed(orgId) && get(/databases/$(database)/documents/plans/$(planId)).data.features.get(name, false) == true;
+      return !platformControlsEnabled() && member(orgId) || subscribed(orgId) && get(/databases/$(database)/documents/plans/$(planId)).data.features.get(name, false) == true;
     }
-    match /platformAdmins/{uid} { allow read: if signedIn() && request.auth.uid == uid || platformAdmin(); allow write: if false; }
-    match /plans/{planId} { allow read: if signedIn() && (resource.data.active == true || platformAdmin()); allow write: if false; }
+    match /platformAccess/{id} { allow read: if id == 'superAdmin' && platformAdmin(); allow write: if false; }
+    match /platformAdmins/{uid} { allow read: if platformControlsEnabled() && (signedIn() && request.auth.uid == uid || platformAdmin()); allow write: if false; }
+    match /plans/{planId} { allow read: if platformControlsEnabled() && signedIn() && (resource.data.active == true || platformAdmin()); allow write: if false; }
     match /subscriptionEvents/{eventId} { allow read: if platformAdmin(); allow write: if false; }
     match /subscriptionRequests/{orgId} { allow read: if platformAdmin() || role(orgId, ['Owner', 'Admin']); allow write: if false; }
     match /organizations/{orgId} {
@@ -39,7 +48,8 @@ service cloud.firestore {
       match /{collection}/{id} {
         // History stays readable after quota/expiry; commercial admins do not inherit tenant financial access.
         allow read: if member(orgId) && (
-          collection in ['customers', 'products', 'invoices', 'payments', 'settings']
+          !platformControlsEnabled() && collection in ['tax_configurations', 'tax_configuration_versions', 'fixed_assets', 'fixed_asset_depreciations', 'fx_revaluations', 'owner_equity_events', 'opening_batches', 'opening_lots', 'opening_settlements', 'accounting_periods', 'audit_archives', 'purchase_returns', 'supplier_refunds', 'credit_notes', 'customer_refunds', 'bank_reconciliations', 'cash_reconciliations', 'financial_accounts', 'internal_transfers', 'suppliers', 'purchase_bills', 'supplier_payments', 'customers', 'products', 'invoices', 'payments', 'expenses', 'inventory_movements', 'accounts', 'journal_entries', 'members', 'audit_logs', 'invitations']
+          || collection in ['customers', 'products', 'invoices', 'payments', 'settings']
           || collection == 'members' && (id == request.auth.uid || role(orgId, ['Owner', 'Admin', 'Accountant', 'Sales', 'Viewer']))
           || collection == 'expenses' && role(orgId, ['Owner', 'Admin', 'Accountant', 'Viewer'])
           || collection == 'inventory_movements' && feature(orgId, 'inventory_tracking') && role(orgId, ['Owner', 'Admin', 'Accountant', 'Viewer'])

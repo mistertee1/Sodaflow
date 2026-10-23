@@ -13,7 +13,7 @@ export async function readFirebaseOrganizations(db: Firestore, userId: string): 
     const data = { ...org.data(), id: org.id } as Organization;
     if (data.owner_uid === uid) return data;
     const member = await getDocFromServer(doc(db, `organizations/${id}/members/${uid}`));
-    return member.exists() && member.data().status === 'active' ? data : null;
+    return member.exists() && ['active', 'suspended'].includes(member.data().status) ? data : null;
   }));
   const organizations: Organization[] = [];
   for (const result of results) {

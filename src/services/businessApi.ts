@@ -1,7 +1,6 @@
 import { auth } from '../lib/firebase';
 import { canonical, type Command, type OperationResult } from '../domain/operations';
 import { BusinessError } from '../domain/validation';
-import { rememberOperation, forgetOperation } from './pendingOperations';
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const user = auth.currentUser;
@@ -10,8 +9,8 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     const token = await user.getIdToken(forceRefresh);
     if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
     try {
-      return await fetch(`/api${path}`, { ...init, headers: { ...(init.body instanceof Blob ? {} : { 'Content-Type': 'application/json' }), ...init.headers, Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(60000) });
-    } catch { throw new BusinessError('تعذر تأكيد الحفظ من الخادم. أعد المحاولة بنفس البيانات؛ لن تتكرر العملية.', 503); }
+      return await fetch(`/api${path}`, { ...init, cache: 'no-store', headers: { ...(init.body instanceof Blob ? {} : { 'Content-Type': 'application/json' }), ...init.headers, Authorization: `Bearer ${token}` }, signal: init.signal || AbortSignal.timeout(60000) });
+    } catch { throw new BusinessError('تعذر تأكيد الحفظ من الخادم. أعد المحاولة بنفس البيانات بعد عودة الاتصال.', 503); }
   };
   let response = await request();
   if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
@@ -25,21 +24,31 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return result;
 }
 export const operationId = () => crypto.randomUUID();
-/** Persist only a request ID, never secrets or commercial payloads, across uncertain retries. */
+function requireSession(uid: string) {
+  if (auth.currentUser?.uid !== uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
+}
+// Retry IDs are persisted by the Firebase-backed API, including across reloads.
+// Acknowledgement cleanup must never turn a confirmed business commit into a failure.
+async function acknowledgeIntent(intent: { organizationId?: string; fingerprint: string; operationId: string }, uid: string) {
+  try { requireSession(uid); await api('/operation-intents/acknowledge', { method: 'POST', body: JSON.stringify(intent), signal: AbortSignal.timeout(4000) }); }
+  catch { /* The cloud keeps this ID for a safe repeat; never fall back to browser storage. */ }
+}
 export async function platformMutation<T>(path: string, payload: Record<string, unknown>): Promise<T> {
   const uid = auth.currentUser?.uid;
   if (!uid) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical({ path, payload })));
   const digest = Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
   if (auth.currentUser?.uid !== uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
-  const key = `sudaflow_platform_pending_${uid}_${digest}`;
-  const id = rememberOperation(key);
+  const intent = { fingerprint: digest };
+  const { operationId: id } = await api<{ operationId: string }>('/operation-intents', { method: 'POST', body: JSON.stringify(intent) });
+  requireSession(uid);
   try {
     const result = await api<T>(path, { method: 'POST', body: JSON.stringify({ ...payload, operationId: id }) });
-    forgetOperation(key);
+    await acknowledgeIntent({ ...intent, operationId: id }, uid);
+    requireSession(uid);
     return result;
   } catch (error) {
-    if (error instanceof BusinessError && error.status < 500 && error.status !== 429 && error.code !== 'session_changed') forgetOperation(key);
+    if (error instanceof BusinessError && error.status < 500 && error.status !== 429 && error.code !== 'session_changed') await acknowledgeIntent({ ...intent, operationId: id }, uid);
     throw error;
   }
 }
@@ -50,16 +59,18 @@ export async function sendCommand(orgId: string, action: string, data: Record<st
   const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(fingerprint));
   const digest = Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
   if (auth.currentUser?.uid !== uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
-  const key = `sudaflow_pending_${uid}_${orgId}_${digest}`;
-  const id = rememberOperation(key, suggestedId);
-  // Persist the ID before sending so uncertain transport failures can be retried after reload.
+  const intent = { organizationId: orgId, fingerprint: digest };
+  const { operationId: id } = await api<{ operationId: string }>('/operation-intents', { method: 'POST', body: JSON.stringify({ ...intent, operationId: suggestedId }) });
+  requireSession(uid);
+  // Do not send a business write unless its durable cloud retry ID is confirmed.
   const command: Command = { action, operationId: id, data };
   try {
     const response = await api<OperationResult>(`/organizations/${encodeURIComponent(orgId)}/operations`, { method: 'POST', body: JSON.stringify(command) });
-    forgetOperation(key);
+    await acknowledgeIntent({ ...intent, operationId: id }, uid);
+    requireSession(uid);
     return response;
   } catch (error) {
-    if (error instanceof BusinessError && error.status < 500 && error.status !== 429 && error.code !== 'session_changed') forgetOperation(key);
+    if (error instanceof BusinessError && error.status < 500 && error.status !== 429 && error.code !== 'session_changed') await acknowledgeIntent({ ...intent, operationId: id }, uid);
     throw error;
   }
 }

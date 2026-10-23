@@ -1,7 +1,10 @@
 # Frontend and the authenticated operations API deploy together.
 [build]
-  command = "npx vite build"
+  command = "npm run build:netlify"
   publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "24"
 
 [functions]
   directory = "netlify/functions"

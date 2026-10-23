@@ -6,6 +6,7 @@ import { MemoryStore } from '../src/domain/store';
 import { Operations } from '../src/domain/operations';
 import { Organizations } from '../server/organizations';
 import { INITIAL_SETTINGS } from '../src/data/initialData';
+import { netlifyCustomerFileStorage, type CustomerFileStorage } from '../server/customerFiles';
 
 test('HTTP API rejects missing/invalid identity, validates empty journal and never reports write failure as success', async () => {
   const actor = { uid: 'owner', email: 'owner@example.com', emailVerified: true }, store = new MemoryStore();
@@ -19,6 +20,86 @@ test('HTTP API rejects missing/invalid identity, validates empty journal and nev
     const invalid = await fetch(`${base}/accounting/validate-entry`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ lines: [{}, {}] }) }); assert.equal(invalid.status, 400);
     const write = await fetch(`${base}/organizations/${org.id}/operations`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer valid' }, body: JSON.stringify({ action: 'invoice.create', operationId: 'bad', data: { customer_id: 'missing', issue_date: '2026-10-01' } }) }); assert.equal(write.status, 400); assert.ok((await write.json()).error); assert.equal(Object.keys(store.dump()).some(p => p.includes('/invoices/')), false);
     const protectedRead = await fetch(`${base}/organizations/org-foreign/snapshot`, { headers: { Authorization: 'Bearer valid' } }); assert.equal(protectedRead.status, 403);
+  } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
+});
+
+test('customer files: public logos, private receipts, tenant isolation, spoof rejection, and cloud-only metadata', async () => {
+  const owner = { uid: 'files-owner', email: 'files@example.com', emailVerified: true };
+  const outsider = { uid: 'outsider', email: 'outsider@example.com', emailVerified: true };
+  const store = new MemoryStore();
+  const org = await new Organizations(store).create(owner, 'File owner', INITIAL_SETTINGS, 'file-org', true);
+  const blobs = new Map<string, Buffer>();
+  const files: CustomerFileStorage = {
+    put: async (key, bytes) => { assert.equal(blobs.has(key), false); blobs.set(key, Buffer.from(bytes)); },
+    get: async key => blobs.get(key) || null,
+    delete: async key => { blobs.delete(key); },
+  };
+  const app = express(); app.use(express.json());
+  app.use('/api', createApi({ operations: new Operations(store), verify: async token => token === 'owner' ? owner : token === 'outsider' ? outsider : Promise.reject(new Error('invalid')), fileStorage: files }));
+  const server = app.listen(0, '127.0.0.1'); await new Promise<void>(resolve => server.once('listening', resolve));
+  const base = `http://127.0.0.1:${(server.address() as { port: number }).port}/api`;
+  const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 1, 2, 3]);
+  const send = (folder: string, bytes: Buffer, contentType: string) => fetch(`${base}/organizations/${org.id}/images/${folder}`, { method: 'POST', headers: { Authorization: 'Bearer owner', 'Content-Type': contentType }, body: bytes });
+  try {
+    const logo = await send('logos', png, 'image/png');
+    assert.equal(logo.status, 200);
+    const publicLogo = await logo.json();
+    assert.match(publicLogo.url, /^\/api\/public\/logos\//);
+    const image = await fetch(`${base.replace(/\/api$/, '')}${publicLogo.url}`);
+    assert.equal(image.status, 200);
+    assert.equal(image.headers.get('content-type'), 'image/png');
+    assert.deepEqual(Buffer.from(await image.arrayBuffer()), png);
+    assert.equal(image.headers.get('cache-control'), 'no-store');
+
+    const receipt = await send('receipts', png, 'image/png');
+    assert.equal(receipt.status, 200);
+    const privateReceipt = await receipt.json();
+    assert.match(privateReceipt.url, /^sudaflow-file:/);
+    const receiptUrl = `${base}/organizations/${org.id}/files/${privateReceipt.id}`;
+    assert.equal((await fetch(receiptUrl)).status, 401);
+    assert.equal((await fetch(receiptUrl, { headers: { Authorization: 'Bearer outsider' } })).status, 403);
+    assert.equal((await fetch(`${base}/public/logos/${org.id}/${privateReceipt.id}`)).status, 404);
+    const authorized = await fetch(receiptUrl, { headers: { Authorization: 'Bearer owner' } });
+    assert.equal(authorized.status, 200);
+    assert.deepEqual(Buffer.from(await authorized.arrayBuffer()), png);
+
+    assert.equal((await send('receipts', Buffer.from('<script>'), 'image/png')).status, 400);
+    assert.equal((await send('attachments', Buffer.from('%PDF-1.7\nattachment'), 'application/pdf')).status, 400);
+    const pdf = await fetch(`${base}/organizations/${org.id}/files/attachments`, { method: 'POST', headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/pdf' }, body: Buffer.from('%PDF-1.7\nattachment') });
+    assert.equal(pdf.status, 200);
+    const attachment = await pdf.json();
+    const attachmentResponse = await fetch(`${base}/organizations/${org.id}/files/${attachment.id}`, { headers: { Authorization: 'Bearer owner' } });
+    assert.equal(attachmentResponse.status, 200);
+    assert.equal(attachmentResponse.headers.get('content-disposition'), 'attachment');
+    assert.equal((await fetch(`${base}/public/logos/${org.id}/${attachment.id}`)).status, 404);
+    assert.equal(Object.keys(store.dump()).filter(key => key.includes('/files/')).length, 3);
+    assert.equal(blobs.size, 3);
+    assert.ok(Object.values(store.dump()).filter(value => value.content_type).every(value => !('bytes' in value)));
+  } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
+});
+
+test('customer files: inaccessible deployments and failed Firestore commits never claim successful uploads', async () => {
+  assert.throws(() => netlifyCustomerFileStorage(undefined), { code: 'file_storage_unavailable' });
+  assert.throws(() => netlifyCustomerFileStorage('deploy-preview'), { code: 'file_storage_unavailable' });
+  const actor = { uid: 'rollback-owner', email: 'rollback@example.com', emailVerified: true };
+  const bootstrap = new MemoryStore();
+  const org = await new Organizations(bootstrap).create(actor, 'Rollback', INITIAL_SETTINGS, 'rollback', true);
+  const store = new MemoryStore(bootstrap.dump(), data => { if (Object.keys(data).some(key => key.includes('/files/'))) throw new Error('Firestore write failed'); });
+  const blobs = new Map<string, Buffer>();
+  const files: CustomerFileStorage = {
+    put: async (key, bytes) => { blobs.set(key, Buffer.from(bytes)); },
+    get: async key => blobs.get(key) || null,
+    delete: async key => { blobs.delete(key); },
+  };
+  const app = express(); app.use(express.json()); app.use('/api', createApi({ operations: new Operations(store), verify: async () => actor, fileStorage: files }));
+  const server = app.listen(0, '127.0.0.1'); await new Promise<void>(resolve => server.once('listening', resolve));
+  try {
+    const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 1]);
+    const result = await fetch(`http://127.0.0.1:${(server.address() as { port: number }).port}/api/organizations/${org.id}/images/logos`, { method: 'POST', headers: { Authorization: 'Bearer owner', 'Content-Type': 'image/png' }, body: png });
+    assert.notEqual(result.status, 200);
+    assert.equal((await result.json()).url, undefined);
+    assert.equal(blobs.size, 0);
+    assert.equal(Object.keys(store.dump()).filter(key => key.includes('/files/')).length, 0);
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 });
 
@@ -99,24 +180,19 @@ test('readiness checks actual read access without writing data or exposing crede
   const services = {
     app: { options: { credential: { getAccessToken: async () => { calls.push('credential'); return { access_token: 'DO-NOT-EXPOSE' }; } } } },
     db: { doc: (path: string) => ({ get: async () => { calls.push(path); return { data: 'DO-NOT-EXPOSE' }; } }) },
-    bucket: { getMetadata: async () => { calls.push('bucket'); return { privateMetadata: 'DO-NOT-EXPOSE' }; } },
   };
   const ready = await inspectFirebaseReadiness(() => services);
   assert.equal(ready.status, 'ready');
   assert.equal(ready.checks.firestore?.status, 'ready');
-  assert.equal(ready.checks.storage?.status, 'ready');
-  assert.deepEqual(calls.sort(), ['_health/readiness', 'bucket', 'credential']);
+  assert.deepEqual(calls.sort(), ['_health/readiness', 'credential']);
   assert.equal(JSON.stringify(ready).includes('DO-NOT-EXPOSE'), false);
 
   const unavailable = await inspectFirebaseReadiness(() => ({ ...services, db: { doc: () => ({ get: async () => { throw { code: 5 }; } }) } }));
   assert.equal(unavailable.status, 'error');
   assert.equal(unavailable.checks.firestore?.code, 'firestore_database_missing');
-  assert.equal(unavailable.checks.storage?.status, 'ready');
 
   const missingBucket = await inspectFirebaseReadiness(() => ({ ...services, bucket: { getMetadata: async () => { throw { code: 404 }; } } }));
-  assert.equal(missingBucket.status, 'degraded');
-  assert.equal(missingBucket.checks.firestore?.status, 'ready');
-  assert.equal(missingBucket.checks.storage?.code, 'storage_bucket_missing');
+  assert.equal(missingBucket.status, 'ready'); // Firebase Storage is intentionally not a prerequisite.
 
   const badCredential = await inspectFirebaseReadiness(() => ({ ...services, app: { options: { credential: { getAccessToken: async () => { throw { code: 'app/invalid-credential' }; } } } } }));
   assert.equal(badCredential.checks.firebase.code, 'firebase_credentials_invalid');

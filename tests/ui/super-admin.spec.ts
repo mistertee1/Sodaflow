@@ -28,10 +28,11 @@ test('an uncertain save retries the same identifier and creates a single renewal
   const dialog = page.getByRole('dialog', { name: 'إدارة اشتراك الشركة' });
   await dialog.getByLabel('عدد الأيام').fill('5'); await dialog.getByLabel('سبب التعديل (إلزامي في سجل العمليات)').fill('تمديد اختبار');
   platform.abortAfterCommit(); await dialog.getByRole('button', { name: 'حفظ التعديل', exact: true }).click(); await expect(dialog.getByRole('alert')).toContainText('تعذر تأكيد الحفظ');
-  const afterFirst = platform.fixture.store.dump();
+  const financialState = () => Object.fromEntries(Object.entries(platform.fixture.store.dump()).filter(([path]) => !path.startsWith('platformOperationIntents/')));
+  const afterFirst = financialState();
   await dialog.getByRole('button', { name: 'حفظ التعديل', exact: true }).click(); await expect(dialog.getByRole('status')).toContainText('تم حفظ التعديل');
   expect(platform.mutations).toHaveLength(2); expect(platform.mutations[0].operationId).toBe(platform.mutations[1].operationId);
-  expect(platform.fixture.store.dump()).toEqual(afterFirst); expect(Object.values(afterFirst).filter(d => d.action === 'subscription.extend')).toHaveLength(1);
+  expect(financialState()).toEqual(afterFirst); expect(Object.values(afterFirst).filter(d => d.action === 'subscription.extend')).toHaveLength(1);
 });
 
 test('a confirmed save with a failed refresh remains distinct from an unconfirmed mutation', async ({ page, platform }) => {
@@ -83,11 +84,30 @@ test('revocation with an open editor rejects the save and never reports success'
   await dialog.getByRole('button', { name: 'حفظ التعديل', exact: true }).click(); await expect(dialog.getByRole('alert')).toContainText('غير فعّالة'); await expect(dialog.getByRole('status')).toHaveCount(0); expect(f.store.dump()).toEqual(before);
 });
 
+test('an exclusive policy change with an open editor rejects the save without a success notice', async ({ page, platform }) => {
+  await platform.login(); await page.getByRole('button', { name: 'الشركات', exact: true }).click(); await page.getByRole('button', { name: 'إدارة الاشتراك' }).click();
+  const dialog = page.getByRole('dialog', { name: 'إدارة اشتراك الشركة' }); await dialog.getByLabel('سبب التعديل (إلزامي في سجل العمليات)').fill('يجب رفض التعديل بعد إغلاق السياسة');
+  const f = platform.fixture;
+  await f.store.transaction(async tx => tx.set('platformAccess/superAdmin', { uid: f.admin.uid, email: f.admin.email, mode: 'exclusive', active: false }));
+  const before = f.store.dump(); await dialog.getByRole('button', { name: 'حفظ التعديل', exact: true }).click();
+  await expect(dialog.getByRole('alert')).toContainText('محصور'); await expect(dialog.getByRole('status')).toHaveCount(0); expect(f.store.dump()).toEqual(before);
+});
+
+test.describe('exclusive account isolation', () => {
+  test.use({ platformRole: 'other_admin' });
+  test('another verified claimed administrator with an active registry cannot open the platform', async ({ page, platform }) => {
+    await platform.login(); await expect(page.getByRole('heading', { name: 'تعذر فتح الإدارة' })).toBeVisible();
+    await expect(page.getByRole('alert')).toContainText('محصور');
+    await expect(page.getByRole('navigation', { name: 'أقسام إدارة المنصة' })).toHaveCount(0);
+    expect(platform.requests).toContain('/platform-controls'); expect(platform.requests).toContain('/super-admin/session'); expect(platform.requests.every(path => ['/platform-controls', '/super-admin/session'].includes(path))).toBe(true); expect(platform.mutations).toEqual([]);
+  });
+});
+
 test.describe('company Owner isolation', () => {
   test.use({ platformRole: 'owner' });
   test('Owner cannot open the commercial platform by visiting its URL', async ({ page, platform }) => {
     await platform.login(); await expect(page.getByRole('heading', { name: 'تعذر فتح الإدارة' })).toBeVisible(); await expect(page.getByRole('navigation', { name: 'أقسام إدارة المنصة' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'إعادة التحقق وتحديث جلسة الدخول' }).click(); await expect(page.getByRole('alert')).toContainText('لا يملك صلاحية إدارة المنصة'); expect(platform.requests.every(path => path === '/super-admin/session')).toBe(true);
+    await page.getByRole('button', { name: 'إعادة التحقق وتحديث جلسة الدخول' }).click(); await expect(page.getByRole('alert')).toContainText('لا يملك صلاحية إدارة المنصة'); expect(platform.requests).toContain('/platform-controls'); expect(platform.requests).toContain('/super-admin/session'); expect(platform.requests.every(path => ['/platform-controls', '/super-admin/session'].includes(path))).toBe(true);
   });
 });
 test.describe('unverified identity', () => {

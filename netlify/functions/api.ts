@@ -14,7 +14,7 @@ export default async function api(request: Request, context: Context): Promise<R
   const event = { version: '2.0', routeKey: '$default', rawPath: path, rawQueryString: url.search.slice(1), headers,
     requestContext: { http: { method: request.method, path, protocol: 'HTTP/1.1', sourceIp: context.ip || '127.0.0.1', userAgent: headers['user-agent'] || '' } },
     body: bytes?.toString('base64'), isBase64Encoded: Boolean(bytes) };
-  const result = await serverless(createApp())(event, {}) as GatewayResponse;
+  const result = await serverless(createApp(context.deploy?.context))(event, {}) as GatewayResponse;
   const outputHeaders = new Headers();
   for (const [key, value] of Object.entries(result.headers || {})) if (value !== undefined) outputHeaders.set(key, String(value));
   for (const [key, values] of Object.entries(result.multiValueHeaders || {})) for (const value of values as string[]) outputHeaders.append(key, value);

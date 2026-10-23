@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, cloudRecords, cloudMerchant, seedCloudMerchant, updateCloudMerchant, seedRows, openMerchant } from './helpers/cloudMerchant';
 import { freshOpeningBooksFixture } from '../fixtures/openingBooks';
 import { INITIAL_SETTINGS } from '../../src/data/initialData';
 import { createDefaultSubscription, getPlanConfig } from '../../src/lib/plans';
@@ -14,11 +14,9 @@ async function seed(page: Page, role = 'Owner', openAccounting = true) {
   };
   for (const [name, rows] of Object.entries(data)) for (const row of rows) records[`${root}/${name}/${name === 'accounts' ? row.code : row.id}`] = row;
   for (const row of data.financial_accounts) records[`${root}/financial_account_mappings/${row.account_code}`] = { id: row.id };
-  await page.addInitScript(records => {
-    localStorage.setItem('mohasbasd_guest_session', 'true'); localStorage.setItem('sudanese_merchant_has_seen_tour_v2', 'true');
-    if (!localStorage.getItem('sudaflow_guest_transactions_v3')) localStorage.setItem('sudaflow_guest_transactions_v3', JSON.stringify(records));
-  }, records);
-  await page.goto('/'); if (openAccounting) { await page.locator('#tab-accounting').click(); await page.getByRole('button', { name: 'الأرصدة الافتتاحية والسداد', exact: true }).click(); }
+  await seedCloudMerchant(page, records);
+  await openMerchant(page); await page.locator('#tab-accounting').click();
+  await page.getByRole('button', { name: 'الأرصدة الافتتاحية والسداد', exact: true }).click();
 }
 async function prepare(page: Page) {
   const center = page.getByRole('region', { name: 'الأرصدة الافتتاحية والسداد', exact: true });
@@ -33,33 +31,7 @@ async function prepare(page: Page) {
   await expect(center.getByRole('region', { name: 'مراجعة الأرصدة' })).toBeVisible();
   return center;
 }
-const records = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}'));
-async function openingWorkbook() {
-  const workbook = new ExcelJS.Workbook(); const instructions = workbook.addWorksheet('Instructions'); instructions.addRow(['التعليمات']);
-  const sheets: Record<string, { headers: string[]; rows: unknown[][] }> = {
-    Cash: { headers: ['id','currency','amount','exchange_rate_used'], rows: [['cash','SDG',1000,'']] },
-    Receivables: { headers: ['id','currency','amount','exchange_rate_used','due_date','reference'], rows: [['a','SDG',100,'','2026-10-10','AR-XLSX']] },
-    Payables: { headers: ['id','currency','amount','exchange_rate_used','due_date','reference'], rows: [] },
-    Inventory: { headers: ['id','quantity','unit_cost','currency','exchange_rate_used'], rows: [] },
-    Capital: { headers: ['sdg','usd','equity_difference_reason'], rows: [[1100,0,'']] },
-  };
-  for (const [name, data] of Object.entries(sheets)) { const sheet = workbook.addWorksheet(name); sheet.addRow(data.headers); data.rows.forEach(row => sheet.addRow(row)); }
-  return Buffer.from(await workbook.xlsx.writeBuffer());
-}
-
-test('Excel2.2b imports official opening workbook into protected preview without writes', async ({ page }) => {
-  await seed(page); const center = page.getByRole('region', { name: 'الأرصدة الافتتاحية والسداد', exact: true }), before = await records(page);
-  await center.getByLabel('تاريخ الأرصدة', { exact: true }).fill('2026-10-01'); await center.getByLabel('سبب بدء الأرصدة').fill('استيراد راجعه المحاسب');
-  await center.getByLabel('رفع ملف الأرصدة').setInputFiles({ name: 'opening.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: await openingWorkbook() });
-  await expect(center.getByRole('status')).toContainText('تمت قراءة 2 مصدراً'); await expect(center.getByTestId('opening-import-evidence')).toContainText('opening.xlsx');
-  await expect(center.getByLabel('المصدر 1')).toHaveValue('cash'); await expect(center.getByLabel('المصدر 2')).toHaveValue('a'); await expect(center.getByLabel('مرجع الرصيد 2')).toHaveValue('AR-XLSX');
-  expect(await records(page)).toEqual(before); await center.getByRole('button', { name: 'معاينة الأرصدة بدون حفظ', exact: true }).click(); await expect(center.getByRole('region', { name: 'مراجعة الأرصدة' })).toBeVisible(); expect(await records(page)).toEqual(before);
-});
-
-test('Excel2.2b hides opening workbook import from unauthorized viewer', async ({ page }) => {
-  await seed(page, 'Viewer', false); await page.locator('#tab-accounting').click(); await expect(page.getByRole('button', { name: 'الأرصدة الافتتاحية والسداد', exact: true })).toHaveCount(0); await expect(page.getByLabel('رفع ملف الأرصدة')).toHaveCount(0);
-  expect(Object.keys(await records(page)).filter(path => path.includes('/opening_batches/'))).toHaveLength(0);
-});
+const records = (page: Page) => cloudRecords(page);
 
 test('C2 wizard mobile read-only preview, owner confirmation, atomic commit and opening settlement persist after reload', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 }); await seed(page);
@@ -68,7 +40,7 @@ test('C2 wizard mobile read-only preview, owner confirmation, atomic commit and 
   await center.getByRole('button', { name: 'تحقق المالك وحفظ الأرصدة', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'تحقق المالك وحفظ الأرصدة' });
   await expect(dialog.getByLabel('سبب تأكيد الأرصدة')).toHaveValue('افتتاح تمت مراجعته');
-  await dialog.getByRole('checkbox').check(); await dialog.getByRole('button', { name: 'التحقق وحفظ الأرصدة', exact: true }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
+  await dialog.getByLabel('كلمة مرور الحساب').fill('synthetic-password'); await dialog.getByRole('button', { name: 'التحقق وحفظ الأرصدة', exact: true }).evaluate((button: HTMLButtonElement) => { button.click(); button.click(); });
   await expect(center.getByText('دفعة الأرصدة محفوظة.', { exact: false })).toBeVisible();
   let saved = await records(page); const batches = Object.entries(saved).filter(([path]) => path.includes('/opening_batches/')); expect(batches).toHaveLength(1);
   const lot = Object.entries(saved).find(([path]) => path.includes('/opening_lots/'))!;

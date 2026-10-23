@@ -17,7 +17,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { Invoice, MerchantSettings, Payment } from '../types';
-import { formatMoney } from '../lib/currency';
+import { formatMoney, invoicePricingBalance } from '../lib/currency';
 import { downloadInvoicePdf, printInvoiceThroughIsolatedIframe, parseInvoicePublicUrlParam } from '../services/pdfService';
 import { useApp } from '../context/AppContext';
 
@@ -318,6 +318,11 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ param, onC
               )}
             </div>
 
+            {invoice.pricing && <div className="bg-sf-raised border border-sf-border rounded-xl p-4 space-y-2 text-xs" data-testid="public-native-summary">
+              <p>إجمالي عملة الفاتورة: <bdi dir="ltr">{formatMoney(invoice.pricing.total, invoice.pricing.currency)}</bdi></p>
+              <p>المتبقي بعملة الفاتورة: <bdi dir="ltr">{formatMoney(invoicePricingBalance(invoice), invoice.pricing.currency)}</bdi></p>
+              <p>سعر عملة الفاتورة المجمّد: <bdi dir="ltr">1 USD = {invoice.pricing.units_per_usd} {invoice.pricing.currency}</bdi></p>
+            </div>}
             {/* Calculations Card */}
             <div className="w-full sm:w-80 bg-sf-raised/50 border border-sf-border rounded-xl p-4 space-y-2 text-xs">
               <div className="flex justify-between text-sf-muted">
@@ -329,7 +334,7 @@ export const PublicInvoiceView: React.FC<PublicInvoiceViewProps> = ({ param, onC
                 <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
                   <span>الخصم الممنوح:</span>
                   <span className="font-mono">
-                    -{invoice.discount_type === 'percent' ? `${invoice.discount_value}%` : formatMoney(invoice.discount_value, 'SDG', settings)}
+                    -{invoice.discount_type === 'percent' ? `${invoice.discount_value}%` : formatMoney(invoice.discount_value, invoice.pricing?.currency || 'SDG', settings)}
                   </span>
                 </div>
               )}

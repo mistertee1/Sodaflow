@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-21T10:19:10.929Z",
+  "repository": "mistertee1/Sodaflow",
+  "source": {
+    "base": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+    "commit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+    "tree": "ec287f28743c07757145e1c4e8dc25bf7804bcd3",
+    "branch": "codex/netlify-firebase-runtime-fix-20261021",
+    "pullRequest": 113,
+    "userMergesOnly": true
+  },
+  "observedFailure": {
+    "url": "https://sodaflow.netlify.app",
+    "paths": [
+      "/api/health",
+      "/api/health/ready",
+      "/api/organizations"
+    ],
+    "http": 502,
+    "responseContentType": "text/plain",
+    "errorCode": "ERR_REQUIRE_ESM",
+    "dependencyChain": "firebase-admin14.5.0 -> jwks-rsa4.1.0 require(jose6.2.12)",
+    "beforeFirestore": true,
+    "deployedNodeVersion": "unverified"
+  },
+  "counterfactual": [
+    {
+      "runtime": "Node20.18.0",
+      "SDKImport": "ERR_REQUIRE_ESM before patch"
+    },
+    {
+      "runtime": "Node24.19.0",
+      "flags": [
+        "--no-experimental-require-module"
+      ],
+      "SDKImport": "same ERR_REQUIRE_ESM before patch"
+    }
+  ],
+  "acceptance": {
+    "unitApi": 369,
+    "netlifyLambdaRuntime": 14,
+    "firestoreEmulator": 45,
+    "ui": 65,
+    "superAdminUi": 11,
+    "failed": 0,
+    "skipped": 0,
+    "productionAuditVulnerabilities": 0,
+    "types": "passed",
+    "core": "passed",
+    "build": "passed",
+    "emulatorProject": "demo-sudaflow",
+    "productionFinancialTestWrites": 0,
+    "checks": {
+      "id": 39582583979,
+      "jobId": 119163530422,
+      "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582583979"
+    },
+    "node22Compatibility": {
+      "id": 39582584067,
+      "jobId": 119163530650,
+      "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+      "status": "completed",
+      "conclusion": "success",
+      "runtime": "22.23.3",
+      "tests": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "build": "passed",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582584067"
+    }
+  },
+  "logResultLines": [
+    "2026-10-21T10:11:17.6400149Z ℹ tests 369",
+    "2026-10-21T10:11:17.6400583Z ℹ pass 369",
+    "2026-10-21T10:11:17.6400803Z ℹ fail 0",
+    "2026-10-21T10:11:17.6401259Z ℹ skipped 0",
+    "2026-10-21T10:11:17.9106278Z Netlify Firebase runtime preflight passed on Node 24.21.0.",
+    "2026-10-21T10:11:18.5667195Z ℹ tests 14",
+    "2026-10-21T10:11:18.5668009Z ℹ pass 14",
+    "2026-10-21T10:11:18.5668752Z ℹ fail 0",
+    "2026-10-21T10:11:18.5669549Z ℹ skipped 0",
+    "2026-10-21T10:11:27.5289401Z found 0 vulnerabilities",
+    "2026-10-21T10:13:01.6935684Z ℹ tests 45",
+    "2026-10-21T10:13:01.6936587Z ℹ pass 45",
+    "2026-10-21T10:13:01.6937021Z ℹ fail 0",
+    "2026-10-21T10:13:01.6939312Z ℹ skipped 0",
+    "2026-10-21T10:16:05.3726166Z   65 passed (2.7m)"
+  ],
+  "node22LogLines": [
+    "2026-10-21T10:10:42.7969774Z Netlify Firebase runtime preflight passed on Node 22.23.3.",
+    "2026-10-21T10:10:43.5930385Z # tests 14",
+    "2026-10-21T10:10:43.5930996Z # pass 14",
+    "2026-10-21T10:10:43.5931300Z # fail 0",
+    "2026-10-21T10:10:43.5932153Z # skipped 0",
+    "2026-10-21T10:10:43.9183221Z Netlify Firebase runtime preflight passed on Node 22.23.3.",
+    "2026-10-21T10:10:52.9390439Z \u001b[32m✓ built in 8.64s\u001b[39m"
+  ],
+  "compatibility": {
+    "pinnedDependency": "jwks-rsa4.1.0",
+    "sdkUnchanged": "firebase-admin14.5.0",
+    "cryptoLibraryUnchanged": "jose6.2.12",
+    "experimentalFeaturesEnabled": false,
+    "flagsUsedForTests": [
+      "--no-experimental-require-module",
+      "--no-experimental-detect-module"
+    ],
+    "patchTargets": {
+      "src/utils.js": {
+        "originalSha256": "c535773fd798202296e846e7c057f96f631148686194ff2990f0729fa4c1b7af",
+        "patchedSha256": "f1ffe481947f3de681f1b37418208dab0968bbbd20eb12a544b5276642f6c9e2"
+      },
+      "src/integrations/passport.js": {
+        "originalSha256": "03557fac70296dda6d19872b1702d2b8f1d4c50d22d3fbcf1fb65f9afa7ddcbb",
+        "patchedSha256": "6f071bedf7fb3477670bf2c9bf98944010a0bcd88b269899a064835f8ef8920e"
+      }
+    },
+    "policy": "Refuse unknown dependency version or source hash; validate all targets before mutation; repeated application preserves bytes; re-review on upstream update."
+  },
+  "securityUpdate": {
+    "dependency": "vite",
+    "from": "6.4.3",
+    "to": "6.4.5",
+    "advisory": "https://github.com/advisories/GHSA-587h-7wmj-h5pm",
+    "productionAuditBefore": {
+      "high": 1
+    },
+    "productionAuditAfter": {
+      "total": 0
+    },
+    "lockChangedEntries": [
+      "",
+      "node_modules/vite"
+    ]
+  },
+  "officialArtifact": {
+    "tool": "@netlify/zip-it-and-ship-it",
+    "version": "16.4.0",
+    "format": "zip",
+    "bytes": 5347927,
+    "sha256": "b3848fcd92ac2e5d44cc5302fa5dfceea2889efdcab333c271d98cf23833a880",
+    "externalNodeModules": [
+      "firebase-admin",
+      "serverless-http"
+    ],
+    "patchedHashesVerifiedInsideZip": true,
+    "isolatedFunctionInvocation": {
+      "moduleRestrictions": "Lambda flags disabled",
+      "health": 200,
+      "anonymousOrganizations": 401,
+      "anonymousSuperAdmin": 401,
+      "missingCredentialsReadiness": 503,
+      "allJsonNoStore": true
+    },
+    "notADeployment": true
+  },
+  "production": {
+    "provider": "Netlify",
+    "url": "https://sodaflow.netlify.app",
+    "siteId": "35454707-bde1-4449-a522-9c1f0864fff6",
+    "deployId": "6ad7bfd80fef652f907ca829",
+    "deployedCommit": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+    "deployedBranch": "main",
+    "observedHttp": 502,
+    "code": "ERR_REQUIRE_ESM",
+    "beforeFirestore": true,
+    "sourceFixAccepted": true,
+    "sourceFixDeployed": false,
+    "actualDeployedNodeVersion": "unverified",
+    "firebaseCredentialsAndDatabaseReadiness": "unverified; module crashes before these checks",
+    "productionWrites": 0,
+    "liveWrites": 0,
+    "environmentOrSecretReads": 0,
+    "environmentWrites": 0,
+    "deployments": 0,
+    "rulesOrClaimsChanges": 0,
+    "migrations": 0
+  },
+  "coordination": {
+    "checkedAt": "2026-10-21T10:19:10.929Z",
+    "mainSha": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+    "mainUnchangedDuringAcceptance": true,
+    "accountingLease": null,
+    "otherAgentPr": 111,
+    "otherAgentFilesChanged": 0,
+    "scope": "Runtime/package/workflow/new runtime tests and own docs only. No PR111 server/admin/API/readiness/accounting/UI changes."
+  },
+  "checkpoint": {
+    "activeRunId": null,
+    "leaseUntil": null,
+    "branch": "codex/netlify-firebase-runtime-fix-20261021",
+    "pullRequest": 113,
+    "acceptedSourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12"
+  },
+  "references": [
+    "https://docs.netlify.com/build/functions/configuration/#nodejs-version-for-runtime",
+    "https://docs.aws.amazon.com/lambda/latest/dg/lambda-nodejs.html#nodejs-experimental-features",
+    "https://github.com/auth0/node-jwks-rsa"
+  ]
+}

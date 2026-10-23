@@ -1,3 +1,4 @@
+import { currencyDecimals } from '../lib/currencyCatalog';
 import BigNumber from 'bignumber.js';
 import type { Invoice, JournalEntry, MerchantSettings } from '../types';
 import { calculateLineItem, convertCurrency } from '../lib/currency';
@@ -31,7 +32,7 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
   const ids = new Set<string>();
   for (const item of invoice.items) {
     identifier(item.id); ensure(!ids.has(item.id), 'معرف بند الفاتورة الأصلية مكرر.'); ids.add(item.id);
-    money(item.line_total, item.currency === 'USD' ? 2 : 0);
+    money(item.line_total, currencyDecimals(item.currency));
   }
   for (const field of fields) money(invoice[field], field.endsWith('_usd') ? 2 : 0);
   if (taxEvidence) {
@@ -80,15 +81,17 @@ export function buildSalesReturnBases(invoice: Invoice, originals: JournalEntry[
   }
   const candidates: { rule: typeof rules[number]; bases: ReturnBasis[] }[] = [];
   for (const rule of rules) {
-    const settings = { sdg_decimals: 0, usd_decimals: 2, rounding_rule: rule } as MerchantSettings;
+    const settings = { sdg_decimals: 0, usd_decimals: 2, rounding_rule: rule, currency_rates: invoice.currency_rates_used } as MerchantSettings;
+    if (invoice.pricing && invoice.pricing.rounding_rule !== rule) continue;
     const computed = invoiceFinancials(taxEvidence ? { ...invoice, items: invoice.items.map(item => ({ ...item, tax_rate: 0 })) } : invoice, settings);
+    ensure(!computed.pricing || JSON.stringify(computed.pricing) === JSON.stringify(invoice.pricing), 'عملة أو قيمة تسعير المصدر لا تطابق دليله الأصلي.', 409);
     if (!computed.items.every((item, index) => item.line_total === invoice.items[index].line_total)) continue;
     if (taxEvidence) {
       if (!books.every(book => computed[`discount_total_${book}`] === invoice[`discount_total_${book}`] &&
         new BigNumber(computed[`grand_total_${book}`]).eq(taxEvidence[book][taxEvidence.calculation === 'inclusive' ? 'total' : 'base']))) continue;
     } else if (!fields.every(field => computed[field] === invoice[field])) continue;
     const components = invoice.items.map(item => {
-      const source = calculateLineItem(item.quantity, item.unit_price, item.discount_percent, taxEvidence ? 0 : item.tax_rate, item.currency === 'USD' ? 2 : 0, rule);
+      const source = calculateLineItem(item.quantity, item.unit_price, item.discount_percent, taxEvidence ? 0 : item.tax_rate, currencyDecimals(item.currency), rule);
       const translated = (amount: number, book: typeof books[number]) => item.currency === (book === 'sdg' ? 'SDG' : 'USD') ? amount : invoice.exchange_rate_used > 0 ? convertCurrency(amount, item.currency, book === 'sdg' ? 'SDG' : 'USD', invoice.exchange_rate_used, settings) : 0;
       return { net: { sdg: translated(source.net, 'sdg'), usd: translated(source.net, 'usd') }, tax: { sdg: translated(source.tax, 'sdg'), usd: translated(source.tax, 'usd') } };
     });

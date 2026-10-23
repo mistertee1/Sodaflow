@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "repository": "mistertee1/Sodaflow",
-  "sourceBase": "2a92aa74e3a218b1b33db1fad22966c09c611449",
-  "updatedAt": "2026-10-05T13:34:56.000Z",
+  "sourceBase": "706d101ce1b90dde0b767341105d9606fd9bded2",
+  "updatedAt": "2026-10-22T09:03:45.453Z",
   "activeRunId": null,
   "leaseUntil": null,
   "automationId": "6ac35722234c819194e0535527c23124",
-  "currentStage": 5,
-  "workBranch": null,
+  "currentStage": 8,
+  "workBranch": "codex/pause-super-admin-controls-20261022",
   "ownedPaths": [],
   "stages": [
     {
@@ -114,34 +114,1007 @@
     },
     {
       "id": 5,
-      "status": "blocked",
-      "blockers": [
-        "Live API readiness reports firestore_database_missing; default Firestore database does not exist in sodaflow",
-        "Connected Netlify project lookup does not expose sodaflow; live API remains 3.0.3-netlify",
-        "Explicit verified platform-admin UID not supplied"
+      "status": "activation_deferred_by_user_request",
+      "substeps": [
+        {
+          "id": "5a",
+          "status": "completed_merged_source_verified",
+          "scope": "Canonical Firestore authority and isolated Render acceptance",
+          "mergedCommit": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+          "pr": 39,
+          "testHarnessFollowupPr": 49,
+          "evidence": {
+            "unitApi": 283,
+            "firestoreEmulator": 37,
+            "ui": 50,
+            "superAdminUi": 9,
+            "failed": 0,
+            "skipped": 0,
+            "sourceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+            "renderDeploy": "dep-db5j66dckfvc73adgthg",
+            "githubRun": 38119689684
+          }
+        },
+        {
+          "id": "5b",
+          "status": "deferred_by_user_request",
+          "scope": "Production activation with correct Firebase credentials/customer data, explicit verified admin UID and reviewed recovery/migration/release"
+        },
+        {
+          "id": "5c",
+          "status": "completed_merged_ci_verified",
+          "scope": "Explicit exclusive Super Admin email/UID policy and reviewed technical bootstrap",
+          "mergedCommit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+          "pr": 67,
+          "evidence": {
+            "unitApi": 363,
+            "firestoreEmulator": 42,
+            "ui": 60,
+            "superAdminUi": 11,
+            "failed": 0,
+            "skipped": 0,
+            "productionAuditVulnerabilities": 0,
+            "types": "passed",
+            "core": "passed",
+            "build": "passed",
+            "emulatorProject": "demo-sudaflow",
+            "productionFinancialTestWrites": 0,
+            "githubChecks": {
+              "id": 38595659249,
+              "jobId": 115961593584,
+              "sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+              "status": "completed",
+              "conclusion": "success",
+              "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38595659249"
+            }
+          }
+        }
       ]
+    },
+    {
+      "id": 6,
+      "status": "completed_merged_source_verified",
+      "scope": "Firebase-only business persistence and durable cloud retry IDs; owner-equity status regression fixed",
+      "sourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+      "pullRequest": 109,
+      "originalMergedPullRequest": 103,
+      "originalMergeCommit": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+      "evidence": {
+        "unitApi": 369,
+        "firestoreEmulator": 45,
+        "ui": 65,
+        "superAdminUi": 11,
+        "failed": 0,
+        "skipped": 0,
+        "productionAuditVulnerabilities": 0,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "emulatorProject": "demo-sudaflow",
+        "productionFinancialTestWrites": 0
+      },
+      "githubChecks": {
+        "id": 39382069194,
+        "jobId": 118493201568,
+        "sha": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39382069194"
+      },
+      "productionActivated": false,
+      "mergedCommit": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+      "mergedPullRequest": 109
+    },
+    {
+      "id": 7,
+      "status": "completed_merged_source_verified",
+      "scope": "Netlify Firebase cold-start compatibility under Lambda module restrictions; Vite security patch",
+      "sourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+      "pullRequest": 113,
+      "evidence": {
+        "unitApi": 369,
+        "netlifyLambdaRuntime": 14,
+        "firestoreEmulator": 45,
+        "ui": 65,
+        "superAdminUi": 11,
+        "failed": 0,
+        "skipped": 0,
+        "productionAuditVulnerabilities": 0,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "emulatorProject": "demo-sudaflow",
+        "productionFinancialTestWrites": 0
+      },
+      "githubChecks": {
+        "id": 39582583979,
+        "jobId": 119163530422,
+        "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582583979"
+      },
+      "node22Compatibility": {
+        "id": 39582584067,
+        "jobId": 119163530650,
+        "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+        "status": "completed",
+        "conclusion": "success",
+        "runtime": "22.23.3",
+        "tests": 14,
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0,
+        "build": "passed",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582584067"
+      },
+      "productionActivated": false,
+      "mergedCommit": "706d101ce1b90dde0b767341105d9606fd9bded2"
+    },
+    {
+      "id": 8,
+      "status": "completed_in_review_branch",
+      "scope": "User-requested reversible pause of platform/subscription/RBAC gates; authenticated tenant members retain full company operations while isolation and financial integrity stay enforced",
+      "evidence": {
+        "unitApi": 379,
+        "netlifyLambdaRuntime": 16,
+        "firestoreEmulator": 49,
+        "ui": 68,
+        "superAdminUi": 11,
+        "pausedUi": 3,
+        "failed": 0,
+        "skipped": 0,
+        "productionAuditVulnerabilities": 0,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "emulatorProject": "demo-sudaflow",
+        "productionFinancialTestWrites": 0
+      },
+      "acceptanceAttempt": {
+        "source": "f6990d9aca76539c097c691f54c2b5faa6b50365",
+        "ci": 39749975612,
+        "unitApi": 378,
+        "netlifyRuntime": 16,
+        "emulatorPassed": 48,
+        "emulatorFailed": 1,
+        "ui": "not_run_after_emulator_failure",
+        "fix": "Paused registration no longer depends on commercial plan limits; regression added",
+        "accepted": false
+      },
+      "pullRequest": 116,
+      "sourceCommit": "109be5c814675f6eadc3421579fec83a9b4db83e",
+      "latestCi": {
+        "id": 39751440691,
+        "jobId": 119732724819,
+        "sha": "109be5c814675f6eadc3421579fec83a9b4db83e",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440691"
+      },
+      "acceptanceAttempt2": {
+        "source": "a04181d7a548d8151780386ced0a7299036879e8",
+        "ci": 39750496282,
+        "unitApi": 379,
+        "netlifyRuntime": 16,
+        "emulatorPassed": 49,
+        "emulatorFailed": 0,
+        "uiPassed": 66,
+        "uiFailed": 2,
+        "newPausedUiPassed": 3,
+        "fix": "Strict isolation assertions now allow exactly public mode read plus authenticated session; all data endpoints still denied",
+        "accepted": false
+      },
+      "githubChecks": {
+        "id": 39751440691,
+        "jobId": 119732724819,
+        "sha": "109be5c814675f6eadc3421579fec83a9b4db83e",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440691"
+      },
+      "node22Compatibility": {
+        "id": 39751440876,
+        "jobId": 119732725553,
+        "sha": "109be5c814675f6eadc3421579fec83a9b4db83e",
+        "status": "completed",
+        "conclusion": "success",
+        "runtime": "22.23.3",
+        "tests": 16,
+        "passed": 16,
+        "failed": 0,
+        "skipped": 0,
+        "build": "passed",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440876"
+      },
+      "productionActivated": false
     }
   ],
   "productionValidated": false,
-  "lastCompletedStage": 4,
-  "unmergedWorkBranch": null,
-  "lastSourceCommit": "2a92aa74e3a218b1b33db1fad22966c09c611449",
+  "lastCompletedStage": 8,
+  "unmergedWorkBranch": "codex/pause-super-admin-controls-20261022",
+  "lastSourceCommit": "109be5c814675f6eadc3421579fec83a9b4db83e",
   "sourceStagesComplete": true,
-  "status": "blocked_external",
-  "resumeFrom": "production_activation",
-  "lastReport": "docs/super-admin/REPORT.md",
+  "status": "source_accepted_user_requested_controls_pause_pending_merge_release",
+  "resumeFrom": "User review/merge and coordinated paused API/frontend/Rules release only. Do not resume Super Admin development or activation without an explicit new user request.",
+  "lastReport": "docs/super-admin/REPORT_PLATFORM_PAUSE_20261022.md",
   "productionReadiness": {
-    "checkedAt": "2026-10-05T13:28:33.000Z",
-    "projectId": "sodaflow",
-    "databaseId": "(default)",
-    "liveVersion": "3.0.3-netlify",
-    "liveReadinessHttp": 503,
-    "firestoreCode": "firestore_database_missing",
-    "directFirestoreHttp": 404,
-    "directFirestoreDatabaseMissing": true,
-    "netlifyTargetAvailable": false,
+    "checkedAt": "2026-10-20T06:46:06.669Z",
+    "provider": "Render",
+    "workspaceId": "tea-db20pccs728c73ald730",
+    "serviceId": "srv-db4lfrvavr4c73fn1hl0",
+    "url": "https://sudaflow.onrender.com",
+    "deployedBranch": "codex/wafer-ux-phase1",
+    "deployedCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0",
+    "readinessHttp": 503,
+    "firebaseCode": "service_unavailable",
+    "firebaseProjectId": "sodaflow",
+    "firestoreDatabaseId": "(default)",
+    "firestoreStatus": "unverified_after_firebase_probe_failed",
     "verifiedPlatformAdminUidProvided": false,
-    "storageCode": "storage_bucket_missing",
+    "productionWrites": 0,
+    "diagnostic": "Read-only 2026-10-20 health200/readiness503 before Firestore/anonymous session401. No runtime configuration, deployment, Auth password retry, bootstrap, Rules, claims or migration change.",
+    "previousNetlifyDiagnosis": {
+      "checkedAt": "2026-10-05T13:28:33Z",
+      "firestoreCode": "firestore_database_missing",
+      "note": "Historical evidence only. Netlify is no longer the requested deployment target."
+    },
+    "anonymousAccess": {
+      "session": 401
+    },
+    "httpHealth": 200,
+    "selectedAdministratorEmailApproved": true,
+    "latestDeployId": "dep-db7341psrm7s73bs37bg",
+    "latestDeployCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0",
+    "observedErpAutoDeploy": "yes",
+    "productionAutoDeployChanged": false
+  },
+  "observedMainSha": "706d101ce1b90dde0b767341105d9606fd9bded2",
+  "workBaseSha": "706d101ce1b90dde0b767341105d9606fd9bded2",
+  "userMergesOnly": true,
+  "dependencies": [
+    {
+      "pr": 38,
+      "branch": "codex/accounting-v2-ci-lock-repair-20261010",
+      "sha": "deb7a2a38bac09ac64b623e4ec86ce43429555f5",
+      "reason": "Restore npm lock unchanged; required for npm ci. User reviews and merges.",
+      "status": "merged_by_user",
+      "mergeCommit": "b4d8c30695f45cf21ca7945cfc3327729e127421"
+    }
+  ],
+  "baselineRegression": {
+    "runId": 38032227589,
+    "sha": "deb7a2a38bac09ac64b623e4ec86ce43429555f5",
+    "ui": {
+      "passed": 44,
+      "failed": 6
+    },
+    "note": "Existing invoice workspace and auth UI regressions; Super Admin UI passes. Do not modify accounting/UI tests or claim full regression green.",
+    "status": "resolved_in_merged_main",
+    "resolvedByPullRequest": 38,
+    "currentCi": {
+      "runId": 38084146537,
+      "sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+      "conclusion": "success",
+      "unitApi": 283,
+      "firestoreEmulator": 37,
+      "ui": 50,
+      "superAdminUi": 9,
+      "failed": 0,
+      "skipped": 0,
+      "productionAuditVulnerabilities": 0,
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38084146537"
+    }
+  },
+  "acceptance": {
+    "provider": "GitHub Actions",
+    "scope": "Paused release policy and preserved restrictive policy, real Netlify startup, MemoryStore/API, demo-sudaflow Rules/Firestore and full Chromium regression; no production publication",
+    "sourceCommit": "109be5c814675f6eadc3421579fec83a9b4db83e",
+    "sourceTree": "e5e19f432ffa0cc28fabd63ed44c2561b8d4c297",
+    "status": "passed",
+    "evidence": {
+      "unitApi": 379,
+      "netlifyLambdaRuntime": 16,
+      "firestoreEmulator": 49,
+      "ui": 68,
+      "superAdminUi": 11,
+      "pausedUi": 3,
+      "failed": 0,
+      "skipped": 0,
+      "productionAuditVulnerabilities": 0,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "emulatorProject": "demo-sudaflow",
+      "productionFinancialTestWrites": 0
+    },
+    "githubChecks": {
+      "id": 39751440691,
+      "jobId": 119732724819,
+      "sha": "109be5c814675f6eadc3421579fec83a9b4db83e",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440691"
+    },
+    "node22Compatibility": {
+      "id": 39751440876,
+      "jobId": 119732725553,
+      "sha": "109be5c814675f6eadc3421579fec83a9b4db83e",
+      "status": "completed",
+      "conclusion": "success",
+      "runtime": "22.23.3",
+      "tests": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "build": "passed",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39751440876"
+    },
+    "productionActivated": false,
+    "userMergePending": true
+  },
+  "sourceIntegrationValidated": true,
+  "acceptanceHistory": [
+    {
+      "sourceCommit": "29a8c48bc251a6084f856d8ca0ed8b7f04584754",
+      "deployId": "dep-db4uo40473hc7397mih0",
+      "status": "live_scope_passed_regression_blocked",
+      "unitApi": 283,
+      "firestoreEmulator": 37,
+      "ui": {
+        "tests": 50,
+        "passed": 44,
+        "failed": 6,
+        "superAdminPassed": 9
+      },
+      "finishedAt": "2026-10-10T07:51:13.561841Z",
+      "productionWrites": 0
+    },
+    {
+      "sourceCommit": "47aa3f2435b5b31e2db893d89f4605bea342c5a7",
+      "deployId": "dep-db5j25h42hec7395ek3g",
+      "status": "live_scope_passed_regression_passed",
+      "unitApi": 283,
+      "firestoreEmulator": 37,
+      "ui": {
+        "tests": 50,
+        "passed": 50,
+        "failed": 0,
+        "superAdminPassed": 9
+      },
+      "finishedAt": "2026-10-11T06:52:55.856871Z",
+      "candidateGithubRun": 38119218903,
+      "candidateGithubStatus": "failed_brand_asset_readiness_race_resolved_by_8bc3573"
+    },
+    {
+      "provider": "GitHub Actions",
+      "scope": "merged source, synthetic authorization/Rules/UI",
+      "sourceCommit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+      "sourceTree": "90b85c652d76568cd6eb7dbb805cb5984e878ec8",
+      "sourceTreeMatchesPr67": true,
+      "status": "passed",
+      "evidence": {
+        "unitApi": 363,
+        "firestoreEmulator": 42,
+        "ui": 60,
+        "superAdminUi": 11,
+        "failed": 0,
+        "skipped": 0,
+        "productionAuditVulnerabilities": 0,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "emulatorProject": "demo-sudaflow",
+        "productionFinancialTestWrites": 0
+      },
+      "githubChecks": {
+        "id": 38595659249,
+        "jobId": 115961593584,
+        "sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38595659249"
+      },
+      "productionActivated": false
+    },
+    {
+      "provider": "GitHub Actions",
+      "scope": "PR109 candidate integrated against unchanged main 0bd2f05; synthetic MemoryStore/API, demo-sudaflow Rules/Emulator and full UI; not production",
+      "sourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+      "sourceTree": "07af1b9bf0270818bf12ec8f33a3acccfa04d3c4",
+      "status": "passed",
+      "evidence": {
+        "unitApi": 369,
+        "firestoreEmulator": 45,
+        "ui": 65,
+        "superAdminUi": 11,
+        "failed": 0,
+        "skipped": 0,
+        "productionAuditVulnerabilities": 0,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "emulatorProject": "demo-sudaflow",
+        "productionFinancialTestWrites": 0
+      },
+      "githubChecks": {
+        "id": 39382069194,
+        "jobId": 118493201568,
+        "sha": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39382069194"
+      },
+      "productionActivated": false,
+      "userMergePending": true
+    },
+    {
+      "provider": "GitHub Actions",
+      "scope": "PR113 source against unchanged main ddb00e8; real SDK/Lambda-profile startup and signing tests, MemoryStore/domain/API, demo-sudaflow Rules/Emulator and full UI; no live deployment",
+      "sourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+      "sourceTree": "ec287f28743c07757145e1c4e8dc25bf7804bcd3",
+      "status": "passed",
+      "evidence": {
+        "unitApi": 369,
+        "netlifyLambdaRuntime": 14,
+        "firestoreEmulator": 45,
+        "ui": 65,
+        "superAdminUi": 11,
+        "failed": 0,
+        "skipped": 0,
+        "productionAuditVulnerabilities": 0,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "emulatorProject": "demo-sudaflow",
+        "productionFinancialTestWrites": 0
+      },
+      "githubChecks": {
+        "id": 39582583979,
+        "jobId": 119163530422,
+        "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582583979"
+      },
+      "node22Compatibility": {
+        "id": 39582584067,
+        "jobId": 119163530650,
+        "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+        "status": "completed",
+        "conclusion": "success",
+        "runtime": "22.23.3",
+        "tests": 14,
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0,
+        "build": "passed",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582584067"
+      },
+      "productionActivated": false,
+      "userMergePending": true
+    }
+  ],
+  "mergedPullRequests": [
+    {
+      "number": 38,
+      "mergeCommit": "b4d8c30695f45cf21ca7945cfc3327729e127421"
+    },
+    {
+      "number": 39,
+      "mergeCommit": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+      "mergedBy": "mistertee1",
+      "mergedAt": "2026-10-10T20:32:22Z"
+    },
+    {
+      "number": 67,
+      "mergeCommit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+      "mergedBy": "mistertee1",
+      "mergedAt": "2026-10-14T16:09:27Z"
+    },
+    {
+      "number": 103,
+      "mergeCommit": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+      "mergedBy": "mistertee1",
+      "mergedAt": "2026-10-20T05:33:59Z"
+    },
+    {
+      "number": 109,
+      "mergeCommit": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+      "mergedBy": "mistertee1"
+    },
+    {
+      "number": 113,
+      "mergeCommit": "706d101ce1b90dde0b767341105d9606fd9bded2",
+      "mergedBy": "mistertee1",
+      "mergedAt": "2026-10-22T08:20:54Z"
+    }
+  ],
+  "coordination": {
+    "checkedAt": "2026-10-22T09:03:45.453Z",
+    "mainSha": "706d101ce1b90dde0b767341105d9606fd9bded2",
+    "mainUnchangedDuringAcceptance": true,
+    "accountingLease": null,
+    "otherAgentPr": 111,
+    "otherAgentHead": "59115275b10a253170ec37d9a8379a70c57837d4",
+    "overlapWithOtherPr": [
+      "server/api.ts"
+    ],
+    "otherAgentBranchModified": false,
+    "scope": "Reviewed main and PR111. Retain main accounting/identity/Firebase-only persistence; only access checks and test harnesses changed. No other branch, production environment or deploy mutation."
+  },
+  "lastOwnedPaths": [
+    "server/api.ts",
+    "server/organizations.ts",
+    "server/operationIntents.ts",
+    "server/revision.ts",
+    "server/platformBilling.ts",
+    "server/accountingRulesHash.ts",
+    "src/domain/operations.ts",
+    "src/domain/subscriptions.ts",
+    "src/config/platform-controls.json",
+    "src/context/AppContext.tsx",
+    "src/components/Subscription*",
+    "src/components/SuperAdminPage.tsx",
+    "src/components/SettingsModal.tsx",
+    "src/components/TeamManagementSection.tsx",
+    "src/components/accounting/*",
+    "firestore.rules",
+    "scripts/platform-controls.mjs",
+    "scripts/accounting-rules-hash.mjs",
+    "tests/*",
+    "docs/super-admin/*",
+    "package.json",
+    "src/services/firebaseOrganizations.ts",
+    "tsconfig.core.json",
+    "scripts/set-subscription.ts",
+    "tests/helpers/platformRules.ts"
+  ],
+  "lastCompletedSubstep": "8_user_requested_temporary_platform_controls_pause",
+  "documentationPullRequest": 116,
+  "sourceSnapshot": {
+    "mainSha": "706d101ce1b90dde0b767341105d9606fd9bded2",
+    "acceptedHeadSha": "109be5c814675f6eadc3421579fec83a9b4db83e",
+    "acceptedTree": "e5e19f432ffa0cc28fabd63ed44c2561b8d4c297",
+    "applicationCodeCommit": "a04181d7a548d8151780386ced0a7299036879e8",
+    "productCodeUnchangedFromMergedMain": false,
+    "preservedAccountingAlgorithmsAndBranding": true
+  },
+  "githubChecksHistory": [
+    {
+      "runId": 38119218903,
+      "jobId": 114410292927,
+      "sha": "47aa3f2435b5b31e2db893d89f4605bea342c5a7",
+      "status": "completed",
+      "conclusion": "failure",
+      "unitApi": 283,
+      "firestoreEmulator": 37,
+      "ui": {
+        "tests": 50,
+        "passed": 49,
+        "failed": 1,
+        "superAdminPassed": 9
+      },
+      "failure": "RTL brand asset readiness assertion checks all img.complete/naturalWidth immediately; trace confirms all logo URLs HTTP200. Use bounded async poll with unchanged predicate and re-test.",
+      "artifactId": 11694249893,
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38119218903"
+    },
+    {
+      "runId": 39166413987,
+      "sha": "389f26d2d57ea69cdd3730944eadb6a50b1dc9f3",
+      "conclusion": "failure",
+      "unitApi": 368,
+      "emulator": {
+        "passed": 43,
+        "failed": 2
+      },
+      "failure": "New emulator fixtures checked absence of a legacy file intentionally created by earlier fixtures; corrected to verify unchanged existence/bytes."
+    },
+    {
+      "runId": 39203740467,
+      "sha": "fa8d8e6848cbc4ec9669c6b757caccee36aeb9d0",
+      "conclusion": "failure",
+      "unitApi": 369,
+      "firestoreEmulator": 45,
+      "ui": {
+        "passed": 64,
+        "failed": 1
+      },
+      "failure": "Owner-equity stale success status during second reauthentication."
+    },
+    {
+      "id": 39375579262,
+      "jobId": 118472847877,
+      "sha": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+      "conclusion": "failure",
+      "unitApi": 369,
+      "firestoreEmulator": 45,
+      "ui": {
+        "passed": 64,
+        "failed": 1,
+        "tests": 65
+      },
+      "failure": "Owner capital/drawings test observes prior success before the second asynchronous reauthentication/save has completed; inspect and fix status lifecycle plus transaction completion assertion."
+    }
+  ],
+  "blockers": [
+    {
+      "id": "firebase_runtime_credentials",
+      "evidence": "2026-10-20 read-only readiness503 at checks.firebase with service_unavailable before Firestore.",
+      "required": "Working server-side Firebase Admin credentials for the original customer project in protected Render secrets; an application password cannot replace them."
+    },
+    {
+      "id": "selected_account_identity_unverified",
+      "evidence": "Selected email approved/configured; one 2026-10-13 Auth attempt returned INVALID_LOGIN_CREDENTIALS. UID/email verification remain unresolved.",
+      "required": "Trusted Admin SDK getUserByEmail(SUPER_ADMIN_EMAIL) after access is ready; confirm enabled/verified exact UID and review bootstrap. No rejected-password retry without new information."
+    },
+    {
+      "id": "customer_datastore_and_legacy_recovery_review",
+      "evidence": "Original Firestore/IAM/indexes/Storage and any old .data file remain unverified.",
+      "required": "Locate and preserve original data/backups; review local-file recovery and migration preview before applying."
+    },
+    {
+      "id": "coordinated_production_release",
+      "evidence": "2026-10-20 Render still serves af3acda on codex/wafer-ux-phase1; main0bd2f05 and accepted PR109 sourcebde2b695 are not deployed.",
+      "required": "After prerequisites and review, coordinate frontend/API/Rules/indexes/bootstrap/live acceptance. No real financial test transactions or unreviewed migration."
+    },
+    {
+      "id": "netlify_runtime_fix_release",
+      "evidence": "2026-10-21 live API502 ERR_REQUIRE_ESM before Firebase. Deployed source ddb00e8; accepted candidate f42e0075 is in PR113.",
+      "required": "User review/merge PR113, full Netlify build/functions publication on exact target, then healthJSON200/anonymous401 and actual Firebase/Firestore readiness acceptance. Do not infer missing credentials or customer-data state from the startup error."
+    }
+  ],
+  "lastRun": {
+    "runId": "pause-platform-controls-20261022-1792657843798",
+    "endedAt": "2026-10-22T09:03:45.453Z",
+    "leaseReleased": true,
+    "branch": "codex/pause-super-admin-controls-20261022",
+    "pullRequest": 116,
+    "sourceCommit": "109be5c814675f6eadc3421579fec83a9b4db83e",
+    "ci": 39751440691,
+    "status": "source_accepted_user_requested_controls_pause_pending_merge_release"
+  },
+  "leaseHistory": [
+    {
+      "runId": "super-admin-render-verification-20261011-0647",
+      "releasedAt": "2026-10-11T07:03:13.585Z",
+      "branch": "codex/super-admin-render-authority-20261010",
+      "acceptedSourceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+      "reason": "Independent source and isolated acceptance complete; production activation requires external credentials/UID/data/release review."
+    },
+    {
+      "runId": "super-admin-exclusive-account-20261013",
+      "releasedAt": "2026-10-18T20:44:01.922Z",
+      "reason": "Merged source accepted; only external activation prerequisites remain."
+    },
+    {
+      "runId": "firebase-cloud-only-20261019",
+      "expiredAt": "2026-10-19T09:14:43.044Z",
+      "recoveredBy": "firebase-cloud-acceptance-20261020",
+      "reason": "PR103 merged its expired checkpoint; no other active lease or open PR at resumption."
+    },
+    {
+      "runId": "firebase-cloud-acceptance-20261020",
+      "releasedAt": "2026-10-20T06:50:44.399Z",
+      "branch": "codex/firebase-cloud-acceptance-fix-20261020",
+      "acceptedSourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+      "pullRequest": 109,
+      "reason": "Independent source accepted; user review and external production access/data/identity/release prerequisites remain."
+    },
+    {
+      "runId": "netlify-firebase-runtime-20261021",
+      "releasedAt": "2026-10-21T10:19:10.929Z",
+      "branch": "codex/netlify-firebase-runtime-fix-20261021",
+      "pullRequest": 113,
+      "acceptedSourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+      "reason": "Startup compatibility source and full acceptance complete; user review/merge and Netlify publication remain."
+    }
+  ],
+  "automationState": "paused_user_review_and_external_requirements",
+  "exclusiveAccount": {
+    "emailExplicitlyApproved": true,
+    "uidVerified": false,
+    "passwordStored": false,
+    "authProbe": "INVALID_LOGIN_CREDENTIALS",
+    "productionActivated": false,
+    "protectedEnvironmentKey": "SUPER_ADMIN_EMAIL",
+    "renderConfigured": true,
+    "authProbeAttempts": 1,
+    "productionSourceDeployed": false,
+    "validation": {
+      "localCheck": "passed",
+      "localUnitLines": [
+        "ℹ tests 363",
+        "ℹ pass 363",
+        "ℹ fail 0",
+        "ℹ skipped 0"
+      ],
+      "productionDependencyAudit": "passed_zero",
+      "localEmulator": "blocked_java_below_21",
+      "localChromium": "download_blocked_invalid_archive",
+      "githubCI": {
+        "id": 38595659249,
+        "jobId": 115961593584,
+        "sha": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38595659249"
+      },
+      "productionFinancialTestWrites": 0,
+      "unitApi": 363,
+      "firestoreEmulator": 42,
+      "ui": 60,
+      "superAdminUi": 11,
+      "failed": 0,
+      "skipped": 0,
+      "productionAuditVulnerabilities": 0,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "emulatorProject": "demo-sudaflow",
+      "accepted": true
+    },
+    "sourceStatus": "completed_merged_ci_verified",
+    "sourceCommit": "c04e6d62512a96ec6ea83adbdde198ecbc051273",
+    "mergedPullRequest": 67,
+    "lastAuthProbeAt": "2026-10-13"
+  },
+  "baselineIssues": [
+    "tsconfig.core.json missing comma at line51",
+    "Duplicate package scripts silently drop merged accounting unit/rules test entries"
+  ],
+  "currentSubstep": "5b",
+  "productionConfigurationChange": {
+    "key": "SUPER_ADMIN_EMAIL",
+    "replaceExistingEnvironment": false,
+    "passwordStored": false,
+    "unexpectedDeploymentObserved": true,
+    "deployId": "dep-db7341psrm7s73bs37bg",
+    "sourceCommit": "af3acda73b24cbde0457349df76fb00e81a0e3d0",
+    "newSourceDeployed": false,
+    "note": "Connector environment update was followed by an API redeploy of the existing source. The legacy local .data file was not accessible for inspection or recovery; no data-loss claim is made. No further production write or deploy is attempted."
+  },
+  "exclusiveIdentitySourceComplete": true,
+  "reportOnlyFollowup": true,
+  "pendingSourceChanges": false,
+  "historicalRenderAuthorityAcceptance": {
+    "provider": "Render",
+    "workspaceId": "tea-db20pccs728c73ald730",
+    "serviceId": "srv-db4ui5h42hec73f2cdcg",
+    "url": "https://sudaflow-super-admin-acceptance.onrender.com",
+    "configuredBranch": "codex/super-admin-render-authority-20261010",
+    "sourceBaseCommit": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+    "autoDeploy": false,
+    "projectId": "demo-sudaflow",
+    "productionCredentials": false,
+    "productionWrites": 0,
+    "runtime": "report_only",
+    "status": "scope_passed_regression_passed",
+    "deployId": "dep-db5j66dckfvc73adgthg",
+    "sourceCommit": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+    "finishedAt": "2026-10-11T07:01:23.428013Z",
+    "evidence": {
+      "baseline": {
+        "tests": 12,
+        "passed": 3,
+        "failed": 9,
+        "note": "Expected negative proof against pinned pre-fix fallback; not a failure of repaired acceptance."
+      },
+      "unitApi": 283,
+      "authorityUnit": 12,
+      "firestoreEmulator": 37,
+      "authorityEmulator": 4,
+      "ui": 50,
+      "superAdminUi": 9,
+      "failed": 0,
+      "skipped": 0,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "productionAuditVulnerabilities": 0
+    },
+    "deployStatus": "live",
+    "githubChecks": {
+      "id": 38119689684,
+      "jobId": 114411670173,
+      "status": "completed",
+      "conclusion": "success",
+      "sha": "8bc357314d0e96b64c47802863b954c88b7dbbf6",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/38119689684"
+    },
+    "reportSourceAndServiceMatch": true,
+    "runtimeSmoke": {
+      "health": 200,
+      "report": 200,
+      "erpApi": 404,
+      "writeAttempt": 405
+    }
+  },
+  "firebaseCloudOnly": {
+    "status": "merged_source_verified",
+    "baseSha": "1757733477e8fec4f1c04c4b9d327c93e9946ec5",
+    "request": "Firebase is the only business datastore; remove guest/local persistence and confirmed disk snapshot hydration while retaining Super Admin and server subscription enforcement.",
+    "productionChanges": 0,
+    "acceptance": "passed",
+    "authSession": "Firebase SDK-managed login session retained. No ERP records, settings, selected organization, snapshots or retry IDs are written to browser storage.",
+    "legacyRecovery": "Existing browser/server files remain untouched and are not automatically imported or read.",
+    "retryAuthority": "Firestore: private per-user/tenant operationIntents and exclusive platformOperationIntents, served through verified API only.",
+    "localValidation": {
+      "unitApi": 369,
+      "ui": 65,
+      "superAdminUi": 11,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "productionAuditVulnerabilities": 0,
+      "preFixUi": {
+        "passed": 1,
+        "failed": 1,
+        "interpretation": "strengthened test detects stale prior success before the fix"
+      },
+      "emulator": "Verified in GitHub CI with Java21; not run on local Java17"
+    },
+    "lastCI": {
+      "id": 39382069194,
+      "jobId": 118493201568,
+      "sha": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39382069194"
+    },
+    "pullRequest": 109,
+    "changesAfterFirstCI": [
+      "Preserve pre-existing legacy fixture bytes rather than assert file absence in two emulator cases",
+      "Bound acknowledgement cleanup to 4 seconds without turning an already confirmed business write into failure",
+      "Add rollback and confirmed-write/cleanup-failure regression tests",
+      "Clear prior owner success before new review; deterministic held-write UI assertions verify server confirmation and exact two-event/two-journal reload persistence."
+    ],
+    "mergedSourceCommit": "0bd2f05d4121bad50be30249e8959c78bc039f01",
+    "mergedPullRequest": 103,
+    "originalPullRequest": 103,
+    "correctedSourceCommit": "bde2b6955d29e5ffdcf22ca2a56f5ad626ea98f6",
+    "correctedSourceTree": "07af1b9bf0270818bf12ec8f33a3acccfa04d3c4",
+    "evidence": {
+      "unitApi": 369,
+      "firestoreEmulator": 45,
+      "ui": 65,
+      "superAdminUi": 11,
+      "failed": 0,
+      "skipped": 0,
+      "productionAuditVulnerabilities": 0,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "emulatorProject": "demo-sudaflow",
+      "productionFinancialTestWrites": 0
+    },
+    "fixMergedPullRequest": 109,
+    "fixMergeCommit": "ddb00e8491f72134d523bb0632ed901df9f8078a"
+  },
+  "mergedMainAcceptance": {
+    "sha": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+    "runId": 39483141596,
+    "status": "passed_existing_checks_before_runtime_fix",
+    "note": "Merged main's previous checks passed but did not exercise SDK startup under Lambda's module restrictions; PR113 adds that gate."
+  },
+  "netlifyRuntimeFix": {
+    "status": "candidate_accepted_user_review_and_release_pending",
+    "sourceBase": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+    "liveUrl": "https://sodaflow.netlify.app",
+    "observedFailure": {
+      "httpStatus": 502,
+      "code": "ERR_REQUIRE_ESM",
+      "chain": "firebase-admin -> jwks-rsa CommonJS require -> jose ES module",
+      "beforeFirestore": true
+    },
+    "actualDeployedNodeVersion": "unverified; same failure reproduced on old Node20 and Node24 with Lambda require(esm) disabled",
+    "deploymentAccess": "Exact site and published main deploy resolved using direct domain lookup; broad listing omitted it. No deployment/environment action taken; user reviews and merges.",
+    "productionMutations": 0,
+    "otherAgentPr": 111,
+    "excludedOtherAgentPaths": [
+      "server/admin.ts",
+      "server/api.ts",
+      "tests/api.test.ts",
+      "tests/domain.test.ts",
+      "tests/ui/app.spec.ts",
+      "docs/free-render-spark.md"
+    ],
+    "tests": "passed",
+    "pullRequest": 113,
+    "targetSiteId": "35454707-bde1-4449-a522-9c1f0864fff6",
+    "publishedDeployId": "6ad7bfd80fef652f907ca829",
+    "publishedSourceCommit": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+    "lambdaRestrictions": [
+      "--no-experimental-require-module",
+      "--no-experimental-detect-module"
+    ],
+    "fix": "Pin Netlify Node24, validated two-file async jose import patch for exact jwks-rsa4.1.0, startup preflight and genuine signed-key/HTTP cold-start coverage. Vite security update to6.4.5.",
+    "localValidation": {
+      "unitApi": 369,
+      "netlifyLambdaRuntime": 14,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "officialPackager": "@netlify/zip-it-and-ship-it16.4.0; zip carries both reviewed patch hashes",
+      "artifactColdStart": {
+        "health": 200,
+        "anonymousOrganizations": 401,
+        "anonymousSuperAdmin": 401,
+        "missingCredentialsReadiness": 503
+      },
+      "freshInstallPostinstall": "passed",
+      "productionAudit": 0,
+      "finalViteVersion": "6.4.5"
+    },
+    "sourceCommit": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+    "sourceTree": "ec287f28743c07757145e1c4e8dc25bf7804bcd3",
+    "evidence": {
+      "unitApi": 369,
+      "netlifyLambdaRuntime": 14,
+      "firestoreEmulator": 45,
+      "ui": 65,
+      "superAdminUi": 11,
+      "failed": 0,
+      "skipped": 0,
+      "productionAuditVulnerabilities": 0,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "emulatorProject": "demo-sudaflow",
+      "productionFinancialTestWrites": 0
+    },
+    "githubChecks": {
+      "id": 39582583979,
+      "jobId": 119163530422,
+      "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582583979"
+    },
+    "node22Compatibility": {
+      "id": 39582584067,
+      "jobId": 119163530650,
+      "sha": "f42e0075dfd6a243470f15a54c7857a20bb59b12",
+      "status": "completed",
+      "conclusion": "success",
+      "runtime": "22.23.3",
+      "tests": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "build": "passed",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39582584067"
+    }
+  },
+  "currentProductionIssue": {
+    "provider": "Netlify",
+    "url": "https://sodaflow.netlify.app",
+    "siteId": "35454707-bde1-4449-a522-9c1f0864fff6",
+    "deployId": "6ad7bfd80fef652f907ca829",
+    "deployedCommit": "ddb00e8491f72134d523bb0632ed901df9f8078a",
+    "deployedBranch": "main",
+    "observedHttp": 502,
+    "code": "ERR_REQUIRE_ESM",
+    "beforeFirestore": true,
+    "sourceFixAccepted": true,
+    "sourceFixDeployed": false,
+    "actualDeployedNodeVersion": "unverified",
+    "firebaseCredentialsAndDatabaseReadiness": "unverified; module crashes before these checks",
     "productionWrites": 0
+  },
+  "platformControlsEnabled": false,
+  "superAdminEnabled": false,
+  "activationDeferredByUser": true,
+  "userPause": {
+    "requestedAt": "2026-10-22",
+    "scope": [
+      "super_admin",
+      "subscription",
+      "feature_limits",
+      "role_gates"
+    ],
+    "retainCanonicalRolesAndBilling": true,
+    "resumeOnlyOnExplicitUserRequest": true,
+    "productionApplied": false
   }
 }

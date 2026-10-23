@@ -1,3 +1,4 @@
+import { CURRENCIES, currencyLabel, phoneRegion, transactionCurrency, whatsAppUrl } from '../lib/currencyCatalog';
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Customer, Currency, Invoice } from '../types';
@@ -66,7 +67,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
-  const [preferredCurrency, setPreferredCurrency] = useState<Currency>('SDG');
+  const [preferredCurrency, setPreferredCurrency] = useState<Currency>(transactionCurrency(settings));
   const [notes, setNotes] = useState('');
   const [creditLimitSdg, setCreditLimitSdg] = useState('');
   const [creditLimitUsd, setCreditLimitUsd] = useState('');
@@ -89,7 +90,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
     setPhone('');
     setEmail('');
     setAddress('');
-    setPreferredCurrency('SDG');
+    setPreferredCurrency(transactionCurrency(settings));
     setNotes('');
     setCreditLimitSdg(''); setCreditLimitUsd(''); setCreditPolicy('warning');
     setIsAddModalOpen(true);
@@ -182,11 +183,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 شكراً لتعاملكم الدائم معنا.
 ${settings.phone}`;
 
-    const encoded = encodeURIComponent(text);
-    const p = cust.phone ? cust.phone.replace(/[^0-9]/g, '') : '';
-    const url = p
-      ? `https://api.whatsapp.com/send?phone=${p.startsWith('249') ? p : '249' + (p.startsWith('0') ? p.slice(1) : p)}&text=${encoded}`
-      : `https://api.whatsapp.com/send?text=${encoded}`;
+    const url = whatsAppUrl(cust.phone, text, cust.preferred_currency, 'SDG');
 
     window.open(url, '_blank');
   };
@@ -412,11 +409,12 @@ ${settings.phone}`;
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="مثال: 0912345678"
+                  aria-label="رقم هاتف العميل" placeholder={`مثال: ${phoneRegion(preferredCurrency, transactionCurrency(settings)).example}`}
                   className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action font-mono"
                 />
               </div>
 
+              <p className="text-xs text-sf-muted">مفتاح واتساب: <bdi dir="ltr">+{phoneRegion(preferredCurrency, transactionCurrency(settings)).dialCode}</bdi> — يمكنك إدخال أي رقم دولي كاملاً.</p>
               <div>
                 <label className="block font-semibold text-sf-text mb-1 text-xs">
                   العنوان / المنطقة
@@ -435,12 +433,12 @@ ${settings.phone}`;
                   العملة المفضلة للتعامل
                 </label>
                 <select
+                  aria-label="عملة العميل المفضلة"
                   value={preferredCurrency}
                   onChange={(e) => setPreferredCurrency(e.target.value as Currency)}
                   className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text focus:outline-none focus:border-sf-action"
                 >
-                  <option value="SDG" className="bg-sf-raised">جنيه سوداني (ج.س)</option>
-                  <option value="USD" className="bg-sf-raised">دولار أمريكي ($)</option>
+                  {CURRENCIES.map(row => <option key={row.code} value={row.code}>{currencyLabel(row.code)}</option>)}
                 </select>
               </div>
 

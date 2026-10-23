@@ -7,7 +7,13 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-approval-20261023",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "review-binding-ci-closeout-20261023",
+    "branch": "codex/accounting-v2-excel4-historical-approval-20261023",
+    "acquired_at": "2026-10-23T14:35:45Z",
+    "expires_at": "2026-10-23T14:55:45.000Z",
+    "purpose": "Close verified reviewed-state binding foundation"
+  },
   "milestones": [
     {
       "id": "A1",

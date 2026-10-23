@@ -180,3 +180,17 @@ test('A2 HTTP rejects unverified deployed rules and confirms cost once with the 
     assert.equal(Object.entries(store.dump()).filter(([path]) => path.includes('/journal_entries/jv-cost-')).length, 1);
   } finally { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
 });
+
+test('historical preview HTTP route authenticates, rejects filters and disables caching',async()=>{
+  const store=new MemoryStore(),actor={uid:'owner',email:'owner@example.com',emailVerified:true};
+  const app=express();app.use(express.json());app.use('/api',createApi({operations:new Operations(store),verify:async()=>actor}));
+  const server=app.listen(0,'127.0.0.1');await new Promise<void>(resolve=>server.once('listening',resolve));
+  const url=`http://127.0.0.1:${(server.address() as any).port}/api/organizations/test/historical-import/preview`;
+  try{
+    const send=(suffix='',auth=true)=>fetch(url+suffix,{method:'POST',headers:{'Content-Type':'application/json',...(auth?{Authorization:'Bearer test'}:{})},body:JSON.stringify({input:{id:'stage',expected_rows_sha256:'a'.repeat(64),expected_validation_context_sha256:'b'.repeat(64),reason:'review'},operationId:'review'})});
+    assert.equal((await send('',false)).status,401);
+    const filtered=await send('?unexpected=1');assert.equal(filtered.status,400);assert.equal(filtered.headers.get('cache-control'),'no-store');
+    const local=await send();assert.equal(local.status,403);assert.equal(local.headers.get('cache-control'),'no-store');
+    assert.deepEqual(store.dump(),{});
+  }finally{await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));}
+});

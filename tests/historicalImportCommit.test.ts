@@ -189,3 +189,45 @@ test('Excel4.1d.3a requires and replays the reviewed document evidence hash befo
   await assert.rejects(f.ops.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:'document-proof-tampered',data:{id:staged.id,expected_rows_sha256:staged.rows_sha256,expected_validation_context_sha256:staged.validation_context_sha256,expected_document_evidence_sha256:staged.document_evidence_sha256,reason:'مراجعة الدليل'}}),/بصمة دليل المستندات التاريخية مختلفة/);
   assert.deepEqual(f.store.dump(),before);
 });
+
+const previewRequest=(session:Record<string,any>)=>({operationId:'reviewed-history-commit',input:{id:session.id,expected_rows_sha256:session.rows_sha256,expected_validation_context_sha256:session.validation_context_sha256,...(session.document_evidence_sha256?{expected_document_evidence_sha256:session.document_evidence_sha256}:{}),reason:'معاينة الأثر التاريخي قبل الاعتماد'}});
+function serverPreview(f:Awaited<ReturnType<typeof fixture>>,verify:()=>Promise<void>=async()=>{}){
+  let writes=0;
+  const ops=new Operations({authority:'server',transaction:work=>f.store.transaction(tx=>work({...tx,set:()=>{writes++;throw new Error('Preview attempted a write');},delete:()=>{writes++;throw new Error('Preview attempted a delete');}}))},()=>now,undefined,verify);
+  return{ops,writes:()=>writes};
+}
+
+test('Excel4.1e.2c preview validates real native sales/purchases without invoking a store write',async()=>{
+  for(const kind of ['journal','invoice','purchase']){
+    const f=await fixture();if(kind==='invoice')await seedSalesBaseline(f);if(kind==='purchase')await seedPurchaseBaseline(f);
+    const session=await f.stage([kind==='journal'?journalRow():kind==='invoice'?salesRow():purchaseRow()],`preview-stage-${kind}`,kind==='invoice'?{'7':salesEvidence()}:kind==='purchase'?{'11':purchaseEvidence()}:undefined);
+    let verified=0;const server=serverPreview(f,async()=>{verified++;}),before=f.store.dump(),request=previewRequest(session);
+    const review=await server.ops.historicalImportPreview(f.org.id,accountant,request);
+    assert.equal(review.dry_run,true);assert.equal(review.session_id,session.id);assert.equal(review.org_id,f.org.id);
+    assert.equal(review.proposed_result.reconciliation.findings_count,0);assert.ok(review.proposed_changes.some((change:any)=>change.path.includes('/journal_entries/')));
+    assert.deepEqual(f.store.dump(),before);assert.equal(server.writes(),0);assert.ok(verified>0);
+    // The same operation ID remains available for the later real command.
+    await f.ops.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:request.operationId,data:request.input});
+    await assert.rejects(server.ops.historicalImportPreview(f.org.id,accountant,request),/مستخدم بالفعل/);
+  }
+});
+
+test('Excel4.1e.2c preview rejects fresh locks and tampered evidence without writes',async()=>{
+  for(const mode of ['lock','hash']){
+    const f=await fixture(),session=await f.stage([journalRow()]),request=previewRequest(session);
+    if(mode==='hash')request.input.expected_rows_sha256='0'.repeat(64);
+    else await f.store.transaction(async tx=>{const path=`${f.root}/accounting_periods/2026`;tx.set(path,{...await tx.get(path),status:'CLOSED'});});
+    const server=serverPreview(f),before=f.store.dump();await assert.rejects(server.ops.historicalImportPreview(f.org.id,accountant,request));
+    assert.deepEqual(f.store.dump(),before);assert.equal(server.writes(),0);
+  }
+});
+
+test('Excel4.1e.2c preview fails closed for local authority, missing Rules proof and foreign membership',async()=>{
+  const f=await fixture(),session=await f.stage([journalRow()]),request=previewRequest(session),before=f.store.dump();
+  await assert.rejects(f.ops.historicalImportPreview(f.org.id,accountant,request),/خدمة الخادم/);
+  const server=new Operations({authority:'server',transaction:work=>f.store.transaction(work)},()=>now);
+  await assert.rejects(server.historicalImportPreview(f.org.id,accountant,request),/قواعد/);
+  await assert.rejects(serverPreview(f).ops.historicalImportPreview(f.org.id,{uid:'stranger',email:'stranger@example.com',emailVerified:true},request),/عضوية/);
+  await assert.rejects(serverPreview(f).ops.historicalImportPreview(f.org.id,accountant,{...request,extra:true} as never),/حقول/);
+  assert.deepEqual(f.store.dump(),before);
+});

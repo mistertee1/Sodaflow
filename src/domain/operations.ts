@@ -127,6 +127,24 @@ function monthKey(now: Date, timeZone: string) {
 }
 export class Operations {
   constructor(public store: Store, private now: () => Date = () => new Date(), private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = (_saved, orgId) => createDefaultSubscription(orgId), private verifyCostingSecurity?: () => Promise<void>) {}
+  /** Execute the complete commit validator in one live read transaction, discarding every write.
+   * The response is a proposal only; approval must revalidate and bind its evidence separately.
+   */
+  async historicalImportPreview(orgId:string,actor:Actor,request:{input:import('./historicalImportCommit').HistoricalImportCommitInput;operationId:string}) {
+    ensure(request && typeof request==='object' && !Array.isArray(request) && Object.keys(request).every(key=>['input','operationId'].includes(key)),'حقول المعاينة التاريخية غير صالحة.');
+    assertHistoricalImportCommitPayload(request.input);identifier(request.operationId);
+    ensure(this.store.authority==='server','المعاينة التاريخية المحمية تتطلب خدمة الخادم.',403);
+    const now=this.now();
+    return this.store.transaction(async tx=>{
+      const readOnly:Store={authority:'server',transaction:async work=>work({
+        get:async path=>{const value=await tx.get(path);if(path===`organizations/${orgId}/idempotency/${request.operationId}`)ensure(!value,'معرف الاعتماد مستخدم بالفعل؛ حدّث الجلسة.',409);return value;},
+        list:(path,options)=>tx.list(path,options),find:(path,field,value)=>tx.find(path,field,value),
+        set:()=>{},delete:()=>{},
+      })};
+      const proposal=await new Operations(readOnly,()=>now,this.subscriptionPolicy,this.verifyCostingSecurity).execute(orgId,actor,{action:'historicalImport.commit',operationId:request.operationId,data:request.input});
+      return clean({dry_run:true,org_id:orgId,session_id:request.input.id,reviewed_at:now.toISOString(),approval_input:request.input,operation_id:request.operationId,proposed_result:proposal.result,proposed_changes:proposal.changes});
+    });
+  }
   async openingPreview(orgId:string,actor:Actor,request:{input:OpeningInput;terms:OpeningTerms[]}) {
     ensure(request && typeof request==='object' && !Array.isArray(request) && Object.keys(request).every(key=>['input','terms'].includes(key)),'حقول طلب معاينة الأرصدة غير صالحة أو محمية.');
     ensure(request.input && typeof request.input==='object' && !Array.isArray(request.input) && Array.isArray(request.terms) && request.terms.length<=97,'بيانات الأرصدة والاستحقاقات مطلوبة للمعاينة.');

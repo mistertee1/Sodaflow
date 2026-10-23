@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { operationId } from '../../services/businessApi';
+import { BusinessError } from '../../domain/validation';
 import type { Document } from '../../domain/store';
 import { useApp } from '../../context/AppContext';
 import { createHistoricalImportTemplate, parseHistoricalImportWorkbook } from '../../services/historicalImportWorkbook';
@@ -8,7 +9,7 @@ type ServerPreview = Awaited<ReturnType<ReturnType<typeof useApp>['previewHistor
 
 type Review = Awaited<ReturnType<typeof parseHistoricalImportWorkbook>>;
 
-/** Workbook review, protected staging and read-only server dry run. Financial approval remains separate. */
+/** Workbook review, protected staging and read-only server dry run. Explicit financial approval binds the reviewed evidence and retains uncertain retries. */
 export function HistoricalWorkbookCenter() {
   const app = useApp();
   const allowed = app.isActionAllowed('import:accounting') && app.currentOrg?.accounting_version === 2;
@@ -19,12 +20,14 @@ export function HistoricalWorkbookCenter() {
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
   const pendingStage = useRef<{ fileHash: string; id: string } | null>(null);
   const [preview, setPreview] = useState<{scope:string;value:ServerPreview}|null>(null);
+  const [confirmed,setConfirmed] = useState(false), [pendingApproval,setPendingApproval] = useState<ServerPreview|null>(null), [receipt,setReceipt] = useState<Document|null>(null);
+  const committing = useRef(false), approvalIdentity = useRef('');
   const [session, setSession] = useState<Document | null>(null);
   const identity = `${app.currentOrg?.id}:${app.currentUser?.uid}:${allowed}`;
   const currentIdentity = useRef(identity); currentIdentity.current = identity;
-  useEffect(() => { setSession(null); pendingStage.current = null; }, [identity]);
+  useEffect(() => { setSession(null); setPendingApproval(null); setReceipt(null); pendingStage.current = null; }, [identity]);
   const [reviewScope, setReviewScope] = useState('');
-  useEffect(() => { generation.current++; setPreview(null); setReview(null); setError(''); setBusy(false); }, [scope]);
+  useEffect(() => { generation.current++; setConfirmed(false); setPreview(null); setReview(null); setError(''); setBusy(false); }, [scope]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; generation.current++; }; }, []);
   const run = async (work: () => Promise<void>) => {
     if (busy) return;
@@ -35,7 +38,7 @@ export function HistoricalWorkbookCenter() {
     finally { if (mounted.current && current.current === captured) setBusy(false); }
   };
   const choose = async (file?: File) => {
-    setPreview(null); setReview(null); setSession(null); pendingStage.current = null;
+    setConfirmed(false); setReceipt(null); setPreview(null); setReview(null); setSession(null); pendingStage.current = null;
     const token = ++generation.current, captured = scope;
     if (!file) return;
     await run(async () => {
@@ -52,6 +55,21 @@ export function HistoricalWorkbookCenter() {
       if (mounted.current && current.current === captured && token === generation.current) { setReview(result); setReviewScope(captured); }
     });
   };
+  const approve = async (proposal:ServerPreview) => {
+    if (committing.current) return;
+    committing.current=true; const captured=identity, orgId=app.currentOrg!.id;
+    approvalIdentity.current=captured;setPendingApproval(proposal);setBusy(true);setError('');
+    try {
+      const result=await app.commitHistoricalImport({...proposal.approval_input,expected_review_sha256:proposal.review_sha256},orgId,proposal.operation_id);
+      if(result.id!==proposal.session_id || result.org_id!==orgId || result.rows_sha256!==proposal.approval_input.expected_rows_sha256) throw new BusinessError('تعذر تأكيد نتيجة الاعتماد؛ أعد المحاولة بنفس الطلب.',502);
+      if(mounted.current && currentIdentity.current===captured){setReceipt(result);setPendingApproval(null);setPreview(null);setConfirmed(false);}
+    } catch(e) {
+      if(mounted.current && currentIdentity.current===captured){
+        setError(e instanceof Error?e.message:'تعذر تأكيد الاعتماد؛ أعد المحاولة بنفس الطلب.');
+        if(e instanceof BusinessError && e.status<500 && e.status!==429 && e.code!=='session_changed'){setPendingApproval(null);setPreview(null);setConfirmed(false);}
+      }
+    } finally {committing.current=false;if(mounted.current && currentIdentity.current===captured)setBusy(false);}
+  };
   if (!allowed) return null;
   const visible = reviewScope === scope ? review : null;
   const livePreview = preview?.scope === scope ? preview.value : null;
@@ -65,7 +83,7 @@ export function HistoricalWorkbookCenter() {
       try { const link = document.createElement('a'); link.href = url; link.download = template.filename; link.click(); }
       finally { URL.revokeObjectURL(url); }
     })}>تنزيل قالب المستندات التاريخية</button>
-    <label className="block">المصنف التاريخي XLSX<input type="file" accept=".xlsx" disabled={busy} data-testid="historical-workbook-file" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; void choose(file); }} /></label>
+    <label className="block">المصنف التاريخي XLSX<input type="file" accept=".xlsx" disabled={busy || Boolean(pendingApproval)} data-testid="historical-workbook-file" onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; void choose(file); }} /></label>
     {busy && <p role="status">جارٍ التحقق من الملف…</p>}
     {error && <p role="alert">{error}</p>}
     {visible && <div className="space-y-3" data-testid="historical-workbook-review">
@@ -84,20 +102,26 @@ export function HistoricalWorkbookCenter() {
       })}>تحقق خادمياً واحفظ جلسة المراجعة</button>
       <p className="text-sm">لم يُحفظ شيء. التحقق الخادمي يحفظ جلسة مراجعة فقط. الاعتماد المالي غير متاح في هذه الخطوة.</p>
     </div>}
-    {session && <div role="status" data-testid="historical-server-session"><p>حُفظت جلسة المراجعة الخادمية فقط؛ لم تُعتمد مستندات أو قيود.</p><p>الملف: {String(session.file_name)} — المستندات: {Number(session.rows_total)}</p>{session.file_duplicate_warning && <p>{String(session.file_duplicate_warning)}</p>}<button className="sf-secondary" data-testid="preview-historical-workbook" disabled={busy} onClick={() => void run(async () => {
-      setPreview(null);
+    {session && <div role="status" data-testid="historical-server-session"><p>حُفظت جلسة المراجعة الخادمية فقط؛ لم تُعتمد مستندات أو قيود.</p><p>الملف: {String(session.file_name)} — المستندات: {Number(session.rows_total)}</p>{session.file_duplicate_warning && <p>{String(session.file_duplicate_warning)}</p>}<button className="sf-secondary" data-testid="preview-historical-workbook" disabled={busy || Boolean(pendingApproval) || Boolean(receipt)} onClick={() => void run(async () => {
+      setPreview(null);setConfirmed(false);
       const captured = scope, token = generation.current;
       const input = {id:String(session.id),expected_rows_sha256:String(session.rows_sha256),expected_validation_context_sha256:String(session.validation_context_sha256),...(session.document_evidence_sha256?{expected_document_evidence_sha256:String(session.document_evidence_sha256)}:{}),reason:'معاينة المستندات التاريخية قبل الاعتماد'};
       const request = {input,operationId:operationId()};
       const result = await app.previewHistoricalImport(request, app.currentOrg!.id);
       if (result.dry_run !== true || result.session_id !== session.id || result.operation_id !== request.operationId || JSON.stringify(result.approval_input) !== JSON.stringify(input)) throw new Error('نتيجة المعاينة لا تطابق الجلسة أو أدلة الملف؛ أعد المعاينة.');
       if (mounted.current && current.current === captured && generation.current === token) setPreview({scope:captured,value:result});
-    })}>معاينة الأثر المحاسبي دون حفظ</button><p>الاعتماد المالي ما زال غير متاح.</p></div>}
+    })}>معاينة الأثر المحاسبي دون حفظ</button><p>راجع الأثر المحاسبي قبل الموافقة الصريحة؛ الاعتماد ينشئ مستندات وقيوداً فعلية.</p></div>}
     {livePreview && <div className="space-y-2" data-testid="historical-server-preview">
       <h3 className="font-bold">معاينة خادمية — لم يُحفظ الأثر المالي</h3>
       <p>المستندات المقترحة: {Number(livePreview.proposed_result.invoices_created||0)+Number(livePreview.proposed_result.purchase_bills_created||0)} — القيود المقترحة: {Number(livePreview.proposed_result.journals_created||0)}</p>
       <p>نتائج المطابقة: {Number(livePreview.proposed_result.reconciliation?.findings_count||0)} — {livePreview.proposed_result.accounting_block?'توجد فروقات حاجبة؛ لا تعتمد الترحيل.':'اجتازت الخطة التحقق الحالي؛ يلزم اعتماد منفصل بعد المراجعة.'}</p>
+      {!livePreview.proposed_result.accounting_block && <div>
+        <label><input type="checkbox" data-testid="confirm-historical-approval" checked={confirmed} disabled={busy || Boolean(pendingApproval)} onChange={e=>setConfirmed(e.target.checked)} />راجعت المستندات والقيود والمطابقة وأوافق على ترحيلها مالياً.</label>
+        <button className="sf-primary" data-testid="commit-historical-workbook" disabled={busy || !confirmed || Boolean(pendingApproval) || !/^[a-f0-9]{64}$/.test(livePreview.review_sha256)} onClick={()=>void approve(livePreview)}>اعتماد المستندات والقيود المراجعة</button>
+      </div>}
       <details><summary>القيود والمطابقة المقترحة</summary><pre className="whitespace-pre-wrap">{JSON.stringify({reconciliation:livePreview.proposed_result.reconciliation,journals:livePreview.proposed_changes.filter((change:Document)=>change.path.includes('/journal_entries/')).map((change:Document)=>change.value)},null,2)}</pre></details>
     </div>}
+    {pendingApproval && approvalIdentity.current===identity && <div data-testid="historical-pending-approval"><p>لم يُؤكد الرد بعد. أعد نفس طلب الاعتماد للتحقق من نتيجته دون تكراره.</p><button className="sf-secondary" disabled={busy} data-testid="retry-historical-approval" onClick={()=>void approve(pendingApproval)}>إعادة نفس طلب الاعتماد</button></div>}
+    {receipt && approvalIdentity.current===identity && <div role="status" data-testid="historical-approval-receipt"><p>اكتمل الاعتماد الخادمي للمستندات والقيود المراجعة.</p><p>الجلسة: {String(receipt.id)} — المستندات المستوردة: {Number(receipt.rows_imported)}</p><p>{receipt.accounting_block?'توجد فروقات محاسبية حاجبة؛ راجع التقرير قبل إغلاق الفترة.':'المطابقة دون فروقات مسجلة في نتيجة الاعتماد.'}</p></div>}
   </section>;
 }

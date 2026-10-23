@@ -20,7 +20,7 @@ export function invoiceFinancials(data: Partial<Invoice>, settings: MerchantSett
     money(item.quantity, 6, true); money(item.unit_price, currencyDecimals(item.currency));
     money(item.discount_percent ?? 0, 4); money(item.tax_rate ?? 0, 4);
     ensure((item.discount_percent ?? 0) <= 100 && (item.tax_rate ?? 0) <= 100, 'نسبة الخصم أو الضريبة غير صالحة.');
-    return { id: `line-${i + 1}`, ...(item.product_id ? { product_id: item.product_id } : {}), description: text(item.description, 500, true), unit: text(item.unit || 'قطعة', 50), quantity: item.quantity, unit_price: item.unit_price, currency: item.currency, tax_rate: item.tax_rate ?? 0, discount_percent: item.discount_percent ?? 0, line_total: calculateLineItem(item.quantity, item.unit_price, item.discount_percent, item.tax_rate, currencyDecimals(item.currency), settings.rounding_rule).total };
+    return { ...(item.price_source ? { price_source: item.price_source } : {}), ...(item.price_source === 'catalog_usd' && item.price_reference ? { price_reference: item.price_reference } : {}), id: `line-${i + 1}`, ...(item.product_id ? { product_id: item.product_id } : {}), description: text(item.description, 500, true), unit: text(item.unit || 'قطعة', 50), quantity: item.quantity, unit_price: item.unit_price, currency: item.currency, tax_rate: item.tax_rate ?? 0, discount_percent: item.discount_percent ?? 0, line_total: calculateLineItem(item.quantity, item.unit_price, item.discount_percent, item.tax_rate, currencyDecimals(item.currency), settings.rounding_rule).total };
   });
   ensure(['fixed', 'percent'].includes(data.discount_type || 'fixed'), 'نوع الخصم غير صالح.');
   money(data.discount_value ?? 0, data.discount_type === 'percent' ? 4 : foreign ? currencyDecimals(foreign.currency) : 0);

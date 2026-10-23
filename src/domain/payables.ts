@@ -1,3 +1,4 @@
+import { assertUsdCostRate } from './productPricing';
 import BigNumber from 'bignumber.js';
 import { openingBalancesByParty, openingLineAllocations, readOpeningData } from './openingIntegration';
 import type { Account, Invoice, JournalEntry, MerchantSettings, Product } from '../types';
@@ -82,6 +83,7 @@ export async function payableCommand(action: string, data: Document, c: PayableC
       ensure(item.tax_rate===undefined&&item.tax_amount===undefined&&item.discount_percent===undefined, 'تكلفة البند موثقة والضريبة مشتقة من الإعداد.');
       let product = products.get(id); if (!product) { product = await c.required('products', id); products.set(id, product); }
       ensure(product.is_active && product.track_inventory, 'بند الشراء يتطلب منتج مخزون نشطاً.'); validateCostState(product as Product);
+      assertUsdCostRate(product as Product, {cost_currency:data.currency,unit_cost:item.unit_cost,exchange_rate_used:data.exchange_rate_used||0});
       const sourceCost=acquisitionCost(item.quantity, { cost_currency: data.currency, unit_cost: item.unit_cost, exchange_rate_used: data.exchange_rate_used || 0, zero_cost_reason: item.zero_cost_reason });
       const allocation=taxAllocations?.[i],delta=allocation?{sdg:allocation.inventory.sdg,usd:allocation.inventory.usd}:sourceCost;
       const previous = quantities.get(id) || { quantity: 0, sdg: 0, usd: 0 };

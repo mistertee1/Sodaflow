@@ -5,9 +5,15 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-approval-20261023",
+  "active_branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "historical-approval-ui-20261023",
+    "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
+    "acquired_at": "2026-10-23T15:00:16Z",
+    "expires_at": "2026-10-23T15:45:16.000Z",
+    "purpose": "Implement explicit reviewed historical approval UI and retained retry"
+  },
   "milestones": [
     {
       "id": "A1",

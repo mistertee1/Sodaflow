@@ -443,6 +443,14 @@ export class Operations {
         }
         return previous.response as OperationResult;
       }
+          if(command.action==='historicalImport.commit'&&command.data.expected_review_sha256!==undefined){
+            ensure(this.store.authority==='server','الاعتماد ببصمة المعاينة يتطلب خدمة الخادم.',403);
+            // Delegate to the already-open transaction: preflight reads and final writes share one snapshot.
+            const scoped:Store={authority:'server',transaction:async work=>work(tx)};
+            const {expected_review_sha256,...input}=command.data;
+            const fresh=await new Operations(scoped,()=>now,this.subscriptionPolicy,this.verifyCostingSecurity).historicalImportPreview(orgId,actor,{input:input as never,operationId:command.operationId});
+            ensure(fresh.review_sha256===expected_review_sha256,'تغيرت حالة المؤسسة أو أدلة المعاينة؛ أعد المعاينة قبل الاعتماد.',409);
+          }
       const changes: Change[] = [];
       const ratePath = `${root}/rate_limits/${actor.uid}`, rate = await tx.get(ratePath), minute = iso.slice(0, 16);
       ensure(rate?.minute !== minute || rate.count < 120, 'طلبات كثيرة. حاول بعد دقيقة.', 429);

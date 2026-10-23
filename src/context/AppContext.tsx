@@ -112,6 +112,8 @@ interface AppContextType {
   saveExportPreset: (input:{id?:string;name:string;kind:'company'|'accounting'|'master';module?:MasterExportModule;period?:{start?:string;end?:string}}) => Promise<Document>;
   deleteExportPreset: (id:string) => Promise<void>;
   createCompanyExport: (presetId?:string) => Promise<{json:string;filename:string;byte_size:number;collection_counts:Record<string,number>}>;
+  commitHistoricalImport: (input: Parameters<Operations['historicalImportPreview']>[2]['input'] & {expected_review_sha256:string}, expectedOrgId:string, operationId:string) => Promise<Document>;
+  previewHistoricalImport: (request: Parameters<Operations['historicalImportPreview']>[2], expectedOrgId: string) => Promise<Awaited<ReturnType<Operations['historicalImportPreview']>>>;
   stageHistoricalImport: (input: HistoricalImportStageInput, operationId: string) => Promise<Document>;
   stageMasterImport: (input: MasterImportInput) => Promise<Document>;
   largeImportJobs: Document[];
@@ -552,6 +554,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isActionAllowed, createMasterExport: module => run('masterExport.create',{module}), createAccountingExport:period=>run('accountingExport.create',{period}),
     exportPresets:rows<Document>('export_presets'),dataTransferHistory:rows<Document>('audit_logs').filter(row=>['DATA_EXPORT_CREATED','DATA_IMPORT_STARTED'].includes(row.event_type)).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
     saveExportPreset:input=>run('exportPreset.save',input),deleteExportPreset:async id=>{await run('exportPreset.delete',{id});},createCompanyExport,
+    commitHistoricalImport: (input, expectedOrgId, id) => {
+      if (!userRef.current || activeOrg.current === guestId) return Promise.reject(new BusinessError('الاعتماد التاريخي يتطلب حساباً مسجلاً وخدمة الخادم.',403,'accounting_server_required'));
+      if (activeOrg.current !== expectedOrgId || !/^[a-f0-9]{64}$/.test(input.expected_review_sha256)) return Promise.reject(new BusinessError('تغيرت المؤسسة أو بصمة المعاينة؛ أعد المعاينة.',409));
+      return run('historicalImport.commit',input,id);
+    },
+    previewHistoricalImport: async (request, expectedOrgId) => {
+      const id = activeOrg.current, epoch = session.current;
+      if (!userRef.current || id === guestId) throw new BusinessError('المعاينة التاريخية المحمية تتطلب حساباً مسجلاً وخدمة الخادم.', 403, 'accounting_server_required');
+      if (!id || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد المعاينة.', 409);
+      const preview = await api<Awaited<ReturnType<Operations['historicalImportPreview']>>>(`/organizations/${encodeURIComponent(id)}/historical-import/preview`, {method: 'POST', body: JSON.stringify(request)});
+      if (id !== activeOrg.current || epoch !== session.current || preview.org_id !== id) throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد المعاينة.', 409);
+      return preview;
+    },
     stageHistoricalImport: async (input, id) => {
       if (!userRef.current || activeOrg.current === guestId) throw new BusinessError('الاستيراد التاريخي المحمي يتطلب خدمة الخادم وحساباً مسجلاً؛ وضع الضيف للمراجعة فقط.', 403, 'accounting_server_required');
       return run('historicalImport.stage', input as unknown as Document, id);

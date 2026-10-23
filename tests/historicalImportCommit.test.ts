@@ -52,7 +52,7 @@ async function seedPurchaseBaseline(f:Awaited<ReturnType<typeof fixture>>){
 test('Excel4.1d.3b.4 commits native purchases, AP, receipt, WAC and retry atomically',async()=>{
   const f=await fixture();await seedPurchaseBaseline(f);
   const staged=await f.stage([purchaseRow()],'purchase-stage',{'11':purchaseEvidence()}),first=await f.commit(staged,'purchase-commit');
-  assert.deepEqual(await f.commit(staged,'purchase-commit'),first);assert.equal(first.result.purchase_bills_created,1);assert.equal(first.result.supplier_payments_created,1);assert.equal(first.result.reconciliation.findings_count,0);
+  assert.deepEqual(await f.commit(staged,'purchase-commit'),first);assert.equal(first.result.purchase_bills_created,1);assert.equal(first.result.supplier_payments_created,1);assert.equal(first.result.org_id,f.org.id);assert.equal(first.result.reconciliation.findings_count,0);
   const dump=f.store.dump(),session=dump[`${f.root}/historical_import_sessions/${staged.id}`],bill=dump[`${f.root}/purchase_bills/${session.commit_purchase_bill_ids[0]}`];
   assert.equal(bill.remaining_sdg,60);assert.equal(bill.payment_sequence,1);assert.equal(bill.items[0].value_sdg,100);assert.equal(dump[`${f.root}/suppliers/supplier-1`].payable_due_sdg,60);assert.equal(dump[`${f.root}/products/product-1`].stock_quantity,12);assert.equal(dump[`${f.root}/products/product-1`].inventory_value_sdg,1100);assert.equal(dump[`${f.root}/purchase_numbers/supplier-1.pb-h-11`].id,bill.id);
   const snapshot=await f.ops.snapshot(f.org.id,owner,true);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
@@ -147,7 +147,7 @@ test('Excel4.1c completes with an accounting block and prevents final period clo
 test('Excel4.1d.3b.2 atomically persists native historical sales and reconciles every source',async()=>{
   const f=await fixture();await seedSalesBaseline(f);
   const staged=await f.stage([salesRow()],'native-sales-stage',{'7':salesEvidence()}),first=await f.commit(staged,'native-sales-commit'),again=await f.commit(staged,'native-sales-commit');
-  assert.deepEqual(again,first);assert.equal(first.result.status,'completed');assert.equal(first.result.accounting_block,false);assert.equal(first.result.invoices_created,1);assert.equal(first.result.payments_created,1);assert.equal(first.result.inventory_movements_created,1);assert.equal(first.result.journals_created,2);assert.equal(first.result.reconciliation.findings_count,0);
+  assert.deepEqual(again,first);assert.equal(first.result.status,'completed');assert.equal(first.result.accounting_block,false);assert.equal(first.result.invoices_created,1);assert.equal(first.result.payments_created,1);assert.equal(first.result.inventory_movements_created,1);assert.equal(first.result.journals_created,2);assert.equal(first.result.org_id,f.org.id);assert.equal(first.result.reconciliation.findings_count,0);
   const dump=f.store.dump(),session=dump[`${f.root}/historical_import_sessions/${staged.id}`];
   assert.equal(session.status,'completed');assert.equal(session.commit_invoice_ids.length,1);assert.equal(session.commit_payment_ids.length,1);assert.equal(session.commit_inventory_movement_ids.length,1);
   const invoice=dump[`${f.root}/invoices/${session.commit_invoice_ids[0]}`],payment=dump[`${f.root}/payments/${session.commit_payment_ids[0]}`],movement=dump[`${f.root}/inventory_movements/${session.commit_inventory_movement_ids[0]}`];
@@ -188,4 +188,80 @@ test('Excel4.1d.3a requires and replays the reviewed document evidence hash befo
   const before=f.store.dump();
   await assert.rejects(f.ops.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:'document-proof-tampered',data:{id:staged.id,expected_rows_sha256:staged.rows_sha256,expected_validation_context_sha256:staged.validation_context_sha256,expected_document_evidence_sha256:staged.document_evidence_sha256,reason:'مراجعة الدليل'}}),/بصمة دليل المستندات التاريخية مختلفة/);
   assert.deepEqual(f.store.dump(),before);
+});
+
+const previewRequest=(session:Record<string,any>)=>({operationId:'reviewed-history-commit',input:{id:session.id,expected_rows_sha256:session.rows_sha256,expected_validation_context_sha256:session.validation_context_sha256,...(session.document_evidence_sha256?{expected_document_evidence_sha256:session.document_evidence_sha256}:{}),reason:'معاينة الأثر التاريخي قبل الاعتماد'}});
+function serverPreview(f:Awaited<ReturnType<typeof fixture>>,verify:()=>Promise<void>=async()=>{}){
+  let writes=0;
+  const ops=new Operations({authority:'server',transaction:work=>f.store.transaction(tx=>work({...tx,set:()=>{writes++;throw new Error('Preview attempted a write');},delete:()=>{writes++;throw new Error('Preview attempted a delete');}}))},()=>now,undefined,verify);
+  return{ops,writes:()=>writes};
+}
+
+test('Excel4.1e.2c preview validates real native sales/purchases without invoking a store write',async()=>{
+  for(const kind of ['journal','invoice','purchase']){
+    const f=await fixture();if(kind==='invoice')await seedSalesBaseline(f);if(kind==='purchase')await seedPurchaseBaseline(f);
+    const session=await f.stage([kind==='journal'?journalRow():kind==='invoice'?salesRow():purchaseRow()],`preview-stage-${kind}`,kind==='invoice'?{'7':salesEvidence()}:kind==='purchase'?{'11':purchaseEvidence()}:undefined);
+    let verified=0;const server=serverPreview(f,async()=>{verified++;}),before=f.store.dump(),request=previewRequest(session);
+    const review=await server.ops.historicalImportPreview(f.org.id,accountant,request);
+    assert.equal(review.dry_run,true);assert.equal(review.session_id,session.id);assert.equal(review.org_id,f.org.id);
+    assert.equal(review.proposed_result.reconciliation.findings_count,0);assert.ok(review.proposed_changes.some((change:any)=>change.path.includes('/journal_entries/')));
+    assert.deepEqual(f.store.dump(),before);assert.equal(server.writes(),0);assert.ok(verified>0);
+    // The same operation ID remains available for the later real command.
+    await f.ops.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:request.operationId,data:request.input});
+    await assert.rejects(server.ops.historicalImportPreview(f.org.id,accountant,request),/مستخدم بالفعل/);
+  }
+});
+
+test('Excel4.1e.2c preview rejects fresh locks and tampered evidence without writes',async()=>{
+  for(const mode of ['lock','hash']){
+    const f=await fixture(),session=await f.stage([journalRow()]),request=previewRequest(session);
+    if(mode==='hash')request.input.expected_rows_sha256='0'.repeat(64);
+    else await f.store.transaction(async tx=>{const path=`${f.root}/accounting_periods/2026`;tx.set(path,{...await tx.get(path),status:'CLOSED'});});
+    const server=serverPreview(f),before=f.store.dump();await assert.rejects(server.ops.historicalImportPreview(f.org.id,accountant,request));
+    assert.deepEqual(f.store.dump(),before);assert.equal(server.writes(),0);
+  }
+});
+
+test('Excel4.1e.2c preview fails closed for local authority, missing Rules proof and foreign membership',async()=>{
+  const f=await fixture(),session=await f.stage([journalRow()]),request=previewRequest(session),before=f.store.dump();
+  await assert.rejects(f.ops.historicalImportPreview(f.org.id,accountant,request),/خدمة الخادم/);
+  const server=new Operations({authority:'server',transaction:work=>f.store.transaction(work)},()=>now);
+  await assert.rejects(server.historicalImportPreview(f.org.id,accountant,request),/قواعد/);
+  await assert.rejects(serverPreview(f).ops.historicalImportPreview(f.org.id,{uid:'stranger',email:'stranger@example.com',emailVerified:true},request),/عضوية/);
+  await assert.rejects(serverPreview(f).ops.historicalImportPreview(f.org.id,accountant,{...request,extra:true} as never),/حقول/);
+  assert.deepEqual(f.store.dump(),before);
+});
+
+test('Excel4.1e.2c.2b binds native historical approval to live review and preserves uncertain retries',async()=>{
+  for(const kind of ['journal','invoice','purchase']){
+    const f=await fixture();if(kind==='invoice')await seedSalesBaseline(f);if(kind==='purchase')await seedPurchaseBaseline(f);
+    const session=await f.stage([kind==='journal'?journalRow():kind==='invoice'?salesRow():purchaseRow()],`bound-${kind}`,kind==='invoice'?{'7':salesEvidence()}:kind==='purchase'?{'11':purchaseEvidence()}:undefined);
+    let clock=now;const ops=new Operations({authority:'server',transaction:work=>f.store.transaction(work)},()=>clock,undefined,async()=>{}),request=previewRequest(session);
+    const before=f.store.dump(),review=await ops.historicalImportPreview(f.org.id,accountant,request);
+    assert.match(review.review_sha256,/^[a-f0-9]{64}$/);assert.deepEqual(f.store.dump(),before);
+    clock=new Date(now.getTime()+60000);
+    assert.equal((await ops.historicalImportPreview(f.org.id,accountant,request)).review_sha256,review.review_sha256);
+    const command={action:'historicalImport.commit',operationId:request.operationId,data:{...request.input,expected_review_sha256:review.review_sha256}};
+    const first=await ops.execute(f.org.id,accountant,command),saved=f.store.dump();
+    assert.equal(first.result.org_id,f.org.id);assert.equal(first.result.reconciliation.findings_count,0);
+    assert.deepEqual(await ops.execute(f.org.id,accountant,command),first);assert.deepEqual(f.store.dump(),saved);
+    await assert.rejects(ops.execute(f.org.id,accountant,{...command,data:{...command.data,expected_review_sha256:'0'.repeat(64)}}),/معرّف العملية/);
+  }
+});
+
+test('Excel4.1e.2c.2b rejects stale state, forged digest and changed intent before any financial writes',async()=>{
+  for(const mode of ['state','digest','reason','operation','actor']){
+    const f=await fixture(),session=await f.stage([journalRow()]),request=previewRequest(session);
+    const ops=new Operations({authority:'server',transaction:work=>f.store.transaction(work)},()=>now,undefined,async()=>{});
+    const review=await ops.historicalImportPreview(f.org.id,accountant,request);
+    if(mode==='state')await f.store.transaction(async tx=>{const path=`${f.root}/meta/counters`;tx.set(path,{...await tx.get(path),revision:999});});
+    const before=f.store.dump();
+    await assert.rejects(ops.execute(f.org.id,mode==='actor'?owner:accountant,{action:'historicalImport.commit',operationId:mode==='operation'?'another-operation':request.operationId,data:{...request.input,...(mode==='reason'?{reason:'طلب مختلف'}:{}),expected_review_sha256:mode==='digest'?'0'.repeat(64):review.review_sha256}}),/أعد المعاينة/);
+    assert.deepEqual(f.store.dump(),before);
+    if(mode==='state'){
+      const refreshed=await ops.historicalImportPreview(f.org.id,accountant,request);
+      assert.notEqual(refreshed.review_sha256,review.review_sha256);
+      await ops.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:request.operationId,data:{...request.input,expected_review_sha256:refreshed.review_sha256}});
+    }
+  }
 });

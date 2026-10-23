@@ -13,7 +13,8 @@ test('signed-in historical staging retries an uncertain response once and writes
   const records = JSON.parse(JSON.stringify(original).replaceAll(guestId, orgId));
   records[`${root}/customers/history-party`] = { id: 'history-party', org_id: orgId, name: 'عميل الترحيل', balance_sdg: 0, balance_usd: 0 };
   const memory = new MemoryStore(records);
-  const operations = new Operations({ authority: 'server', transaction: work => memory.transaction(work) }, () => new Date('2026-10-23T02:00:00Z'));
+  let securityChecks = 0;
+  const operations = new Operations({ authority: 'server', transaction: work => memory.transaction(work) }, () => new Date('2026-10-23T02:00:00Z'), undefined, async () => { securityChecks++; });
   await fakeFirebase(page, true);
   await page.addInitScript(() => { (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = { organizations: async () => [], watchRevision: () => () => {} }; });
   const ids: string[] = []; let loseResponse = true;
@@ -41,6 +42,7 @@ test('signed-in historical staging retries an uncertain response once and writes
   await center.getByTestId('historical-workbook-file').setInputFiles({ name: 'cloud-history.xlsx', mimeType: template.mime_type, buffer: Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer) });
   await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByRole('alert')).toContainText('تعذر تأكيد');
   await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByTestId('historical-server-session')).toContainText('حُفظت جلسة المراجعة');
+  expect(securityChecks).toBeGreaterThan(0);
   expect(ids).toHaveLength(2); expect(ids[0]).toBe(ids[1]);
   const after = memory.dump(); expect(Object.keys(after).filter(path => path.startsWith(`${root}/historical_import_sessions/`))).toHaveLength(1);
   expect(Object.keys(after).filter(path => path.startsWith(`${root}/historical_import_staging/`))).toHaveLength(1);

@@ -4,23 +4,19 @@ import {classifyAccount} from '../../domain/accountClassification';
 import type {TaxConfiguration} from '../../domain/taxConfiguration';
 import {operationId} from '../../services/businessApi';
 import {OwnerReauthenticationDialog} from './OwnerReauthenticationDialog';
-import type {Operations} from '../../domain/operations';
 
 const field = 'w-full min-w-0 mt-1 p-2 rounded border border-sf-border bg-sf-raised';
 type Draft = Omit<TaxConfiguration, 'schema_version' | 'org_id' | 'revision'> & {reason: string; expected_revision?: number};
-type TaxReport = Awaited<ReturnType<Operations['taxReports']>>;
 const blank = (): Draft => ({id: `tax-${operationId()}`, name: '', jurisdiction: '', direction: 'sales', rate: 0,
   calculation: 'exclusive', rounding: 'half_up', recoverable: false, tax_account_code: '', effective_from: '', effective_to: null, active: true, reason: ''});
 
 export function TaxCenter() {
   const a = useApp(), [draft, setDraft] = useState<Draft>(blank), [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false), [notice, setNotice] = useState(''), [reauth, setReauth] = useState(false);
-  const [start,setStart]=useState(''),[end,setEnd]=useState(''),[report,setReport]=useState<TaxReport|null>(null),[reportBusy,setReportBusy]=useState(false);
   const mounted = useRef(true), working = useRef(false), scope = useRef({org: a.currentOrg?.id, uid: a.currentUser?.uid});
   const current = useRef(scope.current); current.current = {org: a.currentOrg?.id, uid: a.currentUser?.uid};
   useEffect(() => {mounted.current = true; return () => {mounted.current = false;};}, []);
-  const canManage = a.userRole === 'Owner' && a.isActionAllowed('tax:manage');
-  const canRead = a.isActionAllowed('tax:read');
+  const canManage = a.isActionAllowed('tax:manage');
   const permissionNow = useRef(canManage); permissionNow.current = canManage;
   const accounts = useMemo(() => a.accounts.filter(account => {
     if (!account.is_active) return false;
@@ -50,18 +46,10 @@ export function TaxCenter() {
     finally {working.current = false; if (mounted.current) setBusy(false);}
   };
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft(row => ({...row, [key]: value}));
-  const loadReport=async()=>{setReportBusy(true);setNotice('');try{const value=await a.loadTaxReport({start:start||undefined,end:end||undefined});if(mounted.current)setReport(value);}catch(error){if(mounted.current)setNotice(error instanceof Error?error.message:'تعذر تحميل تقرير الضريبة.');}finally{if(mounted.current)setReportBusy(false);}};
-  const amount=(value:{sdg:number;usd:number})=>`${value.sdg.toLocaleString('ar-SD')} SDG / ${value.usd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} USD`;
   return <section role="region" aria-label="مركز الضرائب" className="space-y-4 min-w-0 text-sm">
     <h3 className="text-lg font-semibold">مركز الضرائب</h3>
     <p>سياسات داخلية قابلة للضبط وليست إقراراً بالامتثال القانوني. تحفظ كل تعديلات المالك كسلسلة إصدارات مدققة.</p>
     {notice && <p role="status" className="sf-card p-3">{notice}</p>}
-    {canRead&&<section role="region" aria-label="تقرير الفترة الضريبية" className="sf-card p-4 space-y-3 min-w-0">
-      <h4 className="font-semibold">تقرير الفترة الضريبية</h4><p>مصالحة دفترية لحسابات التحكم؛ لا تمثل إقراراً ضريبياً قانونياً.</p>
-      <div className="grid sm:grid-cols-3 gap-3 items-end"><label>من<input aria-label="بداية فترة الضريبة" className={field} type="date" value={start} onChange={e=>setStart(e.target.value)}/></label><label>إلى<input aria-label="نهاية فترة الضريبة" className={field} type="date" min={start||undefined} value={end} onChange={e=>setEnd(e.target.value)}/></label><button type="button" className="sf-action" disabled={reportBusy||!!start&&!!end&&start>end} onClick={loadReport}>{reportBusy?'جارٍ التحميل…':'تحميل التقرير'}</button></div>
-      {report&&<><div className="grid sm:grid-cols-3 gap-3"><div><b>ضريبة المبيعات — الحركة</b><br/>{amount(report.sales_tax)}</div><div><b>ضريبة المشتريات — الحركة</b><br/>{amount(report.purchase_tax)}</div><div><b>صافي الضريبة المستحقة</b><br/>{amount(report.net_tax_payable)}</div></div>
-      {!report.controls.length?<p>لا توجد حسابات تحكم ضريبي مضبوطة.</p>:<div className="overflow-auto"><table className="w-full whitespace-nowrap text-right"><thead><tr><th>الحساب</th><th>النوع</th><th>افتتاحي</th><th>مدين الفترة</th><th>دائن الفترة</th><th>ختامي</th></tr></thead><tbody>{report.controls.map(row=><tr key={`${row.direction}:${row.account_code}`}><td>{row.account_code}<br/><span className="text-xs text-sf-muted">{row.jurisdictions.join('، ')}</span></td><td>{row.direction==='sales'?'مبيعات مستحقة':'مشتريات مستردة'}</td><td>{amount(row.opening)}</td><td>{amount(row.debit)}</td><td>{amount(row.credit)}</td><td>{amount(row.closing)}</td></tr>)}</tbody></table></div>}<p className="text-xs text-sf-muted">عدد القيود ذات الصلة في الفترة: {report.journal_entry_count}</p></>}
-    </section>}
     {!canManage && <p>الإعدادات للعرض فقط؛ الإنشاء والتعديل متاحان لمالك المؤسسة بعد تحقق الدخول.</p>}
     {canManage && <form aria-label="إعداد ضريبة" className="sf-card p-4 space-y-3" onSubmit={event => {event.preventDefault(); setReauth(true);}}>
       <h4 className="font-semibold">{editing ? `تعديل ${draft.name}` : 'إضافة سياسة ضريبية'}</h4>

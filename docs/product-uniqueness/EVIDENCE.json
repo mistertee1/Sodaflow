@@ -1,0 +1,31 @@
+{
+  "source": "76457ea0e9b9e43d78ac43abc00288638be14d50",
+  "baseMain": "649ea3beb09b83a89eb45834f944625086d3135c",
+  "reviewedUsdMerge": "5c05e172c518c2dd663e5e79646590a87d57defa",
+  "pr": 130,
+  "ci": {
+    "unit_api": 417,
+    "netlify_runtime": 16,
+    "firestore_emulator": 54,
+    "ui": 81,
+    "total": 568,
+    "failed": 0,
+    "skipped": 0,
+    "production_vulnerabilities": 0,
+    "types": "passed",
+    "core_types": "passed",
+    "build": "passed",
+    "ciRun": 39994073005,
+    "ciJob": 120552929135,
+    "node22Run": 39994073015,
+    "node22Job": 120552929051,
+    "status": "passed"
+  },
+  "syntheticOnly": true,
+  "project": "demo-sudaflow",
+  "productionWrites": 0,
+  "rulesChanged": false,
+  "activeRunId": null,
+  "leaseUntil": null,
+  "acceptedAt": "2026-10-23T17:27:25.976039+00:00"
+}

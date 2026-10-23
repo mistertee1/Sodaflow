@@ -4,7 +4,7 @@ import { INITIAL_SETTINGS } from '../../../src/data/initialData';
 import { getDefaultChartOfAccounts } from '../../../src/services/accountingService';
 import { getPlanConfig, createDefaultSubscription } from '../../../src/lib/plans';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../../../src/types';
-import { guestId, guestActor } from '../../../src/services/guestStore';
+import { guestId, guestActor } from '../../fixtures/cloudIdentity';
 
 export async function correctionGuestFixture() {
   const root = `organizations/${guestId}`, settings = { ...INITIAL_SETTINGS, business_name: 'متجر الاختبار', default_exchange_rate: 2000 };

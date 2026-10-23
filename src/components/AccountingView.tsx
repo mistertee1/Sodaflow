@@ -4,18 +4,6 @@ import { FxRevaluationCenter } from './accounting/FxRevaluationCenter';
 import { FixedAssetsCenter } from './accounting/FixedAssetsCenter';
 import { AccountingPeriodsCenter } from './accounting/AccountingPeriodsCenter';
 import { TaxCenter } from './accounting/TaxCenter';
-import { ManagementDimensionsCenter } from './accounting/ManagementDimensionsCenter';
-import { ProductProfitabilityCenter } from './accounting/ProductProfitabilityCenter';
-import { CustomerProfitabilityCenter } from './accounting/CustomerProfitabilityCenter';
-import { BudgetCenter } from './accounting/BudgetCenter';
-import { CashForecastCenter } from './accounting/CashForecastCenter';
-import { ApprovalPolicyCenter } from './accounting/ApprovalPolicyCenter';
-import { AccountingHealthCenter } from './accounting/AccountingHealthCenter';
-import { AccountingAssistanceCenter } from './accounting/AccountingAssistanceCenter';
-import { OwnerFinancialSummaryCenter } from './accounting/OwnerFinancialSummaryCenter';
-import { DataExportCenter } from './accounting/DataExportCenter';
-import { DataImportCenter } from './accounting/DataImportCenter';
-import { HistoricalWorkbookCenter } from './accounting/HistoricalWorkbookCenter';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { api } from '../services/businessApi';
 import type { Operations } from '../domain/operations';
@@ -100,7 +88,7 @@ export const AccountingView: React.FC = () => {
   } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<
-    'imports' | 'exports' | 'opening' | 'equity' | 'fx' | 'assets' | 'tax' | 'dimensions' | 'profitability' | 'budgets' | 'approvals' | 'forecast' | 'health' | 'assistance' | 'owner-summary' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
+    'opening' | 'equity' | 'fx' | 'assets' | 'tax' | 'ledger' | 'receivables' | 'cash' | 'payables' | 'coa' | 'journal' | 'trial' | 'income' | 'balance_sheet' | 'cash_flow' | 'period_lock'
   >('coa');
   const [reportStart, setReportStart] = useState('');
   const [reportEnd, setReportEnd] = useState('');
@@ -469,16 +457,6 @@ export const AccountingView: React.FC = () => {
           {isActionAllowed('journal:read') && <button data-testid="fx-revaluation-tab" onClick={() => setActiveSubTab('fx')} aria-pressed={activeSubTab === 'fx'} className="sf-secondary shrink-0 whitespace-nowrap">إعادة تقييم العملات</button>}
           {isActionAllowed('journal:read') && <button data-testid="fixed-assets-tab" onClick={() => setActiveSubTab('assets')} aria-pressed={activeSubTab === 'assets'} className="sf-secondary shrink-0 whitespace-nowrap">الأصول الثابتة والإهلاك</button>}
           {isActionAllowed('tax:read') && <button data-testid="tax-center-tab" onClick={() => setActiveSubTab('tax')} aria-pressed={activeSubTab === 'tax'} className="sf-secondary shrink-0 whitespace-nowrap">الضرائب</button>}
-          {isActionAllowed('dimensions:read') && <button data-testid="dimensions-center-tab" onClick={() => setActiveSubTab('dimensions')} aria-pressed={activeSubTab === 'dimensions'} className="sf-secondary shrink-0 whitespace-nowrap">الأبعاد الإدارية</button>}
-          {isActionAllowed('reports:advanced') && <button data-testid="product-profitability-tab" onClick={() => setActiveSubTab('profitability')} aria-pressed={activeSubTab === 'profitability'} className="sf-secondary shrink-0 whitespace-nowrap">ربحية المنتجات والعملاء</button>}
-          {isActionAllowed('budget:read') && <button data-testid="budget-center-tab" onClick={() => setActiveSubTab('budgets')} aria-pressed={activeSubTab === 'budgets'} className="sf-secondary shrink-0 whitespace-nowrap">الميزانيات</button>}
-          {isActionAllowed('approvals:read') && <button data-testid="approval-policy-tab" onClick={() => setActiveSubTab('approvals')} aria-pressed={activeSubTab === 'approvals'} className="sf-secondary shrink-0 whitespace-nowrap">حدود الاعتماد</button>}
-          {isActionAllowed('reports:advanced') && isActionAllowed('payables:read') && <button data-testid="cash-forecast-tab" onClick={() => setActiveSubTab('forecast')} aria-pressed={activeSubTab === 'forecast'} className="sf-secondary shrink-0 whitespace-nowrap">توقع النقد</button>}
-          {isActionAllowed('reports:advanced') && isActionAllowed('journal:read') && <button data-testid="accounting-health-tab" onClick={() => setActiveSubTab('health')} aria-pressed={activeSubTab === 'health'} className="sf-secondary shrink-0 whitespace-nowrap">صحة المحاسبة</button>}
-          {isActionAllowed('reports:advanced') && isActionAllowed('journal:read') && <button data-testid="accounting-assistance-tab" onClick={() => setActiveSubTab('assistance')} aria-pressed={activeSubTab === 'assistance'} className="sf-secondary shrink-0 whitespace-nowrap">مساعد المحاسبة</button>}
-          {userRole==='Owner' && isActionAllowed('reports:advanced') && <button data-testid="owner-financial-summary-tab" onClick={() => setActiveSubTab('owner-summary')} aria-pressed={activeSubTab === 'owner-summary'} className="sf-secondary shrink-0 whitespace-nowrap">ملخص المالك</button>}
-          {(isActionAllowed('export:accounting') || (['customers','suppliers','products','invoices'] as const).some(module=>isActionAllowed(`export:${module}`))) && <button data-testid="data-export-tab" onClick={() => setActiveSubTab('exports')} aria-pressed={activeSubTab === 'exports'} className="sf-secondary shrink-0 whitespace-nowrap">تصدير البيانات</button>}
-          {(isActionAllowed('import:accounting') || (['customers','suppliers','products'] as const).some(module=>isActionAllowed(`import:${module}`))) && <button data-testid="data-import-tab" onClick={() => setActiveSubTab('imports')} aria-pressed={activeSubTab === 'imports'} className="sf-secondary shrink-0 whitespace-nowrap">استيراد البيانات</button>}
           {isActionAllowed('payables:read') && <button onClick={() => setActiveSubTab('payables')} aria-pressed={activeSubTab === 'payables'} className="sf-secondary shrink-0 whitespace-nowrap">الموردون والمشتريات</button>}
           <button
             onClick={() => setActiveSubTab('coa')}
@@ -967,16 +945,6 @@ export const AccountingView: React.FC = () => {
       {activeSubTab === 'fx' && <FxRevaluationCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'assets' && <FixedAssetsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
       {activeSubTab === 'tax' && <TaxCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
-      {activeSubTab === 'dimensions' && <ManagementDimensionsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
-      {activeSubTab === 'profitability' && <div key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} className="space-y-6"><ProductProfitabilityCenter />{isActionAllowed('customers:read') && <CustomerProfitabilityCenter />}</div>}
-      {activeSubTab === 'budgets' && <BudgetCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
-      {activeSubTab === 'approvals' && <ApprovalPolicyCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
-      {activeSubTab === 'forecast' && <CashForecastCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
-      {activeSubTab === 'health' && <AccountingHealthCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
-      {activeSubTab === 'assistance' && <AccountingAssistanceCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
-      {activeSubTab === 'owner-summary' && <OwnerFinancialSummaryCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
-      {activeSubTab === 'exports' && <DataExportCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}
-      {activeSubTab === 'imports' && <><DataImportCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} /><HistoricalWorkbookCenter key={`historical:${currentOrg?.id}:${currentUser?.uid || 'local'}`} /></>}
       {activeSubTab === 'payables' && <PayablesCenter />}
 
       {activeSubTab === 'period_lock' && <AccountingPeriodsCenter key={`${currentOrg?.id}:${currentUser?.uid || 'local'}`} />}

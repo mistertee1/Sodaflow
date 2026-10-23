@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import { correctionDocumentFixture } from './ui/helpers/correctionDocuments';
-import { guestActor, guestId } from '../src/services/guestStore';
+import { guestActor, guestId } from './fixtures/cloudIdentity';
 import { Operations } from '../src/domain/operations';
 import type { Store } from '../src/domain/store';
 import { createApi } from '../server/api';

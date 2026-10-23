@@ -9,7 +9,8 @@
     "scripts/**/*.ts",
     "src/domain/**/*.ts",
     "src/services/businessApi.ts",
-    "src/services/guestStore.ts",
+    "tests/cloudPersistence.test.ts",
+    "tests/ui/cloudOnly.spec.ts",
     "tests/domain.test.ts",
     "tests/accountingV2.test.ts",
     "tests/api.test.ts",
@@ -47,6 +48,20 @@
     "tests/fixedAssets.test.ts",
     "tests/fixedAssetTransactions.test.ts",
     "tests/ui/fixedAssets.spec.ts",
-    "tests/taxConfiguration.test.ts"
+    "tests/taxConfiguration.test.ts",
+    "tests/serverAuthority.test.ts",
+    "tests/serverAuthorityFirestore.test.ts",
+    "tests/platformAdminBootstrap.test.ts",
+    "tests/platformPause.test.ts",
+    "tests/platformPauseFirestore.test.ts",
+    "tests/ui/platformPause.spec.ts",
+    "tests/regionalCurrencies.test.ts",
+    "tests/ui/regionalCurrencies.spec.ts",
+    "tests/usdReferencePricing.test.ts",
+    "tests/ui/usdReferencePricing.spec.ts",
+    "tests/usdReferenceFirestore.test.ts",
+    "tests/productUniqueness.test.ts",
+    "tests/productUniquenessFirestore.test.ts",
+    "tests/ui/productUniqueness.spec.ts"
   ]
 }

@@ -3,7 +3,7 @@ import { db } from '../lib/firebase';
 import type { Operations, OperationResult } from '../domain/operations';
 import { api, sendCommand } from './businessApi';
 
-// Keep realtime revision notifications and the confirmed snapshot cache. All tenant reads
+// Keep realtime revision notifications without disk persistence. All tenant reads
 // and financial writes use the same authenticated API and authoritative live entitlements.
 // Tenant writes stay on the authenticated API, where subscription checks and counters
 // are committed atomically. Revision notifications use the Firestore SDK.

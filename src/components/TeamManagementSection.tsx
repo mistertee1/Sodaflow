@@ -34,6 +34,7 @@ export const TeamManagementSection: React.FC = () => {
     userOrgs = [],
     userRole,
     memberStatus,
+    platformControlsEnabled,
     orgMembers = [],
     switchOrganization,
     createNewOrg,
@@ -72,7 +73,7 @@ export const TeamManagementSection: React.FC = () => {
 
   // Load invitations when org changes
   const loadInvitations = async () => {
-    if (!currentOrg || currentOrg.id === 'local-guest-org' || !isActionAllowed('members:invite')) return;
+    if (!currentOrg || !isActionAllowed('members:invite')) return;
     setLoadingInvitations(true);
     try {
       const invs = await getOrgInvitations(currentOrg.id);
@@ -101,7 +102,7 @@ export const TeamManagementSection: React.FC = () => {
   const canManageMembers = isActionAllowed('members:update_role');
   const canInvite = isActionAllowed('members:invite');
   const reservedUsers = new Set([...orgMembers.map(member => member.uid), currentOrg?.owner_uid]).size + invitations.filter(invitation => invitation.status === 'pending' && Date.parse(invitation.expires_at) > Date.now()).length;
-  const seatsFull = reservedUsers >= subscription.max_members;
+  const seatsFull = platformControlsEnabled && reservedUsers >= subscription.max_members;
 
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -451,7 +452,7 @@ export const TeamManagementSection: React.FC = () => {
               <UserPlus className="w-3.5 h-3.5 text-sf-action" />
               <span>دعوة موظف أو محاسب للانضمام للمؤسسة</span>
             </h4>
-            <span className="text-xs text-sf-muted">{reservedUsers} / {subscription.max_members} مقعد محجوز · الدعوات القائمة تحجز مقاعد · المجانية: المالك وموظف واحد</span>
+            <span className="text-xs text-sf-muted">{platformControlsEnabled ? `${reservedUsers} / ${subscription.max_members} مقعد محجوز · الدعوات القائمة تحجز مقاعد · المجانية: المالك وموظف واحد` : `${reservedUsers} مقعد محجوز · عدد الأعضاء غير محدود حالياً`}</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">

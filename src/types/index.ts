@@ -1,6 +1,8 @@
-export type Currency = 'SDG' | 'USD' | 'SAR' | 'AED' | 'EUR' | 'GBP' | 'EGP';
+export type Currency = 'SDG' | 'USD' | 'SAR' | 'AED' | 'KWD' | 'QAR' | 'BHD' | 'OMR' | 'EUR' | 'GBP' | 'EGP';
+export type CurrencyRates = Partial<Record<Currency, number>>;
+export interface InvoicePricing { currency: Currency; units_per_usd: number; subtotal: number; discount: number; tax: number; total: number; rounding_rule: 'round' | 'ceil' | 'floor'; }
 
-export type CurrencyMode = 'dual' | 'single_sdg' | 'single_usd';
+export type CurrencyMode = 'dual' | 'single_sdg' | 'single_usd' | 'single_foreign';
 
 export type InvoiceStatus = 'draft' | 'sent' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled' | 'void';
 
@@ -261,6 +263,9 @@ export interface Customer {
 }
 
 export interface Product {
+  pricing_mode?: 'usd_reference' | 'usd_cost_plus' | 'manual';
+  pricing_reference_usd?: number;
+  pricing_markup_percent?: number;
   cost_status?: "unknown" | "valued";
   cost_effective_date?: string;
   cost_last_movement_date?: string;
@@ -288,6 +293,8 @@ export interface Product {
 }
 
 export interface InvoiceItem {
+  price_source?: 'catalog_usd' | 'manual';
+  price_reference?: { version: 1; mode: 'usd_reference' | 'usd_cost_plus'; reference_usd: number; exchange_rate_used: number; currency_rate_per_usd: number; rounding_rule: 'round' | 'ceil' | 'floor' };
   cost_status?: "unknown" | "valued" | "not_tracked";
   unit_cost_sdg?: number;
   unit_cost_usd?: number;
@@ -307,10 +314,11 @@ export interface InvoiceItem {
 }
 
 export interface Invoice {
-  credit_decision?: {
-    currency: 'SDG' | 'USD'; balance_before: number; invoice_amount: number; exposure_after: number;
-    limit: number | null; exceeded: boolean; policy: 'warning' | 'approval_required'; approved_by?: string; approval_reason?: string;
-  };
+  currency_rates_used?: CurrencyRates;
+  pricing?: InvoicePricing;
+  pricing_remaining?: number;
+  pricing_credit_balance?: number;
+  pricing_paid?: number;
   tax_evidence?: Record<string, any>;
   source_event_sequence?: number;
   correction_count?: number;
@@ -366,6 +374,8 @@ export interface Invoice {
 }
 
 export interface Payment {
+  settled_pricing_amount?: number;
+  currency_rates_used?: CurrencyRates;
   source_sequence?: number;
   settled_amount_sdg?: number;
   settled_amount_usd?: number;
@@ -417,6 +427,8 @@ export interface Expense {
 }
 
 export interface MerchantSettings {
+  default_transaction_currency?: Currency;
+  currency_rates?: CurrencyRates; // Units of the selected currency per USD; no live rates are assumed.
   business_name: string;
   phone: string;
   address?: string;

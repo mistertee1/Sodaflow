@@ -7,10 +7,9 @@ type Check = { status: 'ready' | 'error'; code?: string; message?: string };
 type ProbeServices = {
   app: { options: { credential?: { getAccessToken(): Promise<unknown> } } };
   db: { doc(path: string): { get(): Promise<unknown> } };
-  bucket: { getMetadata(): Promise<unknown> };
 };
 
-async function check(service: 'firebase' | 'firestore' | 'storage', work: () => Promise<unknown>): Promise<Check> {
+async function check(service: 'firebase' | 'firestore', work: () => Promise<unknown>): Promise<Check> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     await Promise.race([
@@ -27,10 +26,10 @@ async function check(service: 'firebase' | 'firestore' | 'storage', work: () => 
 // This probe never writes data or returns credentials, users, or document contents.
 export async function inspectFirebaseReadiness(services: () => ProbeServices = adminServices) {
   const result: {
-    status: 'ready' | 'degraded' | 'error';
+    status: 'ready' | 'error';
     firebase_project_id: string;
     firestore_database_id: string;
-    checks: { firebase: Check; firestore?: Check; storage?: Check };
+    checks: { firebase: Check; firestore?: Check };
   } = { status: 'error', firebase_project_id: config.projectId, firestore_database_id: selectedFirestoreDatabaseId(), checks: { firebase: { status: 'error' } } };
   let connection: ProbeServices | undefined;
   result.checks.firebase = await check('firebase', async () => {
@@ -40,13 +39,10 @@ export async function inspectFirebaseReadiness(services: () => ProbeServices = a
   });
   if (result.checks.firebase.status !== 'ready' || !connection) return result;
   const readyConnection = connection;
-  const [firestore, storage] = await Promise.all([
-    check('firestore', () => readyConnection.db.doc('_health/readiness').get()),
-    check('storage', () => readyConnection.bucket.getMetadata()),
-  ]);
-  result.checks.firestore = firestore;
-  result.checks.storage = storage;
-  result.status = firestore.status === 'error' ? 'error' : storage.status === 'error' ? 'degraded' : 'ready';
+  // Images and receipts no longer use Firebase Storage. An absent Firebase
+  // bucket must not make healthy Firestore synchronization appear degraded.
+  result.checks.firestore = await check('firestore', () => readyConnection.db.doc('_health/readiness').get());
+  result.status = result.checks.firestore.status === 'ready' ? 'ready' : 'error';
   return result;
 }
 

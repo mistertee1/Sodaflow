@@ -71,7 +71,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     if (!rateVal.isValid) return;
     setIsRateUpdating(true);
     try {
-      await updateSettings({ default_exchange_rate: rateVal.rate });
+      await updateSettings({ default_exchange_rate: rateVal.rate, manual_exchange_rate: 0 });
       setRateInput(rateVal.rate.toString());
       setRateToast(`تم تحديث سعر الصرف يدوياً إلى: 1$ = ${rateVal.rate.toLocaleString()} ج.س`);
       setTimeout(() => setRateToast(null), 3500);
@@ -224,8 +224,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="relative flex-1">
               <input
                 type="number"
-                min="1"
-                step="1"
+                min="0.00000001"
+                step="0.00000001"
                 value={rateInput}
                 onChange={(e) => setRateInput(e.target.value)}
                 placeholder="أدخل السعر يدويًا..."

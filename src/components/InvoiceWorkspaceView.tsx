@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Invoice } from '../types';
-import { formatMoney } from '../lib/currency';
+import { formatMoney, invoicePricingBalance } from '../lib/currency';
 import { InvoiceStatus } from './InvoiceStatus';
 import { InvoiceShareDialog } from './InvoiceShareDialog';
 
@@ -139,6 +139,12 @@ export const InvoiceWorkspaceView: React.FC<InvoiceWorkspaceViewProps> = ({
           </button>
         </div>
       </div>
+
+      {invoice.pricing && <section className="sf-card p-4 space-y-2" aria-label="عملة الفاتورة الأصلية" data-testid="invoice-native-workspace">
+        <p className="font-semibold">إجمالي عملة الفاتورة: <bdi dir="ltr" className="sf-number">{formatMoney(invoice.pricing.total, invoice.pricing.currency)}</bdi></p>
+        <p>المتبقي بعملة الفاتورة: <bdi dir="ltr" className="sf-number">{formatMoney(invoicePricingBalance(invoice), invoice.pricing.currency)}</bdi></p>
+        <p className="text-xs text-sf-muted">سعر عملة الفاتورة المجمّد: <bdi dir="ltr">1 USD = {invoice.pricing.units_per_usd} {invoice.pricing.currency}</bdi></p>
+      </section>}
 
       <dl className="sf-grid">
         <div className="sf-card sf-summary-card sf-span-4">

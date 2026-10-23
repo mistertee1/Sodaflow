@@ -1,3 +1,5 @@
+import { productPriceQuote, productPricingMode, quoteCatalogItem } from '../domain/productPricing';
+import { CURRENCIES, currencyDecimals, currencyLabel, isForeignCurrency, phoneRegion, transactionCurrency } from '../lib/currencyCatalog';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import {
@@ -71,6 +73,8 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
+  const [pricingCurrency, setPricingCurrency] = useState<Currency>(transactionCurrency(settings));
+  const [currencyRates, setCurrencyRates] = useState(settings.currency_rates || {});
   const [currencyMode, setCurrencyMode] = useState<CurrencyMode>('dual');
   const [exchangeRate, setExchangeRate] = useState<number>(() => {
     return (settings.manual_exchange_rate && settings.manual_exchange_rate > 0)
@@ -91,7 +95,6 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   const [newCustName, setNewCustName] = useState('');
   const [newCustPhone, setNewCustPhone] = useState('');
   const [newCustAddress, setNewCustAddress] = useState('');
-  const [newCustCurrency, setNewCustCurrency] = useState<Currency>('SDG');
 
   // Error State
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -102,6 +105,29 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [operationId, setOperationId] = useState<string>(() => crypto.randomUUID());
   const submissionLockRef = useRef(false);
+
+  const recalculateDraftItem = (input: InvoiceItem): InvoiceItem => {
+    let item = { ...input };
+    if (item.price_source === 'catalog_usd') {
+      const product = products.find(row => row.id === item.product_id);
+      try {
+        if (!product) throw Error('منتج البند غير متاح.');
+        item = quoteCatalogItem(item, product, exchangeRate, currencyRates, settings.rounding_rule);
+      } catch { item.unit_price = 0; delete item.price_reference; }
+    }
+    item.line_total = calculateLineItem(item.quantity, item.unit_price, item.discount_percent, item.tax_rate, currencyDecimals(item.currency), settings.rounding_rule ?? 'round').total;
+    return item;
+  };
+
+  // Only unsaved automatic lines follow draft FX/cost changes. Manual edits and
+  // all posted invoices keep their explicit/frozen prices.
+  useEffect(() => {
+    if (!isOpen) return;
+    setItems(previous => {
+      const next = previous.map(item => item.price_source === 'catalog_usd' ? recalculateDraftItem(item) : item);
+      return JSON.stringify(next) === JSON.stringify(previous) ? previous : next;
+    });
+  }, [isOpen, exchangeRate, currencyRates, products, settings.rounding_rule]);
 
   // Initialize or Reset form on open
   useEffect(() => {
@@ -116,7 +142,9 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
         ? settings.manual_exchange_rate
         : (settings.default_exchange_rate > 0 ? settings.default_exchange_rate : 0);
       setExchangeRate(activeRate);
-      setCurrencyMode('dual');
+      const defaultCurrency = transactionCurrency(settings);
+      setPricingCurrency(defaultCurrency); setCurrencyRates(settings.currency_rates || {});
+      setCurrencyMode(isForeignCurrency(defaultCurrency) ? 'single_foreign' : defaultCurrency === 'USD' ? 'single_usd' : 'dual');
       setDiscountType('fixed');
       setDiscountValue(0);
       setNotes(settings.default_invoice_notes || '');
@@ -141,7 +169,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
           unit: 'قطعة',
           quantity: 1,
           unit_price: 0,
-          currency: 'SDG',
+          currency: transactionCurrency(settings),
           tax_rate: 0,
           discount_percent: 0,
           line_total: 0,
@@ -157,38 +185,30 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
 
   // Handle Item Changes
   const updateItem = (index: number, field: keyof InvoiceItem, val: any) => {
-    const updated = [...items];
     const value = ['quantity', 'unit_price', 'tax_rate', 'discount_percent'].includes(field) ? Number(val) : val;
-    const item = { ...updated[index], [field]: value };
-
-    const decimals = item.currency === 'USD' ? (settings?.usd_decimals ?? 2) : (settings?.sdg_decimals ?? 0);
-    const rule = settings?.rounding_rule ?? 'round';
-    const line = calculateLineItem(item.quantity, item.unit_price, item.discount_percent, item.tax_rate, decimals, rule);
-    item.line_total = line.total;
-    updated[index] = item;
-    setItems(updated);
+    const item = { ...items[index], [field]: value };
+    if (field === 'unit_price') { item.price_source = 'manual'; delete item.price_reference; }
+    if (field === 'currency' && item.price_source !== 'catalog_usd') { item.unit_price = 0; delete item.price_reference; }
+    setItems(previous => previous.map((row, i) => i === index ? recalculateDraftItem(item) : row));
   };
 
-  // Add Item from Catalog
+  const restoreCatalogPrice = (index: number) => {
+    setItems(previous => previous.map((row, i) => i === index ? recalculateDraftItem({ ...row, price_source: 'catalog_usd' }) : row));
+  };
+
+  // Selecting a product uses its recorded USD reference, never today's FX to
+  // fabricate an old purchase cost. Explicit manual catalog prices remain usable.
   const handleSelectProduct = (index: number, productId: string) => {
-    const prod = products.find((p) => p.id === productId);
-    if (!prod) return;
-
-    const updated = [...items];
-    const item = updated[index];
-    item.product_id = prod.id;
-    item.description = prod.name;
-    item.unit = prod.unit;
-    item.unit_price = item.currency === 'USD' ? prod.price_usd : prod.price_sdg;
-    item.tax_rate = prod.tax_rate;
-
-    const decimals = item.currency === 'USD' ? (settings?.usd_decimals ?? 2) : (settings?.sdg_decimals ?? 0);
-    const rule = settings?.rounding_rule ?? 'round';
-    const line = calculateLineItem(item.quantity || 1, item.unit_price, item.discount_percent, item.tax_rate, decimals, rule);
-    item.line_total = line.total;
-
-    updated[index] = item;
-    setItems(updated);
+    const product = products.find(row => row.id === productId);
+    if (!product) return;
+    const item: InvoiceItem = { ...items[index], product_id: product.id, description: product.name, unit: product.unit, tax_rate: product.tax_rate };
+    delete item.price_reference;
+    if (productPricingMode(product) !== 'manual') item.price_source = 'catalog_usd';
+    else {
+      item.price_source = 'manual';
+      item.unit_price = isForeignCurrency(item.currency) ? (validateExchangeRate(currencyRates[item.currency]).isValid && validateExchangeRate(exchangeRate).isValid ? convertCurrency(product.price_usd, 'USD', item.currency, exchangeRate, { ...settings, currency_rates: currencyRates }) : 0) : item.currency === 'USD' ? product.price_usd : product.price_sdg;
+    }
+    setItems(previous => previous.map((row, i) => i === index ? recalculateDraftItem(item) : row));
   };
 
   // Add Free Item
@@ -201,7 +221,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
         unit: 'قطعة',
         quantity: 1,
         unit_price: 0,
-        currency: 'SDG',
+        currency: pricingCurrency,
         tax_rate: 0,
         discount_percent: 0,
         line_total: 0,
@@ -218,15 +238,35 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   };
 
   // Authoritative Totals Calculations via Financial Engine
-  const financials = calculateInvoiceFinancials(
-    items,
-    exchangeRate,
-    discountType,
-    discountValue,
-    0,
-    0,
-    settings
-  );
+  const pricingSettings = { ...settings, currency_rates: currencyRates };
+  let calculationError = '';
+  let financials = calculateInvoiceFinancials([], 0);
+  try { financials = calculateInvoiceFinancials(items, exchangeRate, discountType, discountValue, 0, 0, pricingSettings); }
+  catch (error) { calculationError = error instanceof Error ? error.message : 'أسعار العملات غير مكتملة.'; }
+  const costExplanation = (item: InvoiceItem) => {
+    if (item.price_source !== 'catalog_usd' || item.price_reference?.mode !== 'usd_cost_plus') return '';
+    try {
+      const product = products.find(row => row.id === item.product_id)!;
+      const quote = productPriceQuote(product, item.currency, exchangeRate, currencyRates, settings.rounding_rule);
+      return `تكلفة الوحدة المرجعية: ${quote.usd_cost} USD؛ مقابلها الآن: ${formatMoney(quote.current_cost_sdg!, 'SDG', settings)}؛ تغير المقابل بسبب الصرف: ${formatMoney(quote.fx_cost_difference_sdg!, 'SDG', settings)}؛ الربح فوق التكلفة: ${product.pricing_markup_percent ?? 0}%.`;
+    } catch { return ''; }
+  };
+  const priceMessages = items.map(item => {
+    if (item.price_source !== 'catalog_usd') return '';
+    try { const product = products.find(row => row.id === item.product_id); if (!product) throw Error('منتج البند غير متاح.'); productPriceQuote(product, item.currency, exchangeRate, currencyRates, settings.rounding_rule); return ''; }
+    catch (error) { return error instanceof Error ? error.message : 'تعذر تحديث السعر المرجعي.'; }
+  });
+  calculationError ||= priceMessages.find(Boolean) || '';
+
+  const selectPricingCurrency = (currency: Currency) => {
+    setPricingCurrency(currency);
+    setCurrencyMode(isForeignCurrency(currency) ? 'single_foreign' : currency === 'USD' ? 'single_usd' : 'dual');
+    setItems(previous => previous.map(item => recalculateDraftItem({ ...item, currency, unit_price: 0, line_total: 0 })));
+  };
+  const selectDisplayMode = (mode: CurrencyMode) => {
+    if (isForeignCurrency(pricingCurrency)) selectPricingCurrency(mode === 'single_usd' ? 'USD' : 'SDG');
+    setCurrencyMode(mode);
+  };
 
   const subtotalSdg = financials.subtotal_sdg;
   const subtotalUsd = financials.subtotal_usd;
@@ -256,7 +296,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
       name: newCustName.trim(),
       phone: newCustPhone.trim(),
       address: newCustAddress.trim(),
-      preferred_currency: newCustCurrency,
+      preferred_currency: pricingCurrency,
       balance_sdg: 0,
       balance_usd: 0,
     });
@@ -300,7 +340,8 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
     if(discountApproval&&(!discountApproval.allowed||!discountApprovalReason.trim())){setErrorMessage(discountApproval.allowed?'اكتب سبب اعتماد الخصم.':`الخصم يتطلب اعتماد دور ${discountApproval.tier.required_role}.`);return;}
 
     const rateValidation = validateExchangeRate(exchangeRate);
-    if (items.some(i => i.currency === 'USD') && !rateValidation.isValid) {
+    if (calculationError) { setErrorMessage(calculationError); return; }
+    if (items.some(i => i.currency !== 'SDG') && !rateValidation.isValid) {
       setErrorMessage(rateValidation.error || 'سعر الصرف غير صالح. يرجى إدخال سعر صرف أكبر من الصفر.');
       return;
     }
@@ -321,6 +362,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
         due_date: dueDate,
         status: 'sent',
         currency_mode: currencyMode,
+        currency_rates_used: isForeignCurrency(pricingCurrency) ? { [pricingCurrency]: currencyRates[pricingCurrency] } : undefined,
         exchange_rate_used: Number(exchangeRate), // Frozen exchange rate
         items,
         subtotal_sdg: subtotalSdg,
@@ -504,6 +546,21 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
               </span>
             </div>
 
+            <div className="space-y-2 bg-sf-raised border border-sf-border rounded-lg p-3">
+              <label className="block text-xs font-semibold">عملة تسعير الفاتورة
+                <select aria-label="عملة تسعير الفاتورة" className="w-full min-w-0 mt-1 bg-sf-surface border border-sf-border rounded-lg px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action" value={pricingCurrency} onChange={event => selectPricingCurrency(event.target.value as Currency)}>
+                  {CURRENCIES.map(row => <option value={row.code} key={row.code}>{currencyLabel(row.code)}</option>)}
+                </select>
+              </label>
+              <p className="text-xs text-sf-muted">أسعار المنتجات المرتبطة بالدولار تتحدث مع الصرف والعملة. الأسعار اليدوية تُصفّر عند تغيير العملة لمراجعتها. سعر الفاتورة يتجمد بعد الحفظ.</p>
+              {isForeignCurrency(pricingCurrency) && <label className="block text-xs">سعر عملة الفاتورة لكل دولار
+                <input aria-label="سعر عملة الفاتورة لكل دولار" type="number" min="0.00000001" step="any" value={currencyRates[pricingCurrency] || ''} onChange={event => setCurrencyRates(previous => { const next = { ...previous }; if (event.target.value === '') delete next[pricingCurrency]; else next[pricingCurrency] = Number(event.target.value); return next; })} className="w-full min-w-0 mt-1 bg-sf-surface border border-sf-border rounded-lg px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action" />
+                <span className="block mt-1" dir="ltr">1 USD = {currencyRates[pricingCurrency] || '…'} {pricingCurrency}</span>
+              </label>}
+              <p className="text-xs">مفتاح واتساب للعميل الجديد: <bdi dir="ltr">+{phoneRegion(pricingCurrency, transactionCurrency(settings)).dialCode}</bdi></p>
+              {calculationError && <p role="alert" className="text-xs text-sf-danger">{calculationError}</p>}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
               {/* Currency Display Mode */}
               <div>
@@ -513,7 +570,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 <div className="grid grid-cols-3 gap-1 bg-sf-raised border border-sf-border p-1 rounded-lg">
                   <button
                     type="button"
-                    onClick={() => setCurrencyMode('dual')}
+                    onClick={() => selectDisplayMode('dual')}
                     className={`py-2 px-2 text-xs font-semibold rounded-md transition-all ${
                       currencyMode === 'dual'
                         ? 'bg-sf-action text-sf-on-action font-semibold shadow-xs'
@@ -524,7 +581,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCurrencyMode('single_sdg')}
+                    onClick={() => selectDisplayMode('single_sdg')}
                     className={`py-2 px-2 text-xs font-semibold rounded-md transition-all ${
                       currencyMode === 'single_sdg'
                         ? 'bg-sf-action text-sf-on-action font-semibold shadow-xs'
@@ -535,7 +592,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setCurrencyMode('single_usd')}
+                    onClick={() => selectDisplayMode('single_usd')}
                     className={`py-2 px-2 text-xs font-semibold rounded-md transition-all ${
                       currencyMode === 'single_usd'
                         ? 'bg-sf-action text-sf-on-action font-semibold shadow-xs'
@@ -569,9 +626,10 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 <div className="relative">
                   <input
                     type="number"
-                    step="1"
-                    min="1"
+                    step="0.00000001"
+                    min="0.00000001"
                     value={exchangeRate}
+                    aria-label="سعر صرف الفاتورة"
                     onChange={(e) => setExchangeRate(Number(e.target.value))}
                     required
                     className="w-full bg-sf-raised border border-sf-action/40 rounded-lg px-3 py-2 text-xs font-semibold font-mono text-sf-text focus:outline-none focus:border-sf-action"
@@ -710,10 +768,18 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                           onChange={(e) => updateItem(index, 'currency', e.target.value as Currency)}
                           className="w-16 bg-sf-raised border border-sf-border rounded-lg px-1 py-2 text-xs font-semibold text-sf-action focus:outline-none focus:border-sf-action"
                         >
-                          <option value="SDG" className="bg-sf-raised">ج.س</option>
-                          <option value="USD" className="bg-sf-raised">$</option>
+                          {isForeignCurrency(pricingCurrency) && <option value={pricingCurrency}>{pricingCurrency}</option>}
+                          <option disabled={isForeignCurrency(pricingCurrency)} value="SDG" className="bg-sf-raised">ج.س</option>
+                          <option disabled={isForeignCurrency(pricingCurrency)} value="USD" className="bg-sf-raised">$</option>
                         </select>
                       </div>
+                      {item.product_id && <div className="mt-2 text-xs space-y-1" data-testid={`usd-price-line-${index + 1}`}>
+                        {item.price_source === 'catalog_usd' ? <>
+                          <p className="text-sf-action">{item.price_reference ? `مرجع الدولار: ${item.price_reference.reference_usd} USD — يتحدث تلقائياً` : priceMessages[index]}</p>
+                          {item.price_reference?.mode === 'usd_cost_plus' && <p className="text-sf-muted">{costExplanation(item)}</p>}
+                        </> : <p className="text-sf-muted">سعر يدوي</p>}
+                        {productPricingMode(products.find(row => row.id === item.product_id) || { price_usd: 0, price_sdg: 0 }) !== 'manual' && <button type="button" className="text-sf-action underline" onClick={() => restoreCatalogPrice(index)}>تحديث السعر من مرجع الدولار</button>}
+                      </div>}
                     </div>
 
                     {/* Line Total & Remove */}
@@ -778,6 +844,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 </span>
               </div>
 
+              {financials.pricing && <div className="text-sm font-semibold" data-testid="invoice-native-preview">إجمالي عملة الفاتورة: <bdi dir="ltr">{formatMoney(financials.pricing.total, financials.pricing.currency)}</bdi></div>}
               {/* Discount Input */}
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="text-sf-text">الخصم:</span>
@@ -794,7 +861,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                     onChange={(e) => setDiscountType(e.target.value as any)}
                     className="bg-sf-raised border border-sf-border rounded px-1 py-1 text-xs text-sf-text focus:outline-none focus:border-sf-action"
                   >
-                    <option value="fixed" className="bg-sf-raised">ج.س</option>
+                    <option value="fixed" className="bg-sf-raised">{isForeignCurrency(pricingCurrency) ? pricingCurrency : 'ج.س'}</option>
                     <option value="percent" className="bg-sf-raised">%</option>
                   </select>
                 </div>
@@ -908,7 +975,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   type="tel"
                   value={newCustPhone}
                   onChange={(e) => setNewCustPhone(e.target.value)}
-                  placeholder="0912345678"
+                  aria-label="هاتف العميل السريع" placeholder={phoneRegion(pricingCurrency, transactionCurrency(settings)).example}
                   className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-sf-text placeholder-sf-muted font-mono focus:outline-none focus:border-sf-action"
                 />
               </div>

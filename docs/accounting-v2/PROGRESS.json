@@ -7,7 +7,13 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-preview-ui-20261023",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "historical-preview-ui-ci-closeout-20261023",
+    "branch": "codex/accounting-v2-excel4-historical-preview-ui-20261023",
+    "acquired_at": "2026-10-23T12:35:05Z",
+    "expires_at": "2026-10-23T12:55:05.000Z",
+    "purpose": "Close verified protected historical preview UI"
+  },
   "milestones": [
     {
       "id": "A1",

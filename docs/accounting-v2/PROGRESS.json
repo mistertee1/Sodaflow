@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "historical-guest-staging-fix-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T00:42:00Z",
-    "expires_at": "2026-10-23T01:42:00Z",
-    "purpose": "Reject guest staging before local writes after CI acceptance finding"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -3161,25 +3155,41 @@
         "ui": "pending_CI"
       },
       "next": "Verify PR121 CI, accept authenticated staging success/retry/context isolation, then fresh server review and hash-bound financial approval. No commercial readiness."
+    },
+    {
+      "worker": "historical-guest-staging-fix-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T00:42:00Z",
+      "expires_at": "2026-10-23T01:42:00Z",
+      "purpose": "Reject guest staging before local writes after CI acceptance finding",
+      "released_at": "2026-10-23T00:44:00Z",
+      "pr": 121,
+      "status": "guest_staging_rejected_before_write_CI_pending",
+      "code_commit": "b6e9dbfdcefd47b7a0976d73d45241308e545ac4",
+      "previous_ci": {
+        "run_id": 39871910468,
+        "conclusion": "failure",
+        "reason": "Guest local store accepted staging; UI guard fixed, regression assertion retained"
+      },
+      "next": "Verify fixed PR121 CI and unchanged guest no-write assertion; then accept authenticated staging/retry/isolation before adding financial commit."
     }
   ],
   "last_lease": {
-    "worker": "historical-staging-ui-20261022",
+    "worker": "historical-guest-staging-fix-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-22T23:28:00Z",
-    "expires_at": "2026-10-23T00:28:00Z",
-    "purpose": "Connect reviewed workbook to protected server staging",
-    "released_at": "2026-10-22T23:29:00Z",
+    "acquired_at": "2026-10-23T00:42:00Z",
+    "expires_at": "2026-10-23T01:42:00Z",
+    "purpose": "Reject guest staging before local writes after CI acceptance finding",
+    "released_at": "2026-10-23T00:44:00Z",
     "pr": 121,
-    "status": "Excel4.1e.2b_partial_staging_bridge_CI_pending",
-    "code_commit": "8027b0dd84a9ccd360dce907bd4287894d22ff97",
-    "checks": {
-      "types": "passed",
-      "build": "passed",
-      "staging_tests": 5,
-      "ui": "pending_CI"
+    "status": "guest_staging_rejected_before_write_CI_pending",
+    "code_commit": "b6e9dbfdcefd47b7a0976d73d45241308e545ac4",
+    "previous_ci": {
+      "run_id": 39871910468,
+      "conclusion": "failure",
+      "reason": "Guest local store accepted staging; UI guard fixed, regression assertion retained"
     },
-    "next": "Verify PR121 CI, accept authenticated staging success/retry/context isolation, then fresh server review and hash-bound financial approval. No commercial readiness."
+    "next": "Verify fixed PR121 CI and unchanged guest no-write assertion; then accept authenticated staging/retry/isolation before adding financial commit."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3193,7 +3203,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Verify PR121 CI, accept authenticated staging success/retry/context isolation, then fresh server review and hash-bound financial approval. No commercial readiness.",
+  "next": "Verify fixed PR121 CI and unchanged guest no-write assertion; then accept authenticated staging/retry/isolation before adding financial commit.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3214,22 +3224,21 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "historical-staging-ui-20261022",
+    "worker": "historical-guest-staging-fix-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-22T23:28:00Z",
-    "expires_at": "2026-10-23T00:28:00Z",
-    "purpose": "Connect reviewed workbook to protected server staging",
-    "released_at": "2026-10-22T23:29:00Z",
+    "acquired_at": "2026-10-23T00:42:00Z",
+    "expires_at": "2026-10-23T01:42:00Z",
+    "purpose": "Reject guest staging before local writes after CI acceptance finding",
+    "released_at": "2026-10-23T00:44:00Z",
     "pr": 121,
-    "status": "Excel4.1e.2b_partial_staging_bridge_CI_pending",
-    "code_commit": "8027b0dd84a9ccd360dce907bd4287894d22ff97",
-    "checks": {
-      "types": "passed",
-      "build": "passed",
-      "staging_tests": 5,
-      "ui": "pending_CI"
+    "status": "guest_staging_rejected_before_write_CI_pending",
+    "code_commit": "b6e9dbfdcefd47b7a0976d73d45241308e545ac4",
+    "previous_ci": {
+      "run_id": 39871910468,
+      "conclusion": "failure",
+      "reason": "Guest local store accepted staging; UI guard fixed, regression assertion retained"
     },
-    "next": "Verify PR121 CI, accept authenticated staging success/retry/context isolation, then fresh server review and hash-bound financial approval. No commercial readiness."
+    "next": "Verify fixed PR121 CI and unchanged guest no-write assertion; then accept authenticated staging/retry/isolation before adding financial commit."
   },
   "acceptance_environment": {
     "provider": "Render",

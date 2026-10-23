@@ -4,6 +4,7 @@ import { organizationRevision } from './revision';
 import { authenticationFailure } from './authErrors';
 import { firebaseServiceFailure } from './serviceErrors';
 import { firebaseReadiness } from './readiness';
+import { netlifyCustomerFileStorage, safeCustomerFileType, type CustomerFileFolder, type CustomerFileStorage } from './customerFiles';
 import express from 'express';
 import { randomUUID, createHash } from 'node:crypto';
 import type { Actor, Operations } from '../src/domain/operations';
@@ -23,14 +24,15 @@ import { OperationIntents } from './operationIntents';
 import { loadSubscription, assertSubscriptionActive } from '../src/domain/subscriptions';
 
 type Verify = (token: string) => Promise<Actor>;
-export function createApi(options?: { operations: Operations; verify: Verify }) {
+export function createApi(options?: { operations?: Operations; verify?: Verify; fileStorage?: CustomerFileStorage; storageContext?: string }) {
   const router = express.Router();
   // Tenant records and platform access decisions must not become a browser/CDN
   // disk snapshot. Apply this to successful responses and authorization errors.
   router.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
-  const controlsEnabled = options?.operations.controlsEnabled ?? platformControls.enabled;
+  const controlsEnabled = options?.operations?.controlsEnabled ?? platformControls.enabled;
   const service = () => options?.operations || new Engine(new ResilientStore(adminServices().db), undefined, resolveSubscription, verifyDeployedAccountingRules, controlsEnabled);
-  const platform = () => new PlatformBilling(service().store, options ? undefined : adminServices().db, controlsEnabled);
+  const platform = () => new PlatformBilling(service().store, options?.operations ? undefined : adminServices().db, controlsEnabled);
+  const files = () => options?.fileStorage || netlifyCustomerFileStorage(options?.storageContext);
   const verify: Verify = options?.verify || (async token => {
     const claims = await adminServices().auth.verifyIdToken(token, true);
     return { uid: claims.uid, email: claims.email || '', emailVerified: claims.email_verified === true, name: claims.name, superAdmin: claims.superAdmin === true, authTime: claims.auth_time };
@@ -42,6 +44,20 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   router.get('/health/ready', async (_req, res) => {
     const result = await firebaseReadiness();
     res.status(result.status === 'ready' ? 200 : 503).json(result);
+  });
+  // Only an explicit logo record is public (logos appear on customer invoices).
+  // No caller-provided blob key or tenant metadata is exposed here.
+  router.get('/public/logos/:orgId/:fileId', async (req, res, next) => {
+    try {
+      const orgId = identifier(req.params.orgId), fileId = identifier(req.params.fileId);
+      const record = await service().store.transaction(tx => tx.get(`organizations/${orgId}/files/${fileId}`));
+      if (!record || record.folder !== 'logos' || record.public !== true || record.org_id !== orgId) { res.sendStatus(404); return; }
+      const bytes = await files().get(record.key);
+      if (!bytes) { res.sendStatus(404); return; }
+      res.setHeader('Content-Type', record.content_type);
+      res.setHeader('Content-Disposition', 'inline');
+      res.status(200).send(bytes);
+    } catch (error) { next(error); }
   });
   router.post('/financial/calculate-invoice', (req, res, next) => {
     try { const s = validateSettings({ ...INITIAL_SETTINGS, ...req.body }); const data = { ...req.body, exchange_rate_used: req.body.exchange_rate }; res.json({ success: true, ...invoiceFinancials(data, s) }); } catch (e) { next(e); }
@@ -114,19 +130,57 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   router.get('/organizations/:orgId/reports/reconciliations', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route(async(req,actor)=>{ensure(Object.keys(req.query).every(key=>key==='asOf')&&(!('asOf' in req.query)||typeof req.query.asOf==='string'&&!!req.query.asOf),'مرشحات المطابقة غير صالحة.');return service().cashReconciliationReports(req.params.orgId,actor,req.query.asOf as string|undefined);}));
   router.post('/organizations/:orgId/operations', route(async (req, actor) => service().execute(req.params.orgId, actor, req.body)));
   router.post('/organizations/:orgId/invitations/:invId/accept', route(async (req, actor) => new Organizations(service().store, resolveSubscription, undefined, controlsEnabled).accept(actor, req.params.orgId, req.params.invId)));
-  router.post('/organizations/:orgId/images/:folder', express.raw({ type: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], limit: '2mb' }), route(async (req, actor) => {
-    const folder = req.params.folder; ensure(['logos', 'receipts'].includes(folder), 'مسار الصور غير صالح.');
-    const engine = service();
-    await engine.store.transaction(async tx => { const { role, org } = await membership(tx, req.params.orgId, actor, false, controlsEnabled); const subscription = await loadSubscription(tx, req.params.orgId, org, new Date(), resolveSubscription, controlsEnabled); assertSubscriptionActive(subscription); ensure(hasPermission(role, folder === 'logos' ? 'org:update_settings' : 'expenses:create'), 'رفع الصورة غير مسموح.', 403); });
-    const buffer = req.body as Buffer, type = req.headers['content-type'];
-    ensure(Buffer.isBuffer(buffer) && buffer.length > 0, 'بيانات الصورة غير صالحة.');
-    const valid = type === 'image/png' ? buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) : type === 'image/jpeg' ? buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255 : type === 'image/gif' ? /^GIF8[79]a$/.test(buffer.subarray(0, 6).toString()) : type === 'image/webp' && buffer.subarray(0, 4).toString() === 'RIFF' && buffer.subarray(8, 12).toString() === 'WEBP';
-    ensure(valid, 'محتوى الصورة لا يطابق نوع الملف.');
-    const bucket = adminServices().bucket, token = randomUUID(), filePath = `organizations/${identifier(req.params.orgId)}/${folder}/${randomUUID()}`;
-    try { await bucket.file(filePath).save(buffer, { resumable: false, metadata: { contentType: type, metadata: { firebaseStorageDownloadTokens: token, uploadedBy: actor.uid } } }); }
-    catch (error) { throw firebaseServiceFailure(error, 'storage'); }
-    return { url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filePath)}?alt=media&token=${token}` };
-  }));
+  const uploadCustomerFile = route(async (req, actor) => {
+    const orgId = identifier(req.params.orgId), folder = req.params.folder as CustomerFileFolder;
+    ensure(['logos', 'receipts', 'attachments'].includes(folder), 'مسار الملفات غير صالح.');
+    ensure(!req.path.includes('/images/') || folder !== 'attachments', 'مسار المرفقات غير صالح.');
+    const bytes = req.body as Buffer;
+    ensure(Buffer.isBuffer(bytes) && bytes.length > 0, 'بيانات الملف غير صالحة.');
+    const contentType = safeCustomerFileType(bytes, String(req.headers['content-type'] || ''), folder);
+    const permission = folder === 'logos' ? 'org:update_settings' : 'expenses:create';
+    const store = service().store;
+    const assertAccess = async () => store.transaction(async tx => {
+      const { role, org } = await membership(tx, orgId, actor, false, controlsEnabled);
+      const subscription = await loadSubscription(tx, orgId, org, new Date(), resolveSubscription, controlsEnabled);
+      assertSubscriptionActive(subscription);
+      ensure(hasPermission(role, permission), 'رفع الملف غير مسموح.', 403);
+    });
+    await assertAccess();
+    const id = randomUUID(), key = `organizations/${orgId}/${folder}/${id}`;
+    const blobStore = files();
+    try { await blobStore.put(key, bytes, contentType); }
+    catch { throw new BusinessError('تعذر حفظ الملف في خدمة التخزين السحابي المجانية.', 503, 'file_storage_unavailable'); }
+    try {
+      await store.transaction(async tx => {
+        const { role } = await membership(tx, orgId, actor, false, controlsEnabled);
+        ensure(hasPermission(role, permission), 'رفع الملف غير مسموح.', 403);
+        tx.set(`organizations/${orgId}/files/${id}`, { id, org_id: orgId, folder, key, content_type: contentType, size: bytes.length, public: folder === 'logos', uploaded_by: actor.uid, created_at: new Date().toISOString() });
+      });
+    } catch (error) {
+      try { await blobStore.delete(key); } catch { /* Unreachable orphan: never return a success URL. */ }
+      throw error;
+    }
+    // Receipts and attachments are private references, NOT public object URLs.
+    return { id, url: folder === 'logos' ? `/api/public/logos/${orgId}/${id}` : `sudaflow-file:${orgId}:${id}` };
+  });
+  router.post(['/organizations/:orgId/images/:folder', '/organizations/:orgId/files/:folder'], express.raw({ type: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'], limit: '2mb' }), uploadCustomerFile);
+  router.get('/organizations/:orgId/files/:fileId', async (req, res, next) => {
+    try {
+      const orgId = identifier(req.params.orgId), fileId = identifier(req.params.fileId);
+      const record = await service().store.transaction(async tx => {
+        const { role } = await membership(tx, orgId, res.locals.actor, false, controlsEnabled);
+        const file = await tx.get(`organizations/${orgId}/files/${fileId}`);
+        ensure(hasPermission(role, file?.folder === 'logos' ? 'org:read' : 'expenses:read'), 'قراءة الملف غير مسموحة.', 403);
+        ensure(file && file.org_id === orgId, 'الملف غير موجود.', 404);
+        return file;
+      });
+      const bytes = await files().get(record.key);
+      if (!bytes) { res.sendStatus(404); return; }
+      res.setHeader('Content-Type', record.content_type);
+      res.setHeader('Content-Disposition', record.content_type === 'application/pdf' ? 'attachment' : 'inline');
+      res.status(200).send(bytes);
+    } catch (error) { next(error); }
+  });
   router.use((_req, res) => res.status(404).json({ error: 'المسار غير موجود.' }));
   router.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     if (error instanceof BusinessError) { res.status(error.status).json({ error: error.message, code: error.code }); return; }

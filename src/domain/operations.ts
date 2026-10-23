@@ -135,14 +135,22 @@ export class Operations {
     assertHistoricalImportCommitPayload(request.input);identifier(request.operationId);
     ensure(this.store.authority==='server','المعاينة التاريخية المحمية تتطلب خدمة الخادم.',403);
     const now=this.now();
+    // Never recursively validate an approval token while constructing its read-only evidence.
+    const {expected_review_sha256:_ignored,...input}=request.input;
     return this.store.transaction(async tx=>{
+      const reads:Document[]=[];
+      const capture=(kind:string,path:string,value:unknown,options:unknown=null)=>{reads.push({kind,path,options,value:value??null});return value;};
+      const sorted=(rows:Document[])=>[...rows].sort((a,b)=>canonical(a).localeCompare(canonical(b)));
       const readOnly:Store={authority:'server',transaction:async work=>work({
-        get:async path=>{const value=await tx.get(path);if(path===`organizations/${orgId}/idempotency/${request.operationId}`)ensure(!value,'معرف الاعتماد مستخدم بالفعل؛ حدّث الجلسة.',409);return value;},
-        list:(path,options)=>tx.list(path,options),find:(path,field,value)=>tx.find(path,field,value),
+        get:async path=>{const value=await tx.get(path);if(path===`organizations/${orgId}/idempotency/${request.operationId}`)ensure(!value,'معرف الاعتماد مستخدم بالفعل؛ حدّث الجلسة.',409);capture('get',path,value);return value;},
+        list:async(path,options)=>{const rows=await tx.list(path,options);capture('list',path,sorted(rows),options??null);return rows;},find:async(path,field,value)=>{const rows=await tx.find(path,field,value);capture('find',path,sorted(rows),{field,value});return rows;},
         set:()=>{},delete:()=>{},
       })};
-      const proposal=await new Operations(readOnly,()=>now,this.subscriptionPolicy,this.verifyCostingSecurity).execute(orgId,actor,{action:'historicalImport.commit',operationId:request.operationId,data:request.input});
-      return clean({dry_run:true,org_id:orgId,session_id:request.input.id,reviewed_at:now.toISOString(),approval_input:request.input,operation_id:request.operationId,proposed_result:proposal.result,proposed_changes:proposal.changes});
+      const proposal=await new Operations(readOnly,()=>now,this.subscriptionPolicy,this.verifyCostingSecurity).execute(orgId,actor,{action:'historicalImport.commit',operationId:request.operationId,data:input});
+      const evidence=canonical({schema_version:1,orgId,actorUid:actor.uid,operationId:request.operationId,input,reads:reads.sort((a,b)=>canonical(a).localeCompare(canonical(b)))});
+      const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(evidence));
+      const review_sha256=Array.from(new Uint8Array(digest),n=>n.toString(16).padStart(2,'0')).join('');
+      return clean({review_sha256,dry_run:true,org_id:orgId,session_id:request.input.id,reviewed_at:now.toISOString(),approval_input:request.input,operation_id:request.operationId,proposed_result:proposal.result,proposed_changes:proposal.changes});
     });
   }
   async openingPreview(orgId:string,actor:Actor,request:{input:OpeningInput;terms:OpeningTerms[]}) {
@@ -458,6 +466,14 @@ export class Operations {
         }
         return previous.response as OperationResult;
       }
+          if(command.action==='historicalImport.commit'&&command.data.expected_review_sha256!==undefined){
+            ensure(this.store.authority==='server','الاعتماد ببصمة المعاينة يتطلب خدمة الخادم.',403);
+            // Delegate to the already-open transaction: preflight reads and final writes share one snapshot.
+            const scoped:Store={authority:'server',transaction:async work=>work(tx)};
+            const {expected_review_sha256,...input}=command.data;
+            const fresh=await new Operations(scoped,()=>now,this.subscriptionPolicy,this.verifyCostingSecurity).historicalImportPreview(orgId,actor,{input:input as never,operationId:command.operationId});
+            ensure(fresh.review_sha256===expected_review_sha256,'تغيرت حالة المؤسسة أو أدلة المعاينة؛ أعد المعاينة قبل الاعتماد.',409);
+          }
       const changes: Change[] = [];
       const ratePath = `${root}/rate_limits/${actor.uid}`, rate = await tx.get(ratePath), minute = iso.slice(0, 16);
       ensure(rate?.minute !== minute || rate.count < 120, 'طلبات كثيرة. حاول بعد دقيقة.', 429);

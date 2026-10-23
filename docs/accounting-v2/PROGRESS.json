@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-approval-20261023",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "review-binding-ci-closeout-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-approval-20261023",
-    "acquired_at": "2026-10-23T14:35:45Z",
-    "expires_at": "2026-10-23T14:55:45.000Z",
-    "purpose": "Close verified reviewed-state binding foundation"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -2418,7 +2412,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1e.2c.2b.1",
+  "active_substep": "Excel4.1e.2c.2b.2",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3390,27 +3384,39 @@
         "ci": "pending"
       },
       "next": "Verify PR124 CI; then explicit approval UI using review hash and same operationId, stale-state/retry/tenant isolation acceptance, and reviewed-contract enforcement. Real Firebase acceptance remains independent."
+    },
+    {
+      "worker": "review-binding-ci-closeout-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-approval-20261023",
+      "acquired_at": "2026-10-23T14:35:45Z",
+      "expires_at": "2026-10-23T14:55:45.000Z",
+      "purpose": "Close verified reviewed-state binding foundation",
+      "released_at": "2026-10-23T14:36:00Z",
+      "pr": 124,
+      "status": "Excel4.1e.2c.2b.1_review_binding_implemented_ci_passed",
+      "ci": {
+        "run_id": 39956684842,
+        "commit_sha": "c0dd70600e76a66f092aa31548beb87d43dad065",
+        "conclusion": "success"
+      },
+      "next": "Excel4.1e.2c.2b.2: explicit approval UI with reviewed hash and same operationId; retry/stale-state/context isolation tests, then reviewed-contract enforcement. Live Firebase acceptance independent."
     }
   ],
   "last_lease": {
-    "worker": "historical-approval-20261023",
+    "worker": "review-binding-ci-closeout-20261023",
     "branch": "codex/accounting-v2-excel4-historical-approval-20261023",
-    "acquired_at": "2026-10-23T12:50:55Z",
-    "expires_at": "2026-10-23T13:35:55.000Z",
-    "purpose": "Bind historical commit to reviewed live state/evidence",
-    "released_at": "2026-10-23T12:53:13Z",
+    "acquired_at": "2026-10-23T14:35:45Z",
+    "expires_at": "2026-10-23T14:55:45.000Z",
+    "purpose": "Close verified reviewed-state binding foundation",
+    "released_at": "2026-10-23T14:36:00Z",
     "pr": 124,
-    "status": "Excel4.1e.2c.2b.1_review_binding_implemented_CI_pending",
-    "code_commit": "c0dd70600e76a66f092aa31548beb87d43dad065",
-    "checks": {
-      "types": "passed",
-      "lint_core": "passed",
-      "excel_import": 84,
-      "unit_api": 382,
-      "build": "passed",
-      "ci": "pending"
+    "status": "Excel4.1e.2c.2b.1_review_binding_implemented_ci_passed",
+    "ci": {
+      "run_id": 39956684842,
+      "commit_sha": "c0dd70600e76a66f092aa31548beb87d43dad065",
+      "conclusion": "success"
     },
-    "next": "Verify PR124 CI; then explicit approval UI using review hash and same operationId, stale-state/retry/tenant isolation acceptance, and reviewed-contract enforcement. Real Firebase acceptance remains independent."
+    "next": "Excel4.1e.2c.2b.2: explicit approval UI with reviewed hash and same operationId; retry/stale-state/context isolation tests, then reviewed-contract enforcement. Live Firebase acceptance independent."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3424,7 +3430,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Verify PR124 CI; then explicit approval UI using review hash and same operationId, stale-state/retry/tenant isolation acceptance, and reviewed-contract enforcement. Real Firebase acceptance remains independent.",
+  "next": "Excel4.1e.2c.2b.2: explicit approval UI with reviewed hash and same operationId; retry/stale-state/context isolation tests, then reviewed-contract enforcement. Live Firebase acceptance independent.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3445,24 +3451,20 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "historical-approval-20261023",
+    "worker": "review-binding-ci-closeout-20261023",
     "branch": "codex/accounting-v2-excel4-historical-approval-20261023",
-    "acquired_at": "2026-10-23T12:50:55Z",
-    "expires_at": "2026-10-23T13:35:55.000Z",
-    "purpose": "Bind historical commit to reviewed live state/evidence",
-    "released_at": "2026-10-23T12:53:13Z",
+    "acquired_at": "2026-10-23T14:35:45Z",
+    "expires_at": "2026-10-23T14:55:45.000Z",
+    "purpose": "Close verified reviewed-state binding foundation",
+    "released_at": "2026-10-23T14:36:00Z",
     "pr": 124,
-    "status": "Excel4.1e.2c.2b.1_review_binding_implemented_CI_pending",
-    "code_commit": "c0dd70600e76a66f092aa31548beb87d43dad065",
-    "checks": {
-      "types": "passed",
-      "lint_core": "passed",
-      "excel_import": 84,
-      "unit_api": 382,
-      "build": "passed",
-      "ci": "pending"
+    "status": "Excel4.1e.2c.2b.1_review_binding_implemented_ci_passed",
+    "ci": {
+      "run_id": 39956684842,
+      "commit_sha": "c0dd70600e76a66f092aa31548beb87d43dad065",
+      "conclusion": "success"
     },
-    "next": "Verify PR124 CI; then explicit approval UI using review hash and same operationId, stale-state/retry/tenant isolation acceptance, and reviewed-contract enforcement. Real Firebase acceptance remains independent."
+    "next": "Excel4.1e.2c.2b.2: explicit approval UI with reviewed hash and same operationId; retry/stale-state/context isolation tests, then reviewed-contract enforcement. Live Firebase acceptance independent."
   },
   "acceptance_environment": {
     "provider": "Render",

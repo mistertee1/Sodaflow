@@ -7,8 +7,8 @@
   "workBranch": "codex/usd-reference-pricing-20261023",
   "activeRunId": "usd-reference-20261023",
   "leaseUntil": "2026-10-23T15:05:44.509895+00:00",
-  "updatedAt": "2026-10-23T13:35:44.509895+00:00",
-  "status": "implementation_in_progress",
+  "updatedAt": "2026-10-23T13:47:53.480623+00:00",
+  "status": "implemented_acceptance_in_progress",
   "ownedPaths": [
     "src/domain/productPricing.ts",
     "src/domain/operations.ts (product/invoice pricing only)",
@@ -20,7 +20,8 @@
     "src/components/InventoryCostCenter.tsx",
     "tests/usdReferencePricing.test.ts",
     "tests/ui/usdReferencePricing.spec.ts",
-    "docs/usd-reference"
+    "docs/usd-reference",
+    "src/components/InventoryAuditModal.tsx (current selling quote display only)"
   ],
   "otherAgentsReviewed": {
     "accountingBranch": "codex/accounting-v2-excel4-historical-approval-20261023",
@@ -31,7 +32,12 @@
   "rulesChanged": false,
   "userMergesOnly": true,
   "tests": {
-    "status": "not_run"
+    "unitApiNew": 12,
+    "unitApiNewStatus": "passed",
+    "localTypes": "passed_before_final_snapshot_rounding_addition",
+    "emulator": "pending_CI_Java21",
+    "ui": "pending_CI_Chromium",
+    "fullRegression": "running"
   },
   "next": [
     "Implement precise USD selling reference and cost-plus pricing from documented original USD cost.",

@@ -611,7 +611,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     isActionAllowed, createMasterExport: module => run('masterExport.create',{module}), createAccountingExport:period=>run('accountingExport.create',{period}),
     exportPresets:rows<Document>('export_presets'),dataTransferHistory:rows<Document>('audit_logs').filter(row=>['DATA_EXPORT_CREATED','DATA_IMPORT_STARTED'].includes(row.event_type)).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
     saveExportPreset:input=>run('exportPreset.save',input),deleteExportPreset:async id=>{await run('exportPreset.delete',{id});},createCompanyExport,
-    stageHistoricalImport: (input, id) => run('historicalImport.stage', input as unknown as Document, id),
+    stageHistoricalImport: async (input, id) => {
+      if (!userRef.current || activeOrg.current === guestId) throw new BusinessError('الاستيراد التاريخي المحمي يتطلب خدمة الخادم وحساباً مسجلاً؛ وضع الضيف للمراجعة فقط.', 403, 'accounting_server_required');
+      return run('historicalImport.stage', input as unknown as Document, id);
+    },
     stageMasterImport: input => run('masterImport.stage',input as unknown as Document),
     largeImportJobs:rows<Document>('large_import_jobs').sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
     requestLargeImport:(sessionId,duplicatePolicy)=>run('largeImport.request',{session_id:sessionId,reviewed:true,duplicate_policy:duplicatePolicy}),

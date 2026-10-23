@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "historical-staging-evidence-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T04:02:00Z",
-    "expires_at": "2026-10-23T04:22:00Z",
-    "purpose": "Record successful authenticated staging retry CI"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -3227,24 +3221,39 @@
         "reason": "Isolated server fixture omitted required Rules verifier; explicit test-only callback and invocation assertion added"
       },
       "next": "Verify authenticated staging retry CI; repair remaining test/application failures, then isolation and hash-bound financial approval. No live Rules verification claimed."
+    },
+    {
+      "worker": "historical-staging-evidence-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T04:02:00Z",
+      "expires_at": "2026-10-23T04:22:00Z",
+      "purpose": "Record successful authenticated staging retry CI",
+      "released_at": "2026-10-23T04:03:00Z",
+      "pr": 121,
+      "status": "isolated_authenticated_staging_retry_ci_passed_isolation_commit_pending",
+      "ci": {
+        "run_id": 39896414668,
+        "commit_sha": "a29fe662f3c559c54e5df415d28f8dc5644390ae",
+        "conclusion": "success"
+      },
+      "next": "Add context/tenant switch acceptance, then fresh server review and evidence-hash-bound commit UI. PR121 remains partial draft; live Firebase acceptance independent."
     }
   ],
   "last_lease": {
-    "worker": "historical-staging-fixture-20261023",
+    "worker": "historical-staging-evidence-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T03:43:00Z",
-    "expires_at": "2026-10-23T04:43:00Z",
-    "purpose": "Complete isolated server security-verifier fixture required by staging",
-    "released_at": "2026-10-23T03:45:00Z",
+    "acquired_at": "2026-10-23T04:02:00Z",
+    "expires_at": "2026-10-23T04:22:00Z",
+    "purpose": "Record successful authenticated staging retry CI",
+    "released_at": "2026-10-23T04:03:00Z",
     "pr": 121,
-    "status": "isolated_server_fixture_repaired_CI_pending",
-    "code_commit": "40e2f99df74db7f50004319af0b0b6d3e9aae95e",
-    "previous_ci": {
-      "run_id": 39889584051,
-      "conclusion": "failure",
-      "reason": "Isolated server fixture omitted required Rules verifier; explicit test-only callback and invocation assertion added"
+    "status": "isolated_authenticated_staging_retry_ci_passed_isolation_commit_pending",
+    "ci": {
+      "run_id": 39896414668,
+      "commit_sha": "a29fe662f3c559c54e5df415d28f8dc5644390ae",
+      "conclusion": "success"
     },
-    "next": "Verify authenticated staging retry CI; repair remaining test/application failures, then isolation and hash-bound financial approval. No live Rules verification claimed."
+    "next": "Add context/tenant switch acceptance, then fresh server review and evidence-hash-bound commit UI. PR121 remains partial draft; live Firebase acceptance independent."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3258,7 +3267,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Verify authenticated staging retry CI; repair remaining test/application failures, then isolation and hash-bound financial approval. No live Rules verification claimed.",
+  "next": "Add context/tenant switch acceptance, then fresh server review and evidence-hash-bound commit UI. PR121 remains partial draft; live Firebase acceptance independent.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3279,21 +3288,20 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "historical-staging-fixture-20261023",
+    "worker": "historical-staging-evidence-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T03:43:00Z",
-    "expires_at": "2026-10-23T04:43:00Z",
-    "purpose": "Complete isolated server security-verifier fixture required by staging",
-    "released_at": "2026-10-23T03:45:00Z",
+    "acquired_at": "2026-10-23T04:02:00Z",
+    "expires_at": "2026-10-23T04:22:00Z",
+    "purpose": "Record successful authenticated staging retry CI",
+    "released_at": "2026-10-23T04:03:00Z",
     "pr": 121,
-    "status": "isolated_server_fixture_repaired_CI_pending",
-    "code_commit": "40e2f99df74db7f50004319af0b0b6d3e9aae95e",
-    "previous_ci": {
-      "run_id": 39889584051,
-      "conclusion": "failure",
-      "reason": "Isolated server fixture omitted required Rules verifier; explicit test-only callback and invocation assertion added"
+    "status": "isolated_authenticated_staging_retry_ci_passed_isolation_commit_pending",
+    "ci": {
+      "run_id": 39896414668,
+      "commit_sha": "a29fe662f3c559c54e5df415d28f8dc5644390ae",
+      "conclusion": "success"
     },
-    "next": "Verify authenticated staging retry CI; repair remaining test/application failures, then isolation and hash-bound financial approval. No live Rules verification claimed."
+    "next": "Add context/tenant switch acceptance, then fresh server review and evidence-hash-bound commit UI. PR121 remains partial draft; live Firebase acceptance independent."
   },
   "acceptance_environment": {
     "provider": "Render",

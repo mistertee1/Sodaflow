@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "staging-binding-ci-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T05:58:00Z",
-    "expires_at": "2026-10-23T06:18:00Z",
-    "purpose": "Record successful tenant/file binding CI"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -3255,19 +3249,39 @@
       "status": "staging_result_tenant_file_binding_CI_pending",
       "code_commit": "28a7b63da0389d27620e10c9af293291fa622930",
       "next": "Verify foreign-result rejection plus uncertain retry CI, then actual tenant-switch-during-request acceptance and protected review/financial approval. PR121 partial draft."
+    },
+    {
+      "worker": "staging-binding-ci-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T05:58:00Z",
+      "expires_at": "2026-10-23T06:18:00Z",
+      "purpose": "Record successful tenant/file binding CI",
+      "released_at": "2026-10-23T05:59:00Z",
+      "pr": 121,
+      "status": "staging_tenant_file_binding_ci_passed_switch_commit_pending",
+      "ci": {
+        "run_id": 39907295374,
+        "commit_sha": "07f5a125592534542a67c9285830ec0e3748f2dd",
+        "conclusion": "success"
+      },
+      "next": "Implement actual tenant-switch-during-request acceptance, then fresh review and hash-bound financial approval; PR121 partial draft."
     }
   ],
   "last_lease": {
-    "worker": "historical-staging-result-binding-20261023",
+    "worker": "staging-binding-ci-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T05:44:00Z",
-    "expires_at": "2026-10-23T06:44:00Z",
-    "purpose": "Bind displayed staging result to tenant and workbook evidence",
-    "released_at": "2026-10-23T05:46:00Z",
+    "acquired_at": "2026-10-23T05:58:00Z",
+    "expires_at": "2026-10-23T06:18:00Z",
+    "purpose": "Record successful tenant/file binding CI",
+    "released_at": "2026-10-23T05:59:00Z",
     "pr": 121,
-    "status": "staging_result_tenant_file_binding_CI_pending",
-    "code_commit": "28a7b63da0389d27620e10c9af293291fa622930",
-    "next": "Verify foreign-result rejection plus uncertain retry CI, then actual tenant-switch-during-request acceptance and protected review/financial approval. PR121 partial draft."
+    "status": "staging_tenant_file_binding_ci_passed_switch_commit_pending",
+    "ci": {
+      "run_id": 39907295374,
+      "commit_sha": "07f5a125592534542a67c9285830ec0e3748f2dd",
+      "conclusion": "success"
+    },
+    "next": "Implement actual tenant-switch-during-request acceptance, then fresh review and hash-bound financial approval; PR121 partial draft."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3281,7 +3295,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Verify foreign-result rejection plus uncertain retry CI, then actual tenant-switch-during-request acceptance and protected review/financial approval. PR121 partial draft.",
+  "next": "Implement actual tenant-switch-during-request acceptance, then fresh review and hash-bound financial approval; PR121 partial draft.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3302,16 +3316,20 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "historical-staging-result-binding-20261023",
+    "worker": "staging-binding-ci-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T05:44:00Z",
-    "expires_at": "2026-10-23T06:44:00Z",
-    "purpose": "Bind displayed staging result to tenant and workbook evidence",
-    "released_at": "2026-10-23T05:46:00Z",
+    "acquired_at": "2026-10-23T05:58:00Z",
+    "expires_at": "2026-10-23T06:18:00Z",
+    "purpose": "Record successful tenant/file binding CI",
+    "released_at": "2026-10-23T05:59:00Z",
     "pr": 121,
-    "status": "staging_result_tenant_file_binding_CI_pending",
-    "code_commit": "28a7b63da0389d27620e10c9af293291fa622930",
-    "next": "Verify foreign-result rejection plus uncertain retry CI, then actual tenant-switch-during-request acceptance and protected review/financial approval. PR121 partial draft."
+    "status": "staging_tenant_file_binding_ci_passed_switch_commit_pending",
+    "ci": {
+      "run_id": 39907295374,
+      "commit_sha": "07f5a125592534542a67c9285830ec0e3748f2dd",
+      "conclusion": "success"
+    },
+    "next": "Implement actual tenant-switch-during-request acceptance, then fresh review and hash-bound financial approval; PR121 partial draft."
   },
   "acceptance_environment": {
     "provider": "Render",

@@ -2388,12 +2388,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_INVENTORY_INTEGRATION_20261023.md",
+  "last_report": "REPORT_CONTRACT_REGRESSIONS_20261023.md",
   "next_steps": [
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
   ],
-  "updated_at": "2026-10-23T23:13:18.034Z",
+  "updated_at": "2026-10-23T23:15:49.317Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3563,7 +3563,7 @@
       "notes": "Real Git merge restored tax allocation/correction/restore sources while preserving D1 dimensions and D4 supplier-refund approvals."
     },
     "d4_excel_contracts": {
-      "status": "in_progress",
+      "status": "source_fixed_local_check_passed_ci_pending",
       "baseline": {
         "additional_unit_files": 24,
         "initial_extended": 90,
@@ -3572,7 +3572,19 @@
         "remaining_failed": 4
       },
       "scope": "Restore credit limit persistence/precision and Excel audit events; register all non-Firestore unit files without changing Super Admin pause, sync, currencies or invoice fixes",
-      "base_pr": 137
+      "base_pr": 137,
+      "branch": "codex/accounting-v2-contract-regressions-20261023",
+      "report": "REPORT_CONTRACT_REGRESSIONS_20261023.md",
+      "checks": {
+        "unit_api": 562,
+        "unit_api_status": "passed",
+        "netlify_runtime": 16,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "baseline_failures_fixed": 11,
+        "ci": "pending"
+      }
     }
   },
   "accounting_resume_checkpoint": {
@@ -3626,15 +3638,13 @@
         "build": "passed"
       },
       "current_ci": {
-        "run_id": 40037758994,
-        "conclusion": "failure",
-        "stage": "production_audit",
-        "unit_api": 455,
-        "netlify_runtime": 16,
-        "types": "passed",
-        "core": "passed",
-        "build": "passed",
-        "audit": "GHSA-27r3-jxmh-p828; fix now in lock; rerun pending"
+        "run_id": 40038101273,
+        "commit_sha": "e0673c1c12ada6e15459f45d9fb6b1520a74d636",
+        "conclusion": "in_progress",
+        "check": "passed",
+        "production_audit_vulnerabilities": 0,
+        "emulator": "passed",
+        "ui": "running"
       }
     },
     "production_activation": false,

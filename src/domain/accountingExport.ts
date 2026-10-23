@@ -12,7 +12,7 @@ const objectRows=(value:unknown):[string,Cell][]=>(value&&typeof value==='object
 export function buildAccountingExport(input:{orgId:string;role:OrgRole;createdAt:string;operationId:string;period:Period;accounts:Account[];entries:JournalEntry[];reconciliations:Document[];settings:MerchantSettings;maxEntries?:number;maxBytes?:number}){
   ensure(['Owner','Admin','Accountant'].includes(input.role),'التصدير المحاسبي متاح للمالك والمدير والمحاسب فقط.',403);
   ensure(input.accounts.every(x=>x.org_id===input.orgId)&&input.entries.every(x=>x.org_id===input.orgId),'عُثر على سجل من مؤسسة أخرى في التصدير.',409);
-  ensure(input.entries.length<=(input.maxEntries??5000),'عدد قيود التصدير يتجاوز حد المهمة.',413);
+  ensure(input.entries.length<=(input.maxEntries??5000),`عدد قيود التصدير يتجاوز حد المهمة (${input.maxEntries??5000}).`,413);
   const entries=[...input.entries].filter(e=>(!input.period.start||e.date>=input.period.start)&&(!input.period.end||e.date<=input.period.end)).sort((a,b)=>`${a.date}:${a.id}`.localeCompare(`${b.date}:${b.id}`));
   const trial=calculateTrialBalance(input.accounts,input.entries,input.period),income=calculateIncomeStatement(input.entries,input.accounts,input.period),balance=calculateBalanceSheet(input.accounts,input.entries,input.period),cash=calculateCashFlowStatement(input.accounts,input.entries,input.period);
   const lines=entries.flatMap(e=>(e.lines||[]).map((l,index)=>[e.id,index+1,l.account_code,l.account_name,e.date,e.reference_type,e.reference_id,l.debit_sdg,l.credit_sdg,l.debit_usd,l.credit_usd,l.branch_id||'',l.cost_center_id||'',l.project_id||''] as Cell[]));

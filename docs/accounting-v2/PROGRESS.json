@@ -11,8 +11,9 @@
     "worker": "inventory-accounting-integration-20261023-2308",
     "branch": "codex/accounting-v2-inventory-integration-20261023",
     "acquired_at": "2026-10-23T23:04:34.265Z",
-    "expires_at": "2026-10-23T23:49:34.265Z",
-    "purpose": "Reapply accepted inventory supplier/purchasing and product costing UI on incoming invoice-save source; preserve global Accounting V2 checkpoint"
+    "expires_at": "2026-10-23T23:55:03.145Z",
+    "purpose": "Reapply accepted inventory supplier/purchasing and product costing UI on incoming invoice-save source; preserve global Accounting V2 checkpoint",
+    "heartbeat_at": "2026-10-23T23:10:03.145Z"
   },
   "milestones": [
     {
@@ -2393,7 +2394,7 @@
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
   ],
-  "updated_at": "2026-10-23T23:06:25.989Z",
+  "updated_at": "2026-10-23T23:10:03.145Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3613,8 +3614,26 @@
         "netlify_runtime": 16,
         "build": "passed"
       },
-      "current_ci": "pending"
+      "current_ci": {
+        "run_id": 40037758994,
+        "conclusion": "failure",
+        "stage": "production_audit",
+        "unit_api": 455,
+        "netlify_runtime": 16,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "audit": "GHSA-27r3-jxmh-p828; fix now in lock; rerun pending"
+      }
     },
-    "production_activation": false
+    "production_activation": false,
+    "pr": 137,
+    "dependency_fix": {
+      "advisory": "GHSA-27r3-jxmh-p828",
+      "body_parser": "1.20.9",
+      "dev_body_parser": "2.4.0",
+      "qs": "6.16.1",
+      "production_audit": "pending_on_patched_lock"
+    }
   }
 }

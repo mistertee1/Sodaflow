@@ -2388,12 +2388,12 @@
       ]
     }
   ],
-  "last_report": "docs/accounting-v2/REPORT_EXCEL4_1E_2C_2B_2_APPROVAL_UI.md",
+  "last_report": "REPORT_INVENTORY_INTEGRATION_20261023.md",
   "next_steps": [
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
   ],
-  "updated_at": "2026-10-23T23:04:34.265Z",
+  "updated_at": "2026-10-23T23:06:25.989Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3592,5 +3592,29 @@
     "main_sha": "307949a60f47aeeddc6ad3d44a1d35dd7e73edf7",
     "original_inventory_pr": 135,
     "inventory_ci": 40001136418
+  },
+  "inventory_request": {
+    "status": "source_reapplied_acceptance_in_progress",
+    "branch": "codex/accounting-v2-inventory-integration-20261023",
+    "base_pr": 136,
+    "original_pr": 135,
+    "report": "REPORT_INVENTORY_INTEGRATION_20261023.md",
+    "checks": {
+      "original_ci": {
+        "run_id": 40001136418,
+        "conclusion": "success",
+        "ui": 92
+      },
+      "current_local": {
+        "types": "passed",
+        "core": "passed",
+        "unit_api": 455,
+        "unit_api_status": "passed",
+        "netlify_runtime": 16,
+        "build": "passed"
+      },
+      "current_ci": "pending"
+    },
+    "production_activation": false
   }
 }

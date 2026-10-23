@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { formatMoney, convertCurrency } from '../lib/currency';
 import { getPlanConfig, isUnlimited } from '../lib/plans';
+import { acquisitionCost } from '../domain/inventoryCost';
+import { PayablesCenter } from './accounting/PayablesCenter';
 import { InventoryCostCenter } from './InventoryCostCenter';
 import { InventoryAuditModal } from './InventoryAuditModal';
 import { Dialog } from './Dialog';
@@ -46,6 +48,11 @@ export const ProductsView: React.FC = () => {
 
   const submitLock = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showPurchasing, setShowPurchasing] = useState(false);
+  const [openingCost, setOpeningCost] = useState(0);
+  const [costCurrency, setCostCurrency] = useState<'SDG' | 'USD'>('SDG');
+  const [costRate, setCostRate] = useState(settings.default_exchange_rate || 0);
+  const [zeroCostReason, setZeroCostReason] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false);
@@ -74,6 +81,12 @@ export const ProductsView: React.FC = () => {
   const [trackInventory, setTrackInventory] = useState<boolean>(true);
 
   const rate = settings.manual_exchange_rate && settings.manual_exchange_rate > 0 ? settings.manual_exchange_rate : settings.default_exchange_rate || 0;
+
+  let openingValue: { sdg: number; usd: number } | null = null, openingCostError = '';
+  if (!editingProduct && trackInventory && currentOrg?.accounting_version === 2 && stockQuantity > 0) {
+    try { openingValue = acquisitionCost(stockQuantity, { cost_currency: costCurrency, unit_cost: openingCost, exchange_rate_used: costRate, zero_cost_reason: zeroCostReason }); }
+    catch (error) { openingCostError = error instanceof Error ? error.message : 'راجع التكلفة.'; }
+  }
 
   const safeProducts = Array.isArray(products) ? products : [];
   const duplicateGroups = productDuplicateGroups(safeProducts);
@@ -121,6 +134,7 @@ export const ProductsView: React.FC = () => {
   });
 
   const handleOpenAdd = () => {
+    setOpeningCost(0); setCostCurrency('SDG'); setCostRate(settings.default_exchange_rate || 0); setZeroCostReason('');
     setEditingProduct(null);
     setName('');
     setDescription('');
@@ -207,7 +221,8 @@ export const ProductsView: React.FC = () => {
           tax_rate: Number(taxRate),
           category: category.trim() || '',
           is_active: true,
-          stock_quantity: currentOrg?.accounting_version === 2 && trackInventory ? 0 : Number(stockQuantity),
+          stock_quantity: Number(stockQuantity),
+          ...(currentOrg?.accounting_version === 2 && trackInventory && stockQuantity > 0 ? { cost_currency: costCurrency, unit_cost: openingCost, exchange_rate_used: costRate, zero_cost_reason: zeroCostReason } : {}),
           min_stock_alert: Number(minStockAlert),
           track_inventory: trackInventory,
         });
@@ -228,6 +243,7 @@ export const ProductsView: React.FC = () => {
   return (
     <div className="space-y-6 pb-16">
       <InventoryCostCenter />
+      {isActionAllowed('payables:read') && <section className="space-y-3"><button type="button" className="sf-secondary" aria-expanded={showPurchasing} onClick={() => setShowPurchasing(value => !value)}>الموردون ومنتجاتهم والمشتريات والذمم الدائنة</button>{showPurchasing && <PayablesCenter key={currentOrg?.id} />}</section>}
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-sf-surface p-4 sm:p-6 rounded-xl border border-sf-border shadow-sm">
         <div>
@@ -707,13 +723,15 @@ export const ProductsView: React.FC = () => {
                       <input
                         type="number"
                         min="0"
+                        step="0.000001"
+                        aria-label="كمية المخزون الافتتاحية"
                         value={stockQuantity}
                         disabled={!!editingProduct}
                         onChange={(e) => setStockQuantity(Number(e.target.value))}
                         className="w-full bg-sf-surface border border-sf-border rounded-xl px-3 py-2 text-xs font-mono font-semibold text-sf-text focus:outline-none focus:border-sf-action"
                         placeholder="0"
                       />
-                      {!editingProduct && currentOrg?.accounting_version === 2 && <p className="text-xs text-sf-muted mt-1">يبدأ المنتج بكمية صفر؛ سجّل الاستلام وتكلفته من مركز تكلفة المخزون.</p>}
+                      {!editingProduct && currentOrg?.accounting_version === 2 && <p className="text-xs text-sf-muted mt-1">هذه كمية افتتاحية مملوكة بالفعل وتُثبت مقابل حقوق الملكية. للمشتريات الجديدة أضف المنتج بكمية صفر ثم سجّل فاتورة المورد من المخزون.</p>}
                     </div>
 
                     <div>
@@ -732,6 +750,16 @@ export const ProductsView: React.FC = () => {
                   </div>
                 )}
               </div>
+
+              {!editingProduct && trackInventory && currentOrg?.accounting_version === 2 && stockQuantity > 0 && <fieldset disabled={isSaving} className="space-y-3 border border-sf-border rounded-xl p-3">
+                <legend>حساب تكلفة المخزون الافتتاحي</legend>
+                <label className="block">تكلفة الوحدة<input aria-label="تكلفة الوحدة الافتتاحية" className="sf-field w-full" type="number" min="0" step="0.00000001" required value={openingCost} onChange={e => setOpeningCost(Number(e.target.value))} /></label>
+                <label className="block">عملة التكلفة<select aria-label="عملة التكلفة الافتتاحية" className="sf-field w-full" value={costCurrency} onChange={e => setCostCurrency(e.target.value as 'SDG' | 'USD')}><option>SDG</option><option>USD</option></select></label>
+                <label className="block">سعر صرف التكلفة<input aria-label="صرف التكلفة الافتتاحية" className="sf-field w-full" type="number" min="0.00000001" step="0.00000001" required value={costRate} onChange={e => setCostRate(Number(e.target.value))} /></label>
+                <label className="block">سبب التكلفة الصفرية أو التقريب إلى صفر<input aria-label="سبب التكلفة الافتتاحية الصفرية" className="sf-field w-full" required={openingCost === 0} maxLength={500} value={zeroCostReason} onChange={e => setZeroCostReason(e.target.value)} /></label>
+                {openingValue && <p role="status">إجمالي تكلفة المخزون: {formatMoney(openingValue.sdg, 'SDG')} / {formatMoney(openingValue.usd, 'USD')}</p>}
+                {openingCostError && <p role="alert">{openingCostError}</p>}
+              </fieldset>}
 
               {/* Dual Price Inputs with Auto Sync */}
               <div className="bg-sf-raised p-3 rounded-xl border border-sf-border space-y-3">
@@ -820,7 +848,7 @@ export const ProductsView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSaving || !editingProduct && isProductLimitReached}
+                  disabled={isSaving || !!openingCostError || !editingProduct && isProductLimitReached}
                   className={`px-6 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${
                     !editingProduct && isProductLimitReached
                       ? 'bg-sf-raised text-sf-muted cursor-not-allowed border border-sf-border'

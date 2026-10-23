@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { operationId } from '../../services/businessApi';
+import type { Document } from '../../domain/store';
 import { useApp } from '../../context/AppContext';
 import { createHistoricalImportTemplate, parseHistoricalImportWorkbook } from '../../services/historicalImportWorkbook';
 
@@ -13,6 +15,11 @@ export function HistoricalWorkbookCenter() {
   const generation = useRef(0), mounted = useRef(true);
   const [review, setReview] = useState<Review | null>(null);
   const [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const pendingStage = useRef<{ fileHash: string; id: string } | null>(null);
+  const [session, setSession] = useState<Document | null>(null);
+  const identity = `${app.currentOrg?.id}:${app.currentUser?.uid}:${allowed}`;
+  const currentIdentity = useRef(identity); currentIdentity.current = identity;
+  useEffect(() => { setSession(null); pendingStage.current = null; }, [identity]);
   const [reviewScope, setReviewScope] = useState('');
   useEffect(() => { generation.current++; setReview(null); setError(''); setBusy(false); }, [scope]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; generation.current++; }; }, []);
@@ -25,7 +32,7 @@ export function HistoricalWorkbookCenter() {
     finally { if (mounted.current && current.current === captured) setBusy(false); }
   };
   const choose = async (file?: File) => {
-    setReview(null);
+    setReview(null); setSession(null); pendingStage.current = null;
     const token = ++generation.current, captured = scope;
     if (!file) return;
     await run(async () => {
@@ -64,7 +71,15 @@ export function HistoricalWorkbookCenter() {
       <div className="overflow-x-auto"><table className="min-w-full text-sm"><thead><tr>{['الصف', 'النوع', 'المرجع', 'التاريخ', 'العملة', 'الإجمالي', 'المدفوع', 'الأدلة'].map(t => <th className="p-2 text-start" key={t}>{t}</th>)}</tr></thead><tbody>
         {visible.request.rows.map(row => <tr key={row.row_number}><td>{row.row_number}</td><td>{row.kind === 'invoice' ? 'فاتورة بيع' : 'فاتورة شراء'}</td><td>{row.reference}</td><td>{row.date}</td><td>{row.currency}</td><td>{row.total}</td><td>{row.paid}</td><td><details><summary>البنود والدفعات</summary><pre className="whitespace-pre-wrap">{JSON.stringify(visible.request.document_evidence[row.row_number], null, 2)}</pre></details></td></tr>)}
       </tbody></table></div>
-      <p className="text-sm">لم يُحفظ شيء. يظل النقل إلى جلسة خادمية والمعاينة النهائية والاعتماد غير متاح حتى اكتمال الخطوة التالية.</p>
+      <button className="sf-primary" data-testid="stage-historical-workbook" disabled={busy || !visible.validation.can_stage || Boolean(session)} onClick={() => void run(async () => {
+        const captured = identity, orgId = app.currentOrg!.id;
+        if (pendingStage.current?.fileHash !== visible.request.file_hash) pendingStage.current = { fileHash: visible.request.file_hash, id: operationId() };
+        const result = await app.stageHistoricalImport(visible.request, pendingStage.current.id);
+        if (result.org_id !== orgId || result.file_hash !== visible.request.file_hash || result.file_name !== visible.request.file_name || result.rows_total !== visible.request.rows.length) throw new Error('نتيجة جلسة المراجعة لا تطابق المؤسسة أو الملف الحالي؛ لم تُقبل النتيجة.');
+        if (mounted.current && currentIdentity.current === captured) setSession(result);
+      })}>تحقق خادمياً واحفظ جلسة المراجعة</button>
+      <p className="text-sm">لم يُحفظ شيء. التحقق الخادمي يحفظ جلسة مراجعة فقط. الاعتماد المالي غير متاح في هذه الخطوة.</p>
     </div>}
+    {session && <div role="status" data-testid="historical-server-session"><p>حُفظت جلسة المراجعة الخادمية فقط؛ لم تُعتمد مستندات أو قيود.</p><p>الملف: {String(session.file_name)} — المستندات: {Number(session.rows_total)}</p>{session.file_duplicate_warning && <p>{String(session.file_duplicate_warning)}</p>}<p>الاعتماد المالي ما زال غير متاح.</p></div>}
   </section>;
 }

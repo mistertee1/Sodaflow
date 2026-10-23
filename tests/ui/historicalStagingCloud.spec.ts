@@ -7,7 +7,7 @@ import { MemoryStore } from '../../src/domain/store';
 import { Operations } from '../../src/domain/operations';
 import { createHistoricalImportTemplate } from '../../src/services/historicalImportWorkbook';
 
-for (const scenario of ['retry', 'switch', 'preview-switch'] as const) test(`signed-in historical staging isolates ${scenario} without financial writes`, async ({ page }) => {
+for (const scenario of ['retry', 'switch', 'preview-switch', 'commit-retry', 'commit-stale', 'commit-switch'] as const) test(`signed-in historical import isolates ${scenario}`, async ({ page }) => {
   const orgId = 'historical-cloud-org', root = `organizations/${orgId}`;
   const original = await periodGuestFixture(true, 'Owner');
   const records = JSON.parse(JSON.stringify(original).replaceAll(guestId, orgId));
@@ -24,6 +24,7 @@ for (const scenario of ['retry', 'switch', 'preview-switch'] as const) test(`sig
   const operations = new Operations({ authority: 'server', transaction: work => memory.transaction(work) }, () => new Date('2026-10-23T02:00:00Z'), undefined, async () => { securityChecks++; });
   await fakeFirebase(page, true);
   await page.addInitScript(() => { (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = { organizations: async () => [], watchRevision: () => () => {} }; });
+  const commitIds:string[]=[];let loseCommit=true;
   const ids: string[] = []; let loseResponse = true, foreignResponse = true;
   const before = memory.dump();
   await page.route('**/api/**', async route => {
@@ -40,11 +41,23 @@ for (const scenario of ['retry', 'switch', 'preview-switch'] as const) test(`sig
       return send(response);
     }
     if (path.endsWith('/operations')) {
-      const command = route.request().postDataJSON(); expect(command.action).toBe('historicalImport.stage'); ids.push(command.operationId);
+      const command = route.request().postDataJSON();
+      if(command.action==='historicalImport.commit'){
+        commitIds.push(command.operationId);expect(command.data.expected_review_sha256).toMatch(/^[a-f0-9]{64}$/);
+        if(scenario==='commit-stale')await memory.transaction(async tx=>{const path=`${root}/meta/counters`;tx.set(path,{...await tx.get(path),revision:999});});
+        const beforeCommit=memory.dump();
+        try{
+          const response=await operations.execute(orgId,guestActor,command);
+          if(scenario==='commit-switch'){markStarted();await heldResponse;}
+          if(scenario==='commit-retry'&&loseCommit){loseCommit=false;return send({error:'تعذر تأكيد الاعتماد'},503);}
+          return send(response);
+        }catch(error){expect(memory.dump()).toEqual(beforeCommit);return send({error:(error as Error).message},(error as any).status||500);}
+      }
+      expect(command.action).toBe('historicalImport.stage'); ids.push(command.operationId);
       if (scenario === 'switch') {
         const response = await operations.execute(orgId, guestActor, command); markStarted(); await heldResponse; return send(response);
       }
-      if (scenario === 'preview-switch') return send(await operations.execute(orgId, guestActor, command));
+      if (scenario === 'preview-switch' || scenario.startsWith('commit-')) return send(await operations.execute(orgId, guestActor, command));
       if (foreignResponse) { foreignResponse = false; return send({ result: { org_id: 'another-tenant', file_hash: command.data.file_hash, file_name: command.data.file_name, rows_total: 1 }, changes: [] }); }
       const response = await operations.execute(orgId, guestActor, command);
       if (loseResponse) { loseResponse = false; return send({ error: 'تعذر تأكيد حفظ جلسة المراجعة', code: 'service_unavailable' }, 503); }
@@ -59,6 +72,37 @@ for (const scenario of ['retry', 'switch', 'preview-switch'] as const) test(`sig
   workbook.getWorksheet('Lines')!.addRow([1, 1, '', 'خدمة أصلية', 1, 100, 0, '', '']);
   const center = page.getByTestId('historical-workbook-center');
   await center.getByTestId('historical-workbook-file').setInputFiles({ name: 'cloud-history.xlsx', mimeType: template.mime_type, buffer: Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer) });
+  if(scenario.startsWith('commit-')){
+    await center.getByTestId('stage-historical-workbook').click();
+    await expect(center.getByTestId('historical-server-session')).toBeVisible();
+    await center.getByTestId('preview-historical-workbook').click();
+    await expect(center.getByTestId('historical-server-preview')).toBeVisible();
+    await expect(center.getByTestId('commit-historical-workbook')).toBeDisabled();
+    await center.getByTestId('confirm-historical-approval').check();
+    await center.getByTestId('commit-historical-workbook').click();
+    if(scenario==='commit-switch'){
+      await started;await page.getByTitle('الإعدادات',{exact:true}).click();
+      await page.getByRole('dialog').locator('select').filter({has:page.locator(`option[value="${secondOrgId}"]`)}).selectOption(secondOrgId);
+      await expect(page.locator('header')).toContainText('المؤسسة الثانية');
+      const late=page.waitForResponse(response=>response.url().endsWith('/operations'));
+      releaseResponse();await(await late).finished();
+      await expect(page.getByTestId('historical-approval-receipt')).toHaveCount(0);
+      await expect(page.getByTestId('historical-pending-approval')).toHaveCount(0);
+      expect(Object.keys(memory.dump()).filter(path=>path.startsWith(`organizations/${secondOrgId}/invoices/`))).toHaveLength(0);return;
+    }
+    if(scenario==='commit-stale'){
+      await expect(center.getByRole('alert')).toContainText('أعد المعاينة');
+      await expect(center.getByTestId('historical-server-preview')).toHaveCount(0);
+      await expect(center.getByTestId('historical-approval-receipt')).toHaveCount(0);
+      expect(Object.keys(memory.dump()).filter(path=>path.startsWith(`${root}/invoices/`))).toHaveLength(0);return;
+    }
+    await expect(center.getByRole('alert')).toContainText('تعذر تأكيد الاعتماد');
+    await center.getByTestId('retry-historical-approval').click();
+    await expect(center.getByTestId('historical-approval-receipt')).toContainText('اكتمل الاعتماد');
+    expect(commitIds).toHaveLength(2);expect(new Set(commitIds).size).toBe(1);
+    expect(Object.keys(memory.dump()).filter(path=>path.startsWith(`${root}/invoices/`))).toHaveLength(1);
+    expect(Object.values(memory.dump()).filter((row:any)=>row.event_type==='DATA_IMPORT_COMPLETED')).toHaveLength(1);return;
+  }
   if (scenario === 'switch') {
     await center.getByTestId('stage-historical-workbook').click(); await started;
     await page.getByTitle('الإعدادات', { exact: true }).click();

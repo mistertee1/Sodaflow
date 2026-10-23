@@ -56,6 +56,12 @@
     "tests/platformPauseFirestore.test.ts",
     "tests/ui/platformPause.spec.ts",
     "tests/regionalCurrencies.test.ts",
-    "tests/ui/regionalCurrencies.spec.ts"
+    "tests/ui/regionalCurrencies.spec.ts",
+    "tests/usdReferencePricing.test.ts",
+    "tests/ui/usdReferencePricing.spec.ts",
+    "tests/usdReferenceFirestore.test.ts",
+    "tests/productUniqueness.test.ts",
+    "tests/productUniquenessFirestore.test.ts",
+    "tests/ui/productUniqueness.spec.ts"
   ]
 }

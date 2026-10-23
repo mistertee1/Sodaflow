@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-10-23T14:13:41.680Z",
+  "repository": "mistertee1/Sodaflow",
+  "pullRequest": 125,
+  "workBranch": "codex/usd-reference-pricing-20261023",
+  "dependsOnPullRequest": 118,
+  "baseMain": "be2523e6ee0538f874a4d12c0250df3328aa614b",
+  "sourceBase": "10e7404048eaefacd8bc9746f827303eab74fe23",
+  "acceptedSource": "bc43f5727ff9e79b9a11190251ef566190d83ee3",
+  "acceptedTree": "58248d46699988742df031a8358d1f2a7791074a",
+  "acceptance": {
+    "unitApi": 403,
+    "newUnitApi": 12,
+    "netlifyRuntime": 16,
+    "firestoreEmulator": 52,
+    "newEmulator": 2,
+    "ui": 77,
+    "newUi": 6,
+    "total": 548,
+    "failed": 0,
+    "skipped": 0,
+    "types": "passed",
+    "coreTypes": "passed",
+    "build": "passed",
+    "productionAuditVulnerabilities": 0,
+    "github": {
+      "run": 39966552591,
+      "job": 120457800876,
+      "status": "completed",
+      "conclusion": "success",
+      "source": "bc43f5727ff9e79b9a11190251ef566190d83ee3",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39966552591",
+      "node": "24.21.0",
+      "java": "21",
+      "emulatorProject": "demo-sudaflow",
+      "browser": "Chromium"
+    },
+    "node22": {
+      "run": 39966552541,
+      "job": 120457800936,
+      "status": "completed",
+      "conclusion": "success",
+      "node": "22.23.3",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39966552541"
+    }
+  },
+  "scenarios": [
+    "Original purchase 1000 SDG at 2000 SDG/USD records 0.50 USD cost; automatic sale at 3000 quotes 1500 SDG before markup/tax.",
+    "20% markup produces 1800 SDG for 0.50 USD cost at 3000; documented weighted average is retained across purchases.",
+    "Automatic preview recomputed in server transaction; stale product prices return conflict with no partial invoice, stock, journal, counter or audit write.",
+    "Manual unit price survives draft FX changes, can return to automatic pricing, and cannot preserve forged reference evidence.",
+    "Fixed selling anchors retain 8 decimals; Gulf/Egypt native rounding and frozen currency quotes remain valid.",
+    "Fresh saved FX from Dashboard and Settings clears obsolete manual override; fractional rates and new USD lines work through real UI/API.",
+    "Posted purchase/invoice/cost history and authorized backup/restore remain immutable and reconcile in both books.",
+    "Real Firestore transactions are idempotent and prevent overselling; authenticated direct client product/invoice writes and anonymous reads are rejected by existing Rules."
+  ],
+  "ciHistory": [
+    {
+      "source": "aa207e6fa66554af6ec04d202dc7278983450f7e",
+      "run": 39964334853,
+      "unitApi": 403,
+      "runtime": 16,
+      "emulator": 52,
+      "uiPassed": 74,
+      "uiFailed": 1,
+      "result": "incomplete",
+      "cause": "Stale-state test attempted post-initialization reseeding; harness correctly refused. Fixed by adding an authorized second-client API command, without weakening the reseed guard."
+    },
+    {
+      "source": "656a0a267a498fa2fca06eca9d13f6902e7e3ead",
+      "run": 39965171396,
+      "result": "superseded_before_acceptance_after_test_harness_fix"
+    },
+    {
+      "source": "56063b4829ce8f333aa0124d63ead7a803d513f5",
+      "run": 39965767777,
+      "job": 120455117325,
+      "unitApi": 403,
+      "runtime": 16,
+      "emulator": 52,
+      "ui": 76,
+      "result": "success",
+      "scope": "Before final Dashboard/Settings saved-rate override fix."
+    },
+    {
+      "source": "bc43f5727ff9e79b9a11190251ef566190d83ee3",
+      "run": 39966552591,
+      "result": "success",
+      "unitApi": 403,
+      "runtime": 16,
+      "emulator": 52,
+      "ui": 77,
+      "total": 548
+    }
+  ],
+  "localEvidence": {
+    "unitApi": 403,
+    "runtime": 16,
+    "types": "passed_before_final_UI_rate_fix",
+    "coreTypes": "passed_before_final_UI_rate_fix",
+    "build": "passed_before_final_UI_rate_fix",
+    "productionAuditVulnerabilities": 0,
+    "newUnitApiFinalBeforeUIFix": 12,
+    "limits": [
+      "Local Java17 cannot run the required Java21 Firestore Emulator; actual Emulator acceptance completed in CI.",
+      "Local Chromium archive download was truncated; actual browser/API acceptance completed in CI.",
+      "Local execution transport disconnected during final UI edits; final changes were applied to the exact fresh GitHub source and fully tested by CI."
+    ]
+  },
+  "limits": {
+    "productionDeployment": "not_performed_or_claimed",
+    "productionFinancialWrites": 0,
+    "productionRulesChanges": 0,
+    "commercialMigration": "none",
+    "localBusinessPersistence": "none_added",
+    "superAdmin": "remains_paused",
+    "costPrecision": "Cost-plus uses existing documented USD inventory WAC. Total inventory USD book value has cent precision; a fixed selling USD reference retains 8 decimals.",
+    "legacyProducts": "Recorded USD selling prices are used as selling references; missing original USD cost/FX is never invented from today's rate.",
+    "otherBranchIntegration": "PR120/124 and other open accounting branches have not been jointly accepted with this branch."
+  },
+  "delivery": "A following documentation-only commit records this acceptance and releases the lease; runtime source stays byte-for-byte at acceptedSource."
+}

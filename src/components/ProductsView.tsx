@@ -1,3 +1,6 @@
+import { assertAvailableProductName, productDuplicateGroups } from '../domain/productIdentity';
+import BigNumber from 'bignumber.js';
+import { productPriceQuote, productPricingMode } from '../domain/productPricing';
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Product } from '../types';
@@ -45,6 +48,7 @@ export const ProductsView: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false);
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out'>('all');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
@@ -61,15 +65,19 @@ export const ProductsView: React.FC = () => {
   const [unit, setUnit] = useState('قطعة');
   const [priceSdg, setPriceSdg] = useState<number>(0);
   const [priceUsd, setPriceUsd] = useState<number>(0);
+  const [pricingMode, setPricingMode] = useState<NonNullable<Product['pricing_mode']>>('usd_reference');
+  const [markupPercent, setMarkupPercent] = useState(0);
   const [taxRate, setTaxRate] = useState<number>(0);
   const [category, setCategory] = useState('');
   const [stockQuantity, setStockQuantity] = useState<number>(50);
   const [minStockAlert, setMinStockAlert] = useState<number>(10);
   const [trackInventory, setTrackInventory] = useState<boolean>(true);
 
-  const rate = settings.default_exchange_rate || 0;
+  const rate = settings.manual_exchange_rate && settings.manual_exchange_rate > 0 ? settings.manual_exchange_rate : settings.default_exchange_rate || 0;
 
   const safeProducts = Array.isArray(products) ? products : [];
+  const duplicateGroups = productDuplicateGroups(safeProducts);
+  const duplicateIds = new Set(duplicateGroups.flatMap(group => group.products.map(product => product.id)));
 
   // Categories list
   const categories = Array.from(
@@ -109,7 +117,7 @@ export const ProductsView: React.FC = () => {
       matchesStock = currentQty === 0;
     }
 
-    return matchesSearch && matchesCategory && matchesStock;
+    return matchesSearch && matchesCategory && matchesStock && (!showDuplicatesOnly || !duplicateGroups.length || duplicateIds.has(p.id));
   });
 
   const handleOpenAdd = () => {
@@ -119,6 +127,7 @@ export const ProductsView: React.FC = () => {
     setUnit('قطعة');
     setPriceSdg(0);
     setPriceUsd(0);
+    setPricingMode(currentOrg?.accounting_version === 2 ? 'usd_cost_plus' : 'usd_reference'); setMarkupPercent(0);
     setTaxRate(0);
     setCategory('');
     setStockQuantity(currentOrg?.accounting_version === 2 ? 0 : 50);
@@ -134,7 +143,8 @@ export const ProductsView: React.FC = () => {
     setDescription(p.description || '');
     setUnit(p.unit);
     setPriceSdg(p.price_sdg);
-    setPriceUsd(p.price_usd);
+    setPriceUsd(p.pricing_reference_usd ?? p.price_usd);
+    setPricingMode(productPricingMode(p)); setMarkupPercent(p.pricing_markup_percent ?? 0);
     setTaxRate(p.tax_rate);
     setCategory(p.category || '');
     setStockQuantity(p.stock_quantity ?? 0);
@@ -147,7 +157,7 @@ export const ProductsView: React.FC = () => {
   // Sync SDG price to USD
   const handleSyncPriceToUsd = () => {
     if (priceSdg > 0 && rate > 0) {
-      setPriceUsd(convertCurrency(priceSdg, 'SDG', 'USD', rate, settings));
+      setPriceUsd(new BigNumber(priceSdg).div(rate).decimalPlaces(8, BigNumber.ROUND_HALF_UP).toNumber());
     }
   };
 
@@ -173,13 +183,15 @@ export const ProductsView: React.FC = () => {
     submitLock.current = true; setIsSaving(true);
     try {
       setModalError(null);
+      assertAvailableProductName(safeProducts, name, editingProduct?.id, editingProduct?.name);
       if (editingProduct) {
         await updateProduct(editingProduct.id, {
           name: name.trim(),
           description: description.trim() || '',
           unit: unit.trim() || 'قطعة',
           price_sdg: Number(priceSdg),
-          price_usd: Number(priceUsd),
+          price_usd: new BigNumber(priceUsd).decimalPlaces(2, BigNumber.ROUND_HALF_UP).toNumber(),
+          pricing_mode: pricingMode, pricing_reference_usd: priceUsd, pricing_markup_percent: markupPercent,
           tax_rate: Number(taxRate),
           category: category.trim() || '',
           min_stock_alert: Number(minStockAlert),
@@ -190,7 +202,8 @@ export const ProductsView: React.FC = () => {
           description: description.trim() || '',
           unit: unit.trim() || 'قطعة',
           price_sdg: Number(priceSdg),
-          price_usd: Number(priceUsd),
+          price_usd: new BigNumber(priceUsd).decimalPlaces(2, BigNumber.ROUND_HALF_UP).toNumber(),
+          pricing_mode: pricingMode, pricing_reference_usd: priceUsd, pricing_markup_percent: markupPercent,
           tax_rate: Number(taxRate),
           category: category.trim() || '',
           is_active: true,
@@ -435,6 +448,12 @@ export const ProductsView: React.FC = () => {
       </div>
 
       {/* Products Grid */}
+      {duplicateGroups.length > 0 && <section role="region" aria-label="مراجعة المنتجات المكررة" className="rounded-xl border border-sf-warning/40 bg-sf-warning-bg p-4 space-y-2">
+        <h3 className="text-sm font-semibold">منتجات مكررة تحتاج مراجعة: {duplicateGroups.length} أسماء</h3>
+        <p className="text-xs">{duplicateGroups.slice(0, 3).map(group => group.products[0].name).join('، ')} — النسخ القديمة محتفظة بأرقامها وحركاتها. راجع أسماء الأصناف المختلفة؛ لاستلام كمية استخدم المنتج الموجود.</p>
+        <button type="button" onClick={() => { if (!showDuplicatesOnly) { setSearchTerm(''); setSelectedCategory('all'); setStockFilter('all'); } setShowDuplicatesOnly(!showDuplicatesOnly); }} className="text-xs font-semibold underline">{showDuplicatesOnly ? 'إظهار كل المنتجات' : 'عرض المنتجات المكررة'}</button>
+      </section>}
+
       {safeProducts.length === 0 ? (
         <div className="bg-sf-surface border border-sf-border rounded-xl p-12 text-center text-sf-muted shadow-sm">
           <Package className="w-12 h-12 mx-auto mb-3 opacity-40 text-sf-muted" />
@@ -468,10 +487,16 @@ export const ProductsView: React.FC = () => {
             const minAlert = p.min_stock_alert ?? alertThreshold;
             const isOut = currentStock === 0;
             const isLow = currentStock <= minAlert && currentStock > 0;
+            let localPrice: number | undefined = p.price_sdg, usdPrice: number | undefined = p.price_usd, priceError = '';
+            if (productPricingMode(p) !== 'manual') {
+              try { const quote = productPriceQuote(p, 'SDG', rate, settings.currency_rates, settings.rounding_rule); localPrice = quote.unit_price; usdPrice = quote.evidence.reference_usd; }
+              catch (error) { localPrice = undefined; usdPrice = undefined; priceError = error instanceof Error ? error.message : 'تعذر حساب السعر المرجعي.'; }
+            }
 
             return (
               <div
                 key={p.id}
+                data-product-id={p.id}
                 className={`bg-sf-surface border rounded-xl p-4 shadow-sm flex flex-col justify-between transition-all ${
                   isOut
                     ? 'border-sf-danger bg-sf-danger-bg'
@@ -559,16 +584,17 @@ export const ProductsView: React.FC = () => {
                   <div>
                     <span className="text-xs text-sf-muted block">السعر بالجنيه:</span>
                     <span className="font-mono font-semibold text-sm text-sf-text">
-                      {formatMoney(p.price_sdg, 'SDG', settings)}
+                      {localPrice === undefined ? '—' : formatMoney(localPrice, 'SDG', settings)}
                     </span>
                   </div>
                   <div className="text-left">
                     <span className="text-xs text-sf-muted block">السعر بالدولار:</span>
                     <span className="font-mono font-semibold text-xs text-sf-text">
-                      {formatMoney(p.price_usd, 'USD', settings)}
+                      {usdPrice === undefined ? '—' : formatMoney(usdPrice, 'USD', settings)}
                     </span>
                   </div>
                 </div>
+                <p className={`text-xs mt-2 ${priceError ? 'text-sf-warning' : 'text-sf-muted'}`}>{priceError || (productPricingMode(p) === 'manual' ? 'سعر يدوي — حدد مرجع الدولار لتحديثه مع الصرف.' : productPricingMode(p) === 'usd_cost_plus' ? `تكلفة الدولار + ربح ${p.pricing_markup_percent ?? 0}%؛ السعر يتحدث مع الصرف.` : 'سعر البيع مرتبط بالدولار ويتحدث مع الصرف.')}</p>
               </div>
             );
           })}
@@ -710,12 +736,17 @@ export const ProductsView: React.FC = () => {
               {/* Dual Price Inputs with Auto Sync */}
               <div className="bg-sf-raised p-3 rounded-xl border border-sf-border space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-xs text-sf-text">تحديد الأسعار بالعملتين</span>
+                  <span className="font-semibold text-xs text-sf-text">الدولار هو مرجع التسعير</span>
                   <span className="text-xs text-sf-warning bg-sf-warning-bg/60 px-2 py-1 rounded border border-sf-warning/40">
                     {rate > 0 ? `1$ = ${formatMoney(rate, 'SDG', settings)}` : 'سعر الصرف غير محدد بالإعدادات'}
                   </span>
                 </div>
 
+                <label className="block text-xs font-semibold">طريقة تسعير المنتج<select aria-label="طريقة تسعير المنتج" value={pricingMode} onChange={e => setPricingMode(e.target.value as typeof pricingMode)} className="mt-1 block w-full bg-sf-surface border border-sf-border rounded-xl p-2"><option value="usd_reference">سعر بيع مرجعي بالدولار</option><option value="usd_cost_plus" disabled={!trackInventory}>تكلفة الدولار + نسبة ربح</option><option value="manual">سعر يدوي مستقل</option></select></label>
+                {pricingMode === 'usd_cost_plus' ? <div className="space-y-2">
+                  <label className="block text-xs">نسبة الربح فوق التكلفة %<input aria-label="نسبة الربح فوق التكلفة" type="number" min="0" max="10000" step="0.0001" required value={markupPercent} onChange={e => setMarkupPercent(Number(e.target.value))} className="mt-1 block w-full bg-sf-surface border border-sf-border rounded-xl p-2" /></label>
+                  <p className="text-xs text-sf-muted">يُستخدم متوسط تكلفة المخزون الموثقة بالدولار، ثم يضاف الربح ويحوّل بسعر صرف الفاتورة. سجل الاستلام مع سعر صرف الشراء الأصلي أولاً؛ الكمية الفارغة أو التكلفة الناقصة لا تعطي سعراً تخمينياً.</p>
+                </div> : <>
                 <div className="grid grid-cols-2 gap-2 items-center">
                   <div>
                     <label className="block text-xs font-semibold text-sf-text mb-1">
@@ -726,7 +757,8 @@ export const ProductsView: React.FC = () => {
                       step="any"
                       min="0"
                       value={priceSdg}
-                      onChange={(e) => setPriceSdg(Number(e.target.value))}
+                      aria-label="سعر بيع المنتج بالجنيه"
+                      onChange={(e) => { const value = Number(e.target.value); setPriceSdg(value); if (pricingMode === 'usd_reference' && rate > 0) setPriceUsd(new BigNumber(value).div(rate).decimalPlaces(8, BigNumber.ROUND_HALF_UP).toNumber()); }}
                       className="w-full bg-sf-surface border border-sf-border rounded-xl px-3 py-2 text-xs font-mono font-semibold text-sf-text focus:outline-none focus:border-sf-action"
                     />
                   </div>
@@ -740,7 +772,8 @@ export const ProductsView: React.FC = () => {
                       step="any"
                       min="0"
                       value={priceUsd}
-                      onChange={(e) => setPriceUsd(Number(e.target.value))}
+                      aria-label="مرجع سعر البيع بالدولار"
+                      onChange={(e) => { const value = Number(e.target.value); setPriceUsd(value); if (pricingMode === 'usd_reference' && rate > 0) setPriceSdg(convertCurrency(value, 'USD', 'SDG', rate, settings)); }}
                       className="w-full bg-sf-surface border border-sf-border rounded-xl px-3 py-2 text-xs font-mono font-semibold text-sf-text focus:outline-none focus:border-sf-action"
                     />
                   </div>
@@ -762,6 +795,8 @@ export const ProductsView: React.FC = () => {
                     <span>احسب الجنيه من الدولار</span>
                   </button>
                 </div>
+                {pricingMode === 'usd_reference' && <p className="text-xs text-sf-muted">سعر البيع بالجنيه يتحدث تلقائياً مع الصرف. القيمة المدخلة هنا سعر بيع وليست تكلفة شراء. تغيير المرجع يؤثر على الفواتير الجديدة فقط.</p>}
+                </>}
               </div>
 
               <div>

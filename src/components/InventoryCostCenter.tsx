@@ -1,3 +1,4 @@
+import { productPricingMode } from '../domain/productPricing';
 import React, { useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { formatMoney } from '../lib/currency';
@@ -6,7 +7,7 @@ import { Dialog } from './Dialog';
 export function InventoryCostCenter() {
   const { products, userRole, currentOrg, settings, establishProductCost, receiveInventory, activateAccountingV2, updateProductStock, isActionAllowed } = useApp();
   const [open, setOpen] = useState(false), [productId, setProductId] = useState(''), [mode, setMode] = useState<'basis' | 'receipt' | 'count'>('basis');
-  const [quantity, setQuantity] = useState(1), [unitCost, setUnitCost] = useState(0), [currency, setCurrency] = useState<'SDG' | 'USD'>('SDG'), [rate, setRate] = useState(settings.default_exchange_rate || 0), [reason, setReason] = useState(''), [method, setMethod] = useState('cash');
+  const [quantity, setQuantity] = useState(1), [unitCost, setUnitCost] = useState(0), [currency, setCurrency] = useState<'SDG' | 'USD'>('SDG'), [rate, setRate] = useState(settings.manual_exchange_rate && settings.manual_exchange_rate > 0 ? settings.manual_exchange_rate : settings.default_exchange_rate || 0), [reason, setReason] = useState(''), [method, setMethod] = useState('cash');
   const [error, setError] = useState(''), [busy, setBusy] = useState(false), submitLock = useRef(false);
   const tracked = products.filter(p => p.track_inventory), product = tracked.find(p => p.id === productId), unknown = tracked.filter(p => p.cost_status !== 'valued').length;
   const canAdjust = isActionAllowed('products:stock_adjustment');
@@ -46,7 +47,8 @@ export function InventoryCostCenter() {
         {mode !== 'basis' && <label className="block text-xs">{mode === 'count' ? 'الكمية الفعلية بعد الجرد' : 'الكمية المستلمة'}<input aria-label="كمية عملية التكلفة" type="number" step="0.000001" min={mode === 'count' ? 0 : .000001} required value={quantity} onChange={e => setQuantity(Number(e.target.value))} className="block w-full bg-sf-raised border border-sf-border rounded-lg p-2" /></label>}
         <label className="block text-xs">تكلفة الوحدة الموثقة<input aria-label="تكلفة الوحدة الموثقة" type="number" step="0.00000001" min="0" required value={unitCost} onChange={e => setUnitCost(Number(e.target.value))} className="block w-full bg-sf-raised border border-sf-border rounded-lg p-2" /></label>
         <label className="block text-xs">عملة التكلفة<select aria-label="عملة التكلفة" value={currency} onChange={e => setCurrency(e.target.value as 'SDG' | 'USD')} className="block w-full bg-sf-raised border border-sf-border rounded-lg p-2"><option value="SDG">جنيه سوداني</option><option value="USD">دولار أمريكي</option></select></label>
-        <label className="block text-xs">سعر الصرف الموثق<input aria-label="سعر صرف التكلفة" type="number" step="0.00000001" min={currency === 'USD' ? .00000001 : 0} required value={rate} onChange={e => setRate(Number(e.target.value))} className="block w-full bg-sf-raised border border-sf-border rounded-lg p-2" /></label>
+        <label className="block text-xs">سعر الصرف الموثق<input aria-label="سعر صرف التكلفة" type="number" step="0.00000001" min={currency === 'USD' || product && productPricingMode(product) === 'usd_cost_plus' ? .00000001 : 0} required value={rate} onChange={e => setRate(Number(e.target.value))} className="block w-full bg-sf-raised border border-sf-border rounded-lg p-2" /></label>
+        <p className="text-xs text-sf-muted">سجل سعر الصرف وقت الشراء لتثبيت تكلفة الدولار. سعر البيع يُحسب لاحقاً بسعر صرف الفاتورة الجديدة؛ أصل التكلفة يظل محفوظاً.</p>
         {mode === 'receipt' && <label className="block text-xs">سداد استلام المخزون<select aria-label="سداد استلام المخزون" value={method} onChange={e => setMethod(e.target.value)} className="block w-full bg-sf-raised border border-sf-border rounded-lg p-2"><option value="cash">نقداً</option><option value="bankak">بنكك</option><option value="fawry">فوري</option><option value="bank_transfer">تحويل بنكي</option></select></label>}
         <label className="block text-xs">سبب العملية ومرجع وثيقة التكلفة<input aria-label="سبب العملية ومرجع وثيقة التكلفة" required maxLength={500} value={reason} onChange={e => setReason(e.target.value)} className="block w-full bg-sf-raised border border-sf-border rounded-lg p-2" /></label>
         {error && <p role="alert" className="text-xs text-sf-danger">{error}</p>}

@@ -258,6 +258,9 @@ export interface Customer {
 }
 
 export interface Product {
+  pricing_mode?: 'usd_reference' | 'usd_cost_plus' | 'manual';
+  pricing_reference_usd?: number;
+  pricing_markup_percent?: number;
   cost_status?: "unknown" | "valued";
   cost_effective_date?: string;
   cost_last_movement_date?: string;
@@ -285,6 +288,8 @@ export interface Product {
 }
 
 export interface InvoiceItem {
+  price_source?: 'catalog_usd' | 'manual';
+  price_reference?: { version: 1; mode: 'usd_reference' | 'usd_cost_plus'; reference_usd: number; exchange_rate_used: number; currency_rate_per_usd: number; rounding_rule: 'round' | 'ceil' | 'floor' };
   cost_status?: "unknown" | "valued" | "not_tracked";
   unit_cost_sdg?: number;
   unit_cost_usd?: number;

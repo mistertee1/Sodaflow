@@ -1,3 +1,5 @@
+import { productPriceQuote, productPricingMode } from '../domain/productPricing';
+import type { Product } from '../types';
 import React, { useState } from 'react';
 import {
   Package,
@@ -35,6 +37,13 @@ export const InventoryAuditModal: React.FC<InventoryAuditModalProps> = ({ isOpen
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const salePrice = (product: Product) => {
+    if (productPricingMode(product) === 'manual') return formatMoney(product.price_sdg, 'SDG', settings);
+    const rate = settings.manual_exchange_rate && settings.manual_exchange_rate > 0 ? settings.manual_exchange_rate : settings.default_exchange_rate;
+    try { return formatMoney(productPriceQuote(product, 'SDG', rate, settings.currency_rates, settings.rounding_rule).unit_price, 'SDG', settings); }
+    catch { return 'راجع مرجع الدولار'; }
+  };
 
   // Filter products
   const filteredProducts = products.filter((p) => {
@@ -314,7 +323,7 @@ export const InventoryAuditModal: React.FC<InventoryAuditModalProps> = ({ isOpen
                           <span>
                             سعر الصنف:{' '}
                             <strong className="text-sf-text">
-                              {formatMoney(product.price_sdg, 'SDG', settings)}
+                              {salePrice(product)}
                             </strong>
                           </span>
                           <span>•</span>

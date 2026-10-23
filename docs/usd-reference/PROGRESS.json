@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "repository": "mistertee1/Sodaflow",
+  "baseMain": "be2523e6ee0538f874a4d12c0250df3328aa614b",
+  "sourceBase": "10e7404048eaefacd8bc9746f827303eab74fe23",
+  "dependsOnPullRequest": 118,
+  "workBranch": "codex/usd-reference-pricing-20261023",
+  "activeRunId": null,
+  "leaseUntil": null,
+  "updatedAt": "2026-10-23T14:13:41.680Z",
+  "status": "accepted_waiting_user_review_and_release",
+  "ownedPaths": [],
+  "otherAgentsReviewed": {
+    "accountingBranch": "codex/accounting-v2-excel4-historical-approval-20261023",
+    "accountingSource": "d4a45a0243b33d46d7c43b2bf5794dfa028a23f0",
+    "lease": null,
+    "PR124": {
+      "overlap": "src/domain/operations.ts; historical import work unchanged on its branch",
+      "jointAcceptance": "not_performed_unmerged_branches"
+    },
+    "PR120": {
+      "source": "a380249fb2ad036fdfadaf21f517ef7413b212b3",
+      "overlap": [
+        "package.json",
+        "src/components/SettingsModal.tsx"
+      ],
+      "jointAcceptance": "not_performed_unmerged_branches"
+    },
+    "latestMain": "be2523e6ee0538f874a4d12c0250df3328aa614b",
+    "mainChangedDuringRun": false
+  },
+  "productionWrites": 0,
+  "rulesChanged": false,
+  "userMergesOnly": true,
+  "tests": {
+    "unitApi": 403,
+    "newUnitApi": 12,
+    "netlifyRuntime": 16,
+    "firestoreEmulator": 52,
+    "newEmulator": 2,
+    "ui": 77,
+    "newUi": 6,
+    "total": 548,
+    "failed": 0,
+    "skipped": 0,
+    "types": "passed",
+    "coreTypes": "passed",
+    "build": "passed",
+    "productionAuditVulnerabilities": 0,
+    "github": {
+      "run": 39966552591,
+      "job": 120457800876,
+      "status": "completed",
+      "conclusion": "success",
+      "source": "bc43f5727ff9e79b9a11190251ef566190d83ee3",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39966552591",
+      "node": "24.21.0",
+      "java": "21",
+      "emulatorProject": "demo-sudaflow",
+      "browser": "Chromium"
+    },
+    "node22": {
+      "run": 39966552541,
+      "job": 120457800936,
+      "status": "completed",
+      "conclusion": "success",
+      "node": "22.23.3",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39966552541"
+    }
+  },
+  "next": [
+    "User reviews and merges PR118 first, then PR125; no automatic main merge or production publication.",
+    "Preserve PR120 storage/logo changes and PR124 historical-import changes when integrating; run combined regression if overlapping source changes.",
+    "Existing SDG-only products need a reviewed USD selling reference or documented original USD cost; do not run an automatic commercial migration.",
+    "Production publication and real Firebase/Render readiness remain independently unverified; keep Super Admin paused."
+  ],
+  "pullRequest": 125,
+  "leaseReleasedAt": "2026-10-23T14:13:41.680Z",
+  "acceptedSource": "bc43f5727ff9e79b9a11190251ef566190d83ee3",
+  "acceptedTree": "58248d46699988742df031a8358d1f2a7791074a",
+  "headAtAcceptance": "bc43f5727ff9e79b9a11190251ef566190d83ee3",
+  "unmergedBranch": "codex/usd-reference-pricing-20261023",
+  "lastCompletedStage": "USD reference/cost-plus pricing, current FX consistency, immutable price proof and complete synthetic acceptance.",
+  "evidence": "docs/usd-reference/EVIDENCE.json",
+  "superAdminControlsEnabled": false
+}

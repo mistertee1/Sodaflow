@@ -6,9 +6,9 @@
   "reviewedUsdMerge": "5c05e172c518c2dd663e5e79646590a87d57defa",
   "workBranch": "codex/product-uniqueness-20261023",
   "activeRunId": "product-uniqueness-20261023",
-  "leaseUntil": "2026-10-23T18:33:02.471014+00:00",
-  "updatedAt": "2026-10-23T17:03:02.471014+00:00",
-  "status": "implementation_in_progress",
+  "leaseUntil": "2026-10-23T18:43:17.007931+00:00",
+  "updatedAt": "2026-10-23T17:13:17.007931+00:00",
+  "status": "implemented_local_pass_cloud_acceptance_pending",
   "ownedPaths": [
     "src/domain/productIdentity.ts",
     "src/domain/operations.ts (product create/update/delete only)",
@@ -28,12 +28,26 @@
   "productionWrites": 0,
   "rulesChanged": false,
   "tests": {
-    "status": "not_run"
+    "local_check": "passed",
+    "unit_api": 417,
+    "netlify_runtime": 16,
+    "types": "passed",
+    "core_types": "passed",
+    "build": "passed",
+    "emulator": "pending_CI",
+    "ui": "pending_CI"
   },
   "next": [
     "Atomic per-company product name claims plus normalized legacy-catalog check.",
     "Create/rename validation, preserve existing duplicate IDs and linked inventory history; show duplicate review filter.",
     "Actual MemoryStore/HTTP, demo-sudaflow Emulator race/Rules tests and browser/API acceptance.",
     "Full combined regression of main customer-file storage, reviewed USD source and uniqueness changes; publish PR and release lease."
-  ]
+  ],
+  "followingUserRequest": {
+    "mode": "global_display_currency",
+    "manualRateRequired": true,
+    "explicitApply": true,
+    "historicalBooksAndDocuments": "preserved",
+    "status": "next_after_dedup_acceptance"
+  }
 }

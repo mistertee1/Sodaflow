@@ -7,7 +7,13 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "historical-approval-receipt-fix-20261023",
+    "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
+    "acquired_at": "2026-10-23T16:26:09Z",
+    "expires_at": "2026-10-23T16:56:09.000Z",
+    "purpose": "Add tenant binding to historical commit receipt after CI finding"
+  },
   "milestones": [
     {
       "id": "A1",

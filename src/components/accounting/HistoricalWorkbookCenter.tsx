@@ -72,9 +72,10 @@ export function HistoricalWorkbookCenter() {
         {visible.request.rows.map(row => <tr key={row.row_number}><td>{row.row_number}</td><td>{row.kind === 'invoice' ? 'فاتورة بيع' : 'فاتورة شراء'}</td><td>{row.reference}</td><td>{row.date}</td><td>{row.currency}</td><td>{row.total}</td><td>{row.paid}</td><td><details><summary>البنود والدفعات</summary><pre className="whitespace-pre-wrap">{JSON.stringify(visible.request.document_evidence[row.row_number], null, 2)}</pre></details></td></tr>)}
       </tbody></table></div>
       <button className="sf-primary" data-testid="stage-historical-workbook" disabled={busy || !visible.validation.can_stage || Boolean(session)} onClick={() => void run(async () => {
-        const captured = identity;
+        const captured = identity, orgId = app.currentOrg!.id;
         if (pendingStage.current?.fileHash !== visible.request.file_hash) pendingStage.current = { fileHash: visible.request.file_hash, id: operationId() };
         const result = await app.stageHistoricalImport(visible.request, pendingStage.current.id);
+        if (result.org_id !== orgId || result.file_hash !== visible.request.file_hash || result.file_name !== visible.request.file_name || result.rows_total !== visible.request.rows.length) throw new Error('نتيجة جلسة المراجعة لا تطابق المؤسسة أو الملف الحالي؛ لم تُقبل النتيجة.');
         if (mounted.current && currentIdentity.current === captured) setSession(result);
       })}>تحقق خادمياً واحفظ جلسة المراجعة</button>
       <p className="text-sm">لم يُحفظ شيء. التحقق الخادمي يحفظ جلسة مراجعة فقط. الاعتماد المالي غير متاح في هذه الخطوة.</p>

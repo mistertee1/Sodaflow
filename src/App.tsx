@@ -198,7 +198,7 @@ function MainLayout() {
                 />
               )}
 
-              {activeTab === 'products' && <ProductsView />}
+              {activeTab === 'products' && <ProductsView key={currentOrg?.id} />}
 
               {activeTab === 'expenses' && isActionAllowed('expenses:read') && <ExpensesView />}
 

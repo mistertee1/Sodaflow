@@ -17,7 +17,7 @@ test('signed-in historical staging retries an uncertain response once and writes
   const operations = new Operations({ authority: 'server', transaction: work => memory.transaction(work) }, () => new Date('2026-10-23T02:00:00Z'), undefined, async () => { securityChecks++; });
   await fakeFirebase(page, true);
   await page.addInitScript(() => { (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = { organizations: async () => [], watchRevision: () => () => {} }; });
-  const ids: string[] = []; let loseResponse = true;
+  const ids: string[] = []; let loseResponse = true, foreignResponse = true;
   const before = memory.dump();
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
@@ -27,6 +27,7 @@ test('signed-in historical staging retries an uncertain response once and writes
     if (path.endsWith('/revision')) return send({ revision: memory.dump()[`${root}/meta/counters`].revision });
     if (path.endsWith('/operations')) {
       const command = route.request().postDataJSON(); expect(command.action).toBe('historicalImport.stage'); ids.push(command.operationId);
+      if (foreignResponse) { foreignResponse = false; return send({ result: { org_id: 'another-tenant', file_hash: command.data.file_hash, file_name: command.data.file_name, rows_total: 1 }, changes: [] }); }
       const response = await operations.execute(orgId, guestActor, command);
       if (loseResponse) { loseResponse = false; return send({ error: 'تعذر تأكيد حفظ جلسة المراجعة', code: 'service_unavailable' }, 503); }
       return send(response);
@@ -40,10 +41,13 @@ test('signed-in historical staging retries an uncertain response once and writes
   workbook.getWorksheet('Lines')!.addRow([1, 1, '', 'خدمة أصلية', 1, 100, 0, '', '']);
   const center = page.getByTestId('historical-workbook-center');
   await center.getByTestId('historical-workbook-file').setInputFiles({ name: 'cloud-history.xlsx', mimeType: template.mime_type, buffer: Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer) });
+  await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByRole('alert')).toContainText('لا تطابق المؤسسة');
+  await expect(center.getByTestId('historical-server-session')).toHaveCount(0);
+  expect(memory.dump()).toEqual(before);
   await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByRole('alert')).toContainText('تعذر تأكيد');
   await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByTestId('historical-server-session')).toContainText('حُفظت جلسة المراجعة');
   expect(securityChecks).toBeGreaterThan(0);
-  expect(ids).toHaveLength(2); expect(ids[0]).toBe(ids[1]);
+  expect(ids).toHaveLength(3); expect(new Set(ids).size).toBe(1);
   const after = memory.dump(); expect(Object.keys(after).filter(path => path.startsWith(`${root}/historical_import_sessions/`))).toHaveLength(1);
   expect(Object.keys(after).filter(path => path.startsWith(`${root}/historical_import_staging/`))).toHaveLength(1);
   for (const name of ['invoices', 'payments', 'purchase_bills', 'supplier_payments', 'inventory_movements', 'journal_entries', 'customers', 'products']) {

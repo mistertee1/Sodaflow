@@ -4,10 +4,10 @@ import { Organizations } from '../../server/organizations';
 import { INITIAL_SETTINGS } from '../../src/data/initialData';
 import type { Currency } from '../../src/types';
 export const syntheticCurrencyRates = { SAR:4,AED:4,KWD:.3,QAR:4,BHD:.4,OMR:.4,EGP:50,EUR:2,GBP:2 };
-export async function displayFixture(store: Store = new MemoryStore(), suffix='memory') {
+export async function displayFixture(store: Store = new MemoryStore(), suffix='memory', verifyCostingSecurity?: ConstructorParameters<typeof Operations>[3]) {
   const now=()=>new Date('2026-10-23T18:00:00Z'),actor:Actor={uid:`display-${suffix}`,email:`display-${suffix}@example.test`,emailVerified:true,authTime:Math.floor(now().getTime()/1000)-30};
   const org=await new Organizations(store,undefined,now,false).create(actor,'عرض عملات اصطناعي',{...INITIAL_SETTINGS,default_exchange_rate:2000,currency_rates:syntheticCurrencyRates},`setup-${suffix}`,true),root=`organizations/${org.id}`;
-  const ops=new Operations(store,now,undefined,undefined,false);
+  const ops=new Operations(store,now,undefined,verifyCostingSecurity,false);
   const run=(action:string,data:Record<string,unknown>,id:string=crypto.randomUUID(),who=actor)=>ops.execute(org.id,who,{action,data,operationId:id});
   const customer=(await run('customer.create',{name:'عميل اصطناعي',phone:'50012345',preferred_currency:'KWD'},'customer')).result;
   await run('accounting.activate',{reason:'بيانات اصطناعية'},'activate');

@@ -7,7 +7,13 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "historical-staging-result-binding-20261023",
+    "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+    "acquired_at": "2026-10-23T05:44:00Z",
+    "expires_at": "2026-10-23T06:44:00Z",
+    "purpose": "Bind displayed staging result to tenant and workbook evidence"
+  },
   "milestones": [
     {
       "id": "A1",

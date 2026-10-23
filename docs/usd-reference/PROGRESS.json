@@ -7,7 +7,7 @@
   "workBranch": "codex/usd-reference-pricing-20261023",
   "activeRunId": "usd-reference-20261023",
   "leaseUntil": "2026-10-23T15:05:44.509895+00:00",
-  "updatedAt": "2026-10-23T13:47:53.480623+00:00",
+  "updatedAt": "2026-10-23T13:54:37.103361+00:00",
   "status": "implemented_acceptance_in_progress",
   "ownedPaths": [
     "src/domain/productPricing.ts",
@@ -32,17 +32,34 @@
   "rulesChanged": false,
   "userMergesOnly": true,
   "tests": {
-    "unitApiNew": 12,
-    "unitApiNewStatus": "passed",
-    "localTypes": "passed_before_final_snapshot_rounding_addition",
-    "emulator": "pending_CI_Java21",
-    "ui": "pending_CI_Chromium",
-    "fullRegression": "running"
+    "newUnitApi": 12,
+    "newUnitApiStatus": "passed",
+    "localUnitApi": 403,
+    "localRuntime": 16,
+    "localTypes": "passed",
+    "localCoreTypes": "passed",
+    "localBuild": "passed",
+    "localProductionAuditVulnerabilities": 0,
+    "firstCi": {
+      "source": "aa207e6fa66554af6ec04d202dc7278983450f7e",
+      "run": 39964334853,
+      "job": 120450142630,
+      "typesUnitRuntimeBuild": "passed",
+      "audit": "passed",
+      "firestoreEmulator": "passed",
+      "ui": "running"
+    },
+    "node22": {
+      "run": 39964334967,
+      "job": 120450143164,
+      "status": "success"
+    },
+    "finalSourceAcceptance": "pending"
   },
   "next": [
-    "Implement precise USD selling reference and cost-plus pricing from documented original USD cost.",
-    "Server recomputes automatic prices atomically; reject stale quotes and invalid/missing FX.",
-    "Test synthetic purchase -> FX change -> sale, manual overrides, native currencies, immutable history and permissions.",
-    "Publish draft stacked PR over PR118; release only after actual acceptance."
-  ]
+    "Finish full CI including 5 browser/API pricing scenarios after fractional FX/new USD line fixes.",
+    "Review fresh main and accountant branches before delivery.",
+    "Release lease and record exact accepted source/CI; leave merge and production publication to user."
+  ],
+  "pullRequest": 125
 }

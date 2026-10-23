@@ -210,7 +210,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
         unit: 'قطعة',
         quantity: 1,
         unit_price: 0,
-        currency: isForeignCurrency(pricingCurrency) ? pricingCurrency : 'SDG',
+        currency: pricingCurrency,
         tax_rate: 0,
         discount_percent: 0,
         line_total: 0,
@@ -587,8 +587,8 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 <div className="relative">
                   <input
                     type="number"
-                    step="1"
-                    min="1"
+                    step="0.00000001"
+                    min="0.00000001"
                     value={exchangeRate}
                     aria-label="سعر صرف الفاتورة"
                     onChange={(e) => setExchangeRate(Number(e.target.value))}

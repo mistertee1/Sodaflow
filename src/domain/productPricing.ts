@@ -57,8 +57,9 @@ export function quoteCatalogItem(item: InvoiceItem, product: Product, rate: numb
   return { ...item, unit_price: quote.unit_price, price_source: 'catalog_usd', price_reference: quote.evidence };
 }
 
-export function assertUsdCostRate(product: PricingProduct, input: { cost_currency?: string; unit_cost?: number; exchange_rate_used?: number }) {
+export function assertUsdCostRate(product: PricingProduct, input: { cost_currency?: string; unit_cost?: number; exchange_rate_used?: number; unit_cost_sdg?: number; unit_cost_usd?: number }) {
   if (productPricingMode(product) === 'usd_cost_plus' && product.cost_status === 'valued') ensure(!product.inventory_value_sdg || !!product.inventory_value_usd, 'المخزون القديم بلا تكلفة دولار موثقة؛ راجع مصدره قبل خلطه باستلام جديد، أو استخدم مرجع بيع بالدولار مستقلاً.');
+  if (productPricingMode(product) === 'usd_cost_plus' && !input.cost_currency && (input.unit_cost_sdg ?? 0) > 0) ensure((input.unit_cost_usd ?? 0) > 0, 'حدد تكلفة الدولار المرجعية الموثقة أو سعر صرف الشراء الأصلي.');
   if (productPricingMode(product) === 'usd_cost_plus' && input.cost_currency === 'SDG' && (input.unit_cost ?? 0) > 0) {
     ensure(validateExchangeRate(input.exchange_rate_used).isValid, 'سجل سعر صرف الشراء الأصلي لحفظ تكلفة الدولار المرجعية.');
   }

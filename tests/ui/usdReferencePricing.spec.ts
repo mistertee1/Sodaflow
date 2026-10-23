@@ -71,3 +71,16 @@ test('an SDG-only historical cost gives an explicit missing-source error and nev
   await form.evaluate(node=>(node as HTMLFormElement).requestSubmit());await expect(form).toContainText('تكلفة الدولار غير موثقة');
   expect(Object.keys(await cloudRecords(page)).some(path=>path.includes('/invoices/'))).toBe(false);
 });
+
+
+test('USD-default invoices keep new product lines in USD and accept a fractional current exchange rate',async({page})=>{
+  const records=defaultMerchantRecords();records[root].settings.default_transaction_currency='USD';
+  Object.assign(records[`${root}/products/product`],{track_inventory:false,stock_quantity:0,price_usd:.5,price_sdg:1000});
+  await seedCloudMerchant(page,records);await openMerchant(page);await page.locator('#btn-quick-new-invoice').click();const form=formFor(page);
+  await form.getByLabel('منتج البند 1').selectOption('product');await expect(form.getByLabel('سعر البند 1')).toHaveValue('0.5');
+  await form.getByRole('button',{name:'+ إضافة بند جديد',exact:true}).click();await expect(form.getByLabel('عملة البند 2')).toHaveValue('USD');
+  await form.getByLabel('منتج البند 2').selectOption('product');await expect(form.getByLabel('سعر البند 2')).toHaveValue('0.5');
+  await form.getByLabel('سعر صرف الفاتورة').fill('2000.5');await form.evaluate(node=>(node as HTMLFormElement).requestSubmit());await expect(form).toHaveCount(0);
+  const invoice=Object.entries(await cloudRecords(page)).find(([path])=>path.includes('/invoices/'))![1];
+  expect(invoice.items.every((item:any)=>item.currency==='USD')).toBe(true);expect(invoice.exchange_rate_used).toBe(2000.5);expect(invoice.grand_total_usd).toBe(1);
+});

@@ -103,6 +103,7 @@ test('USD reference: missing historical USD cost never turns into an invented to
   assert.throws(()=>productPriceQuote(legacy,'SDG',3000),/غير موثقة/);
   assert.throws(()=>productPriceQuote({...legacy,...costState(0,0,0,'2026-10-23')},'SDG',3000),/استلم مخزون/);
   await assert.rejects(f.purchase('missing-fx',1,1000,0),/سعر صرف الشراء/);
+  await assert.rejects(f.run('inventory.receive',{id:f.product.id,quantity:1,unit_cost_sdg:1000,unit_cost_usd:0,reason:'رفض تجاوز مرجع الدولار بحقلي الدفاتر',payment_method:'cash'}),/تكلفة الدولار المرجعية/);
   assert.equal((await f.snapshot()).collections.purchase_bills.length,0);
   await f.purchase('documented',1,1000,2000); assert.equal((await f.line()).unit_price,1500);
 });

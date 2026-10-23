@@ -7,7 +7,7 @@
   "workBranch": "codex/usd-reference-pricing-20261023",
   "activeRunId": "usd-reference-20261023",
   "leaseUntil": "2026-10-23T15:05:44.509895+00:00",
-  "updatedAt": "2026-10-23T13:54:37.103361+00:00",
+  "updatedAt": "2026-10-23T13:58:48.942474+00:00",
   "status": "implemented_acceptance_in_progress",
   "ownedPaths": [
     "src/domain/productPricing.ts",
@@ -21,7 +21,8 @@
     "tests/usdReferencePricing.test.ts",
     "tests/ui/usdReferencePricing.spec.ts",
     "docs/usd-reference",
-    "src/components/InventoryAuditModal.tsx (current selling quote display only)"
+    "src/components/InventoryAuditModal.tsx (current selling quote display only)",
+    "tests/ui/helpers/cloudMerchant.ts (additive real second-client API command for acceptance only)"
   ],
   "otherAgentsReviewed": {
     "accountingBranch": "codex/accounting-v2-excel4-historical-approval-20261023",
@@ -47,14 +48,24 @@
       "typesUnitRuntimeBuild": "passed",
       "audit": "passed",
       "firestoreEmulator": "passed",
-      "ui": "running"
+      "ui": {
+        "passed": 74,
+        "failed": 1,
+        "cause": "stale-state test attempted post-initialization reseed; harness correctly refused it; application happy paths passed"
+      }
     },
     "node22": {
       "run": 39964334967,
       "job": 120450143164,
       "status": "success"
     },
-    "finalSourceAcceptance": "pending"
+    "finalSourceAcceptance": "pending",
+    "secondCi": {
+      "source": "656a0a267a498fa2fca06eca9d13f6902e7e3ead",
+      "run": 39965171396,
+      "job": 120453034677,
+      "status": "in_progress_prior_test_harness_fix"
+    }
   },
   "next": [
     "Finish full CI including 5 browser/API pricing scenarios after fractional FX/new USD line fixes.",

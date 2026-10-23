@@ -95,6 +95,7 @@ test('USD reference: precise fixed selling anchors retain more than cents and re
   assert.equal(productPricingMode({...p,price_usd:0}),'manual');
   assert.throws(()=>productPriceQuote({...p,price_usd:0},'SDG',3000),/يدوي/);
   assert.throws(()=>productPriceQuote(p,'USD',0),/سعر صرف/);
+  for (const invalidRate of ['3000', 3000.000000001, Infinity]) assert.throws(()=>productPriceQuote(p,'SDG',invalidRate as number));
 });
 
 test('USD reference: missing historical USD cost never turns into an invented today-rate cost or a misleading zero-cost sale', async () => {

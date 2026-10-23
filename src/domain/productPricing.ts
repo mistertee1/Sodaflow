@@ -27,6 +27,7 @@ export function productPriceQuote(product: PricingProduct, currency: Currency, r
   const mode = productPricingMode(product);
   ensure(mode !== 'manual', 'هذا المنتج بسعر يدوي؛ حدد مرجع الدولار في إعدادات المنتج.');
   ensure(validateExchangeRate(rate).isValid, 'التسعير بمرجع الدولار يتطلب سعر صرف موجباً.');
+  money(rate, 8, true);
   let reference = new BigNumber(product.pricing_reference_usd ?? product.price_usd);
   let usdCost: number | undefined, historicalCostSdg: number | undefined;
   if (mode === 'usd_cost_plus') {
@@ -41,6 +42,7 @@ export function productPriceQuote(product: PricingProduct, currency: Currency, r
   money(referenceUsd, 8);
   const currencyRate = currency === 'USD' ? 1 : currency === 'SDG' ? rate : rates?.[currency];
   ensure(validateExchangeRate(currencyRate).isValid, 'حدد سعر عملة التسعير لكل دولار.');
+  money(currencyRate, 8, true);
   const unitPrice = applyRounding(new BigNumber(referenceUsd).times(currencyRate!), currencyDecimals(currency), rounding);
   money(unitPrice, currencyDecimals(currency));
   ensure(referenceUsd === 0 || unitPrice > 0, 'السعر المرجعي أقل من دقة عملة الفاتورة؛ راجع الوحدة والسعر.');

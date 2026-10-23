@@ -1,4 +1,4 @@
-import { test, expect, openMerchant, defaultMerchantRecords, seedCloudMerchant, cloudRecords, updateCloudMerchant, guestId } from './helpers/cloudMerchant';
+import { test, expect, openMerchant, defaultMerchantRecords, seedCloudMerchant, cloudRecords, cloudMerchant, guestId } from './helpers/cloudMerchant';
 import { costState } from '../../src/domain/inventoryCost';
 
 test.use({ controlsEnabled:false });
@@ -59,7 +59,7 @@ test('stale catalog price is rejected by the real API before any invoice or jour
   const records=defaultMerchantRecords();Object.assign(records[`${root}/products/product`],{track_inventory:false,stock_quantity:0});
   await seedCloudMerchant(page,records);await openMerchant(page);await page.locator('#btn-quick-new-invoice').click();
   const form=formFor(page);await form.getByLabel('منتج البند 1').selectOption('product');await expect(form.getByLabel('سعر البند 1')).toHaveValue('2000');
-  await updateCloudMerchant(page,rows=>{rows[`${root}/products/product`].pricing_reference_usd=2;});
+  await cloudMerchant(page).executeCommand('product.update',{id:'product',updates:{pricing_reference_usd:2}},'second-client-price');
   await form.evaluate(node=>(node as HTMLFormElement).requestSubmit());await expect(form).toContainText('تغير مرجع سعر المنتج');
   const rows=Object.keys(await cloudRecords(page));expect(rows.some(path=>path.includes('/invoices/'))).toBe(false);expect(rows.some(path=>path.includes('/journal_entries/'))).toBe(false);
 });

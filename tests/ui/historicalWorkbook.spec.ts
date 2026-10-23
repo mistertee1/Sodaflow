@@ -31,6 +31,9 @@ test('valid historical workbook shows original document evidence and clears revi
   await center.getByTestId('historical-workbook-file').setInputFiles({ name: 'history.xlsx', mimeType: template.mime_type, buffer: Buffer.from(bytes as ArrayBuffer) });
   const review = center.getByTestId('historical-workbook-review'); await expect(review).toContainText('HIST-UI-1'); await expect(review).toContainText('اجتاز التحقق المحلي');
   await review.getByText('البنود والدفعات').click(); await expect(review).toContainText('خدمة تاريخية موثقة');
+  await center.getByTestId('stage-historical-workbook').click();
+  await expect(center.getByRole('alert')).toContainText('خدمة الخادم');
+  await expect(center.getByTestId('historical-server-session')).toHaveCount(0);
   expect(await page.evaluate(() => localStorage.getItem('sudaflow_guest_transactions_v3'))).toBe(before);
   await center.getByTestId('historical-workbook-file').setInputFiles({ name: 'bad.csv', mimeType: 'text/csv', buffer: Buffer.from('bad') });
   await expect(review).toHaveCount(0); await expect(center.getByRole('alert')).toContainText('XLSX');

@@ -19,6 +19,7 @@ export interface HistoricalImportCommitInput {
   expected_validation_context_sha256:string;
   expected_document_evidence_sha256?:string;
   reason:string;
+  expected_review_sha256?:string;
 }
 
 export interface HistoricalImportCommitContext {
@@ -45,8 +46,9 @@ export interface HistoricalSalesCommitWrites {
 export function assertHistoricalImportCommitPayload(value:unknown):asserts value is HistoricalImportCommitInput {
   ensure(Boolean(value)&&typeof value==='object'&&!Array.isArray(value),'بيانات اعتماد الاستيراد التاريخي غير صالحة.');
   const input=value as HistoricalImportCommitInput;
-  ensure(Object.keys(input).every(key=>['id','expected_rows_sha256','expected_validation_context_sha256','expected_document_evidence_sha256','reason'].includes(key)),'حقول اعتماد الاستيراد التاريخي غير صالحة أو محمية.');
+  ensure(Object.keys(input).every(key=>['id','expected_rows_sha256','expected_validation_context_sha256','expected_document_evidence_sha256','reason','expected_review_sha256'].includes(key)),'حقول اعتماد الاستيراد التاريخي غير صالحة أو محمية.');
   identifier(input.id);text(input.reason,1000,true);
+  if(input.expected_review_sha256!==undefined)ensure(/^[a-f0-9]{64}$/.test(input.expected_review_sha256),'بصمة المعاينة المعتمدة غير صالحة.');
   ensure(/^[a-f0-9]{64}$/i.test(input.expected_rows_sha256)&&/^[a-f0-9]{64}$/i.test(input.expected_validation_context_sha256),'بصمة اعتماد الاستيراد التاريخي غير صالحة.');
   if(input.expected_document_evidence_sha256!==undefined)ensure(/^[a-f0-9]{64}$/i.test(input.expected_document_evidence_sha256),'بصمة دليل المستندات التاريخية غير صالحة.');
 }
@@ -237,5 +239,5 @@ export async function buildHistoricalImportCommit(input:HistoricalImportCommitIn
   Object.assign(updatedSession,{commit_purchase_bill_ids:nativePurchases?.bills.map(row=>row.id)||[],commit_supplier_payment_ids:nativePurchases?.payments.map(row=>row.id)||[]});
   updatedSession.commit_inventory_movement_ids.push(...(nativePurchases?.movements.map(row=>row.id)||[]));
   ensure(new TextEncoder().encode(JSON.stringify(updatedSession)).length<=620000,'إثبات اعتماد الاستيراد التاريخي يتجاوز الحد.',413);
-  return{session:updatedSession,postings:allPostings,nativeSales,nativePurchases,result:{id:session.id,import_type:session.import_type,file_hash:session.file_hash,schema_version:session.schema_version,status:updatedSession.status,completion_code:updatedSession.completion_code,accounting_block:accountingBlock,rows_total:session.rows_total,rows_imported:rows.length,rows_failed:0,journals_created:allPostings.length,invoices_created:nativeSales?.invoices.length||0,payments_created:nativeSales?.payments.length||0,purchase_bills_created:nativePurchases?.bills.length||0,supplier_payments_created:nativePurchases?.payments.length||0,inventory_movements_created:updatedSession.commit_inventory_movement_ids.length,rows_sha256:session.rows_sha256,validation_context_sha256:session.validation_context_sha256,document_evidence_sha256:session.document_evidence_sha256,reconciliation}};
+  return{session:updatedSession,postings:allPostings,nativeSales,nativePurchases,result:{id:session.id,org_id:context.orgId,import_type:session.import_type,file_hash:session.file_hash,schema_version:session.schema_version,status:updatedSession.status,completion_code:updatedSession.completion_code,accounting_block:accountingBlock,rows_total:session.rows_total,rows_imported:rows.length,rows_failed:0,journals_created:allPostings.length,invoices_created:nativeSales?.invoices.length||0,payments_created:nativeSales?.payments.length||0,purchase_bills_created:nativePurchases?.bills.length||0,supplier_payments_created:nativePurchases?.payments.length||0,inventory_movements_created:updatedSession.commit_inventory_movement_ids.length,rows_sha256:session.rows_sha256,validation_context_sha256:session.validation_context_sha256,document_evidence_sha256:session.document_evidence_sha256,reconciliation}};
 }

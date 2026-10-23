@@ -7,7 +7,13 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "historical-tenant-switch-test-20261023",
+    "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+    "acquired_at": "2026-10-23T07:27:00Z",
+    "expires_at": "2026-10-23T08:27:00Z",
+    "purpose": "Verify late staging response after real organization switch"
+  },
   "milestones": [
     {
       "id": "A1",

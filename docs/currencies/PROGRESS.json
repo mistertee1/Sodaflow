@@ -3,50 +3,19 @@
   "repository": "mistertee1/Sodaflow",
   "sourceBase": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "workBranch": "codex/gulf-currencies-whatsapp-20261022",
-  "activeRunId": "gulf-currencies-20261022",
-  "leaseUntil": "2026-10-22T21:28:24.703669+00:00",
-  "updatedAt": "2026-10-22T19:37:36.493326+00:00",
-  "status": "implemented_waiting_ci_acceptance",
-  "ownedPaths": [
-    "src/lib/currencyCatalog.ts",
-    "src/lib/currency.ts",
-    "src/domain/financial.ts",
-    "src/domain/operations.ts",
-    "src/domain/salesCorrections.ts",
-    "src/domain/returnSources.ts",
-    "src/domain/reconciliation.ts",
-    "src/domain/validation.ts",
-    "src/types/index.ts",
-    "src/data/initialData.ts",
-    "src/context/AppContext.tsx",
-    "src/components/SettingsModal.tsx",
-    "src/components/CustomersView.tsx",
-    "src/components/InvoiceFormModal.tsx",
-    "src/components/PaymentModal.tsx",
-    "src/components/InvoiceDetailModal.tsx",
-    "src/components/InvoiceShareDialog.tsx",
-    "src/components/WhatsAppShareModal.tsx",
-    "src/components/PaymentReceiptModal.tsx",
-    "src/services/pdfService.ts",
-    "tests/regionalCurrencies.test.ts",
-    "tests/ui/regionalCurrencies.spec.ts",
-    "tests/platformPauseFirestore.test.ts",
-    "package.json",
-    "tsconfig.core.json",
-    "docs/currencies/",
-    "src/components/InvoiceWorkspaceView.tsx",
-    "src/components/InvoicesView.tsx",
-    "src/components/PublicInvoiceView.tsx",
-    "package-lock.json"
-  ],
+  "activeRunId": null,
+  "leaseUntil": null,
+  "updatedAt": "2026-10-23T10:38:40.766Z",
+  "status": "accepted_waiting_user_review_and_release",
+  "ownedPaths": [],
   "acceptance": {
     "localUnitApi": 391,
     "localRuntime": 16,
     "localTypes": "passed",
     "localCoreTypes": "passed",
     "localBuild": "passed",
-    "firestoreEmulator": "pending_GitHub_Java21",
-    "ui": "pending_GitHub_Chromium",
+    "firestoreEmulator": 50,
+    "ui": 71,
     "firstCi": {
       "run": 39840568730,
       "job": 120040172535,
@@ -66,7 +35,33 @@
       "status": "success"
     },
     "productionAuditVulnerabilities": 0,
-    "installedDomPurify": "3.4.17"
+    "installedDomPurify": "3.4.17",
+    "unitApi": 391,
+    "netlifyLambdaRuntime": 16,
+    "total": 528,
+    "failed": 0,
+    "skipped": 0,
+    "types": "passed",
+    "core": "passed",
+    "build": "passed",
+    "emulatorProject": "demo-sudaflow",
+    "syntheticFinancialWritesOnly": true,
+    "github": {
+      "run": 39841800045,
+      "job": 120044473420,
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39841800045",
+      "node": "24.22.1",
+      "node22": {
+        "run": 39841800033,
+        "job": 120044473536,
+        "status": "completed",
+        "conclusion": "success",
+        "node": "22.23.3",
+        "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39841800033"
+      }
+    }
   },
   "productionWrites": 0,
   "rulesChanged": false,
@@ -74,11 +69,42 @@
   "userMergesOnly": true,
   "otherAgentsReviewed": {
     "PR117": "historical workbook service/test/doc only; untouched",
-    "PR111": "older Firebase/Render readiness branch; untouched; no server/api.ts changes here"
+    "PR111": "older Firebase/Render readiness branch; untouched; no server/api.ts changes here",
+    "PR120": {
+      "overlappingPaths": [
+        "package-lock.json",
+        "package.json",
+        "src/components/SettingsModal.tsx"
+      ],
+      "changed": false,
+      "jointAcceptance": "not_performed_unmerged_branches"
+    },
+    "PR119": {
+      "overlappingPaths": [
+        "package-lock.json"
+      ],
+      "changed": false,
+      "jointAcceptance": "not_performed_unmerged_branches"
+    },
+    "PR121": {
+      "overlappingPaths": [
+        "src/context/AppContext.tsx"
+      ],
+      "changed": false,
+      "jointAcceptance": "not_performed_unmerged_branches"
+    },
+    "PR122": {
+      "overlappingPaths": [
+        "src/domain/operations.ts"
+      ],
+      "changed": false,
+      "jointAcceptance": "not_performed_unmerged_branches"
+    }
   },
   "next": [
-    "Wait for actual Firebase Emulator and UI acceptance in CI; fix failures before ready for review.",
-    "Release this lease at handoff; do not merge main or deploy production."
+    "User reviews and merges PR118; do not merge or deploy automatically.",
+    "If main incorporates PR120/119/121/122, preserve overlapping changes, check the DOMPurify minimum, and run relevant combined regression before release.",
+    "Live behavior remains unverified until coordinated frontend/API publication."
   ],
   "pullRequest": 118,
   "previousSource": "defd09e47b2b00344eed337f842229cdfbe1a992",
@@ -87,5 +113,10 @@
     "scope": "compatible transitive override and lockfile only",
     "advisory": "GHSA-cg2g-xh64-v4q7",
     "localAudit": "passed_zero_production_vulnerabilities"
-  }
+  },
+  "acceptedSource": "df097998d9a81c7ccda57e785d5824af8e801664",
+  "acceptedTree": "943d8e6941e763b6d4571c5d5a1fa97555803509",
+  "lastCompletedStage": "Gulf/Egypt invoice pricing, native receipts and country-aware WhatsApp; full acceptance passed.",
+  "leaseReleasedAt": "2026-10-23T10:38:40.766Z",
+  "evidence": "docs/currencies/EVIDENCE.json"
 }

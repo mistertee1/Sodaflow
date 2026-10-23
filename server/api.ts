@@ -30,7 +30,8 @@ export function createApi(options?: { operations: Operations; verify: Verify }) 
   router.get('/health', (_req, res) => res.json({ status: 'ok', app: 'SudaFlow', version: '3.0.0', release: '2026-10-05-central-sync-recovery' }));
   router.get('/health/ready', async (_req, res) => {
     const result = await firebaseReadiness();
-    res.status(result.status === 'ready' ? 200 : 503).json(result);
+    // Core invoicing remains usable if the optional image bucket is unavailable on Spark.
+    res.status(result.status === 'error' ? 503 : 200).json(result);
   });
   router.post('/financial/calculate-invoice', (req, res, next) => {
     try { const s = validateSettings({ ...INITIAL_SETTINGS, ...req.body }); const data = { ...req.body, exchange_rate_used: req.body.exchange_rate }; res.json({ success: true, ...invoiceFinancials(data, s) }); } catch (e) { next(e); }

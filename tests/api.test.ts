@@ -74,6 +74,27 @@ test('Netlify missing credentials returns a service outage instead of invalid se
   }
 });
 
+test('Render reports missing Firebase Admin credentials immediately without cloud metadata fallback', async () => {
+  const { serverCredential } = await import('../server/admin');
+  const { BusinessError } = await import('../src/domain/validation');
+  const keys = ['RENDER', 'RENDER_SERVICE_ID', 'FIREBASE_SERVICE_ACCOUNT_JSON', 'GOOGLE_APPLICATION_CREDENTIALS'] as const;
+  const before = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  try {
+    process.env.RENDER = 'true';
+    process.env.RENDER_SERVICE_ID = 'render-test-service';
+    delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    assert.throws(serverCredential, error => error instanceof BusinessError && error.status === 503 && error.code === 'firebase_configuration_missing');
+    delete process.env.RENDER;
+    assert.throws(serverCredential, error => error instanceof BusinessError && error.code === 'firebase_configuration_missing');
+  } finally {
+    for (const key of keys) {
+      if (before[key] === undefined) delete process.env[key];
+      else process.env[key] = before[key];
+    }
+  }
+});
+
 test('stale server project overrides fail as configuration errors before session verification', async () => {
   const { selectedFirebaseProjectId } = await import('../server/admin');
   const { authenticationFailure } = await import('../server/authErrors');

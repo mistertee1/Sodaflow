@@ -122,6 +122,9 @@ test('suspended and foreign actors fail closed; ID prefix does not confer owners
 
 test('invitation requires verified authenticated recipient and atomically consumes invite, membership and index', async () => {
   const f = await fixture(), recipient = { uid: 'recipient', email: 'invitee@example.com', emailVerified: true };
+  // Invitation acceptance uses real wall-clock time; the fixture's fixed 2026-10-01
+  // date would otherwise expire the invitation whenever CI runs after that week.
+  f.setClock(new Date().toISOString());
   const invite = await f.run('invitation.create', { email: recipient.email, role: 'Cashier' }, 'invitation');
   await assert.rejects(f.orgs.accept({ ...recipient, emailVerified: false }, f.org.id, invite.result.id), /أكّد/);
   await assert.rejects(f.orgs.accept({ ...recipient, email: 'attacker@example.com' }, f.org.id, invite.result.id), /بريد آخر/);

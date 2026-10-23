@@ -2,8 +2,9 @@ import { test, expect, type Page, cloudRecords, cloudMerchant, seedCloudMerchant
 import { freshOpeningBooksFixture } from '../fixtures/openingBooks';
 import { INITIAL_SETTINGS } from '../../src/data/initialData';
 import { createDefaultSubscription, getPlanConfig } from '../../src/lib/plans';
+import ExcelJS from 'exceljs';
 
-async function seed(page: Page, role = 'Owner') {
+async function seed(page: Page, role = 'Owner', openAccounting = true) {
   const org = 'local-guest-org', root = `organizations/${org}`, { data } = freshOpeningBooksFixture(org, 'guest');
   const records: Record<string, any> = {
     [root]: { id: org, owner_uid: role === 'Owner' ? 'guest' : 'other-owner', name: 'متجر اختبار الأرصدة', status: 'active', accounting_version: 2, settings: INITIAL_SETTINGS },

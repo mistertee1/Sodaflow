@@ -9,6 +9,8 @@ import { getDefaultChartOfAccounts, calculateTrialBalance, calculateIncomeStatem
 import { classifyAccount } from '../src/domain/accountClassification';
 import { journal, journalLine } from '../src/domain/financial';
 import { reconcileFinancialData, type FinancialData } from '../src/domain/reconciliation';
+import { defaultPlatformPlans } from '../src/lib/plans';
+import { cashForecast } from '../src/domain/managementCashForecast';
 
 const actor = { uid: 'owner', email: 'owner@example.com', emailVerified: true };
 const entry = (id: string, date: string, lines: JournalEntry['lines']) => journal(id, 'org', 'owner', date, 'manual', id, id, lines, 2000);
@@ -88,4 +90,84 @@ test('A1 backend rejects inventory purchases, invalid expense funding and changi
   const before = f.store.dump();
   await assert.rejects(f.run('account.update', { code: 'consulting', updates: { reporting_group: 'fx_gain' } }), /تصنيف الحساب المُستخدم/);
   assert.deepEqual(f.store.dump(), before);
+});
+
+test('D1 dimensions are protected, journal tags require active masters and branch P&L follows tagged lines', async () => {
+  const f=await fixture(),root=`organizations/${f.org.id}`,now='2026-10-05T12:00:00.000Z';
+  await f.store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01'});tx.set('plans/Enterprise',defaultPlatformPlans(now).find(plan=>plan.id==='Enterprise')!);tx.set(`${root}/members/accountant`,{uid:'accountant',role:'Accountant',status:'active'});});
+  const branch=(await f.run('dimension.create',{kind:'branch',id:'north',code:'NORTH',name_ar:'الفرع الشمالي'},'branch')).result;
+  await f.run('dimension.create',{kind:'cost_center',id:'sales',code:'SALES',name_ar:'المبيعات'},'cost');
+  await f.run('dimension.create',{kind:'project',id:'contract-a',code:'A',name_ar:'العقد أ'},'project');
+  await assert.rejects(f.ops.execute(f.org.id,{...actor,uid:'accountant'},{action:'dimension.create',operationId:'forbidden',data:{kind:'project',id:'x',code:'X',name_ar:'ممنوع'}}),/صلاحية/);
+  await assert.rejects(f.run('dimension.create',{kind:'branch',id:'duplicate',code:'north',name_ar:'مكرر'},'duplicate'),/مستخدم مسبقاً/);
+  const dimensions={branch_id:'north',cost_center_id:'sales',project_id:'contract-a'};
+  await f.run('journal.create',{reference_type:'manual',description:'بيع الفرع',date:'2026-10-05',lines:[{...journalLine('1110','نقد',100,0,0,0),...dimensions},{...journalLine('4100','مبيعات',0,100,0,0),...dimensions}]},'sale');
+  await f.run('journal.create',{reference_type:'manual',description:'مصروف الفرع',date:'2026-10-05',lines:[{...journalLine('5200','مصروف',10,0,0,0),...dimensions},{...journalLine('1110','نقد',0,10,0,0),...dimensions}]},'expense');
+  await f.store.transaction(async tx=>tx.set(`${root}/journal_entries/cogs`,entry('cogs','2026-10-05',[{...journalLine('5100','تكلفة',60,0,0,0),branch_id:'north'},{...journalLine('1300','مخزون',0,60,0,0),branch_id:'north'}])));
+  const report=await f.ops.branchProfitAndLoss(f.org.id,actor,'north',{start:'2026-10-01',end:'2026-10-31'});assert.equal(report.sales_sdg,100);assert.equal(report.cogs_sdg,60);assert.equal(report.expenses_sdg,10);assert.equal(report.net_profit_sdg,30);assert.equal(report.branch.id,branch.id);
+  const taggedExpense=(await f.run('expense.create',{title:'إيجار المشروع',category:'إيجار',amount:25,currency:'SDG',date:'2026-10-05',...dimensions},'tagged-expense')).result;
+  const taggedSnapshot=await f.ops.snapshot(f.org.id,actor),taggedPosting=taggedSnapshot.collections.journal_entries.find(row=>row.reference_id===taggedExpense.id)!;
+  assert.deepEqual(taggedPosting.lines.map((line:JournalEntry['lines'][number])=>({branch_id:line.branch_id,cost_center_id:line.cost_center_id,project_id:line.project_id})),[dimensions,dimensions]);
+  assert.equal(taggedExpense.branch_id,'north');assert.equal(taggedExpense.cost_center_id,'sales');assert.equal(taggedExpense.project_id,'contract-a');
+  const customer=(await f.run('customer.create',{name:'عميل الفرع',phone:'',preferred_currency:'SDG'},'dimension-customer')).result;
+  const service=(await f.run('product.create',{name:'خدمة الفرع',unit:'خدمة',price_sdg:50,price_usd:0,tax_rate:0,is_active:true,track_inventory:false,stock_quantity:0},'dimension-service')).result;
+  const invoice=(await f.run('invoice.create',{customer_id:customer.id,issue_date:'2026-10-05',currency_mode:'single_sdg',exchange_rate_used:0,discount_type:'fixed',discount_value:0,items:[{product_id:service.id,description:'خدمة',unit:'خدمة',quantity:1,unit_price:50,currency:'SDG',tax_rate:0,discount_percent:0}],...dimensions},'dimension-invoice')).result;
+  const invoicePosting=(await f.ops.snapshot(f.org.id,actor)).collections.journal_entries.find(row=>row.reference_id===invoice.id)!;
+  assert.equal(invoice.branch_id,'north');assert.ok(invoicePosting.lines.every((line:JournalEntry['lines'][number])=>line.branch_id==='north'&&line.cost_center_id==='sales'&&line.project_id==='contract-a'));
+  await f.run('dimension.update',{kind:'project',id:'contract-a',expected_revision:1,updates:{status:'inactive'}},'disable-project');
+  await assert.rejects(f.run('journal.create',{reference_type:'manual',description:'بعد معطل',date:'2026-10-05',lines:[{...journalLine('1110','نقد',1,0,0,0),project_id:'contract-a'},{...journalLine('4100','مبيعات',0,1,0,0),project_id:'contract-a'}]},'inactive'),/غير موجود أو غير نشط/);
+  const before=f.store.dump();await assert.rejects(f.run('expense.create',{title:'مصروف مرفوض',category:'إيجار',amount:1,currency:'SDG',date:'2026-10-05',project_id:'contract-a'},'inactive-expense'),/غير موجود أو غير نشط/);assert.deepEqual(f.store.dump(),before);
+  await assert.rejects(f.run('invoice.create',{customer_id:customer.id,issue_date:'2026-10-05',currency_mode:'single_sdg',exchange_rate_used:0,discount_type:'fixed',discount_value:0,items:[{product_id:service.id,description:'مرفوض',unit:'خدمة',quantity:1,unit_price:1,currency:'SDG',tax_rate:0,discount_percent:0}],project_id:'contract-a'},'inactive-invoice'),/غير موجود أو غير نشط/);
+  const snapshot=await f.ops.snapshot(f.org.id,{...actor,uid:'accountant'});assert.equal(snapshot.collections.branches.length,1);assert.equal(snapshot.collections.cost_centers.length,1);assert.equal(snapshot.collections.projects.length,1);
+});
+
+test('D3.1 protected budgets enforce permissions, revision and source-backed variance',async()=>{
+  const f=await fixture(),root=`organizations/${f.org.id}`,now='2026-10-05T12:00:00.000Z';
+  await f.store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01'});tx.set('plans/Enterprise',defaultPlatformPlans(now).find(plan=>plan.id==='Enterprise')!);tx.set(`${root}/members/accountant`,{uid:'accountant',role:'Accountant',status:'active'});tx.set(`${root}/members/viewer`,{uid:'viewer',role:'Viewer',status:'active'});});
+  const created=await f.run('budget.create',{id:'operating-2026',name:'ميزانية التشغيل',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:100,amount_usd:10}]},'budget-create'),plan=created.result;
+  assert.ok(created.changes.some(change=>change.path===`${root}/budgets/${plan.id}`&&change.value?.name==='ميزانية التشغيل'));
+  await f.run('journal.create',{reference_type:'manual',description:'مصروف فعلي',date:'2026-10-05',lines:[journalLine('5200','مصروف',40,0,4,0),journalLine('1110','نقد',0,40,0,4)]},'budget-actual');
+  const report=await f.ops.budgetReport(f.org.id,{...actor,uid:'viewer'},plan.id);assert.equal(report.rows[0].actual_sdg,40);assert.equal(report.rows[0].variance_sdg,60);assert.equal(report.rows[0].variance_percent_sdg,60);
+  const before=f.store.dump();await assert.rejects(f.ops.execute(f.org.id,{...actor,uid:'accountant'},{action:'budget.update',operationId:'budget-forbidden',data:{id:plan.id,expected_revision:1,name:'مرفوض',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:120,amount_usd:0}]}}),/صلاحية/);assert.deepEqual(f.store.dump(),before);
+  await f.run('budget.update',{id:plan.id,expected_revision:1,name:'ميزانية التشغيل المعدلة',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:120,amount_usd:0}]},'budget-update');
+  await assert.rejects(f.run('budget.update',{id:plan.id,expected_revision:1,name:'قديم',start_date:'2026-10-01',end_date:'2026-10-31',status:'active',lines:[{account_code:'5200',amount_sdg:1,amount_usd:0}]},'budget-stale'),/جلسة أخرى/);
+});
+
+test('D3.2b cash forecast includes overdue and due balances without inventing unsourced schedules',()=>{
+  const report=cashForecast('2026-10-05',30,[
+    {id:'ar-overdue',source_id:'invoice-overdue',source_reference:'INV-001',customer_name:'عميل متأخر',due_date:'2026-10-01',remaining_sdg:100,remaining_usd:1},
+    {id:'ar-future',source_id:'invoice-future',source_reference:'INV-002',customer_name:'عميل آجل',due_date:'2026-10-20',remaining_sdg:200,remaining_usd:2},
+    {id:'ar-outside',source_id:'invoice-outside',source_reference:'INV-003',customer_name:'خارج الأفق',due_date:'2026-11-10',remaining_sdg:900,remaining_usd:9},
+  ],[
+    {id:'ap-due',source_id:'bill-due',reference:'BILL-001',supplier_name:'مورد',due_date:'2026-10-06',remaining_sdg:80,remaining_usd:.8},
+  ]);
+  assert.equal(report.end_date,'2026-11-04');
+  assert.deepEqual(report.rows.map(row=>[row.date,row.source_type,row.source_id]),[['2026-10-05','customer_due','invoice-overdue'],['2026-10-06','supplier_due','bill-due'],['2026-10-20','customer_due','invoice-future']]);
+  assert.deepEqual(report.totals,{inflow_sdg:300,inflow_usd:3,outflow_sdg:80,outflow_usd:.8,net_sdg:220,net_usd:2.2});
+  assert.deepEqual(report.coverage,{customer_due_dates:true,supplier_due_dates:true,recurring_expenses:true,scheduled_payments:true});
+  assert.throws(()=>cashForecast('2026-10-05',0,[],[]),/فترة التوقع/);
+  assert.throws(()=>cashForecast('2026-10-05',366,[],[]),/فترة التوقع/);
+});
+
+test('D3.2b.3 protected forecast sources are revisioned, backed up and included without posting journals',async()=>{
+  const f=await fixture(),root=`organizations/${f.org.id}`,now='2026-10-05T12:00:00.000Z';
+  await f.store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01'});tx.set('plans/Enterprise',defaultPlatformPlans(now).find(plan=>plan.id==='Enterprise')!);tx.set(`${root}/members/accountant`,{uid:'accountant',role:'Accountant',status:'active'});});
+  const rent=(await f.run('recurringCashSource.create',{id:'rent',name:'الإيجار',frequency:'monthly',next_date:'2026-10-10',end_date:'2026-12-10',amount_sdg:1000,amount_usd:0,status:'active'},'forecast-rent')).result;
+  const receipt=(await f.run('scheduledCashSource.create',{id:'grant',name:'دفعة تمويل',due_date:'2026-10-12',direction:'inflow',amount_sdg:0,amount_usd:50,party_name:'ممّول',reference:'GR-1',status:'scheduled'},'forecast-grant')).result;
+  assert.equal(rent.revision,1);assert.equal(receipt.revision,1);assert.equal((await f.store.transaction(tx=>tx.list(`${root}/journal_entries`))).length,0);
+  const report=await f.ops.cashForecastReport(f.org.id,actor,{asOf:'2026-10-05',days:40});
+  assert.deepEqual(report.rows.filter(row=>['recurring_expense','scheduled_payment'].includes(row.source_type)).map(row=>[row.date,row.source_type,row.source_id]),[['2026-10-10','recurring_expense','rent'],['2026-10-12','scheduled_payment','grant'],['2026-11-10','recurring_expense','rent']]);
+  assert.equal(report.totals.outflow_sdg,2000);assert.equal(report.totals.inflow_usd,50);
+  await assert.rejects(f.ops.execute(f.org.id,{...actor,uid:'accountant'},{action:'recurringCashSource.update',operationId:'forecast-forbidden',data:{id:'rent',expected_revision:1,name:'مرفوض',frequency:'monthly',next_date:'2026-10-10',amount_sdg:1,status:'active'}}),/صلاحية/);
+  await f.run('recurringCashSource.update',{id:'rent',expected_revision:1,name:'الإيجار المعدل',frequency:'monthly',next_date:'2026-10-10',amount_sdg:1200,status:'paused'},'forecast-rent-update');
+  await assert.rejects(f.run('recurringCashSource.update',{id:'rent',expected_revision:1,name:'قديم',frequency:'monthly',next_date:'2026-10-10',amount_sdg:1,status:'active'},'forecast-rent-stale'),/جلسة أخرى/);
+  const backup=await f.ops.snapshot(f.org.id,actor,true);assert.equal(backup.collections.recurring_cash_sources.length,1);assert.equal(backup.collections.scheduled_cash_sources.length,1);
+});
+
+test('D3.2b cash forecast is enterprise V2 and permission protected',async()=>{
+  const f=await fixture(),root=`organizations/${f.org.id}`,now='2026-10-05T12:00:00.000Z';
+  await f.store.transaction(async tx=>{tx.set(root,{...await tx.get(root),accounting_version:2,planId:'Enterprise',subscriptionStatus:'active',subscriptionEnd:'2027-01-01'});tx.set('plans/Enterprise',defaultPlatformPlans(now).find(plan=>plan.id==='Enterprise')!);tx.set(`${root}/members/viewer`,{uid:'viewer',role:'Viewer',status:'active'});});
+  const report=await f.ops.cashForecastReport(f.org.id,actor,{asOf:'2026-10-05',days:30});
+  assert.equal(report.horizon_days,30);assert.deepEqual(report.rows,[]);
+  await assert.rejects(f.ops.cashForecastReport(f.org.id,{...actor,uid:'viewer'},{asOf:'2026-10-05',days:30}),/صلاحية/);
 });

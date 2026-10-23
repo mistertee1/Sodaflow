@@ -16,6 +16,7 @@ import { classifyAccount, type ReportingGroup } from './accountClassification';
 import { getDefaultChartOfAccounts } from '../services/accountingService';
 import { accountLedger } from './operationalReports';
 import { validateTaxConfigurationVersions } from './taxConfigurationTransactions';
+import { approvalGate } from './approvalPolicies';
 
 export const salesCorrectionCollections = ['credit_notes', 'customer_refunds'] as const;
 const books = ['sdg', 'usd'] as const;
@@ -220,9 +221,10 @@ export async function salesCorrectionCommand(action: string, data: Document, c: 
     state.balance = add(state.balance, negate(credit)); state.credited = add(state.credited, credit); state.correctionCount++;
     c.set(`${c.root}/credit_notes/${id}`, result); c.counterAdd('credit_note_count', 1);
   } else {
-    ensure(action === 'customerRefund.create' && Object.keys(data).every(key => ['invoice_id', 'date', 'reason', 'financial_account_id', 'amount', 'exchange_rate_used'].includes(key)), 'طلب الرد النقدي غير صالح.');
+    ensure(action === 'customerRefund.create' && Object.keys(data).every(key => ['invoice_id', 'date', 'reason', 'financial_account_id', 'amount', 'exchange_rate_used', 'approval_reason'].includes(key)), 'طلب الرد النقدي غير صالح.');
     ensure(state.balance.sdg <= 0 && state.balance.usd <= 0, 'لا يوجد رصيد مصدر دائن قابل للرد في الدفترين.', 409);
     const account = await c.required('financial_accounts', data.financial_account_id); validateFinancialAccount(account, state.accounts);
+    const approvalEvidence = await approvalGate(c.tx, c.root, 'customer_refund', account.currency, data.amount, c.role!, c.actor, data.approval_reason);
     ensure(account.status === 'active' && state.accounts.find(row => row.code === account.account_code)?.is_active, 'حساب الرد غير نشط.');
     ensure((await c.tx.get(`${c.root}/financial_account_mappings/${account.account_code}`))?.id === account.id, 'ربط حساب الرد يحتاج مراجعة.', 409);
     const available = negate(state.balance), quote = quoteCreditRefund(available, state.native, data.amount, account.currency, data.exchange_rate_used ?? invoice.exchange_rate_used);

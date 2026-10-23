@@ -33,9 +33,15 @@ export interface JournalEntryLine {
   credit_usd: number;
   notes?: string;
   description?: string;
+  branch_id?: string;
+  cost_center_id?: string;
+  project_id?: string;
 }
 
 export interface JournalEntry {
+  historical_import_session_id?: string;
+  historical_import_row_numbers?: number[];
+  source_rows_sha256?: string;
   adjusting?: boolean;
   adjustment_reason?: string;
   period_id?: string | null;

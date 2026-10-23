@@ -24,9 +24,10 @@ import {
   MAX_IMAGE_FILE_SIZE_BYTES,
 } from '../services/storageService';
 import { Dialog } from './Dialog';
+import { ApprovalDecisionField, approvalRequirement } from './accounting/ApprovalDecisionField';
 
 export const ExpensesView: React.FC = () => {
-  const { accounts, expenses, addExpense, deleteExpense, settings, currentUser, currentOrg, isActionAllowed } = useApp();
+  const { accounts, expenses, addExpense, deleteExpense, branches, costCenters, projects, approvalPolicies, userRole, settings, currentUser, currentOrg, isActionAllowed } = useApp();
 
   const submitLock = useRef(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -40,6 +41,10 @@ export const ExpensesView: React.FC = () => {
   const [category, setCategory] = useState('نقل وترحيل');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
+  const [approvalReason,setApprovalReason] = useState('');
+  const [branchId, setBranchId] = useState('');
+  const [costCenterId, setCostCenterId] = useState('');
+  const [projectId, setProjectId] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -49,6 +54,7 @@ export const ExpensesView: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rate = settings.default_exchange_rate || 0;
+  const approval = approvalRequirement(approvalPolicies,'expense',currency as 'SDG'|'USD',amount,userRole);
 
   const defaultCategories = [
     'نقل وترحيل',
@@ -129,6 +135,7 @@ export const ExpensesView: React.FC = () => {
       return;
     }
     if (!title.trim() || amount <= 0) return;
+    if (approval && (!approval.allowed || !approvalReason.trim())) { setErrorMessage(approval.allowed?'اكتب سبب اعتماد المصروف.':`المصروف يتطلب اعتماد دور ${approval.tier.required_role}.`); return; }
 
     let finalRate = expenseExchangeRate > 0 ? expenseExchangeRate : (settings.default_exchange_rate || 0);
     if (currency === 'USD') {
@@ -153,6 +160,10 @@ export const ExpensesView: React.FC = () => {
       notes: notes.trim() || '',
       receipt_image: receiptImage || '',
       exchange_rate_used: finalRate,
+      ...(branchId ? { branch_id: branchId } : {}),
+      ...(costCenterId ? { cost_center_id: costCenterId } : {}),
+      ...(projectId ? { project_id: projectId } : {}),
+      ...(approval ? { approval_reason: approvalReason.trim() } : {}),
     });
 
     setIsAddModalOpen(false);
@@ -160,6 +171,8 @@ export const ExpensesView: React.FC = () => {
     setAmount(0);
     setReceiptImage(null);
     setNotes('');
+    setApprovalReason('');
+    setBranchId(''); setCostCenterId(''); setProjectId('');
     setErrorMessage(null);
     setUploadError(null);
     setUploadProgress(0);
@@ -404,6 +417,17 @@ export const ExpensesView: React.FC = () => {
                 <p className="text-xs text-sf-muted">شراء البضاعة يُسجّل ضمن المشتريات والمخزون. المصروف الآجل يثبت التزاماً ولا يخصم النقدية.</p>
               </div>
 
+              {isActionAllowed('dimensions:read') && (branches.length > 0 || costCenters.length > 0 || projects.length > 0) && (
+                <fieldset className="space-y-2 border border-sf-border rounded-xl p-3">
+                  <legend className="px-1 font-semibold text-sf-text text-xs">الأبعاد الإدارية الاختيارية</legend>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <label className="text-xs">الفرع<select aria-label="فرع المصروف" value={branchId} onChange={e => setBranchId(e.target.value)} className="w-full mt-1 bg-sf-raised border border-sf-border rounded-lg p-2"><option value="">بدون فرع</option>{branches.filter(row => row.status === 'active').map(row => <option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+                    <label className="text-xs">مركز التكلفة<select aria-label="مركز تكلفة المصروف" value={costCenterId} onChange={e => setCostCenterId(e.target.value)} className="w-full mt-1 bg-sf-raised border border-sf-border rounded-lg p-2"><option value="">بدون مركز</option>{costCenters.filter(row => row.status === 'active').map(row => <option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+                    <label className="text-xs">المشروع<select aria-label="مشروع المصروف" value={projectId} onChange={e => setProjectId(e.target.value)} className="w-full mt-1 bg-sf-raised border border-sf-border rounded-lg p-2"><option value="">بدون مشروع</option>{projects.filter(row => row.status === 'active').map(row => <option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+                  </div>
+                </fieldset>
+              )}
+
               {/* Receipt Image Attachment (Camera) */}
               <div>
                 <label className="block font-semibold text-sf-text mb-1 text-xs">
@@ -481,6 +505,7 @@ export const ExpensesView: React.FC = () => {
                   className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text placeholder-sf-muted focus:outline-none focus:border-sf-action"
                 />
               </div>
+              <ApprovalDecisionField requirement={approval} reason={approvalReason} setReason={setApprovalReason}/>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-sf-border">
                 <button disabled={isSaving}
@@ -492,7 +517,7 @@ export const ExpensesView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSaving || isUploadingReceipt}
+                  disabled={isSaving || isUploadingReceipt || !!approval&&!approval.allowed}
                   className="px-6 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-xl text-xs font-semibold shadow-lg shadow-sf-action/20 flex items-center gap-2 transition-colors"
                 >
                   <CheckCircle2 className="w-4 h-4 text-sf-on-action" />

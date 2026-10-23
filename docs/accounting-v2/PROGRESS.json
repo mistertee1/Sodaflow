@@ -1047,168 +1047,1312 @@
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "completed_at": "2026-10-12T07:15:00Z"
             }
-          ],
-          "active_substep": "C5.3"
+          ]
         },
         {
           "id": "C6",
           "scope": "Comparative statements and period/as-of controls",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-c6-comparative-reports-20261012",
+          "pr": 56,
+          "report": "REPORT_C6_COMPARATIVE_REPORTS.md",
+          "checks": {
+            "unit_api": 336,
+            "types": "passed",
+            "core": "passed",
+            "build": "passed",
+            "emulator": 35,
+            "ui": 60,
+            "production_audit_vulnerabilities": 0
+          },
+          "ci": {
+            "run_id": 38240509827,
+            "commit_sha": "70bbbb459bc70765624bb725dab2ec67f415a190",
+            "conclusion": "success"
+          },
+          "render_acceptance": "pending_matching_authenticated_staging_commit",
+          "completed_at": "2026-10-12T11:11:00Z"
         }
       ]
     },
     {
       "id": "D",
-      "status": "pending",
-      "branch": null,
-      "pr": null,
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
+      "pr": 64,
       "steps": [
         {
           "id": "D1",
           "scope": "Branch dimensions, cost centers/projects and branch P&L",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+          "pr": 61,
+          "substeps": [
+            {
+              "id": "D1.1",
+              "scope": "Protected dimension masters, journal-line validation and branch P&L backend",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d1-dimensions-foundation-20261012",
+              "pr": 57,
+              "report": "REPORT_D1_1_DIMENSIONS_FOUNDATION.md",
+              "checks": {
+                "unit_api": 337,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 60,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38241877010,
+                "commit_sha": "aa849671b479922fa840e06d17643178d601f813",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-12T11:25:00Z"
+            },
+            {
+              "id": "D1.2",
+              "scope": "Dimension UI, source-document propagation and management report filters",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+              "pr": 61,
+              "substeps": [
+                {
+                  "id": "D1.2a",
+                  "scope": "Expense and manual-journal dimension selectors, source persistence and journal propagation",
+                  "status": "implemented_ci_passed_render_acceptance_pending",
+                  "branch": "codex/accounting-v2-d1-dimension-ui-20261012",
+                  "pr": 59,
+                  "report": "REPORT_D1_2A_DIMENSION_POSTING_UI.md",
+                  "checks": {
+                    "unit_api": 337,
+                    "types": "passed",
+                    "core": "passed",
+                    "build": "passed",
+                    "emulator": 35,
+                    "ui": 61,
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "ci": {
+                    "run_id": 38267464692,
+                    "commit_sha": "48f9ffe6dfd3dedebacaaa1454b9daaf4e299194",
+                    "conclusion": "success"
+                  },
+                  "render_acceptance": "pending_matching_authenticated_staging_commit",
+                  "completed_at": "2026-10-12T15:06:00Z"
+                },
+                {
+                  "id": "D1.2b",
+                  "scope": "Dimension master UI, sales/purchase propagation and management report filters",
+                  "status": "implemented_ci_passed_render_acceptance_pending",
+                  "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+                  "pr": 61,
+                  "substeps": [
+                    {
+                      "id": "D1.2b.1",
+                      "scope": "Protected dimension master create/edit/activate/deactivate UI and read-only permission boundary",
+                      "status": "implemented_ci_passed_render_acceptance_pending",
+                      "branch": "codex/accounting-v2-d1-dimension-master-ui-20261012",
+                      "pr": 60,
+                      "report": "REPORT_D1_2B1_DIMENSION_MASTER_UI.md",
+                      "checks": {
+                        "unit_api": 337,
+                        "types": "passed",
+                        "core": "passed",
+                        "build": "passed",
+                        "emulator": 35,
+                        "ui": 63,
+                        "production_audit_vulnerabilities": 0
+                      },
+                      "ci": {
+                        "run_id": 38274107270,
+                        "commit_sha": "16070f816372f39f4f8e15259f4965557eddff14",
+                        "conclusion": "success"
+                      },
+                      "render_acceptance": "pending_matching_authenticated_staging_commit",
+                      "completed_at": "2026-10-12T16:05:00Z"
+                    },
+                    {
+                      "id": "D1.2b.2",
+                      "scope": "Sales/purchase source propagation and management report dimension filters",
+                      "status": "implemented_ci_passed_render_acceptance_pending",
+                      "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+                      "pr": 61,
+                      "report": "REPORT_D1_2B2_DIMENSION_PROPAGATION_REPORTS.md",
+                      "checks": {
+                        "unit_api": 338,
+                        "types": "passed",
+                        "core": "passed",
+                        "build": "passed",
+                        "emulator": 35,
+                        "ui": 64,
+                        "production_audit_vulnerabilities": 0
+                      },
+                      "ci": {
+                        "run_id": 38277327002,
+                        "commit_sha": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4",
+                        "conclusion": "success"
+                      },
+                      "render_acceptance": "pending_matching_authenticated_staging_commit",
+                      "completed_at": "2026-10-12T20:35:00Z"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "D2",
           "scope": "Product/customer profitability and source-supported management reports",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
+          "pr": 64,
+          "substeps": [
+            {
+              "id": "D2.1",
+              "scope": "Source-backed product profitability, returns, inventory value and turnover",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d2-profitability-20261012",
+              "pr": 62,
+              "report": "REPORT_D2_1_PRODUCT_PROFITABILITY.md",
+              "checks": {
+                "unit_api": 339,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 65,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38310893179,
+                "commit_sha": "28d9e2b73d6c49f68864f1f422ba0b17eeeebeed",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-13T05:20:00Z"
+            },
+            {
+              "id": "D2.2",
+              "scope": "Source-backed customer profitability and management reporting",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
+              "pr": 64,
+              "report": "REPORT_D2_2_CUSTOMER_PROFITABILITY.md",
+              "checks": {
+                "unit_api": 341,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 66,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38353477574,
+                "commit_sha": "be84b48d46ca972c14b0bc6ca7177519b14b2cca",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-13T08:55:00Z"
+            }
+          ]
         },
         {
           "id": "D3",
           "scope": "Budgets, budget vs actual and cash forecast",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-d3-budget-foundation-20261013",
+          "pr": 65,
+          "substeps": [
+            {
+              "id": "D3.1",
+              "scope": "Protected budget registry and source-backed budget-versus-actual foundation",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d3-budget-foundation-20261013",
+              "pr": 65,
+              "code_commit": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
+              "report": "REPORT_D3_1_BUDGET_FOUNDATION.md",
+              "local_checks": {
+                "types": "passed",
+                "unit_api": 342,
+                "build": "passed",
+                "emulator": "blocked_java_21_required"
+              },
+              "ci": {
+                "run_id": 38375686205,
+                "commit_sha": "2cd8d94371e422068b8421a6e73ccc43a88da87e",
+                "conclusion": "success",
+                "unit_api": 342,
+                "emulator": 35,
+                "ui": 66,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D3.2a",
+              "scope": "Budget management UI, permissions, source-backed report and reload",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d3-budget-ui-20261013",
+              "pr": 66,
+              "code_commit": "c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1",
+              "report": "REPORT_D3_2A_BUDGET_UI.md",
+              "local_checks": {
+                "types": "passed",
+                "unit_api": 342,
+                "build": "passed",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38402011947,
+                "commit_sha": "c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1",
+                "conclusion": "success",
+                "unit_api": 342,
+                "emulator": 35,
+                "ui": 68,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D3.2b.1",
+              "scope": "Source-backed customer and supplier due-date cash forecast foundation",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d3-cash-forecast-foundation-20261013",
+              "pr": 68,
+              "code_commit": "9668483ad31192dbfff3a081a5712b409ca7df3d",
+              "report": "REPORT_D3_2B_1_CASH_FORECAST_FOUNDATION.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 344,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38435020579,
+                "commit_sha": "9668483ad31192dbfff3a081a5712b409ca7df3d",
+                "conclusion": "success",
+                "unit_api": 344,
+                "emulator": 35,
+                "ui": 68,
+                "production_audit_vulnerabilities": 0
+              },
+              "coverage": {
+                "customer_due_dates": true,
+                "supplier_due_dates": true,
+                "recurring_expenses": false,
+                "scheduled_payments": false
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D3.2b.2",
+              "scope": "Cash forecast UI, source table, permissions, session synchronization and reload",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d3-cash-forecast-ui-20261013",
+              "pr": 69,
+              "code_commit": "24b020912e630a418321f6d71922444892e23331",
+              "report": "REPORT_D3_2B_2_CASH_FORECAST_UI.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 344,
+                "build": "passed",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38443505970,
+                "commit_sha": "24b020912e630a418321f6d71922444892e23331",
+                "conclusion": "success",
+                "unit_api": 344,
+                "emulator": 35,
+                "ui": 70,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D3.2b.3",
+              "scope": "Protected recurring expense and scheduled payment source registries integrated into cash forecast and backup",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d3-cash-sources-20261013",
+              "pr": 70,
+              "code_commit": "216dce2cf246835f1d492a6d71c7e23764c4737e",
+              "report": "REPORT_D3_2B_3_CASH_SOURCE_REGISTRIES.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 345,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38448393430,
+                "commit_sha": "216dce2cf246835f1d492a6d71c7e23764c4737e",
+                "conclusion": "success",
+                "unit_api": 345,
+                "emulator": 35,
+                "ui": 70,
+                "production_audit_vulnerabilities": 0
+              },
+              "coverage": {
+                "customer_due_dates": true,
+                "supplier_due_dates": true,
+                "recurring_expenses": true,
+                "scheduled_payments": true
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D3.2b.4",
+              "scope": "Cash source management UI, synchronization, permissions and reload acceptance",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d3-cash-sources-ui-20261013",
+              "pr": 72,
+              "code_commit": "b0abf3ef03ab29dde6a94be66346c8f8d9acc294",
+              "report": "REPORT_D3_2B_4_CASH_SOURCE_UI.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 345,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38486656648,
+                "commit_sha": "b0abf3ef03ab29dde6a94be66346c8f8d9acc294",
+                "conclusion": "success",
+                "unit_api": 345,
+                "emulator": 35,
+                "ui": 72,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            }
+          ]
         },
         {
           "id": "D4",
           "scope": "Customer credit limits and configurable discount/expense/refund approval limits",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-d4-approval-limits-20261014",
+          "pr": 75,
+          "substeps": [
+            {
+              "id": "D4.1",
+              "scope": "Currency-specific customer credit limits and protected invoice approval gate",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d4-credit-limits-20261014",
+              "pr": 73,
+              "code_commit": "736168470fdef5addc4bdea494634ca159cea5bb",
+              "report": "REPORT_D4_1_CUSTOMER_CREDIT_LIMITS.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 350,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38491828955,
+                "commit_sha": "736168470fdef5addc4bdea494634ca159cea5bb",
+                "conclusion": "success",
+                "unit_api": 350,
+                "emulator": 35,
+                "ui": 72,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D4.2",
+              "scope": "Owner/Admin credit-limit UI, invoice warning, protected override reason, synchronization and reload",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d4-credit-ui-20261014",
+              "pr": 74,
+              "code_commit": "aae5883451125e3f78295d121d780c28814e8f9f",
+              "report": "REPORT_D4_2_CUSTOMER_CREDIT_UI.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 350,
+                "build": "passed",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38511786428,
+                "commit_sha": "aae5883451125e3f78295d121d780c28814e8f9f",
+                "conclusion": "success",
+                "unit_api": 350,
+                "emulator": 35,
+                "ui": 73,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D4.3.1",
+              "scope": "Protected configurable discount, expense and refund approval policy foundation",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d4-approval-limits-20261014",
+              "pr": 75,
+              "code_commit": "eb20d28b55f7d07953b73b3adbf2903c96621bdd",
+              "report": "REPORT_D4_3_1_APPROVAL_POLICY_FOUNDATION.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 352,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38515671820,
+                "commit_sha": "eb20d28b55f7d07953b73b3adbf2903c96621bdd",
+                "conclusion": "success",
+                "unit_api": 352,
+                "emulator": 35,
+                "ui": 73,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D4.3.2",
+              "scope": "Atomic invoice-discount, expense and customer/supplier refund approval gates with frozen evidence",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d4-approval-gates-20261014",
+              "pr": 77,
+              "code_commit": "3e423c6fe65f2b0c5d3107d6d7aca05485a8dbf5",
+              "report": "REPORT_D4_3_2_APPROVAL_GATES.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 356,
+                "build": "passed",
+                "emulator": "blocked_java_21_required",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38542501544,
+                "commit_sha": "3e423c6fe65f2b0c5d3107d6d7aca05485a8dbf5",
+                "conclusion": "success",
+                "unit_api": 356,
+                "emulator": 35,
+                "ui": 73,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "D4.3.3",
+              "scope": "Approval policy management and transaction decision UI, permissions, owner reauthentication, synchronization and reload",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-d4-approval-ui-20261014",
+              "pr": 78,
+              "code_commit": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3",
+              "report": "REPORT_D4_3_3_APPROVAL_UI.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 356,
+                "build": "passed",
+                "emulator": "blocked_java_21_required",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38584496221,
+                "commit_sha": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3",
+                "conclusion": "success",
+                "unit_api": 356,
+                "emulator": 35,
+                "ui": 76,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            }
+          ]
         }
       ]
     },
     {
       "id": "E",
-      "status": "pending",
-      "branch": null,
-      "pr": null,
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-e1-health-ui-20261014",
+      "pr": 80,
       "steps": [
         {
           "id": "E1",
           "scope": "Accounting health center and actionable financial alerts",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-e1-health-ui-20261014",
+          "pr": 80,
+          "substeps": [
+            {
+              "id": "E1.1",
+              "scope": "Read-only accounting health evidence and actionable financial alert foundation",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-e1-health-foundation-20261014",
+              "pr": 79,
+              "code_commit": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab",
+              "report": "REPORT_E1_1_ACCOUNTING_HEALTH_FOUNDATION.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 359,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38588892339,
+                "commit_sha": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab",
+                "conclusion": "success",
+                "unit_api": 359,
+                "emulator": 35,
+                "ui": 76,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "E1.2",
+              "scope": "Accounting health and alerts UI, permissions, synchronization and reload",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-e1-health-ui-20261014",
+              "pr": 80,
+              "code_commit": "9aa4a42dd71a9c59963c918b012deb79654bb7b2",
+              "report": "REPORT_E1_2_ACCOUNTING_HEALTH_UI.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 359,
+                "build": "passed",
+                "ui": "blocked_chromium_not_installed"
+              },
+              "ci": {
+                "run_id": 38691436659,
+                "commit_sha": "9aa4a42dd71a9c59963c918b012deb79654bb7b2",
+                "conclusion": "success",
+                "unit_api": 359,
+                "emulator": 35,
+                "ui": 78,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            }
+          ]
         },
         {
           "id": "E2",
           "scope": "Reviewable reconciliation/account/close assistance and anomaly rules",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
+          "pr": 84,
+          "substeps": [
+            {
+              "id": "E2.1",
+              "scope": "Review-only assistance report and deterministic anomaly rules foundation",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-e2-assistance-foundation-20261015",
+              "pr": 81,
+              "code_commit": "f2563de47f67310957b82f0f3c55aa34739849f1",
+              "report": "REPORT_E2_1_ACCOUNTING_ASSISTANCE_FOUNDATION.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 362,
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 38701895360,
+                "commit_sha": "f2563de47f67310957b82f0f3c55aa34739849f1",
+                "conclusion": "success",
+                "unit_api": 362,
+                "emulator": 35,
+                "ui": 78,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "E2.2",
+              "scope": "Accounting assistance UI, permissions, synchronization and reload",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-e2-assistance-ui-20261015",
+              "pr": 82,
+              "code_commit": "79b58707c674b4d739d1682cf84ab302c1901aca",
+              "report": "REPORT_E2_2_ACCOUNTING_ASSISTANCE_UI.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 362,
+                "build": "passed",
+                "ui": "ci_only"
+              },
+              "ci": {
+                "run_id": 38707312840,
+                "commit_sha": "79b58707c674b4d739d1682cf84ab302c1901aca",
+                "conclusion": "success",
+                "unit_api": 362,
+                "emulator": 35,
+                "ui": 80,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "E2.3",
+              "scope": "Reviewable deterministic expense-account suggestions and latest ended-period close assistance",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
+              "pr": 84,
+              "code_commit": "1a3e6c0dcdcc389a39525f1162c9df4f21daa51c",
+              "report": "REPORT_E2_3_SMART_SUGGESTIONS_CLOSE_ASSISTANCE.md",
+              "local_checks": {
+                "types": "passed",
+                "core": "passed",
+                "unit_api": 365,
+                "build": "passed",
+                "ui": "ci_only_local_chromium_missing"
+              },
+              "ci": {
+                "run_id": 38736425041,
+                "commit_sha": "1a3e6c0dcdcc389a39525f1162c9df4f21daa51c",
+                "conclusion": "success",
+                "unit_api": 365,
+                "emulator": 35,
+                "ui": 81,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            }
+          ]
         },
         {
           "id": "E3",
           "scope": "Rule-based Owner financial summary and recurring expense/journal draft reminders",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed",
+          "branch": "codex/accounting-v2-e3-owner-summary-20261015",
+          "pr": 85,
+          "checks": {
+            "unit_api": 367,
+            "emulator": 35,
+            "ui": 83,
+            "production_audit_vulnerabilities": 0
+          },
+          "ci": {
+            "run_id": 38771648178,
+            "commit_sha": "bfbbfdd2e07b91907308a115f68a938cf6ca049d",
+            "conclusion": "success"
+          },
+          "render_acceptance": "pending_matching_authenticated_staging_commit"
         }
       ]
     },
     {
       "id": "Excel1",
-      "status": "pending",
-      "branch": null,
-      "pr": null,
+      "status": "implemented_ci_passed_render_acceptance_pending",
+      "branch": "codex/accounting-v2-excel1-import-preview-20261015",
+      "pr": 88,
       "steps": [
         {
           "id": "Excel1.1",
           "scope": "Quick/master exports, numeric integrity and authorized sensitive masking",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-excel1-quick-exports-20261015",
+          "pr": 86,
+          "code_commit": "c8e85358c4481349f632179c5a4eaa1b580fd33d",
+          "ci": {
+            "run_id": 38781698086,
+            "conclusion": "success",
+            "unit_api": 370,
+            "emulator": 35,
+            "ui": 83,
+            "production_audit_vulnerabilities": 0
+          },
+          "render_acceptance": "pending_matching_authenticated_staging_commit"
         },
         {
           "id": "Excel1.2",
           "scope": "Customer/supplier/product templates, staging, mapping, validation, duplicate detection and preview",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-excel1-import-preview-20261015",
+          "pr": 88,
+          "code_commit": "a3a63c5f33f4fd551fbfbd3b0acffb5cc0525d35",
+          "report": "REPORT_EXCEL1_2_IMPORT_PREVIEW.md",
+          "local_checks": {
+            "types": "passed",
+            "core": "passed",
+            "excel_import": 4,
+            "unit_api": 370,
+            "build": "passed",
+            "production_audit_vulnerabilities": 0,
+            "ui": "ci_only_local_chromium_missing"
+          },
+          "ci": {
+            "run_id": 38846133119,
+            "commit_sha": "a3a63c5f33f4fd551fbfbd3b0acffb5cc0525d35",
+            "conclusion": "success",
+            "excel_import": 4,
+            "unit_api": 370,
+            "emulator": 35,
+            "ui": 85,
+            "production_audit_vulnerabilities": 0
+          },
+          "render_acceptance": "pending_matching_authenticated_staging_commit"
         }
       ]
     },
     {
       "id": "Excel2",
-      "status": "pending",
-      "branch": null,
-      "pr": null,
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-excel2-accountant-export-20261016",
+      "pr": 89,
       "steps": [
         {
           "id": "Excel2.1",
           "scope": "Accounting export and reconciled accountant workbook",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-excel2-accountant-export-20261016",
+          "pr": 89,
+          "code_commit": "cf5c8cc5efcd2c1863857f3df2afd7ee19165ef4",
+          "ci": {
+            "run_id": 38870018149,
+            "conclusion": "success",
+            "accounting_export": 3,
+            "unit_api": 370,
+            "emulator": 35,
+            "ui": 87,
+            "production_audit_vulnerabilities": 0
+          },
+          "render_acceptance": "pending_matching_authenticated_staging_commit"
         },
         {
           "id": "Excel2.2",
           "scope": "Safe opening inventory/AR/AP/cash/capital imports and post-import reconciliation",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-excel2-opening-ui-20261016",
+          "pr": 91,
+          "parts": [
+            {
+              "id": "Excel2.2a",
+              "scope": "Official opening XLSX template/parser, strict validation and protected preview mapping without financial writes",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "code_commit": "a3723872aa9fe9a04ca13acd097f182eba59276e",
+              "ci": {
+                "run_id": 38879574813,
+                "conclusion": "success",
+                "opening_import": 4,
+                "pretest": 8,
+                "unit_api": 370,
+                "emulator": 35,
+                "ui": 87,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "Excel2.2b",
+              "scope": "Protected opening workbook UI, permission gates, preview/Owner commit handoff and reload synchronization",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "code_commit": "e1a79a73a59cf5d8a562715e9a653878c94ad155",
+              "ci": {
+                "run_id": 38892964897,
+                "conclusion": "success",
+                "opening_import": 4,
+                "pretest": 8,
+                "unit_api": 370,
+                "emulator": 35,
+                "ui": 89,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            }
+          ]
         },
         {
           "id": "Excel2.3",
           "scope": "PRD50 bank statement CSV/Excel staging and manual matching import",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed",
+          "branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
+          "pr": 93,
+          "substeps": [
+            {
+              "id": "Excel2.3a",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
+              "pr": 92
+            },
+            {
+              "id": "Excel2.3b",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
+              "pr": 93,
+              "ci": {
+                "run_id": 38922608293,
+                "conclusion": "success",
+                "pretest": 13,
+                "unit_api": 370,
+                "emulator": 35,
+                "ui": 89,
+                "production_audit_vulnerabilities": 0
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            }
+          ]
         }
       ]
     },
     {
       "id": "Excel3",
-      "status": "pending",
-      "branch": null,
-      "pr": null,
+      "status": "implemented_ci_passed_render_acceptance_pending",
+      "branch": "codex/accounting-v2-excel3-large-import-commit-20261018",
+      "pr": 99,
       "steps": [
         {
           "id": "Excel3.1",
           "scope": "Full company export, data portability, saved presets and export/import histories",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed",
+          "branch": "codex/accounting-v2-excel3-company-portability-20261016",
+          "pr": 94,
+          "code_commit": "a6f3aff6d38c8e82afac5ed0888c78a5359fc34a",
+          "report": "REPORT_EXCEL3_1_COMPANY_PORTABILITY.md",
+          "checks": {
+            "pretest": 13,
+            "unit_api": 373,
+            "emulator": 35,
+            "ui": 90,
+            "production_audit_vulnerabilities": 0
+          },
+          "ci": {
+            "run_id": 39068811585,
+            "commit_sha": "a6f3aff6d38c8e82afac5ed0888c78a5359fc34a",
+            "conclusion": "success"
+          },
+          "render_acceptance": "pending_matching_authenticated_staging_commit"
         },
         {
           "id": "Excel3.2",
           "scope": "Server-side large export/import jobs, temporary downloads/expiry and failure recovery",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "implemented_ci_passed_render_acceptance_pending",
+          "branch": "codex/accounting-v2-excel3-large-import-commit-20261018",
+          "pr": 99,
+          "substeps": [
+            {
+              "id": "Excel3.2a",
+              "scope": "Protected bounded large-export request, cancellation, retry and company/accounting permission isolation",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel3-large-export-jobs-20261018",
+              "pr": 95,
+              "code_commit": "7dad4dca826f31766b1b6238ead8029b9647ff17",
+              "report": "REPORT_EXCEL3_2A_LARGE_EXPORT_JOBS.md",
+              "checks": {
+                "pretest": 16,
+                "unit_api": 373,
+                "emulator": 35,
+                "ui": 90,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 39088262421,
+                "commit_sha": "7dad4dca826f31766b1b6238ead8029b9647ff17",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "Excel3.2b",
+              "scope": "Worker execution, progress, secured temporary artifacts, expiry, cleanup and terminal failure",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
+              "pr": 96,
+              "code_commit": "9813f0fe0b516501146e3b2dee47389890ed038e",
+              "report": "REPORT_EXCEL3_2B_LARGE_EXPORT_WORKER.md",
+              "checks": {
+                "pretest": 20,
+                "unit_api": 373,
+                "emulator": 35,
+                "ui": 90,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 39093025097,
+                "commit_sha": "9813f0fe0b516501146e3b2dee47389890ed038e",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "Excel3.2c",
+              "scope": "Large import jobs and reviewed recovery flow",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel3-large-import-commit-20261018",
+              "pr": 99,
+              "substeps": [
+                {
+                  "id": "Excel3.2c.1",
+                  "scope": "Protected reviewed large-import request, cancellation, retry, progress UI and permission isolation",
+                  "status": "implemented_ci_passed_render_acceptance_pending",
+                  "branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
+                  "pr": 97,
+                  "code_commit": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
+                  "report": "REPORT_EXCEL3_2C1_LARGE_IMPORT_REVIEW_QUEUE.md",
+                  "checks": {
+                    "pretest": 24,
+                    "unit_api": 373,
+                    "emulator": 35,
+                    "ui": 91,
+                    "production_audit_vulnerabilities": 0
+                  },
+                  "ci": {
+                    "run_id": 39106633168,
+                    "commit_sha": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
+                    "conclusion": "success"
+                  },
+                  "render_acceptance": "pending_matching_authenticated_staging_commit"
+                },
+                {
+                  "id": "Excel3.2c.2",
+                  "scope": "Server worker chunk validation, awaiting_commit, atomic commit, undo and rollback",
+                  "status": "implemented_ci_passed_render_acceptance_pending",
+                  "branch": "codex/accounting-v2-excel3-large-import-commit-20261018",
+                  "pr": 99,
+                  "substeps": [
+                    {
+                      "id": "Excel3.2c.2a",
+                      "scope": "Bounded worker validation and awaiting_commit",
+                      "status": "implemented_ci_passed_render_acceptance_pending",
+                      "code_commit": "6662455a03830032dfb7061bdf60de8051c1866e",
+                      "report": "REPORT_EXCEL3_2C2A_LARGE_IMPORT_WORKER.md",
+                      "checks": {
+                        "targeted": 7,
+                        "pretest": 27,
+                        "unit_api": 373,
+                        "emulator": 35,
+                        "ui": 91,
+                        "production_audit_vulnerabilities": 0
+                      },
+                      "ci": {
+                        "run_id": 39116865375,
+                        "commit_sha": "6662455a03830032dfb7061bdf60de8051c1866e",
+                        "conclusion": "success"
+                      },
+                      "render_acceptance": "pending_matching_authenticated_staging_commit"
+                    },
+                    {
+                      "id": "Excel3.2c.2b",
+                      "scope": "Atomic commit, duplicate policy, undo and rollback",
+                      "status": "implemented_ci_passed_render_acceptance_pending",
+                      "branch": "codex/accounting-v2-excel3-large-import-commit-20261018",
+                      "pr": 99,
+                      "code_commit": "a47ae81171bf4d5708154df24fc0386af778d9a9",
+                      "report": "REPORT_EXCEL3_2C2B_LARGE_IMPORT_COMMIT.md",
+                      "checks": {
+                        "ci_pipeline": "passed",
+                        "production_audit": "passed",
+                        "emulator": "passed",
+                        "ui": "passed"
+                      },
+                      "ci": {
+                        "run_id": 39127615578,
+                        "commit_sha": "a47ae81171bf4d5708154df24fc0386af778d9a9",
+                        "conclusion": "success"
+                      },
+                      "render_acceptance": "pending_matching_authenticated_staging_commit"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     },
     {
       "id": "Excel4",
-      "status": "pending",
-      "branch": null,
-      "pr": null,
+      "status": "in_progress",
+      "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+      "pr": 114,
       "steps": [
         {
           "id": "Excel4.1",
           "scope": "Controlled historical invoices/purchases/journals and legacy migration",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+          "pr": 114,
+          "substeps": [
+            {
+              "id": "Excel4.1a",
+              "scope": "Dry-run safety validation for historical journals, invoices, purchases and legacy trial balance",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-validation-20261018",
+              "pr": 100,
+              "code_commit": "a1040c3eb05d020a3e92a41e7935246586c20a89",
+              "report": "REPORT_EXCEL4_1A_HISTORICAL_IMPORT_VALIDATION.md",
+              "checks": {
+                "targeted": 6,
+                "types": "passed",
+                "lint_core": "passed"
+              },
+              "ci": {
+                "run_id": 39144556372,
+                "commit_sha": "ee568a915420d8bdd12787cca2a0aa77ab7bf72e",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "Excel4.1b",
+              "scope": "Protected historical import staging, server-derived validation context, permissions and audit",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-staging-20261018",
+              "pr": 101,
+              "code_commit": "1e835da3632123df4cd711f667fc9832211faba6",
+              "report": "REPORT_EXCEL4_1B_HISTORICAL_IMPORT_STAGING.md",
+              "checks": {
+                "targeted_excel_import": 43,
+                "unit_api": 373,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 39151702000,
+                "commit_sha": "1e835da3632123df4cd711f667fc9832211faba6",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "Excel4.1c",
+              "scope": "Atomic historical journal/trial-balance commit, reconciliation evidence and Period Close accounting-block guard",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-commit-20261018",
+              "pr": 104,
+              "code_commit": "bce5ddced750c1ac2f4c772df12f514b07c6e510",
+              "report": "REPORT_EXCEL4_1C_HISTORICAL_COMMIT.md",
+              "checks": {
+                "targeted_excel_import": 47,
+                "unit_api": 373,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 39177020604,
+                "commit_sha": "bce5ddced750c1ac2f4c772df12f514b07c6e510",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "limitations": "Historical invoices and purchases remain fail-closed until Excel4.1d supplies native subsidiary/payment/inventory/COGS/tax evidence."
+            },
+            {
+              "id": "Excel4.1d.1",
+              "scope": "Fail-closed native historical invoice and purchase party/payment/inventory/COGS/tax evidence contract",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-documents-20261019",
+              "pr": 105,
+              "code_commit": "de11360dd16f65abd1dea0577a2e36cc0d8eb2b9",
+              "report": "REPORT_EXCEL4_1D_1_HISTORICAL_DOCUMENT_EVIDENCE.md",
+              "checks": {
+                "targeted_excel_import": 50,
+                "new_evidence_tests": 3,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 39197436151,
+                "commit_sha": "de11360dd16f65abd1dea0577a2e36cc0d8eb2b9",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit"
+            },
+            {
+              "id": "Excel4.1d.2",
+              "scope": "Protected staging for native historical invoice/purchase party, payment, inventory, COGS and tax evidence",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-document-commit-20261019",
+              "pr": 106,
+              "code_commit": "ae41f1dcd9485cdbf9418b49e3084275f1ab5af9",
+              "report": "REPORT_EXCEL4_1D_2_HISTORICAL_DOCUMENT_STAGING.md",
+              "checks": {
+                "targeted": 8,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 39217835917,
+                "commit_sha": "ae41f1dcd9485cdbf9418b49e3084275f1ab5af9",
+                "conclusion": "success",
+                "gates": [
+                  "npm check",
+                  "npm audit --omit=dev",
+                  "Firestore Emulator",
+                  "Playwright UI"
+                ]
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "limitations": "Atomic native document/payment/inventory/GL creation remains Excel4.1d.3."
+            },
+            {
+              "id": "Excel4.1d.3a",
+              "scope": "Fail-closed reviewed document-evidence hash binding at historical commit",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
+              "pr": 107,
+              "code_commit": "e2cb20f23bd1506a74e23285fbfefd6abaeb99a5",
+              "report": "REPORT_EXCEL4_1D_3A_HISTORICAL_DOCUMENT_COMMIT_GUARD.md",
+              "checks": {
+                "targeted": 10,
+                "targeted_excel_import": 52,
+                "unit_api": 373,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 39238894878,
+                "commit_sha": "e2cb20f23bd1506a74e23285fbfefd6abaeb99a5",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "limitations": "Native invoice/purchase/payment/inventory/GL creation remains fail-closed until Excel4.1d.3b."
+            },
+            {
+              "id": "Excel4.1d.3b.1",
+              "scope": "Deterministic read-only native historical sales invoice/payment/inventory/GL plan",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+              "pr": 108,
+              "code_commit": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
+              "report": "REPORT_EXCEL4_1D_3B_1_HISTORICAL_SALES_PLAN.md",
+              "checks": {
+                "targeted": 5,
+                "targeted_excel_import": 57,
+                "unit_api": 373,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0,
+                "firestore_emulator": "passed",
+                "ui_regression": "passed"
+              },
+              "ci": {
+                "run_id": 39260368179,
+                "commit_sha": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "limitations": "Read-only plan only; atomic persistence/reconciliation and purchase planning remain."
+            },
+            {
+              "id": "Excel4.1d.3b.2",
+              "scope": "Atomic native historical sales persistence and strict post-import reconciliation",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-sales-commit-20261020",
+              "pr": 110,
+              "report": "REPORT_EXCEL4_1D_3B_2_HISTORICAL_SALES_COMMIT.md",
+              "checks": {
+                "targeted_sales_commit": 8,
+                "targeted_sales_plan": 6,
+                "targeted_excel_import": 61,
+                "unit_api": 373,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0,
+                "firestore_emulator": 35,
+                "ui_regression": 92,
+                "ci_run_id": 39431979794
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "limitations": "Historical purchase/AP/receipt/WAC planning remains fail-closed and pending; authenticated Render acceptance remains independent.",
+              "code_commit": "31aa7005156b46ce25131d142e7d9fa59fec05a1",
+              "ci": {
+                "run_id": 39431979794,
+                "commit_sha": "31aa7005156b46ce25131d142e7d9fa59fec05a1",
+                "conclusion": "success"
+              }
+            },
+            {
+              "id": "Excel4.1d.3b.3",
+              "scope": "Deterministic read-only native historical purchase/AP/receipt/WAC plan",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+              "pr": 112,
+              "code_commit": "043546309e2a45649f70eaeab1f08ef76211e172",
+              "report": "REPORT_EXCEL4_1D_3B_3_HISTORICAL_PURCHASE_PLAN.md",
+              "checks": {
+                "targeted_purchase_plan": 7,
+                "targeted_excel_import": 68,
+                "unit_api": 373,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0,
+                "firestore_emulator": 35,
+                "ui_regression": 92,
+                "ci_run_id": 39518461024
+              },
+              "ci": {
+                "run_id": 39518461024,
+                "commit_sha": "043546309e2a45649f70eaeab1f08ef76211e172",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "limitations": "Read-only plan only; atomic purchase persistence, frozen-tax replay and strict reconciliation remain Excel4.1d.3b.4."
+            },
+            {
+              "id": "Excel4.1d.3b.4",
+              "scope": "Atomic historical purchase persistence, frozen-tax replay, AP/receipt/WAC reconciliation and restoration",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+              "pr": 114,
+              "code_commit": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+              "report": "REPORT_EXCEL4_1D_3B_4_HISTORICAL_PURCHASE_COMMIT.md",
+              "checks": {
+                "excel_import": 73,
+                "unit_api": 381,
+                "firestore_emulator": 35,
+                "playwright": 92,
+                "production_audit_vulnerabilities": 0,
+                "types": "passed",
+                "lint_core": "passed",
+                "build": "passed"
+              },
+              "ci": {
+                "run_id": 39598908302,
+                "commit_sha": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+                "conclusion": "success"
+              },
+              "limitations": "Mixed sales/purchase sessions, unsupported dimensions, backdated cost replay and nonrecoverable historical tax remain fail-closed. Historical import UI/workbook remains Excel4.1e."
+            },
+            {
+              "id": "Excel4.1e",
+              "scope": "Historical evidence workbook/UI, staging preview/commit and legacy migration package",
+              "status": "pending",
+              "branch": null,
+              "pr": null,
+              "substeps": [
+                {
+                  "id": "Excel4.1e.1",
+                  "scope": "Historical XLSX template and strict evidence parser",
+                  "status": "implemented_ci_passed",
+                  "pr": 117,
+                  "ci": {
+                    "run_id": 39825084325,
+                    "commit_sha": "f574a220a767ccb8252621b752fe8023954c7c06",
+                    "conclusion": "success"
+                  }
+                }
+              ]
+            }
+          ]
         },
         {
           "id": "Excel4.2",
@@ -1447,6 +2591,18 @@
     "status": "resolved_ci_passed",
     "invoice_workspace": "Four document/correction tests explicitly enter معاينة المستند from invoice workspace; full UI suite passed.",
     "initial_cloud_outage": "Authoritative organization discovery no longer invents a tenant on outage; errors remain visible and retry through online/focus/30s reconciliation. Two recovery tests passed.",
-    "evidence": "GitHub Actions run 38050129713: 271 unit/API, 33 Firestore Emulator, 50 UI, zero production vulnerabilities."
+    "evidence": "GitHub Actions run 38050129713: 271 unit/API, 33 Firestore Emulator, 50 UI, zero production vulnerabilities.",
+    "purchase_tax_sources": {
+      "status": "resolved_ci_passed",
+      "source_pr": 53,
+      "integration_pr": 114,
+      "merge_parent": "b021a05c23f5ce2e20347f142eeb94ddcd9d0f55",
+      "ci": {
+        "run_id": 39598908302,
+        "commit_sha": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+        "conclusion": "success"
+      },
+      "notes": "Real Git merge restored tax allocation/correction/restore sources while preserving D1 dimensions and D4 supplier-refund approvals."
+    }
   }
 }

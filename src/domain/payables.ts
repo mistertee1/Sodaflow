@@ -1,7 +1,7 @@
 import { assertUsdCostRate } from './productPricing';
 import BigNumber from 'bignumber.js';
 import { openingBalancesByParty, openingLineAllocations, readOpeningData } from './openingIntegration';
-import type { Account, Invoice, JournalEntry, MerchantSettings, Product } from '../types';
+import type { Account, Invoice, JournalEntry, MerchantSettings, OrgRole, Product } from '../types';
 import type { Document, Transaction } from './store';
 import { acquisitionCost, receiveCost, validateCostState } from './inventoryCost';
 import { assertOpenPeriod, dateOnly, ensure, identifier, money, text, validateJournal } from './validation';
@@ -12,14 +12,16 @@ import { safeAdd, safeSub } from '../lib/currency';
 import { billSignedBalance, loadPurchaseSource, purchaseCaches, savePurchaseSupplier, verifyPurchaseSource } from './purchaseCorrections';
 import { allocatePurchaseTaxLineValues, purchaseTaxSourceQuote, type PurchaseTaxSourceInput } from './purchaseTaxSources';
 import { validateTaxConfigurationVersions } from './taxConfigurationTransactions';
+import { dimensionTags } from './managementDimensions';
 
 export const payableCollections = ['suppliers', 'purchase_bills', 'supplier_payments'] as const;
 export interface PurchaseLine { id: string; product_id: string; product_name: string; quantity: number; unit_cost: number; value_sdg: number; value_usd: number; supplier_credit_sdg?: number; supplier_credit_usd?: number; zero_cost_reason?: string; }
 export interface Supplier { id: string; name: string; phone: string; email: string; address: string; tax_number: string; default_currency: 'SDG' | 'USD'; payment_terms_days: number; credit_limit: number; status: 'active' | 'inactive'; notes: string; org_id: string; created_at: string; updated_at: string; }
-export interface PurchaseBill { tax_evidence?: Document; advance_balance_sdg?: number; advance_balance_usd?: number; returned_amount_sdg?: number; returned_amount_usd?: number; refunded_amount_sdg?: number; refunded_amount_usd?: number; source_event_sequence?: number; correction_count?: number; id: string; supplier_id: string; supplier_name: string; supplier_reference: string; issue_date: string; due_date: string; currency: 'SDG' | 'USD'; exchange_rate_used: number; items: PurchaseLine[]; grand_total_sdg: number; grand_total_usd: number; remaining_sdg: number; remaining_usd: number; paid_amount_sdg: number; paid_amount_usd: number; settlement: 'credit' | 'cash'; status: 'open' | 'partially_paid' | 'paid'; journal_id: string; org_id: string; created_at: string; }
+export interface PurchaseBill { tax_evidence?: Document; branch_id?: string; cost_center_id?: string; project_id?: string; advance_balance_sdg?: number; advance_balance_usd?: number; returned_amount_sdg?: number; returned_amount_usd?: number; refunded_amount_sdg?: number; refunded_amount_usd?: number; source_event_sequence?: number; correction_count?: number; id: string; supplier_id: string; supplier_name: string; supplier_reference: string; issue_date: string; due_date: string; currency: 'SDG' | 'USD'; exchange_rate_used: number; items: PurchaseLine[]; grand_total_sdg: number; grand_total_usd: number; remaining_sdg: number; remaining_usd: number; paid_amount_sdg: number; paid_amount_usd: number; settlement: 'credit' | 'cash'; status: 'open' | 'partially_paid' | 'paid'; journal_id: string; org_id: string; created_at: string; }
 export interface SupplierPayment { sequence: number; id: string; bill_id: string; supplier_id: string; amount: number; currency: 'SDG' | 'USD'; exchange_rate_used: number; payment_date: string; payment_method: string; payment_account_code: string; reference_number: string; notes: string; settled_amount_sdg: number; settled_amount_usd: number; cash_amount_sdg: number; cash_amount_usd: number; journal_id: string; org_id: string; created_at: string; }
 export interface PayableContext {
   tx: Transaction; root: string; orgId: string; actor: string; iso: string; operationId: string; settings: MerchantSettings;
+  role?: OrgRole;
   set: (path: string, value: Document) => void; required: (collection: string, id: string) => Promise<Document>;
   post: (entry: JournalEntry) => Promise<void>; counterAdd: (key: string, delta: number) => void;
 }
@@ -96,12 +98,13 @@ export async function payableCommand(action: string, data: Document, c: PayableC
     if(taxEvidence){ensure(new BigNumber(items.reduce((n,i)=>n.plus(i.supplier_credit_sdg||0),new BigNumber(0))).eq(sdg)&&new BigNumber(items.reduce((n,i)=>n.plus(i.supplier_credit_usd||0),new BigNumber(0))).eq(usd),'توزيع إجمالي فاتورة المورد غير متوازن.');}
     const code = data.settlement === 'credit' ? '2110' : await cashAccount(c, data);
     const id = `pb-${c.operationId}`, journalId = `jv-purchase-${c.operationId}`;
-    const result = { ...stamp, id, supplier_id: supplier.id, supplier_name: supplier.name, supplier_reference: reference, issue_date: issueDate, due_date: dueDate, currency: data.currency, exchange_rate_used: data.exchange_rate_used || 0, items, ...(taxEvidence?{tax_evidence:taxEvidence,subtotal_sdg:taxEvidence.sdg.base,subtotal_usd:taxEvidence.usd.base,tax_total_sdg:taxEvidence.sdg.tax,tax_total_usd:taxEvidence.usd.tax}:{}), grand_total_sdg: sdg, grand_total_usd: usd, remaining_sdg: data.settlement === 'credit' ? sdg : 0, remaining_usd: data.settlement === 'credit' ? usd : 0, paid_amount_sdg: data.settlement === 'cash' ? sdg : 0, paid_amount_usd: data.settlement === 'cash' ? usd : 0, settlement: data.settlement, status: data.settlement === 'cash' ? 'paid' : 'open', journal_id: journalId, payment_account_code: code, notes: text(data.notes || '', 2000), reason: text(data.reason, 500, true) };
+    const dimensions=dimensionTags(data);
+    const result = { ...stamp, ...dimensions, id, supplier_id: supplier.id, supplier_name: supplier.name, supplier_reference: reference, issue_date: issueDate, due_date: dueDate, currency: data.currency, exchange_rate_used: data.exchange_rate_used || 0, items, ...(taxEvidence?{tax_evidence:taxEvidence,subtotal_sdg:taxEvidence.sdg.base,subtotal_usd:taxEvidence.usd.base,tax_total_sdg:taxEvidence.sdg.tax,tax_total_usd:taxEvidence.usd.tax}:{}), grand_total_sdg: sdg, grand_total_usd: usd, remaining_sdg: data.settlement === 'credit' ? sdg : 0, remaining_usd: data.settlement === 'credit' ? usd : 0, paid_amount_sdg: data.settlement === 'cash' ? sdg : 0, paid_amount_usd: data.settlement === 'cash' ? usd : 0, settlement: data.settlement, status: data.settlement === 'cash' ? 'paid' : 'open', journal_id: journalId, payment_account_code: code, notes: text(data.notes || '', 2000), reason: text(data.reason, 500, true) };
     const changed = [...quantities].map(([productId, delta]) => ({ product: products.get(productId)!, delta, after: receiveCost(products.get(productId)! as Product, delta.quantity, delta, issueDate) }));
     const posting=[journalLine('1300','المخزون',inventorySdg,0,inventoryUsd,0)];
     if(taxEvidence?.tax_treatment==='receivable'&&(taxEvidence.sdg.tax||taxEvidence.usd.tax))posting.push(journalLine(taxEvidence.tax_account_code,'ضريبة مشتريات قابلة للاسترداد',taxEvidence.sdg.tax,0,taxEvidence.usd.tax,0));
     posting.push(journalLine(code,data.settlement==='credit'?'ذمم الموردين':'النقد والبنوك',0,sdg,0,usd));
-    await c.post(journal(journalId, c.orgId, c.actor, issueDate, 'purchase_bill', id, `فاتورة شراء ${reference}: ${supplier.name}`, posting, result.exchange_rate_used));
+    await c.post(journal(journalId, c.orgId, c.actor, issueDate, 'purchase_bill', id, `فاتورة شراء ${reference}: ${supplier.name}`, posting.map(line=>({...line,...dimensions})), result.exchange_rate_used));
     for (const [index, { product, delta, after }] of changed.entries()) {
       c.set(`${c.root}/products/${product.id}`, { ...product, ...after });
       const movementId = `mov-purchase-${c.operationId}-${index + 1}`;

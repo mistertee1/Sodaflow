@@ -1,7 +1,7 @@
 export type Document = Record<string, any>;
 export interface Transaction {
   get(path: string): Promise<Document | undefined>;
-  list(path: string): Promise<Document[]>;
+  list(path: string, options?: { limit?: number; orderBy?: string }): Promise<Document[]>;
   find(path: string, field: string, value: unknown): Promise<Document[]>;
   set(path: string, value: Document): void;
   delete(path: string): void;
@@ -22,7 +22,7 @@ export class MemoryStore implements Store {
       const draft = clean(this.documents);
       const result = await work({
         get: async path => draft[path] ? clean(draft[path]) : undefined,
-        list: async path => Object.entries(draft).filter(([key]) => key.startsWith(`${path}/`) && key.slice(path.length + 1).split('/').length === 1).map(([, data]) => clean(data)),
+        list: async (path,options) => {const rows=Object.entries(draft).filter(([key]) => key.startsWith(`${path}/`) && key.slice(path.length + 1).split('/').length === 1).map(([, data]) => clean(data));if(options?.orderBy)rows.sort((a,b)=>String(a[options.orderBy!]??'').localeCompare(String(b[options.orderBy!]??'')));return options?.limit?rows.slice(0,options.limit):rows;},
         find: async (path, field, value) => Object.entries(draft).filter(([key, data]) => key.startsWith(`${path}/`) && key.slice(path.length + 1).split('/').length === 1 && data[field] === value).map(([, data]) => clean(data)),
         set: (path, data) => { draft[path] = clean(data); },
         delete: path => { delete draft[path]; },

@@ -220,6 +220,8 @@ export interface InventoryMovement {
   operation_id?: string;
   org_id?: string;
   branch_id?: string;
+  cost_center_id?: string;
+  project_id?: string;
   schema_version?: number;
 }
 
@@ -248,6 +250,9 @@ export interface Customer {
   preferred_currency: Currency;
   balance_sdg: number;
   balance_usd: number;
+  credit_limit_sdg?: number | null;
+  credit_limit_usd?: number | null;
+  credit_policy?: 'warning' | 'approval_required';
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -415,6 +420,8 @@ export interface Expense {
   created_at: string;
   org_id?: string;
   branch_id?: string;
+  cost_center_id?: string;
+  project_id?: string;
   created_by?: string;
   schema_version?: number;
 }

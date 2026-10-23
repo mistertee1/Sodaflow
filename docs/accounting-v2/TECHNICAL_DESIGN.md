@@ -239,26 +239,198 @@ C2.3.2 engineering evidence: source commit 7d5131a3be5ecaa5a53875c02bee1ab4cef47
 - A sales policy uses an active `tax_payable` credit liability; recoverable purchase tax uses a distinct active `other_assets` debit account. Nonrecoverable purchase tax has no receivable account and is explicitly marked `cost`. The quote does not create journal entries, cost movements, receivables or payables.
 - Inclusive amounts are split once into base/tax; exclusive amounts add rounded tax to base. Native SDG precision is zero and USD two decimals, consistent with the existing books. Policy rounding applies to native tax; reporting conversion uses existing half-up precision. The converted document total and tax are preserved, with any minor-unit conversion remainder assigned to base and disclosed in the quote. Each book preserves base + tax = total.
 - Rules cannot be applied outside their date range, while inactive, across tenants/directions, with stale revisions, duplicate IDs/charts, missing/inactive/wrong control accounts, invalid FX or invented request fields. The copied policy basis is deterministic evidence and does not mutate the supplied source.
-- **C5.1 is the calculation foundation only.** C5.2a–c now add the protected persistence, document posting, correction and recovery lifecycle described below. Operational tax-center UI, tax periods and tax reports remain C5.3.
+- **Not an activated tax center:** this module is not exposed to clients or connected to existing invoice/purchase posting yet. Existing tax-rate behavior is unchanged. C5.2a must add server-authorized versioned configuration persistence/audit; C5.2b/c must integrate sales/purchase source evidence, inventory costing, AR/AP, correction/reversal lifecycle, reconciliation and restore before C5.3 UI/period reports.
 - Historical documents must retain their original applied policy/amount evidence and never be retaxed from a changed current configuration. Unclassified legacy tax activity must remain visible in reconciliation/report acceptance, rather than infer zero tax or invent proof.
 
-## C5.2a — Protected versioned tax configuration
+## Excel1.2 — قوالب واستيراد البيانات الرئيسية إلى staging
 
-- `taxConfiguration.create/update` run only through the server-authoritative Operations transaction for a verified, recently authenticated Owner with live accounting entitlement and deployed-rules proof. Client-supplied balances, revisions, hashes, actor fields and derived evidence are rejected.
-- Every change creates an immutable `tax_configuration_versions` record. `version_hash` binds the tenant, policy revision, previous hash and canonical policy values; updates require the current revision and the complete unaltered chain. The active record is a projection of the latest version, not a mutable substitute for history.
-- The configured control is resolved from the tenant chart and must remain active and correctly classified. Sales uses a tax-payable liability; recoverable purchases use an other-assets debit control; nonrecoverable purchases capitalize tax and expose no fake receivable.
-- Configuration, immutable version, audit event and idempotency receipt commit atomically. Reconciliation and strict backup/restore prove counts, chain continuity and tenant remapping before any destination write.
+- يولّد العميل قوالب XLSX فعلية للعملاء والموردين والمنتجات بأوراق `Instructions` و`Data` و`Examples` وعناوين ثابتة وخلايا أمثلة رقمية حقيقية، من دون دمج خلايا داخل جداول البيانات. يحمّل ExcelJS ديناميكياً عند فتح مركز الاستيراد حتى لا يدخل محرك المصنف في حزمة المحاسبة الأساسية.
+- القراءة محلية للملف قبل الإرسال ومحدودة بـ2MB و10 أوراق و40 عموداً و2000 صف. تحفظ الصيغة كدليل وترفض في التحقق؛ كما ترفض النصوص التي تبدأ بعلامات قابلة للتفسير كصيغة. بصمة SHA-256 للملف جزء من الجلسة وتظهر إعادة رفع الملف السابق كتحذير واضح.
+- أمر `masterImport.stage` محمي بصلاحيات مستقلة `import:customers|suppliers|products` للمالك والمدير والمحاسب. يتحقق الخادم من العضوية والاشتراك والدور والمستأجر وidempotency ثم يكتب فقط `import_sessions` و`import_staging` وسجل `DATA_IMPORT_STARTED`. لا يمنح Firestore وصول عميل جديداً لهذه المجموعات ولا يكتب في `customers` أو `suppliers` أو `products`.
+- خريطة الأعمدة لا تسمح بحقل مجهول أو عنوان مفقود أو إعادة استخدام العمود نفسه. التطبيع يغطي المسافات والبريد والهاتف والعملات والأرقام والقيم المنطقية ويعرض كل تصحيح في المعاينة. الأخطاء المانعة والتحذيرات والتصحيحات والتكرارات لها رموز مستقرة وأرقام صفوف المصدر.
+- كشف التكرار يستخدم مفاتيح الأعمال (`customer_code` و`email`، `supplier_code` و`email` و`tax_number`، و`sku`) داخل الملف وضد البيانات القائمة؛ الاسم وحده لا يعد مفتاحاً. سياسة Skip/Update/Create/Review والاعتماد الفعلي مؤجلان إلى مرحلة commit المنفصلة.
+- أي رصيد افتتاحي أو كمية افتتاحية أو تكلفة بداية غير صفرية تُمنع في Excel1.2 وتوجّه صراحة إلى Excel2، حيث يجب إنشاء المصادر والقيود والمطابقة. لا زر اعتماد أو مسار كتابة تاريخية في هذه المرحلة. سجل staging محدود بـ620KB والنتيجة تعرض أول 50 صفاً فقط.
 
-## C5.2b — Configured sales tax posting
+## Excel2.1 — حزمة المحاسب المتطابقة
 
-- `invoice.create` accepts only the configuration ID and expected revision. The transaction derives line/document discounts, native currency, exchange-rate policy and taxable bases from trusted invoice inputs, then loads and verifies the current version chain. Client tax rates, totals, accounts or frozen evidence are not accepted.
-- The invoice freezes configuration revision/hash, jurisdiction, calculation and rounding modes, control account and exact SDG/USD base-tax-total evidence. The atomic journal posts AR/cash, revenue and the configured tax-payable control; inventory/COGS remain in the same protected invoice transaction when applicable.
-- Reconciliation replays source totals, immutable policy evidence, journal lines and both books. A later policy edit never re-taxes a historical invoice.
+- ينشئ الأمر المحمي `accountingExport.create` مصنف Excel XML محدد الفترة من القيود الفعلية ودفتر الحسابات وأدلة مطابقة البنك والنقد. لا يقبل مبالغ أو تقارير محسوبة من العميل ولا يغيّر أي سجل مالي.
+- يتطلب التنفيذ صلاحيات `export:accounting` و`journal:read` و`reports:advanced` مع عضوية حية وAccounting V2 وميزات `accounting` و`advanced_reports`. الصلاحية متاحة للمالك والمدير والمحاسب، بينما لا تظهر الواجهة للمشاهد.
+- الأوراق هي `Journal_Entries` و`Journal_Lines` و`Trial_Balance` و`Income_Statement` و`Balance_Sheet` و`Cash_Flow` و`Reconciliation` و`Data_Dictionary` و`Export_Summary`. تحفظ السطور SDG وUSD كخلايا رقمية مستقلة وتحتفظ بمراجع المصدر وأبعاد الفرع ومركز التكلفة والمشروع.
+- يسجل كل إنشاء ناجح حدث `DATA_EXPORT_CREATED` بمخطط التصدير والفترة وعدد القيود والسطور. يعيد `operationId` نفسه النتيجة نفسها، وتتحقق العملية من حدود المستأجر قبل الإنشاء.
+- التصدير المباشر محدود بـ5000 قيد و900KB؛ التصدير الكبير والملفات المؤقتة مؤجلان إلى Excel3.2. لا توجد صيغ قابلة للتنفيذ داخل المصنف، ولا فتح جديد لقواعد Firestore أو كتابة إنتاجية.
+- الواجهة تلتقط فترة اختيارية وتمنع الفترة المعكوسة وتنزل الملف وتعرض عدد القيود والسطور. اختبار القبول يغطي صلاحية المحاسب، حجب المشاهد، التنزيل، الأدلة، التدقيق وإعادة التحميل. قبول Render المصادق عليه يبقى مستقلاً ويتطلب staging مطابقاً للالتزام.
 
-## C5.2c — Purchase tax, corrections and strict recovery
+## Excel2.2a — عقد مصنف الأرصدة الافتتاحية الآمن
 
-- Purchase bills derive tax from trusted acquisition lines. Recoverable tax is excluded from inventory and posted to its asset control; nonrecoverable tax is capitalized into inventory cost. Inclusive/exclusive SDG/USD calculations conserve every minor unit and freeze the policy version plus per-line supplier-credit/base/tax allocations.
-- Purchase returns debit the original supplier obligation, credit current WAC inventory and reverse only the frozen recoverable tax asset. Any WAC variance is calculated after excluding recoverable tax; nonrecoverable tax remains part of acquisition cost and never creates a tax receivable. Source/version evidence is revalidated before mutation.
-- Sales price credits and physical returns allocate the original frozen revenue and tax after document discounts. They use the historical configured tax account and policy version even after a live rate change. Physical returns also restore the original frozen cost/COGS; price credits never move stock.
-- Correction replay validates tenant, source sequence, quantities, exact dual-book components, policy chain/hash/account classification and original journal evidence. Tax configuration/version counts, invoice/bill references, corrections, journals and inventory remain part of reconciliation and strict backup/restore; missing or changed proof fails before writes.
-- CI/MemoryStore/Emulator evidence does not replace authenticated acceptance on a matching Render staging commit. C5.3 must still deliver the operational tax-center UI, tax periods and tax reports without weakening these backend gates.
+- ينشئ `openingImportWorkbook` قالب XLSX ثابتاً بأوراق `Instructions` و`Cash` و`Receivables` و`Payables` و`Inventory` و`Capital`. يقرأ الملف محلياً بحد 2MB وحدود ثابتة للصفوف والأعمدة، ويتطلب أسماء الأوراق والعناوين الرسمية حرفياً.
+- لا يرحّل المحلل أي قيد ولا يكتب في Firestore. يحول الصفوف إلى `OpeningInput` و`OpeningTerms` الموجودين كي تمر المرحلة اللاحقة عبر معاينة الأرصدة الافتتاحية المحمية، ثم أمر المالك الذري القائم فقط بعد التحقق وإعادة المصادقة.
+- يرفض الصيغ في جميع خلايا البيانات، العملات أو التواريخ غير المدعومة، تواريخ الاستحقاق السابقة للمصدر، الدقة الأصلية الزائدة، المفاتيح المكررة، تعدد صف رأس المال، والمصادر الأقل من 1 أو الأكثر من 97. يحتفظ باسم الملف وبصمة SHA-256 ضمن مصدر المعاينة.
+- يحافظ التحويل على فصل النقدية والعملاء والموردين والمخزون ورأس المال، وعلى العملات الأصلية وشروط الاستحقاق وكمية/تكلفة المخزون. لا يخمن FX أو حسابات أو أرصدة مقابلة ولا يعد نتيجة parser دليلاً على قبول Render.
+- هذه مرحلة تأسيسية للمعاينة فقط. Excel2.2b يجب أن يضيف واجهة الاستيراد المحمية، صلاحياتها، التسليم إلى preview/commit القائم، المزامنة وإعادة التحميل والمطابقة اللاحقة؛ ولا يجوز اعتماد ملف تاريخي مباشرة من العميل.
+
+## Excel2.2b — واجهة استيراد الأرصدة المحمية
+
+- تظهر أدوات تنزيل القالب ورفع XLSX داخل مركز الأرصدة فقط لمن يملك `opening:preview` ومع اشتراك Accounting V2 صالح؛ المشاهد لا يستطيع اكتشاف مركز المحاسبة أو أداة الرفع.
+- يقرأ المتصفح الملف محلياً عبر عقد Excel2.2a، ثم يملأ نفس مسودة C2 اليدوية للنقدية والعملاء والموردين والمخزون ورأس المال وشروط الاستحقاق. لا ينشئ الرفع staging مالي أو قيداً أو مصدراً.
+- تعرض الواجهة اسم الملف وعدد المصادر وبادئة بصمة SHA-256، وتطلب مراجعة البنود قبل استدعاء `opening.preview`. الحفظ يظل حصرياً للمالك بعد إعادة المصادقة ويستعمل `opening.commit` الذري الموجود؛ لم يُضف مسار كتابة بديل.
+- حراس المؤسسة والجلسة وبصمة المسودة ومراجعة المصدر تمنع قبول نتيجة متأخرة أو معاينة قديمة. المزامنة وإعادة التحميل بعد الاعتماد تستمران عبر بيانات الدفعة والمصادر القائمة.
+- المطابقة المالية بعد الاعتماد تعتمد على فحوص C2 للقيود والمخزون والعملاء والموردين والنقدية. قبول Render يبقى مستقلاً ويتطلب نسخة staging مصادق عليها ومطابقة للالتزام.
+
+## Excel2.3a — عقد معاينة كشف البنك CSV/XLSX
+
+- يستخدم CSV وورقة XLSX المسماة `Statement` العقد نفسه والعناوين الثابتة `id,date,direction,amount,reference,description`. يقرأ المتصفح الملف محلياً، يحتفظ ببصمة SHA-256، ويحد الحجم بـ2MB والصفوف بـ500.
+- يرفض أي صيغة XLSX، عنواناً متغيراً، امتداداً غير مطابق، معرّفاً مكرراً، تاريخاً خارج الفترة، اتجاهاً غير `inflow|outflow`، مبلغاً غير موجب أو أدق من عملة الحساب، ونصاً يبدأ بعلامة صيغة خطرة.
+- تعيد المعاينة الصفوف المطبعة ومجموع الوارد والصادر والختامي المحسوب والفرق مع ختامي الكشف. الفرق لا يُصحح ولا ينشئ قيداً؛ يبقى ظاهراً للمراجعة.
+- العقد محلي فقط ويصرّح بأنه لا يكتب بيانات مالية ويتطلب مطابقة يدوية. لا توجد مجموعة Firestore أو API أو Rules أو صلاحية جديدة، ولا يُستدعى `bankReconciliation.create` في هذه المرحلة.
+- Excel2.3b يجب أن يضيف الواجهة المحمية وربط الحساب والفترة والعملة وحركات الدفتر، يمنع المطابقة المزدوجة، ويحفظ فقط عبر أمر المطابقة الذري القائم بعد مراجعة المستخدم. قبول Render يبقى مستقلاً ومعلقاً حتى deployment مطابق ومصادقة ببيانات اصطناعية.
+
+## Excel2.3b — واجهة استيراد كشف البنك والمطابقة اليدوية
+
+- تضيف نافذة المطابقة البنكية المحمية تنزيل قالب CSV ورفع CSV/XLSX، وتربط التحليل المحلي بحساب البنك وفترته وعملته والرصيدين الافتتاحي والختامي قبل قبول الملف.
+- لا يكتب الرفع أي بيانات مالية ولا ينشئ مطابقة تلقائية. يعرض اسم الملف وعدد الصفوف والفرق الختامي وبادئة SHA-256، ويملأ صفوف الكشف بمطابقة فارغة كي يراجع المستخدم كل حركة ويختار حركة الدفتر يدوياً.
+- تبقى قيود منع تكرار حركة الدفتر داخل المسودة، ومراجعة الفرق الختامي، والتحقق من الفترة والمبلغ، جزءاً من واجهة المطابقة القائمة. الحفظ الوحيد هو أمر `bankReconciliation.create` الذري الموجود بعد المراجعة؛ لم يُضف API أو مجموعة Firestore أو Rule جديدة.
+- حارس النطاق يهمل نتيجة قراءة متأخرة إذا تغيرت المؤسسة أو المستخدم أو الحساب أو الفترة أو الأرصدة أثناء التحليل. ويستمر الحجب القائم للمشاهد وصلاحية المحاسب دون توسيع صلاحيات أو كشف أدوات مالية غير مخولة.
+- يغطي اختبار الواجهة قالب XLSX والرفع والصفوف والفرق الصفري وعدم تغير التخزين قبل الحفظ، ثم المطابقة اليدوية والحفظ وإعادة التحميل. قبول Render يبقى مستقلاً حتى staging مصادق عليه ومطابق للالتزام وببيانات اصطناعية.
+
+## Excel3.1 — حزمة الشركة وقابلية نقل البيانات
+
+- ينشئ `createCompanyExport` لقطة JSON كاملة من مسار النسخ الاحتياطي المحمي والمتحقق نفسه، بعد تثبيت المؤسسة والجلسة وإعادة فحصهما قبل التسجيل والتنزيل. الحزمة تحمل `schema_version: 3` وهوية المؤسسة والمجموعات المرجعية ولا تعدّل السجلات المالية.
+- التصدير الكامل وإعداداته من نوع `company` محصوران في المالك الفعلي للمؤسسة عبر الصلاحية المستقلة `export:company`، مع عضوية واشتراك وميزة accounting نشطة. يظل تصدير المحاسب والبيانات الرئيسية متاحاً فقط وفق صلاحياتهما السابقة، والمشاهد محجوب.
+- التصدير المباشر محدود بـ900KB، ومخطط عدّ المجموعات محدود ومتحقق منه على الخادم. تجاوز الحد يعيد 413 ويوجه إلى Excel3.2؛ لا تُنشأ ملفات مؤقتة أو مهام خلفية أو روابط عامة في هذه المرحلة.
+- تحفظ `export_presets` داخل نطاق المستأجر مع الاسم والنوع والفترة أو وحدة البيانات الرئيسية وفق قواعد النوع. أوامر الحفظ والحذف idempotent، ولا يسمح بإعداد شركة لمستخدم غير المالك الفعلي.
+- يسجل كل تصدير شركة ناجح `DATA_EXPORT_CREATED` مع الإصدار والحجم وعدد المجموعات والإعداد المختار، ويعرض مركز التصدير سجل أحداث التصدير/الاستيراد المصرح به. تثبت اختبارات الواجهة بقاء الإعداد والسجل بعد إعادة التحميل.
+- تستخدم الحزمة أسماء ومراجع النسخة الاحتياطية المتوافقة مع الاستعادة، لكن Excel3.1 لا ينفذ استيراداً أو استعادة تلقائية ولا يفتح Firestore Rules. Excel3.2 مسؤول عن التصدير الكبير، التخزين المؤقت، انتهاء الروابط، التقدم واسترداد الفشل.
+- نجح CI على commit `a6f3aff6d38c8e82afac5ed0888c78a5359fc34a`: 373 وحدة/API، و35 Firestore Emulator، و90 UI، وصفر ثغرات production. قبول Render يبقى مستقلاً حتى نشر staging مصادق عليه ومطابق لهذا الالتزام؛ لم يحدث نشر أو كتابة إنتاجية.
+
+## Excel3.2a — أساس مهام التصدير الكبيرة
+
+- يضيف `largeExport.request|cancel|retry` داخل معاملة Operations المحمية. يعيد الخادم اشتقاق النوع والصيغة والفترة والإعداد، ويثبت المؤسسة والعضوية والاشتراك والميزات والصلاحية قبل الاستفادة من idempotency.
+- مهمة الشركة JSON محصورة بالمالك الفعلي وتخزن في `company_export_jobs` المحمية بـ`export:company`. مهمة المحاسب XLSX تخزن في `accounting_export_jobs` المحمية بـ`export:accounting`. هذا الفصل يمنع ظهور metadata الخاصة بحزمة الشركة في snapshot المحاسب.
+- لا تتجاوز المؤسسة ثلاث مهام `queued|running`. يبدأ الطلب بمحاولة 1 من 3 وتقدم صفر و`artifact/failure/expires_at = null`. لا يقبل العميل status أو progress أو attempt أو artifact أو expiry.
+- الإلغاء متاح للمنشئ أو المالك للمهمة النشطة فقط. إعادة المحاولة متاحة للمهمة الفاشلة فقط وقبل نفاد المحاولات، وتمسح failure/artifact/expiry والتقدم القديم قبل إعادتها إلى queued.
+- تسجل أوامر دورة الحياة أحداث QUEUED/CANCELLED/RETRIED. Excel3.2a لا يشغّل worker ولا ينشئ ملفات أو روابط أو storage grants؛ worker والتقدم والملف المؤقت الموقع وانتهاء الصلاحية والتنظيف والفشل النهائي تتبع Excel3.2b، والاستيراد الكبير يتبع جزءاً مستقلاً لاحقاً.
+- لا Firestore Rules جديدة ولا migration ولا نشر أو كتابة إنتاجية. قبول Render المصادق عليه لا يُستنتج من CI ويبقى مستقلاً لنسخة staging مطابقة للالتزام.
+
+## Excel3.2b — عامل التصدير والـartifact المؤقت
+
+- يكتب طلب Excel3.2a مؤشراً خادمياً في `large_export_queue`. يقرأ العامل أقدم 25 مؤشراً فقط، ويطالب المهمة داخل transaction قبل أي توليد. الإلغاء يحذف المؤشر، وإعادة المحاولة تعيده idempotently.
+- claim يحمل معرف عامل ووقت بدء. claim الذي ظل `running` أكثر من 15 دقيقة قابل للاسترداد بمحاولة جديدة حتى `max_attempts`، ثم يتحول إلى failed مغلقاً. لا يستخدم العامل `ResilientStore` كي لا يحول مهمة سحابية إلى ملف محلي عند فشل IAM؛ Firestore/Storage failure يبقى ظاهراً.
+- يعيد builder الخادمي تحميل snapshot بالهوية المنشئة الحالية؛ حزمة الشركة تستلزم Owner فعلياً، وحزمة المحاسب تستلزم accounting/advanced_reports. سقف العامل 50 ألف قيد و25MB، بينما تبقى حدود المسار المباشر كما هي.
+- يحفظ Firebase Storage object خاصاً بلا download token دائم. مستند المهمة لا يحتوي URL بل manifest: path وfilename وMIME والحجم وعدد السجلات وSHA-256. endpoint التنزيل يعيد التحقق من العضوية والاشتراك والميزة والصلاحية والمنشئ/المالك ويصدر signed URL لا يتجاوز خمس دقائق.
+- عند الإكمال يضاف `large_export_expiry` وينتهي artifact بعد 24 ساعة. عامل التنظيف يقرأ أول 25 حسب وقت الانتهاء، يحذف object ثم يمسح manifest ويكتب EXPIRED. الإلغاء المتزامن بعد الرفع يجعل claim غير صالح ويحذف object دون نشر نجاح.
+- failure المخزن يحمل رمزاً ورسالة عامة فقط؛ لا يحفظ stack أو bucket/IAM detail. تسجل دورة العامل COMPLETED/FAILED/EXPIRED في audit. runner يدعم SIGTERM/SIGINT وpolling خفيف ويمكن تكوينه كـRender Background Worker، لكن لم يُنشأ أو يُنشر هنا.
+
+## Excel3.2c.1 — مراجعة وجدولة الاستيراد الكبير
+
+- أوامر `largeImport.request|cancel|retry` تعمل داخل Operations المحمية وتعيد التحقق من المؤسسة والعضوية والاشتراك وصلاحية الاستيراد الخاصة بالوحدة. لا تُقبل مهمة Viewer ولا تظهر له في snapshot.
+- يتطلب الطلب جلسة `import_sessions` بمعاينة ناجحة وstaging مطابقاً، وبصمة ملف وإصدار مخطط محفوظين، وإقرار مراجعة صريحاً وسياسة تكرار `skip|update`. تربط idempotency هذه الأدلة كاملة وترفض إعادة استعمال المفتاح لطلب مختلف.
+- يمنع الطلب الأخطاء المانعة وعدم تطابق الصفوف والحجم خارج 1–12000 صف. حد المؤسسة مهمتان نشطتان وحد المهمة ثلاث محاولات؛ الإلغاء وإعادة المحاولة idempotent ويسجلان audit.
+- يكتب الطلب فقط مهمة `large_import_jobs` ومؤشر `large_import_queue` ودليل المراجعة. لا يكتب سجلات العملاء أو الموردين أو المنتجات ولا قيوداً مالية، ولا ينفذ worker أو اعتماداً ضمن هذه المرحلة.
+- تعرض الواجهة السياسة والمراجعة والتحذير من عدم الاعتماد، ثم الحالة والتقدم والإلغاء وإعادة المحاولة. تعيد snapshot الحالة المصرح بها بعد إعادة التحميل.
+- Excel3.2c.2 مسؤول عن worker المتقطع، وإعادة التحقق من staging، وحالة `awaiting_commit`، والاعتماد الذري، وundo/rollback. قبول Render منفصل ومعلق لنسخة staging مطابقة ومصادق عليها.
+
+## Excel3.2c.2a — عامل التحقق المتقطع
+
+- يطالب العامل أقدم مؤشر من `large_import_queue` داخل transaction ويثبت claim وحالة `running`. يعيد تحميل جلسة المعاينة وstaging ويقارن المؤسسة والبصمة وإصدار المخطط وعدد الصفوف قبل أي تقدم.
+- التحقق يجري في دفعات 1–500 صف، ويحفظ `processed_rows` وتقدماً أقصاه 99 أثناء التشغيل. claim المتغير أو الإلغاء يمنع نتيجة متأخرة.
+- claim الأقدم من 15 دقيقة قابل للاسترداد ضمن `max_attempts`؛ الاستنفاد أو خطأ التحقق يفشل مغلقاً برسالة عامة ويحذف مؤشر queue.
+- النجاح ينقل المهمة إلى `awaiting_commit` و`review_commit` ويسجل `DATA_IMPORT_VALIDATED`. لا يكتب العامل سجلات العملاء/الموردين/المنتجات أو قيوداً مالية ولا يغير staging.
+- الاعتماد الذري وسياسة `skip|update` وundo/rollback تبقى حصراً في Excel3.2c.2b؛ لا يجوز اعتبار `awaiting_commit` اعتماداً.
+
+## Excel3.2c.2b — الاعتماد الذري والتراجع
+
+- يقبل `largeImport.commit` حالة `awaiting_commit` فقط ويعيد داخل transaction إثبات الجلسة وstaging والبصمة والمخطط والصفوف وسياسة `skip|update`؛ القيم المفقودة أو الفاسدة تفشل مغلقاً.
+- تستخدم الكتابات معرفات حتمية ودليل batch/operation، وتحفظ snapshots قبل التحديث. سقف المعاملة 400 صف منعاً للتجاوز أو النجاح الجزئي.
+- ينقل النجاح المهمة إلى `committed` ويربط دليل الاعتماد والنسخة الاحتياطية والتدقيق. إعادة الأمر لا تعيد تطبيق السجلات.
+- `largeImport.undo` مقيد بالمالك/المدير وإعادة مصادقة حديثة وسبب. يعيد التحقق من hashes/versions الحالية ويرفض إذا وقع تعديل لاحق، ثم يعكس المنشأ والمحدث في معاملة واحدة وينقل المهمة إلى `undone`.
+- الواجهة تعرض الاعتماد والتراجع وفق الحالة والصلاحية، وتستعيد الأدلة من snapshot بعد المزامنة وإعادة التحميل. قبول Render يبقى بوابة مستقلة على staging مطابق.
+
+## Excel4.1a — تحقق الاستيراد التاريخي
+
+- `validateHistoricalImport` عقد نقي بلا كتابة يقبل `journal|invoice|purchase|trial_balance` حتى 5000 صف.
+- يعيد التحقق من المراجع والفترات المقفلة والعملات والفروع والأبعاد والحسابات، ويفرض توازن القيود وصحة جهة الطرف.
+- الفواتير والمشتريات تتطلب الطرف المقابل وتمنع سداداً يتجاوز الإجمالي.
+- النتيجة تفصل `can_stage` و`accounting_block` وتعيد الأخطاء مع رقم الصف؛ لا تنشئ staging أو مستندات أو قيوداً في هذه المرحلة.
+
+## Excel4.1b — staging المحمي
+
+- `historicalImport.stage` يعيد التحقق داخل المعاملة من العضوية والاشتراك وصلاحية `import:accounting`، ثم يشتق الحسابات والفترات والعملات والفروع والأبعاد والمراجع من مخزن المؤسسة.
+- تحفظ الجلسة في `historical_import_sessions` والصفوف في `historical_import_staging` مع بصمات SHA-256 للسجلات والسياق وحد 620KB.
+- Viewer والحقول المحمية محجوبة. الحزمة غير المتزنة تنتقل إلى `staged_accounting_block` ولا يجوز اعتمادها مالياً.
+- يسجل `DATA_IMPORT_STARTED` فقط؛ لا مستندات أو قيود أو دفعات أو مخزون في هذه المرحلة.
+
+## Excel4.1c — الاعتماد الذري والمطابقة
+
+- `historicalImport.commit` يقبل جلسة `staged` بلا accounting block، ويعيد داخل المعاملة مقارنة بصمتي الصفوف وسياق التحقق مع staging ثم يعيد التحقق من سياق المؤسسة الحي.
+- سقف الاعتماد 200 صف. تتحول صفوف القيود إلى قيود مستقلة، وتجمع صفوف ميزان المراجعة حسب التاريخ والعملة والفرع والأبعاد في مجموعات متزنة لا تتجاوز 100 طرف. معرفات القيود حتمية وتحمل معرف الجلسة وأرقام الصفوف وبصمة المصدر.
+- يلزم baseline خالٍ من نتائج `reconcileFinancialData`. بعد بناء الخطة تجرى مطابقة ثانية؛ إن ظهرت فروق تحفظ الجلسة `completed_accounting_block` مع `IMPORT_COMPLETED_WITH_ACCOUNTING_BLOCK` ودليل bounded، ويمنع `closeChecklist` الإغلاق النهائي حتى التسوية.
+- الفواتير والمشتريات ترفض قبل أي كتابة لأن staging الحالي لا يحمل أدلة كافية لإنشاء المستندات الفرعية والدفعات والمخزون وCOGS والضريبة. توسعة Excel4.1d يجب أن تضيف هذه العقود الأصلية بدلاً من اختلاق أرصدة تاريخية.
+- الأمر محمي بصلاحية `import:accounting` وV2/الاشتراك/الميزة والخادم فقط، وتغطي idempotency إعادة الطلب. يسجل `DATA_IMPORT_COMPLETED` الصفوف والقيود والبصمات والحالة ونتيجة المطابقة.
+
+## Excel4.1d.1 — عقد أدلة الفواتير والمشتريات التاريخية
+
+- `validateHistoricalDocumentEvidence` عقد نقي بلا كتابة يربط صف invoice/purchase بطرف موجود، وتاريخ استحقاق، وسعر صرف، والحساب الرقابي 1200/2110، وبنود أصلية ودفعات موثقة.
+- إجمالي المستند يساوي صافي البنود والضريبة، والمدفوع يساوي مجموع أدلة السداد. دفعات الدولار تحمل سعر صرف مستقلاً ولا تسبق المصدر أو تتراجع زمنياً.
+- بند البيع المرتبط بالمخزون يحتاج COGS مثبتاً، وبند الشراء يحتاج product وقيمة مخزون أصلية تطابق صافي الشراء. لا يستنتج العقد التكلفة أو يعيد تقييم التاريخ تلقائياً.
+- الضريبة غير الصفرية تحتاج حساباً موجوداً وبصمة إصدار إعداد من 64 خانة. نقص أي دليل يفشل مغلقاً قبل staging أو الكتابة.
+- Excel4.1d.2 يربط العقد بسياق الخادم وstaging والاعتماد الذري؛ هذه المرحلة لا تنشئ مستنداً أو دفعة أو حركة مخزون أو قيداً.
+
+
+## Excel4.1d.2 — staging محمي لأدلة المستندات التاريخية
+
+- أمر `historicalImport.stage` يشتق العملاء والموردين والمنتجات والحسابات الحية من المؤسسة داخل معاملة الخادم؛ لا يقبل سياق مطابقة موثوقاً من العميل.
+- كل صف `invoice` أو `purchase` يحتاج دليلاً أصلياً كاملاً مطابقاً لرقم الصف قبل إنشاء جلسة staging. الدليل المفقود أو الزائد أو غير المطابق يرفض العملية كلها دون كتابة جزئية.
+- تحفظ نسخة مستقلة من `document_evidence` داخل staging مع `document_evidence_sha256`، إضافة إلى بصمات الصفوف وسياق التحقق الموجودة، كي يستطيع الاعتماد التالي كشف أي تغيير.
+- هذه المرحلة لا تنشئ فواتير أو مشتريات أو دفعات أو حركات مخزون أو قيوداً. Excel4.1d.3 مسؤول عن الاعتماد الذري وإعادة المطابقة.
+
+
+## Excel4.1d.3a — ربط دليل المستندات بالاعتماد
+
+- تضيف جلسة staging بصمة `document_evidence_sha256` إلى نتيجة المراجعة؛ لا يحتاج المراجع إلى قراءة أو إعادة إرسال تفاصيل مالية مشتقة.
+- اعتماد جلسة تحتوي invoice/purchase يتطلب `expected_document_evidence_sha256`، ويطابقها مع بصمتي الجلسة وstaging ثم يعيد حسابها من الدليل المحفوظ.
+- أي بصمة مفقودة أو دليل معدل يرفض المعاملة قبل إنشاء مستند أو دفعة أو حركة مخزون أو قيد.
+- هذا حارس سلامة فقط. Excel4.1d.3b ينفذ خطة الإنشاء الذرية والمطابقة، وتظل الكتابة الأصلية معطلة حتى ذلك الجزء.
+
+## Excel4.1d.3b.1 — خطة المبيعات التاريخية
+
+- تبني دالة نقية خطة فواتير البيع والتحصيلات وحركات المخزون وقيود AR/الإيراد/الضريبة/COGS من الدليل المثبت، دون أي كتابة.
+- تخصص التحصيلات القيمة الدفترية بالتتابع وتفصل النقد بالسعر التاريخي للدفعة عن AR المجمد، فتظهر فروق العملة صراحة.
+- ترتب الصفوف بالتاريخ ثم رقم الصف، وتمنع نفاد المخزون أو تصادم المعرفات وأرقام الفواتير قبل الالتزام.
+- تبقى الكتابة الذرية وإعادة المطابقة وخطة المشتريات ضمن الأجزاء التالية من Excel4.1d.3b.
+
+## Excel4.1d.3b.2 — الاعتماد الذري للمبيعات التاريخية
+
+- يحول الاعتماد خطة البيع المثبتة إلى فواتير وتحصيلات وحركات مخزون ومصادر تكلفة V2 أصلية؛ لا تُستنتج تكلفة أو ضريبة أو سعر صرف خارج دليل staging المراجع.
+- يلزم baseline صفري النتائج في `reconcileFinancialData`، ثم تبنى حالة مقترحة تشمل المستندات والقيود وتحديثات المنتج والعميل وتخضع لمطابقة ثانية قبل أي كتابة. أي finding للمبيعات يرفض المعاملة كاملة بدلاً من حفظ مستند فرعي مع accounting block.
+- تحفظ الفاتورة ورقمها المحجوز والتحصيلات والحركات وقيود AR/الإيراد/الضريبة/COGS والمخزون وتحديثات الأرصدة والعدادات والجلسة والتدقيق في معاملة واحدة، بمعرفات حتمية وسقف 400 كتابة مالية.
+- يعاد إثبات إصدار الضريبة المجمد من سلسلة `tax_configuration_versions`، ويعاد اشتقاق الاقتباس الضريبي من السياسة المحفوظة. الحسابات غير النظامية أو التصنيفات غير المتوافقة تفشل مغلقاً.
+- تجمع البنود المتكررة للمنتج في حركة مخزون واحدة مرتبطة بقيد الإصدار مع الاحتفاظ بلقطات تكلفة كل بند، حتى تبقى مصادر المردودات والمطابقة قابلة لإعادة التشغيل.
+- تظل المشتريات التاريخية محجوبة؛ الجزء التالي يبني خطة AP/الاستلام/التكلفة المتوسطة قبل السماح بحفظها.
+
+## Excel4.1d.3b.3 — خطة المشتريات التاريخية
+
+- تبني `buildHistoricalPurchaseImportPlan` خطة نقية وحتمية لفواتير الموردين ودفعات AP وحركات الاستلام وقيود المخزون/الضريبة/ذمم الموردين وفروق العملة، من دون أي كتابة.
+- ترتب الفواتير بالتاريخ ثم رقم الصف، وتجمع البنود المتكررة للصنف في حركة استلام واحدة، ثم تعيد حساب كمية وقيمة ومتوسط تكلفة المخزون في الدفترين لكل حركة بالتتابع.
+- لا تقبل الخطة استلاماً يسبق آخر حركة تكلفة موثقة للصنف؛ إعادة إدخال شراء أقدم من مبيعات أو حركات لاحقة تحتاج replay كاملاً، وإلا سيتغير WAC وCOGS اللاحقان بصمت.
+- تثبت دفعات المورد قيمة AP الدفترية بسعر الفاتورة وتفصلها عن النقد بسعر الدفعة، فتسجل أرباح أو خسائر العملة صراحة وفق اتجاه السداد.
+- ترفض قبل الالتزام المنتج غير النشط أو غير المقيم، الحساب غير 1300، سياق 1300/2110 الناقص، تكلفة الوحدة غير القابلة لإعادة إنتاج قيمة المصدر، وتصادم المعرف أو مرجع المورد.
+- الضريبة التاريخية غير الصفرية في هذا العقد منفصلة عن قيمة المخزون الصافية، لذلك تخطط كضريبة مشتريات مستردة بالحساب المثبت. التحقق من إصدار الضريبة المجمد وتصنيفات الحسابات والحفظ الذري والمطابقة يبقى للجزء التالي.
+- هذه المرحلة read-only فقط؛ اعتماد مشتريات `historicalImport.commit` يبقى محجوباً حتى Excel4.1d.3b.4.
+
+## Excel4.1d.3b.4 — الاعتماد الذري للمشتريات التاريخية
+
+- يتحول دليل staging المراجع إلى purchase_bills وsupplier_payments وحركات PURCHASE وقيود AP/المخزون/الضريبة/FX وحجز رقم المورد وتحديث المورد والمنتج والجلسة والتدقيق في معاملة واحدة، بسقف 400 كتابة مالية.
+- يلزم baseline صفري ومطابقة حالة مقترحة صفرية قبل الالتزام؛ أي تصادم أو فرق أو إصدار ضريبة غير مثبت يرفض المعاملة كاملة. إعادة الطلب لها idempotency العملية الأصلي.
+- يعاد اقتباس الضريبة من الإصدار التاريخي المحفوظ وإثبات hash chain، وتطابق تكلفة كل بند مع توزيع السياسة الأصلي. الضريبة المنفصلة المدعومة مستردة؛ الضريبة المحملة على التكلفة تحتاج عقد دليل آخر ولا تُستنتج.
+- أعيد دمج C5.2c المتكامل من PR #53 بدمج Git حقيقي لمعالجة مصادر ضريبة الشراء ومردوداتها والاستعادة. حُفظت أبعاد D1 وحواجز موافقات D4 ومسار Excel الأحدث؛ لم تُستبدل ملفات بتلك النسخ الأقدم.
+- مصادر البنود تحفظ supplier_credit مستقلاً عن inventory value، وتنعكس الضريبة المستردة خارج فرق WAC. اختبار تاريخي USD شامل يثبت إصدار الضريبة القديم بعد تغيير السياسة، ودفعات FX، وتجميع الاستلام، والمردود والاستعادة دون فروقات.
+- تبقى جلسات البيع والشراء المختلطة، أبعاد المستندات غير المدعومة، والشراء السابق لآخر حركة تكلفة محجوبة حتى عقد replay مستقل. ليست هذه المرحلة قبولاً تجارياً لبقية Excel4 أو Render.
+
+## Excel4.1e.1 — مصنف أدلة المستندات التاريخية
+
+- قالب XLSX بخمس أوراق Instructions/Examples/Documents/Lines/Payments؛ الأمثلة نص إرشادي فقط ولا تنتج سجلات. المستندات تدعم invoice أو purchase في الملف الواحد.
+- row_number مفتاح فريد يربط المستند ببنوده ودفعاته، وline_number/payment_number متتالية من 1 بلا فجوات. الارتباط اليتيم أو المكرر يرفض الملف كله.
+- القارئ لا يحفظ staging أو مصدراً مالياً. يعيد طلباً قانونياً لـhistoricalImport.stage مع SHA-256 لبايتات الملف ونتيجة تحقق محلية فقط؛ الخادم يعيد اشتقاق السياق والصلاحيات والتحقق.
+- العناوين وأسماء الأوراق ثابتة؛ ترفض الأوراق المالية المخفية والصيغ ولو لها cached result والخلايا المدمجة وكائنات hyperlinks والأرقام المالية النصية. التواريخ نص YYYY-MM-DD ثابت.
+- الحدود: 2MB و200 مستند و100 بند/دفعة لكل مستند. تبقى حدود staging والحفظ الذري الأصغر مفروضة لاحقاً؛ القالب لا يعد بأن كل ملف مقروء يصلح للاعتماد.
+- Excel4.1e.2 يربط القالب بالواجهة ومعاينة الخادم واعتماد البصمات؛ هذه الخطوة وحدها لا تكمل واجهة الترحيل ولا Excel4.

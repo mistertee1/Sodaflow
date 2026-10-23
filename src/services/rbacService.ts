@@ -1,6 +1,12 @@
 import { OrgRole } from '../types';
 
 export type ActionType =
+  | 'approvals:read'
+  | 'approvals:manage'
+  | 'budget:read'
+  | 'budget:manage'
+  | 'dimensions:read'
+  | 'dimensions:manage'
   | 'tax:read'
   | 'tax:manage'
   | 'equity:write'
@@ -41,6 +47,16 @@ export type ActionType =
   | 'expenses:delete'
   | 'reports:view'
   | 'reports:advanced'
+  | 'export:customers'
+  | 'export:suppliers'
+  | 'export:products'
+  | 'export:invoices'
+  | 'export:accounting'
+  | 'export:company'
+  | 'import:customers'
+  | 'import:suppliers'
+  | 'import:products'
+  | 'import:accounting'
   | 'accounts:read'
   | 'accounts:create'
   | 'accounts:update'
@@ -52,6 +68,9 @@ export type ActionType =
 
 const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
   Owner: new Set<ActionType>([
+    'approvals:read', 'approvals:manage',
+    'budget:read', 'budget:manage',
+    'dimensions:read', 'dimensions:manage',
     'tax:read', 'tax:manage',
     'equity:write',
     'opening:preview', 'opening:write', 'opening:settle',
@@ -85,6 +104,8 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'expenses:delete',
     'reports:view',
     'reports:advanced',
+    'export:customers', 'export:suppliers', 'export:products', 'export:invoices', 'export:accounting', 'export:company',
+    'import:customers', 'import:suppliers', 'import:products', 'import:accounting',
     'accounts:read',
     'accounts:create',
     'accounts:update',
@@ -95,6 +116,9 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'backup:restore',
   ]),
   Admin: new Set<ActionType>([
+    'approvals:read',
+    'budget:read', 'budget:manage',
+    'dimensions:read', 'dimensions:manage',
     'periods:read',
     'payables:read', 'payables:write',
     'org:read',
@@ -123,6 +147,8 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'expenses:delete',
     'reports:view',
     'reports:advanced',
+    'export:customers', 'export:suppliers', 'export:products', 'export:invoices', 'export:accounting',
+    'import:customers', 'import:suppliers', 'import:products', 'import:accounting',
     'accounts:read',
     'accounts:create',
     'accounts:update',
@@ -133,6 +159,9 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'backup:restore',
   ]),
   Accountant: new Set<ActionType>([
+    'approvals:read',
+    'budget:read',
+    'dimensions:read',
     'tax:read',
     'opening:preview', 'opening:settle',
     'periods:read', 'periods:manage', 'periods:adjust',
@@ -156,6 +185,8 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'expenses:delete',
     'reports:view',
     'reports:advanced',
+    'export:customers', 'export:suppliers', 'export:products', 'export:invoices', 'export:accounting',
+    'import:customers', 'import:suppliers', 'import:products', 'import:accounting',
     'accounts:read',
     'accounts:create',
     'accounts:update',
@@ -165,6 +196,7 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'backup:export',
   ]),
   Sales: new Set<ActionType>([
+    'dimensions:read',
     'org:read',
     'members:view',
     'customers:read',
@@ -176,9 +208,11 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'payments:read',
     'payments:create',
     'reports:view',
+    'export:customers', 'export:invoices',
     'accounts:read',
   ]),
   Cashier: new Set<ActionType>([
+    'dimensions:read',
     'org:read',
     'products:read',
     'customers:read',
@@ -189,6 +223,8 @@ const ROLE_PERMISSIONS: Record<OrgRole, Set<ActionType>> = {
     'accounts:read',
   ]),
   Viewer: new Set<ActionType>([
+    'budget:read',
+    'dimensions:read',
     'periods:read',
     'payables:read',
     'org:read',

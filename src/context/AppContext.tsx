@@ -22,6 +22,8 @@ import { api, operationId } from '../services/businessApi';
 import { firebaseCommand, firebaseSnapshot, watchFirebaseRevision } from '../services/firebaseSync';
 import { cloudOrganizations } from '../services/cloudOrganizations';
 import { hasPermission, type ActionType } from '../services/rbacService';
+import type { MasterExportModule } from '../domain/masterExport';
+import type { MasterImportInput } from '../domain/masterImport';
 import { getDefaultChartOfAccounts } from '../services/accountingService';
 import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
@@ -102,6 +104,20 @@ interface AppContextType {
   suspendMember: (memberUid: string) => Promise<void>;
   reactivateMember: (memberUid: string) => Promise<void>;
   isActionAllowed: (action: ActionType) => boolean;
+  createMasterExport: (module: MasterExportModule) => Promise<{workbook_base64:string;mime_type:string;filename:string;record_count:number;masked_fields:string[]}>;
+  createAccountingExport: (period:{start?:string;end?:string}) => Promise<{workbook_base64:string;mime_type:string;filename:string;record_count:number;line_count:number}>;
+  exportPresets: Document[];
+  dataTransferHistory: Document[];
+  saveExportPreset: (input:{id?:string;name:string;kind:'company'|'accounting'|'master';module?:MasterExportModule;period?:{start?:string;end?:string}}) => Promise<Document>;
+  deleteExportPreset: (id:string) => Promise<void>;
+  createCompanyExport: (presetId?:string) => Promise<{json:string;filename:string;byte_size:number;collection_counts:Record<string,number>}>;
+  stageMasterImport: (input: MasterImportInput) => Promise<Document>;
+  largeImportJobs: Document[];
+  requestLargeImport: (sessionId:string,duplicatePolicy:'skip'|'update') => Promise<Document>;
+  cancelLargeImport: (id:string) => Promise<Document>;
+  retryLargeImport: (id:string) => Promise<Document>;
+  commitLargeImport: (id:string) => Promise<Document>;
+  undoLargeImport: (id:string,reason:string) => Promise<Document>;
   // Actions
   updateSettings: (newSettings: Partial<MerchantSettings>, reason?: string, expectedOrgId?: string) => Promise<void>;
   addCustomer: (customer: Omit<Customer, 'id' | 'created_at' | 'updated_at'>) => Promise<Customer>;
@@ -114,7 +130,7 @@ interface AppContextType {
   activateAccountingV2: (reason: string) => Promise<void>;
   updateProductStock: (id: string, newStock: number, reason?: string, cost?: CostInput) => Promise<void>;
   deleteProduct: (id: string) => Promise<void>;
-  createInvoice: (invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'>) => Promise<Invoice>;
+  createInvoice: (invoiceData: Omit<Invoice, 'id' | 'created_at' | 'updated_at'> & { credit_limit_override_reason?: string }) => Promise<Invoice>;
   updateInvoice: (id: string, updates: Partial<Invoice>) => Promise<void>;
   voidInvoice: (id: string, reason?: string) => Promise<void>;
   deleteInvoice: (id: string) => Promise<void>;
@@ -399,6 +415,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const full = await firebaseSnapshot(id, true);
     return JSON.stringify(full, null, 2);
   };
+  const createCompanyExport = async (presetId?:string) => {
+    const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('اختر مؤسسة أولاً.');
+    if(snapshot.current.role!=='Owner'||snapshot.current.org.owner_uid!==(userRef.current?.uid||guestActor.uid))throw new BusinessError('تصدير الشركة الكامل متاح لمالك المؤسسة الفعلي فقط.',403);
+    const full=id===guestId?await getGuest().snapshot(id,guestActor,true):await firebaseSnapshot(id,true);
+    if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد التصدير.',409);
+    const json=JSON.stringify(full,null,2),byte_size=new TextEncoder().encode(json).length; if(byte_size>900000)throw new BusinessError('التصدير المباشر الكامل محدود بـ900KB؛ استخدم مهمة التصدير الكبيرة.',413);
+    const collection_counts=Object.fromEntries(Object.entries(full.collections).map(([name,records])=>[name,(records as Document[]).length])),filename=`sudaflow-company-${id}-${new Date().toISOString().slice(0,10)}.json`;
+    await run('companyExport.record',{schema_version:3,byte_size,collection_counts,filename,...presetId?{preset_id:presetId}:{}});return{json,filename,byte_size,collection_counts};
+  };
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
   const nothing = async () => {};
   const value: AppContextType = {
@@ -461,6 +486,41 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     currentUser, authLoading, syncStatus, syncError, dismissSyncError: () => setSyncError(null), lastSyncedAt,
     currentOrg: state.org, userOrgs, userRole: state.role, platformControlsEnabled: state.platform_controls_enabled !== false, memberStatus: state.exported_at ? state.platform_controls_enabled === false ? 'active' : state.member?.status || (state.role === 'Owner' ? 'active' : 'unknown') : 'unknown', orgMembers: rows<OrgMember>('members'),
     settings: state.settings, customers, products, invoices, payments, expenses, inventoryMovements, accounts, journalEntries,
+    branches: rows<ManagementDimension>('branches'), costCenters: rows<ManagementDimension>('cost_centers'), projects: rows<ManagementDimension>('projects'),
+    budgets:rows<BudgetPlan>('budgets'),
+    approvalPolicies:rows<ApprovalPolicy>('approval_policies'),
+    saveApprovalPolicy:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<ApprovalPolicy>(updating?'approvalPolicy.update':'approvalPolicy.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح سياسة الاعتماد.',409)),
+    recurringCashSources:rows<RecurringCashSource>('recurring_cash_sources'),scheduledCashSources:rows<ScheduledCashSource>('scheduled_cash_sources'),
+    saveRecurringCashSource:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<RecurringCashSource>(updating?'recurringCashSource.update':'recurringCashSource.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح مصدر التوقع.',409)),
+    saveScheduledCashSource:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<ScheduledCashSource>(updating?'scheduledCashSource.update':'scheduledCashSource.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح مصدر التوقع.',409)),
+    saveBudget:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<BudgetPlan>(updating?'budget.update':'budget.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح الميزانية.',409)),
+    loadBudgetReport:async budgetId=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const value=id===guestId&&!userRef.current?await getGuest().budgetReport(id,guestActor,budgetId):await api<Awaited<ReturnType<Operations['budgetReport']>>>(`/organizations/${encodeURIComponent(id)}/reports/budget-vs-actual?budgetId=${encodeURIComponent(budgetId)}`);if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return value;},
+    loadCashForecast:async input=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams({...input.asOf?{asOf:input.asOf}:{},...input.days?{days:String(input.days)}:{}}),value=id===guestId&&!userRef.current?await getGuest().cashForecastReport(id,guestActor,input):await api<Awaited<ReturnType<Operations['cashForecastReport']>>>(`/organizations/${encodeURIComponent(id)}/reports/cash-forecast?${params}`);if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التوقع.',409);return value;},
+    loadAccountingHealth:async asOf=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams(asOf?{asOf}:{}),value=id===guestId&&!userRef.current?await getGuest().accountingHealth(id,guestActor,asOf):await api<Awaited<ReturnType<Operations['accountingHealth']>>>(`/organizations/${encodeURIComponent(id)}/reports/accounting-health?${params}`);if(id!==activeOrg.current||epoch!==session.current||value.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث مركز الصحة.',409);return value;},
+    loadAccountingAssistance:async asOf=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams(asOf?{asOf}:{}),value=id===guestId&&!userRef.current?await getGuest().accountingAssistance(id,guestActor,asOf):await api<Awaited<ReturnType<Operations['accountingAssistance']>>>(`/organizations/${encodeURIComponent(id)}/reports/accounting-assistance?${params}`);if(id!==activeOrg.current||epoch!==session.current||value.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث مساعد المحاسبة.',409);return value;},
+    loadOwnerFinancialSummary:async asOf=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams(asOf?{asOf}:{}),value=id===guestId&&!userRef.current?await getGuest().ownerFinancialSummary(id,guestActor,asOf):await api<Awaited<ReturnType<Operations['ownerFinancialSummary']>>>(`/organizations/${encodeURIComponent(id)}/reports/owner-financial-summary?${params}`);if(id!==activeOrg.current||epoch!==session.current||value.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث ملخص المالك.',409);return value;},
+    saveDimension: (kind, data, updating, expectedOrgId, requestId) => {
+      if (activeOrg.current !== expectedOrgId) return Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح إدارة الأبعاد.', 409));
+      return run<ManagementDimension>(updating ? 'dimension.update' : 'dimension.create', { ...data, kind }, requestId);
+    },
+    loadBranchProfitAndLoss: async (branchId, period) => {
+      const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
+      const params=new URLSearchParams({branchId,...(period.start?{start:period.start}:{}),...(period.end?{end:period.end}:{})});
+      const report=id===guestId&&!userRef.current?await getGuest().branchProfitAndLoss(id,guestActor,branchId,period):await api<Awaited<ReturnType<Operations['branchProfitAndLoss']>>>(`/organizations/${encodeURIComponent(id)}/reports/branch-profit-loss?${params}`);
+      if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return report;
+    },
+    loadProductProfitability: async period => {
+      const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
+      const params=new URLSearchParams({...period.start?{start:period.start}:{},...period.end?{end:period.end}:{}});
+      const report=id===guestId&&!userRef.current?await getGuest().productProfitability(id,guestActor,period):await api<Awaited<ReturnType<Operations['productProfitability']>>>(`/organizations/${encodeURIComponent(id)}/reports/product-profitability?${params}`);
+      if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return report;
+    },
+    loadCustomerProfitability: async period => {
+      const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
+      const params=new URLSearchParams({...period.start?{start:period.start}:{},...period.end?{end:period.end}:{}});
+      const report=id===guestId&&!userRef.current?await getGuest().customerProfitability(id,guestActor,period):await api<Awaited<ReturnType<Operations['customerProfitability']>>>(`/organizations/${encodeURIComponent(id)}/reports/customer-profitability?${params}`);
+      if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return report;
+    },
     creditNotes: rows<Document>('credit_notes'), customerRefunds: rows<Document>('customer_refunds'),
     createCreditNote: data => run('creditNote.create', data), refundCustomer: data => run('customerRefund.create', data),
     suppliers: rows<Supplier>('suppliers'), purchaseBills: rows<PurchaseBill>('purchase_bills'), supplierPayments: rows<SupplierPayment>('supplier_payments'), purchaseReturns: rows<Document>('purchase_returns'), supplierRefunds: rows<Document>('supplier_refunds'), returnPurchase: data => run<Document>('purchaseReturn.create',data), refundSupplier: data => run<Document>('supplierRefund.create',data),
@@ -487,7 +547,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     saveBankReconciliation: data => run('bankReconciliation.create', data),
     recordCashCount: data => run('cashCount.create', data),
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
-    isActionAllowed, switchOrganization, createNewOrg,
+    isActionAllowed, createMasterExport: module => run('masterExport.create',{module}), createAccountingExport:period=>run('accountingExport.create',{period}),
+    exportPresets:rows<Document>('export_presets'),dataTransferHistory:rows<Document>('audit_logs').filter(row=>['DATA_EXPORT_CREATED','DATA_IMPORT_STARTED'].includes(row.event_type)).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
+    saveExportPreset:input=>run('exportPreset.save',input),deleteExportPreset:async id=>{await run('exportPreset.delete',{id});},createCompanyExport,
+    stageMasterImport: input => run('masterImport.stage',input as unknown as Document),
+    largeImportJobs:rows<Document>('large_import_jobs').sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
+    requestLargeImport:(sessionId,duplicatePolicy)=>run('largeImport.request',{session_id:sessionId,reviewed:true,duplicate_policy:duplicatePolicy}),
+    cancelLargeImport:id=>run('largeImport.cancel',{id}),retryLargeImport:id=>run('largeImport.retry',{id}),commitLargeImport:id=>run('largeImport.commit',{id}),undoLargeImport:(id,reason)=>run('largeImport.undo',{id,reason}), switchOrganization, createNewOrg,
     inviteMember: async (email, role) => { await run('invitation.create', { email, role }); },
     updateMemberRole: async (uid, role) => { await run('member.update', { uid, role }); },
     removeMember: async uid => { await run('member.remove', { uid }); },

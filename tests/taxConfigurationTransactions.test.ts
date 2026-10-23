@@ -13,7 +13,7 @@ function fixture(role:'Owner'|'Accountant'|'Admin'='Owner', authority:'local'|'b
   const actor=role==='Owner'?{...owner}:{...owner,uid:role.toLowerCase()};
   const memory=new MemoryStore({[root]:{id:org,owner_uid:'owner',name:'مؤسسة الضريبة',status:'active',accounting_version:2,settings:INITIAL_SETTINGS},[`${root}/members/${actor.uid}`]:{uid:actor.uid,role,status:'active'},[`${root}/meta/subscription`]:{...createDefaultSubscription(org),...getPlanConfig('Enterprise'),plan:'Enterprise',org_id:org,status:'active',effective_status:'active'},[`${root}/accounts/2130`]:{id:'2130',code:'2130',org_id:org,name_ar:'ضريبة مستحقة',name_en:'Tax payable',type:'LIABILITY',nature:'CREDIT',reporting_group:'tax_payable',is_active:true,balance_sdg:0,balance_usd:0},[`${root}/accounts/1350`]:{id:'1350',code:'1350',org_id:org,name_ar:'ضريبة مستردة',name_en:'Recoverable tax',type:'ASSET',nature:'DEBIT',reporting_group:'other_assets',is_active:true,balance_sdg:0,balance_usd:0}});
   const store:Store=authority==='local'?memory:{authority:'browser',transaction:memory.transaction.bind(memory)};
-  const ops=new Operations(store,()=>now),run=(action:string,data:Record<string,unknown>,operationId:string)=>ops.execute(org,actor,{action,operationId,data});return{memory,run,actor};
+  const ops=new Operations(store,()=>now),run=(action:string,data:Record<string,unknown>,operationId:string)=>ops.execute(org,actor,{action,operationId,data});return{memory,run,actor,ops};
 }
 
 test('C5.2a creates immutable version, recent-auth audit and idempotent receipt atomically',async()=>{
@@ -64,4 +64,11 @@ test('C5.2c backup proves the complete tax version chain and remaps tenant ident
 test('C5.2c rejects missing, orphaned or tampered tax policy history before restore',async()=>{
   const f=fixture();await f.run('taxConfiguration.create',input(),'tax-create');const backup=await new Operations(f.memory,()=>now).snapshot(org,owner,true);
   for(const mutate of [(b:any)=>{b.collections.tax_configuration_versions[0].rate=99;},(b:any)=>{b.collections.tax_configuration_versions=[];},(b:any)=>{b.counters.tax_configuration_version_count=0;}]){const damaged=structuredClone(backup);mutate(damaged);await assert.rejects(validateTaxConfigurationBackup(damaged),/بصمة|ناقصة|عدادات/);}
+});
+
+test('C5.3.2 protects the tax report and reads authoritative control-account postings',async()=>{
+  const f=fixture();await f.run('taxConfiguration.create',input(),'tax-create');
+  await f.memory.transaction(async tx=>tx.set(`${root}/journal_entries/tax-entry`,{id:'tax-entry',org_id:org,date:'2026-10-01',description:'قيد ضريبة',reference_type:'invoice',reference_id:'invoice-1',created_by:'owner',created_at:now.toISOString(),exchange_rate_used:0,lines:[{id:'tax',account_code:'2130',description:'ضريبة',debit_sdg:0,credit_sdg:150,debit_usd:0,credit_usd:0}]}));
+  const report=await f.ops.taxReports(org,f.actor,{start:'2026-10-01',end:'2026-10-31'});assert.deepEqual(report.sales_tax,{sdg:150,usd:0});assert.equal(report.controls[0].closing.sdg,150);
+  const sales=fixture('Admin');sales.actor.uid='sales';await sales.memory.transaction(async tx=>tx.set(`${root}/members/sales`,{uid:'sales',role:'Sales',status:'active'}));await assert.rejects(sales.ops.taxReports(org,sales.actor),/صلاحية/);
 });

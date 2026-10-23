@@ -443,6 +443,9 @@ export const generateExpenseJournalEntry = (
       debit_usd: amountUsd,
       credit_usd: 0,
       notes: expense.notes || expense.title,
+      ...(expense.branch_id ? { branch_id: expense.branch_id } : {}),
+      ...(expense.cost_center_id ? { cost_center_id: expense.cost_center_id } : {}),
+      ...(expense.project_id ? { project_id: expense.project_id } : {}),
     },
     // Cr: Cash / Treasury
     {
@@ -454,6 +457,9 @@ export const generateExpenseJournalEntry = (
       debit_usd: 0,
       credit_usd: amountUsd,
       notes: `سداد / استحقاق لـ: ${expense.title}`,
+      ...(expense.branch_id ? { branch_id: expense.branch_id } : {}),
+      ...(expense.cost_center_id ? { cost_center_id: expense.cost_center_id } : {}),
+      ...(expense.project_id ? { project_id: expense.project_id } : {}),
     },
   ];
 

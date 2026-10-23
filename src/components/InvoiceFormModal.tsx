@@ -28,6 +28,7 @@ import {
 } from '../lib/currency';
 import { getPlanConfig, isUnlimited } from '../lib/plans';
 import { Dialog } from './Dialog';
+import { ApprovalDecisionField, approvalRequirement } from './accounting/ApprovalDecisionField';
 
 interface InvoiceFormModalProps {
   isOpen: boolean;
@@ -53,6 +54,12 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
     addCustomer,
     subscription,
     counters,
+    branches,
+    costCenters,
+    projects,
+    approvalPolicies,
+    isActionAllowed,
+    userRole,
   } = useApp();
 
   const planConfig = getPlanConfig(subscription?.plan);
@@ -78,6 +85,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   const [discountValue, setDiscountValue] = useState<number>(0);
   const [notes, setNotes] = useState(settings.default_invoice_notes || '');
   const [paymentInstructions, setPaymentInstructions] = useState(settings.bank_details || '');
+  const [branchId, setBranchId] = useState(''), [costCenterId, setCostCenterId] = useState(''), [projectId, setProjectId] = useState('');
 
   // Items List
   const [items, setItems] = useState<InvoiceItem[]>([]);
@@ -90,6 +98,8 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
 
   // Error State
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [creditApprovalReason, setCreditApprovalReason] = useState('');
+  const [discountApprovalReason,setDiscountApprovalReason] = useState('');
 
   // Submission & Idempotency Lock
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,6 +150,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
       setNotes(settings.default_invoice_notes || '');
       setPaymentInstructions(settings.bank_details || '');
       setErrorMessage(null);
+      setCreditApprovalReason('');
 
       const targetCustomer = prefilledCustomer || initialCustomer;
       if (targetCustomer) {
@@ -263,8 +274,18 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   const taxTotalUsd = financials.tax_total_usd;
   const discountTotalSdg = financials.discount_total_sdg;
   const discountTotalUsd = financials.discount_total_usd;
+  const effectiveDiscountRate = Math.max(0,...items.map(item=>Number(item.discount_percent)||0),discountType==='percent'?discountValue:(subtotalSdg+discountTotalSdg)>0?discountTotalSdg*100/(subtotalSdg+discountTotalSdg):0);
+  const discountApproval = approvalRequirement(approvalPolicies,'discount','PERCENT',effectiveDiscountRate,userRole);
   const grandTotalSdg = financials.grand_total_sdg;
   const grandTotalUsd = financials.grand_total_usd;
+  const creditCurrency = currencyMode === 'single_usd' ? 'USD' : 'SDG';
+  const creditLimit = creditCurrency === 'USD' ? selectedCustomer?.credit_limit_usd : selectedCustomer?.credit_limit_sdg;
+  const creditBalance = creditCurrency === 'USD' ? selectedCustomer?.balance_usd || 0 : selectedCustomer?.balance_sdg || 0;
+  const creditInvoiceAmount = creditCurrency === 'USD' ? grandTotalUsd : grandTotalSdg;
+  const creditExposure = creditBalance + creditInvoiceAmount;
+  const creditExceeded = creditLimit != null && creditExposure > creditLimit;
+  const creditApprovalRequired = creditExceeded && selectedCustomer?.credit_policy === 'approval_required';
+  const canApproveCredit = userRole === 'Owner' || userRole === 'Admin';
 
   // Quick Customer Creation
   const handleQuickCreateCustomer = async (e: React.FormEvent) => {
@@ -314,6 +335,9 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
       setErrorMessage('يرجى التأكد من ملء وصف وكمية كل بند من بنود الفاتورة.');
       return;
     }
+    if (creditApprovalRequired && !canApproveCredit) { setErrorMessage('تجاوز حد ائتمان العميل يتطلب اعتماد المالك أو المدير.'); return; }
+    if (creditApprovalRequired && !creditApprovalReason.trim()) { setErrorMessage('اكتب سبب اعتماد تجاوز حد الائتمان.'); return; }
+    if(discountApproval&&(!discountApproval.allowed||!discountApprovalReason.trim())){setErrorMessage(discountApproval.allowed?'اكتب سبب اعتماد الخصم.':`الخصم يتطلب اعتماد دور ${discountApproval.tier.required_role}.`);return;}
 
     const rateValidation = validateExchangeRate(exchangeRate);
     if (calculationError) { setErrorMessage(calculationError); return; }
@@ -357,6 +381,11 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
         remaining_usd: grandTotalUsd,
         notes,
         payment_instructions: paymentInstructions,
+        ...(creditApprovalRequired ? { credit_limit_override_reason: creditApprovalReason.trim() } : {}),
+        ...(discountApproval ? { approval_reason: discountApprovalReason.trim() } : {}),
+        ...(branchId ? { branch_id: branchId } : {}),
+        ...(costCenterId ? { cost_center_id: costCenterId } : {}),
+        ...(projectId ? { project_id: projectId } : {}),
       });
 
       // 1. Verify successful creation and confirmed invoice ID
@@ -429,6 +458,10 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
               <span>{errorMessage}</span>
             </div>
           )}
+          {creditExceeded && <div data-testid="credit-limit-alert" className="p-3 bg-sf-warning-bg/50 border border-sf-warning/60 rounded-xl text-sf-warning text-xs space-y-2">
+            <div className="flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0"/><span>التعرض بعد الفاتورة {formatMoney(creditExposure, creditCurrency, settings)} يتجاوز حد العميل {formatMoney(creditLimit!, creditCurrency, settings)}. {creditApprovalRequired ? 'يلزم اعتماد.' : 'سيُحفظ التحذير مع الفاتورة.'}</span></div>
+            {creditApprovalRequired && canApproveCredit && <textarea aria-label="سبب اعتماد تجاوز حد الائتمان" value={creditApprovalReason} onChange={e=>setCreditApprovalReason(e.target.value)} rows={2} className="w-full bg-sf-surface border border-sf-warning rounded-lg p-2 text-sf-text" placeholder="سبب الاعتماد الموثق" />}
+          </div>}
 
           {/* Section 1: Customer & Dates */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-sf-raised p-4 rounded-xl border border-sf-border">
@@ -490,6 +523,12 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
               />
             </div>
           </div>
+
+          {isActionAllowed('dimensions:read') && (branches.length > 0 || costCenters.length > 0 || projects.length > 0) && <fieldset className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-sf-raised p-4 rounded-xl border border-sf-border"><legend className="px-1 font-semibold">أبعاد الفاتورة الاختيارية</legend>
+            <label>الفرع<select aria-label="فرع الفاتورة" value={branchId} onChange={e=>setBranchId(e.target.value)} className="sf-field w-full"><option value="">بدون فرع</option>{branches.filter(row=>row.status==='active').map(row=><option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+            <label>مركز التكلفة<select aria-label="مركز تكلفة الفاتورة" value={costCenterId} onChange={e=>setCostCenterId(e.target.value)} className="sf-field w-full"><option value="">بدون مركز</option>{costCenters.filter(row=>row.status==='active').map(row=><option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+            <label>المشروع<select aria-label="مشروع الفاتورة" value={projectId} onChange={e=>setProjectId(e.target.value)} className="sf-field w-full"><option value="">بدون مشروع</option>{projects.filter(row=>row.status==='active').map(row=><option key={row.id} value={row.id}>{row.code} — {row.name_ar}</option>)}</select></label>
+          </fieldset>}
 
           {/* Section 2: Currency Settings & Frozen Rate */}
           <div className="bg-sf-raised border border-sf-border rounded-xl p-4 space-y-3">
@@ -836,6 +875,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                   </span>
                 </div>
               )}
+              <ApprovalDecisionField requirement={discountApproval} reason={discountApprovalReason} setReason={setDiscountApprovalReason}/>
 
               {taxTotalSdg > 0 && (
                 <div className="flex items-center justify-between text-xs text-sf-text">
@@ -873,7 +913,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || isInvoiceLimitReached}
+              disabled={isSubmitting || isInvoiceLimitReached || !!discountApproval&&!discountApproval.allowed}
               className={`px-6 py-2 text-xs font-semibold rounded-lg shadow-lg transition-all flex items-center gap-2 ${
                 isInvoiceLimitReached
                   ? 'bg-sf-raised text-sf-muted cursor-not-allowed border border-sf-border'

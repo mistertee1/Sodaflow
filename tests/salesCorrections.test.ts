@@ -31,6 +31,12 @@ async function fixture(cost = 20) {
   return { store, org, root, ops, run, customer, product, invoice, cash, sale, note, refund, pay, books };
 }
 
+test('D2.2 customer profitability separates price credits from returns and follows correction/payment sources',async()=>{
+  const f=await fixture();await f.run('creditNote.create',f.note(),'profit-credit');await f.run('payment.create',f.pay(280),'profit-payment');
+  const report=await f.ops.customerProfitability(f.org.id,owner,{start:'2026-10-05',end:'2026-10-07'}),row=report.rows.find(item=>item.customer_id===f.customer.id)!;
+  assert.equal(row.sales_usd,280);assert.equal(row.cogs_usd,60);assert.equal(row.gross_profit_usd,220);assert.equal(row.discounts_usd,20);assert.equal(row.returns_usd,0);assert.equal(row.outstanding_usd,0);assert.equal(row.average_payment_days,2);assert.equal(row.credit_document_count,1);
+});
+
 test('B3 transactional price credit offsets unpaid debt without cash or cost; payment consumes corrected carrying value once', async () => {
   const f = await fixture(), result = await f.run('creditNote.create', f.note(), 'credit'); assert.deepEqual(await f.run('creditNote.create', f.note(), 'credit'), result);
   let s = await f.books(); assert.equal(s.collections.invoices[0].remaining_usd, 280); assert.equal(s.collections.invoices[0].credited_amount_usd, 20); assert.equal(s.collections.products[0].stock_quantity, 7); assert.equal(s.collections.products[0].inventory_value_usd, 140);
@@ -59,6 +65,12 @@ test('B3 paid invoice credits create distinct source and customer credit; actual
   const report = await f.ops.operationalReport(f.org.id, owner, 'receivables', { end: '2026-10-07' }); assert.equal(report.total_usd, 0); assert.equal(report.unallocated_sdg, 0);
   const cash = await f.ops.operationalReport(f.org.id, owner, 'cash', { start: '2026-10-07', end: '2026-10-07' }); assert.equal(cash.outflow_usd, 20); assert.equal(cash.inflow_usd, 300);
   const audit = f.store.dump()[`${f.root}/audit_logs/audit-refund`]; assert.equal(audit.actor_role, 'Owner'); assert.equal(audit.reason, 'رد مثبت'); assert.equal(audit.previous_state[`${f.root}/invoices/${f.invoice.id}`].credit_balance_usd, 20);
+});
+test('D4.3.2 customer refund approval is atomic and frozen on the refund document',async()=>{
+  const f=await fixture();await f.run('payment.create',f.pay(),'pay');await f.run('creditNote.create',f.note(),'credit');
+  await f.store.transaction(async tx=>tx.set(`${f.root}/approval_policies/refund-usd`,{schema_version:1,id:'refund-usd',org_id:f.org.id,revision:3,subject:'customer_refund',currency:'USD',active:true,tiers:[{max_value:10,required_role:'Accountant'},{max_value:null,required_role:'Owner'}],created_at:'2026-10-01T00:00:00.000Z',created_by:owner.uid,updated_at:'2026-10-01T00:00:00.000Z',updated_by:owner.uid,operation_id:'seed'}));
+  const before=f.store.dump();await assert.rejects(f.run('customerRefund.create',f.refund(),'no-reason'),/النص المطلوب/);assert.deepEqual(f.store.dump(),before);
+  const saved=(await f.run('customerRefund.create',{...f.refund(),approval_reason:'رد معتمد للعميل'},'approved')).result;assert.equal(saved.approval_evidence.policy_revision,3);assert.equal(saved.approval_evidence.value,20);assert.equal(saved.approval_evidence.approved_by,owner.uid);
 });
 
 test('B3 concurrent overreturns and overrefunds serialize; identical retries never duplicate source, stock or journal', async () => {

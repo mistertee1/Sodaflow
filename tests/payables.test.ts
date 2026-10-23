@@ -32,6 +32,12 @@ test('B1 purchase receipt aggregates repeated products, posts AP exactly once an
   assert.deepEqual((await f.snapshot()).collections,s.collections);
   await f.run('product.update',{id:f.product.id,updates:{price_usd:999}},'price');s=await f.books();assert.equal(s.collections.purchase_bills[0].grand_total_usd,30);
 });
+test('D1.2b purchase dimensions persist on the bill and every journal line; inactive dimensions reject atomically',async()=>{
+  const f=await fixture();await f.run('dimension.create',{kind:'branch',id:'warehouse',code:'WH',name_ar:'فرع المخزن'},'dimension-branch');await f.run('dimension.create',{kind:'cost_center',id:'buying',code:'BUY',name_ar:'المشتريات'},'dimension-cost');
+  const dimensions={branch_id:'warehouse',cost_center_id:'buying'},bill=(await f.run('purchase.create',{...f.purchase('DIM-1'),...dimensions},'dimension-purchase')).result,s=await f.snapshot(),posting=s.collections.journal_entries.find(row=>row.reference_id===bill.id)!;
+  assert.equal(bill.branch_id,'warehouse');assert.equal(bill.cost_center_id,'buying');assert.ok(posting.lines.every((line:any)=>line.branch_id==='warehouse'&&line.cost_center_id==='buying'));
+  await f.run('dimension.update',{kind:'cost_center',id:'buying',expected_revision:1,updates:{status:'inactive'}},'dimension-disable');const before=f.store.dump();await assert.rejects(f.run('purchase.create',{...f.purchase('DIM-2'),...dimensions},'dimension-rejected'),/غير موجود أو غير نشط/);assert.deepEqual(f.store.dump(),before);
+});
 test('C5.2c purchase freezes recoverable tax policy and posts inventory, tax asset and AP atomically',async()=>{
   const f=await fixture();
   await f.run('account.create',{code:'1350',name_ar:'ضريبة مستردة',name_en:'Recoverable tax',type:'ASSET',nature:'DEBIT',reporting_group:'other_assets',is_active:true},'tax-account');

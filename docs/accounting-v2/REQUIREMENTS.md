@@ -52,8 +52,8 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 46 | Sales Returns | A-E / release gate |
 | 47 | Purchase Returns | A-E / release gate |
 | 48 | Refunds | A-E / release gate |
-| 49 | Bank Reconciliation | A-E / release gate |
-| 50 | Statement Import | A-E / release gate |
+| 49 | Bank Reconciliation | Excel2.3b protected statement upload, explicit manual ledger matching and existing atomic reconciliation save; CI passed; Render acceptance pending |
+| 50 | Statement Import | Excel2.3a strict CSV/XLSX parser plus Excel2.3b protected no-write upload UI, SHA-256 evidence and manual matching; CI passed; Render acceptance pending |
 | 51 | Cash Reconciliation | A-E / release gate |
 | 52 | Multi-Currency Strategy | A-E / release gate |
 | 53 | Future Multi-Currency Architecture | A-E / release gate |
@@ -113,31 +113,31 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 107 | Final Product Goal | A-E / release gate |
 | 108 | Commercial Positioning After Completion | A-E / release gate |
 | 109 | Next Engineering Step | A-E / release gate |
-| 110 | Excel Export & Data Portability | Excel 1-4 |
-| 111 | Export Modes | Excel 1-4 |
+| 110 | Excel Export & Data Portability | Excel3.1 portability, Excel3.2a protected intake and Excel3.2b private worker artifact delivery implemented; large import/UI remains Excel3.2c |
+| 111 | Export Modes | Quick Excel1.1; accountant Excel2.1; direct company Excel3.1; queued large requests Excel3.2a; private temporary artifacts Excel3.2b |
 | 112 | Full Company Workbook Structure | Excel 1-4 |
 | 113 | Invoice Export Structure | Excel 1-4 |
-| 114 | Raw Data vs Report Sheets | Excel 1-4 |
+| 114 | Raw Data vs Report Sheets | Excel2.1 accountant workbook includes journal raw sheets and financial report sheets |
 | 115 | Pivot-ready Excel | Excel 1-4 |
-| 116 | Excel Numeric Integrity | Excel 1-4 |
-| 117 | Multi-currency Export | Excel 1-4 |
-| 118 | Export Summary Sheet | Excel 1-4 |
-| 119 | Data Dictionary Sheet | Excel 1-4 |
-| 120 | Reconciliation Sheet | Excel 1-4 |
+| 116 | Excel Numeric Integrity | Excel1.1/Excel2.1 numeric cells and formula-safe exports implemented |
+| 117 | Multi-currency Export | Excel2.1 journal lines preserve independent SDG/USD numeric books |
+| 118 | Export Summary Sheet | Excel2.1 implemented with schema, tenant, period and counts |
+| 119 | Data Dictionary Sheet | Excel2.1 implemented for accountant workbook |
+| 120 | Reconciliation Sheet | Excel2.1 includes bank/cash reconciliation evidence |
 | 121 | Opening / Movement / Closing Columns | Excel 1-4 |
-| 122 | Export Filters | Excel 1-4 |
+| 122 | Export Filters | Excel2.1 date period plus Excel3.1 saved accounting/master/company preset scopes implemented; arbitrary column selection remains later |
 | 123 | Export Column Selection | Excel 1-4 |
-| 124 | Saved Export Presets | Excel 1-4 |
-| 125 | Accountant Package | Excel 1-4 |
+| 124 | Saved Export Presets | Excel3.1 tenant-owned save/delete/reload implemented; company presets restricted to the actual Owner |
+| 125 | Accountant Package | Excel2.1 direct and Excel3.2a/b bounded large request, worker generation and protected temporary download implemented |
 | 126 | Auditor Package | Excel 1-4 |
-| 127 | Export Permissions | Excel 1-4 |
+| 127 | Export Permissions | Excel1.1 module permissions, Excel2.1 accounting permission, Excel3.1 actual-Owner company permission and Excel3.2a isolated company/accounting job collections implemented |
 | 128 | Sensitive Data Masking | Excel 1-4 |
-| 129 | Export Audit Log | Excel 1-4 |
-| 130 | Large Export Architecture | Excel 1-4 |
-| 131 | Temporary Export Files | Excel 1-4 |
-| 132 | Data Portability Package | Excel 1-4 |
-| 133 | Export Schema Version | Excel 1-4 |
-| 134 | Export References | Excel 1-4 |
+| 129 | Export Audit Log | CREATED plus QUEUED/CANCELLED/RETRIED and Excel3.2b COMPLETED/FAILED/EXPIRED lifecycle audit implemented |
+| 130 | Large Export Architecture | Excel3.2a bounded queue and Excel3.2b atomic worker claims, stale recovery, private artifacts and bounded cleanup implemented |
+| 131 | Temporary Export Files | Excel3.2b private Storage object, SHA-256 manifest, five-minute signed download, 24-hour expiry and deletion implemented |
+| 132 | Data Portability Package | Excel3.1 direct full-company JSON snapshot implemented; Excel3.2a queues oversized company jobs for the actual Owner; worker artifact remains Excel3.2b |
+| 133 | Export Schema Version | Excel3.1 full-company package requires schema_version 3 and rejects unsupported versions |
+| 134 | Export References | Excel3.1 preserves tenant snapshot references and records preset/schema/size/count evidence in the audit event |
 | 135 | Excel Import Center | Excel 1-4 |
 | 136 | Import Workflow | Excel 1-4 |
 | 137 | Initial Supported Imports | Excel 1-4 |
@@ -146,42 +146,42 @@ All source sections are pending unless a milestone report links evidence. Broad 
 | 140 | Customer Import Template | Excel 1-4 |
 | 141 | Supplier Import Template | Excel 1-4 |
 | 142 | Product Import Template | Excel 1-4 |
-| 143 | Opening Balances Import Principle | Excel 1-4 |
-| 144 | Opening AR | Excel 1-4 |
-| 145 | Opening AP | Excel 1-4 |
-| 146 | Opening Inventory | Excel 1-4 |
-| 147 | Opening Cash & Bank | Excel 1-4 |
+| 143 | Opening Balances Import Principle | Excel2.2a parser/template + Excel2.2b protected UI map into existing preview/Owner commit; upload itself performs no financial write; Render acceptance pending |
+| 144 | Opening AR | Excel2.2a official receivables sheet, currency/date/due/source validation and protected preview mapping; commit/UI pending |
+| 145 | Opening AP | Excel2.2a official payables sheet, currency/date/due/source validation and protected preview mapping; commit/UI pending |
+| 146 | Opening Inventory | Excel2.2a official inventory sheet with product, quantity, native unit-cost precision and duplicate validation; commit/UI pending |
+| 147 | Opening Cash & Bank | Excel2.2a official cash sheet with account/currency/date validation and preview mapping; commit/UI pending |
 | 148 | Column Mapping | Excel 1-4 |
 | 149 | Mapping Presets | Excel 1-4 |
-| 150 | Import Validation Levels | Excel 1-4 |
-| 151 | Blocking Errors | Excel 1-4 |
+| 150 | Import Validation Levels | Excel1.2 master staging, Excel2.2 opening validation and Excel2.3a strict bank statement preview; warning/auto-fix policy remains later |
+| 151 | Blocking Errors | Excel2.3a also blocks bank schema/extension/hash/formula/unsafe-text/date/direction/precision/duplicate/volume violations before matching |
 | 152 | Warnings | Excel 1-4 |
 | 153 | Auto-fixable Issues | Excel 1-4 |
-| 154 | Import Preview | Excel 1-4 |
+| 154 | Import Preview | Excel2.2b loads opening workbooks into protected preview; Excel2.3b loads bank rows, totals, closing difference and hash into the reviewable matching draft without writes |
 | 155 | Error Export | Excel 1-4 |
 | 156 | Duplicate Detection | Excel 1-4 |
 | 157 | Duplicate Handling | Excel 1-4 |
 | 158 | Import Session | Excel 1-4 |
 | 159 | Import Session Metadata | Excel 1-4 |
 | 160 | Duplicate File Detection | Excel 1-4 |
-| 161 | Import Staging | Excel 1-4 |
-| 162 | Dry Run | Excel 1-4 |
-| 163 | Large Import Jobs | Excel 1-4 |
-| 164 | Import Progress | Excel 1-4 |
-| 165 | Import Idempotency | Excel 1-4 |
-| 166 | Undo Import | Excel 1-4 |
-| 167 | Import Rollback Rules | Excel 1-4 |
-| 168 | Import Permissions | Excel 1-4 |
-| 169 | Opening Balance Import Security | Excel 1-4 |
-| 170 | Post-import Reconciliation | Excel 1-4 |
-| 171 | Accounting Import Block | Excel 1-4 |
-| 172 | Historical Invoice Import | Excel 1-4 |
-| 173 | Advanced Accountant Import | Excel 1-4 |
-| 174 | Journal Import Safety | Excel 1-4 |
+| 161 | Import Staging | Excel2.3a/2.3b keep the bank statement in client-local review state until explicit atomic reconciliation save; server staging remains later |
+| 162 | Dry Run | Excel2.3a/2.3b compute inflow/outflow/closing difference and populate unmatched rows without financial writes or automatic matching |
+| 163 | Large Import Jobs | Excel3.2c.1 reviewed queue, Excel3.2c.2a bounded validation/awaiting_commit, and Excel3.2c.2b atomic commit are implemented |
+| 164 | Import Progress | Excel3.2c persists claim-protected progress through awaiting_commit, committed and undone states and reload |
+| 165 | Import Idempotency | Request evidence and deterministic commit batch/operation identifiers prevent mismatched replay and double commit |
+| 166 | Undo Import | Excel3.2c.2b restores updated records and removes created records atomically from the captured pre-commit backup |
+| 167 | Import Rollback Rules | Owner/Admin, recent reauthentication, audited reason, matching operation evidence, and no later record edits; otherwise fail closed |
+| 168 | Import Permissions | Live module permission for queue/commit; Viewer hidden; undo restricted to Owner/Admin with recent reauthentication |
+| 169 | Opening Balance Import Security | Excel2.2a strict parser plus Excel2.2b session/org guards, review preview and existing Owner reauthentication/atomic commit |
+| 170 | Post-import Reconciliation | Excel2.2b hands off to C2 opening journals; Excel2.3b requires explicit row matching then uses existing atomic bank reconciliation save and reload synchronization; Render acceptance pending |
+| 171 | Accounting Import Block | Excel4.1b blocks invalid staging; Excel4.1c records post-commit reconciliation blocks and prevents final Period Close until resolved |
+| 172 | Historical Invoice Import | Excel4.1d.2 stores complete native evidence; Excel4.1d.3a binds its reviewed hash; Excel4.1d.3b.1 deterministically plans native sales invoices/payments/inventory/GL without writes; atomic persistence and purchase planning remain |
+| 173 | Advanced Accountant Import | Excel4.1a validates, Excel4.1b securely stages, and Excel4.1c atomically commits historical journals and balanced legacy trial-balance groups |
+| 174 | Journal Import Safety | Excel4.1c revalidates live context and SHA-256 evidence, limits atomic commit to 200 rows, uses deterministic journal IDs and reconciles before completion |
 | 175 | Onboarding Migration Wizard | Excel 1-4 |
-| 176 | Migration Readiness Gate | Excel 1-4 |
-| 177 | Import Audit | Excel 1-4 |
-| 178 | Import Audit Metadata | Excel 1-4 |
+| 176 | Migration Readiness Gate | Excel4.1c requires a clean baseline; Excel4.1d.2 additionally rejects missing, surplus or mismatched native document evidence before staging writes |
+| 177 | Import Audit | Excel4.1b records DATA_IMPORT_STARTED and Excel4.1c records DATA_IMPORT_COMPLETED with deterministic commit evidence and reconciliation |
+| 178 | Import Audit Metadata | Excel4.1c records actor/org/session, file and row hashes, counts, journal count, completion code and bounded reconciliation evidence |
 | 179 | Excel Module Commercial Acceptance Criteria | Excel 1-4 |
 | 180 | Excel Module Test Suites | Excel 1-4 |
 | 181 | Excel Module Implementation Phases | Excel 1-4 |

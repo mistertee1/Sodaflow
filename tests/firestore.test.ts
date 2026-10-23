@@ -114,6 +114,8 @@ test('direct Firestore rules deny tenant writes and protect subscription and rol
   await assertFails(setDoc(doc(owner, 'organizations/rules-org/invoices/forged'), { id: 'forged', org_id: 'rules-org', created_by: 'other', schema_version: 3 }));
   await assertFails(setDoc(doc(viewer, 'organizations/rules-org/invoices/forged'), { id: 'forged', org_id: 'rules-org', created_by: 'viewer', schema_version: 3 }));
   await assertFails(setDoc(doc(cashier, 'organizations/rules-org/products/record'), { id: 'record', org_id: 'rules-org', price_usd: 999 }, { merge: true }));
+  await assertFails(setDoc(doc(owner, 'organizations/rules-org/branches/forged'), { id: 'forged', org_id: 'rules-org', code: 'X' }));
+  await assertFails(setDoc(doc(owner, 'organizations/rules-org/cost_centers/forged'), { id: 'forged', org_id: 'rules-org', code: 'X' }));
 });
 
 test('cashier reads operational data required by direct sync; suspended/foreign users remain blocked', async () => {

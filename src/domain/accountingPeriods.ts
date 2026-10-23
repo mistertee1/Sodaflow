@@ -12,6 +12,8 @@ interface Context { tx:Transaction;root:string;orgId:string;actor:string;role:Or
 export async function closeChecklist(tx:Transaction,root:string,period:Document,settings:MerchantSettings,iso:string) {
   const collections=Object.fromEntries(await Promise.all(financialCollections.map(async name=>[name,await tx.list(`${root}/${name}`)]))) as FinancialData;
   const findings=reconcileFinancialData(collections,settings,{requireCosting:true});
+  const blockedImports=(await tx.list(`${root}/historical_import_sessions`)).filter(row=>row.status==='completed_accounting_block'||row.committed_at&&row.accounting_block===true);
+  for(const session of blockedImports)findings.push({code:'historical_import_accounting_block',collection:'historical_import_sessions',id:session.id,message:'اكتمل استيراد تاريخي مع فرق محاسبي ويجب تسويته قبل الإغلاق.'});
   const sessions=await cashReconciliationReports(tx,root,period.end_date);
   const entries=collections.journal_entries as JournalEntry[], accounts=collections.accounts as Account[];
   const requiredAccounts=accounts.filter(account=>classifyAccount(account).reporting_group==='cash_bank').filter(account=>entries.some(entry=>dateOnly(entry.date)<=period.end_date && entry.lines.some(line=>line.account_code===account.code && (line.debit_sdg||line.credit_sdg||line.debit_usd||line.credit_usd))));
@@ -39,6 +41,7 @@ export async function closeChecklist(tx:Transaction,root:string,period:Document,
     ap_reconciled: journalClean && clean('suppliers','purchase_bills','supplier_payments','purchase_returns','supplier_refunds'),
     journals_balanced: balanced && journalClean,
     journals_complete: !findings.some(row=>/journal|reversal/.test(row.code)),
+    historical_imports_reconciled: !blockedImports.length,
   };
 
   return {checks,period_id:period.id,end_date:period.end_date,checked_at:iso,findings_count:findings.length,findings:findings.slice(0,100),missing_reconciliations:missing,reconciliations:proof,balanced,ledger_hash:await periodLedgerHash(entries,period.end_date),can_close:!findings.length&&!missing.length&&balanced};

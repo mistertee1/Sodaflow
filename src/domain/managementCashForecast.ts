@@ -1,0 +1,19 @@
+import BigNumber from 'bignumber.js';
+import type { Document } from './store';
+import { dateOnly, ensure } from './validation';
+import type { RecurringCashSource, ScheduledCashSource } from './managementCashSources';
+
+export interface CashForecastRow { date:string; source_type:'customer_due'|'supplier_due'|'recurring_expense'|'scheduled_payment'; source_id:string; reference:string; party_name:string; inflow_sdg:number; inflow_usd:number; outflow_sdg:number; outflow_usd:number }
+const add=(a:number,b:number)=>new BigNumber(a).plus(b).toNumber();
+const nextOccurrence=(date:string,frequency:RecurringCashSource['frequency'])=>{const value=new Date(`${date}T00:00:00Z`);if(frequency==='weekly')value.setUTCDate(value.getUTCDate()+7);else value.setUTCMonth(value.getUTCMonth()+(frequency==='monthly'?1:frequency==='quarterly'?3:12));return value.toISOString().slice(0,10);};
+export function cashForecast(asOfInput:string,horizonDaysInput:number,receivables:Document[],payables:Document[],recurring:RecurringCashSource[]=[],scheduled:ScheduledCashSource[]=[]){
+  const as_of=dateOnly(asOfInput),horizon_days=Math.trunc(horizonDaysInput);ensure(horizon_days>=1&&horizon_days<=365,'فترة التوقع يجب أن تكون بين يوم و365 يوماً.');
+  const end_date=new Date(Date.parse(`${as_of}T00:00:00Z`)+horizon_days*86400000).toISOString().slice(0,10),rows:CashForecastRow[]=[];
+  for(const row of receivables){const due=dateOnly(row.due_date);if(due>end_date)continue;const sdg=Number(row.remaining_sdg||0),usd=Number(row.remaining_usd||0);if(sdg<=0&&usd<=0)continue;rows.push({date:due<as_of?as_of:due,source_type:'customer_due',source_id:String(row.source_id),reference:String(row.source_reference||row.invoice_number||row.source_id),party_name:String(row.customer_name||''),inflow_sdg:sdg,inflow_usd:usd,outflow_sdg:0,outflow_usd:0});}
+  for(const row of payables){const due=dateOnly(row.due_date);if(due>end_date)continue;const sdg=Number(row.remaining_sdg||0),usd=Number(row.remaining_usd||0);if(sdg<=0&&usd<=0)continue;rows.push({date:due<as_of?as_of:due,source_type:'supplier_due',source_id:String(row.source_id),reference:String(row.reference||row.source_id),party_name:String(row.supplier_name||''),inflow_sdg:0,inflow_usd:0,outflow_sdg:sdg,outflow_usd:usd});}
+  for(const source of recurring)if(source.status==='active'){let due=source.next_date,count=0;while(due<=end_date&&(!source.end_date||due<=source.end_date)){if(due>=as_of)rows.push({date:due,source_type:'recurring_expense',source_id:source.id,reference:source.name,party_name:'',inflow_sdg:0,inflow_usd:0,outflow_sdg:source.amount_sdg,outflow_usd:source.amount_usd});due=nextOccurrence(due,source.frequency);ensure(++count<=366,'عدد تكرارات مصدر التوقع تجاوز الحد الآمن.');}}
+  for(const source of scheduled)if(source.status==='scheduled'&&source.due_date<=end_date){const date=source.due_date<as_of?as_of:source.due_date,isIn=source.direction==='inflow';rows.push({date,source_type:'scheduled_payment',source_id:source.id,reference:source.reference||source.name,party_name:source.party_name||'',inflow_sdg:isIn?source.amount_sdg:0,inflow_usd:isIn?source.amount_usd:0,outflow_sdg:isIn?0:source.amount_sdg,outflow_usd:isIn?0:source.amount_usd});}
+  rows.sort((a,b)=>a.date.localeCompare(b.date)||a.source_type.localeCompare(b.source_type)||a.source_id.localeCompare(b.source_id));
+  const totals=rows.reduce((sum,row)=>({inflow_sdg:add(sum.inflow_sdg,row.inflow_sdg),inflow_usd:add(sum.inflow_usd,row.inflow_usd),outflow_sdg:add(sum.outflow_sdg,row.outflow_sdg),outflow_usd:add(sum.outflow_usd,row.outflow_usd)}),{inflow_sdg:0,inflow_usd:0,outflow_sdg:0,outflow_usd:0});
+  return{as_of,end_date,horizon_days,rows,totals:{...totals,net_sdg:add(totals.inflow_sdg,-totals.outflow_sdg),net_usd:add(totals.inflow_usd,-totals.outflow_usd)},coverage:{customer_due_dates:true,supplier_due_dates:true,recurring_expenses:true,scheduled_payments:true}};
+}

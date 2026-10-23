@@ -7,7 +7,13 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "historical-staging-fixture-20261023",
+    "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+    "acquired_at": "2026-10-23T03:43:00Z",
+    "expires_at": "2026-10-23T04:43:00Z",
+    "purpose": "Complete isolated server security-verifier fixture required by staging"
+  },
   "milestones": [
     {
       "id": "A1",

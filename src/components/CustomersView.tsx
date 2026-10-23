@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import { CURRENCIES, currencyLabel, phoneRegion, transactionCurrency, whatsAppUrl } from '../lib/currencyCatalog';
 import React, { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
@@ -20,7 +21,7 @@ import {
   AlertCircle,
   Lock,
 } from 'lucide-react';
-import { formatMoney, getInvoiceStatusInfo } from '../lib/currency';
+import { getInvoiceStatusInfo } from '../lib/currency';
 import { getPlanConfig, isUnlimited } from '../lib/plans';
 import { OperationalCenter } from './accounting/OperationalCenter';
 import { Dialog } from './Dialog';
@@ -34,6 +35,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
   onOpenNewInvoiceForCustomer,
   onViewInvoice,
 }) => {
+  const { formatMoney, nativeMoney, pair, enabled } = useDisplayMoney();
   const {
     customers,
     invoices,
@@ -166,8 +168,7 @@ export const CustomersView: React.FC<CustomersViewProps> = ({
 التاريخ: ${new Date().toISOString().split('T')[0]}
 
 الرصيد المستحق الحالي:
-• بالجنيه السوداني: *${formatMoney(cust.balance_sdg, 'SDG', settings)}*
-• بالدولار الأمريكي: *${formatMoney(cust.balance_usd, 'USD', settings)}*
+• الرصيد المستحق: *${pair(cust.balance_sdg, cust.balance_usd)}*
 
 شكراً لتعاملكم الدائم معنا.
 ${settings.phone}`;
@@ -288,10 +289,10 @@ ${settings.phone}`;
                             hasDebt ? 'text-sf-danger font-semibold' : 'text-sf-text'
                           }`}
                         >
-                          {formatMoney(cust.balance_sdg, 'SDG', settings)}
+                          {enabled ? pair(cust.balance_sdg, cust.balance_usd) : nativeMoney(cust.balance_sdg, 'SDG', settings)}
                         </span>
-                        <span className="font-mono text-xs text-sf-text font-semibold">
-                          ({formatMoney(cust.balance_usd, 'USD', settings)})
+                        <span hidden={enabled} className="font-mono text-xs text-sf-text font-semibold">
+                          ({enabled ? '' : nativeMoney(cust.balance_usd, 'USD', settings)})
                         </span>
                       </div>
                     </div>
@@ -509,13 +510,13 @@ ${settings.phone}`;
                     صافي الرصيد المستحق على العميل:
                   </span>
                   <div className="font-mono font-semibold text-xl text-sf-warning">
-                    {formatMoney(statementCustomer.balance_sdg, 'SDG', settings)}
+                    {enabled ? pair(statementCustomer.balance_sdg, statementCustomer.balance_usd) : nativeMoney(statementCustomer.balance_sdg, 'SDG', settings)}
                   </div>
                 </div>
-                <div className="text-left font-mono">
+                <div className="text-left font-mono" hidden={enabled}>
                   <span className="text-xs text-sf-muted block">ما يعادل بالدولار:</span>
                   <span className="font-semibold text-base text-sf-action">
-                    {formatMoney(statementCustomer.balance_usd, 'USD', settings)}
+                    {enabled ? '' : nativeMoney(statementCustomer.balance_usd, 'USD', settings)}
                   </span>
                 </div>
               </div>
@@ -546,7 +547,7 @@ ${settings.phone}`;
                               </span>
                             </div>
                             <span className="text-xs text-sf-muted block mt-1">
-                              {inv.issue_date} • سعر الصرف: 1$ = {formatMoney(inv.exchange_rate_used, 'SDG', settings)}
+                              {inv.issue_date} • سعر الصرف: 1$ = {nativeMoney(inv.exchange_rate_used, 'SDG', settings)}
                             </span>
                           </div>
                           <div className="text-left">
@@ -580,7 +581,7 @@ ${settings.phone}`;
                           <span className="text-sf-text mr-2">• فاتورة #{p.invoice_number}</span>
                         </div>
                         <span className="font-mono font-semibold text-sf-text">
-                          {formatMoney(p.amount, p.currency, settings)}
+                          {formatMoney(p.amount, p.currency, { ...settings, currency_rates: p.currency_rates_used || settings.currency_rates })}
                         </span>
                       </div>
                     ))}

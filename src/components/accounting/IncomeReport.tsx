@@ -1,10 +1,13 @@
 import React from 'react';
-import { formatMoney } from '../../lib/currency';
+import { formatDisplayMoney, displayBookLabel } from '../../lib/displayCurrency';
 import type { MerchantSettings } from '../../types';
 import { calculateTrialBalance, calculateIncomeStatement, calculateBalanceSheet, calculateCashFlowStatement } from '../../services/accountingService';
 import { BookOpen, Plus, RotateCcw, CheckCircle2, AlertCircle, Search, Filter, ArrowDownLeft, ArrowUpRight, TrendingUp, FileSpreadsheet, Coins, DollarSign, Layers, Scale, Calendar, Tag, ShieldCheck, Lock, Unlock, Landmark, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 interface Props { trialBalance: ReturnType<typeof calculateTrialBalance>; incomeStatement: ReturnType<typeof calculateIncomeStatement>; balanceSheet: ReturnType<typeof calculateBalanceSheet>; cashFlow: ReturnType<typeof calculateCashFlowStatement>; settings: MerchantSettings; theme: 'light'|'dark'; }
-export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, balanceSheet, cashFlow, settings, theme }) => (
+export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, balanceSheet, cashFlow, settings, theme }) => {
+  const formatMoney = (value: number, source: string) => formatDisplayMoney(value, source, settings);
+  const bookLabel = (source: string) => displayBookLabel(source, settings);
+  return (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Sales Revenue */}
@@ -109,4 +112,4 @@ export const IncomeReport: React.FC<Props> = ({ trialBalance, incomeStatement, b
         </div>
 
 );
-
+};

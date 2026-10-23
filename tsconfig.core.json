@@ -62,6 +62,9 @@
     "tests/usdReferenceFirestore.test.ts",
     "tests/productUniqueness.test.ts",
     "tests/productUniquenessFirestore.test.ts",
-    "tests/ui/productUniqueness.spec.ts"
+    "tests/ui/productUniqueness.spec.ts",
+    "tests/displayCurrency.test.ts",
+    "tests/displayCurrencyFirestore.test.ts",
+    "tests/ui/displayCurrency.spec.ts"
   ]
 }

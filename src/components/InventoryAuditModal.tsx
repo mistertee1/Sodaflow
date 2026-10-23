@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import { productPriceQuote, productPricingMode } from '../domain/productPricing';
 import type { Product } from '../types';
 import React, { useState } from 'react';
@@ -20,7 +21,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { formatMoney } from '../lib/currency';
+
 import { Dialog } from './Dialog';
 
 interface InventoryAuditModalProps {
@@ -29,6 +30,7 @@ interface InventoryAuditModalProps {
 }
 
 export const InventoryAuditModal: React.FC<InventoryAuditModalProps> = ({ isOpen, onClose }) => {
+  const { formatMoney, nativeMoney, bookLabel, enabled } = useDisplayMoney();
   const { products, updateProductStock, inventoryMovements, reconcileProductStock, settings } = useApp();
   const [activeTab, setActiveTab] = useState<'audit' | 'ledger' | 'reconcile'>('audit');
   const [searchTerm, setSearchTerm] = useState('');
@@ -41,7 +43,7 @@ export const InventoryAuditModal: React.FC<InventoryAuditModalProps> = ({ isOpen
   const salePrice = (product: Product) => {
     if (productPricingMode(product) === 'manual') return formatMoney(product.price_sdg, 'SDG', settings);
     const rate = settings.manual_exchange_rate && settings.manual_exchange_rate > 0 ? settings.manual_exchange_rate : settings.default_exchange_rate;
-    try { return formatMoney(productPriceQuote(product, 'SDG', rate, settings.currency_rates, settings.rounding_rule).unit_price, 'SDG', settings); }
+    try { const quote = productPriceQuote(product, 'SDG', rate, settings.currency_rates, settings.rounding_rule); return enabled ? formatMoney(quote.evidence.reference_usd, 'USD', settings) : nativeMoney(quote.unit_price, 'SDG', settings); }
     catch { return 'راجع مرجع الدولار'; }
   };
 
@@ -203,7 +205,7 @@ export const InventoryAuditModal: React.FC<InventoryAuditModalProps> = ({ isOpen
           </div>
 
           <div className="p-3 bg-sf-raised rounded-xl border border-sf-border">
-            <span className="text-xs text-sf-muted block mb-1">قيمة المخزون (ج.س)</span>
+            <span className="text-xs text-sf-muted block mb-1">قيمة المخزون ({bookLabel('SDG')})</span>
             <div className="text-sm sm:text-base font-semibold text-sf-text font-mono truncate">
               {unknownCostCount ? 'التكلفة غير مكتملة' : formatMoney(totalValueSdg, 'SDG', settings)}
             </div>

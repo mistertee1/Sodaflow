@@ -1,5 +1,5 @@
 import { CURRENCIES, currencyLabel, isForeignCurrency, normalizeWhatsAppPhone, phoneRegion, transactionCurrency } from '../lib/currencyCatalog';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { BrandLogo } from './BrandLogo';
 import {
@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { signInWithGoogle, logout } from '../lib/firebase';
 import { validateExchangeRate, formatMoney, getCurrencySymbol } from '../lib/currency';
-import { Currency, SubscriptionPlan } from '../types';
+import { Currency, SubscriptionPlan, type MerchantSettings } from '../types';
 import { TeamManagementSection } from './TeamManagementSection';
 import {
   uploadOrganizationImage,
@@ -99,6 +99,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [isSyncing, setIsSyncing] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
 
+  const currencyApplyLock = useRef(false);
+  const identity = useRef(currentOrg?.id); identity.current = currentOrg?.id;
+  const [currencyNotice, setCurrencyNotice] = useState('');
+
   // Rehydrate the form when opened or when the initial cloud snapshot becomes available.
   // Background polling must not overwrite an open form's edits.
   useEffect(() => {
@@ -118,9 +122,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     setRoundingRule(settings.rounding_rule || 'round');
     setSaveError(null);
     setSaveSuccess(false);
-  }, [isOpen, currentOrg?.id, userRole]);
+    setCurrencyNotice('');
+    setIsSaving(false);
+  }, [isOpen, currentOrg?.id, currentUser?.uid, userRole]);
 
   if (!isOpen) return null;
+
+  const manualDisplayQuote = (): NonNullable<MerchantSettings['display_currency']> => {
+    if (!validateExchangeRate(defaultRate).isValid) throw new Error('أدخل سعر الجنيه لكل دولار يدوياً لتحويل أرصدة الجنيه بصورة صحيحة.');
+    const units = dealingCurrency === 'USD' ? 1 : dealingCurrency === 'SDG' ? defaultRate : currencyRates[dealingCurrency];
+    if (!validateExchangeRate(units).isValid) throw new Error('أدخل سعر عملة النظام لكل دولار يدوياً قبل التطبيق.');
+    return { currency: dealingCurrency, units_per_usd: units!, sdg_per_usd: defaultRate };
+  };
+  const applyDisplayCurrency = async () => {
+    if (currencyApplyLock.current || isSaving || !currentOrg) return;
+    const orgId = currentOrg.id;
+    setSaveError(null); setCurrencyNotice('');
+    try {
+      const quote = manualDisplayQuote();
+      const preservedPhone = normalizeWhatsAppPhone(settings.phone, transactionCurrency(settings));
+      if (settings.phone.trim() && !preservedPhone) throw new Error('راجع رقم هاتف المؤسسة واكتبه بالمفتاح الدولي قبل تغيير العملة.');
+      currencyApplyLock.current = true; setIsSaving(true);
+      await updateSettings({ display_currency: quote, default_transaction_currency: dealingCurrency, currency_rates: isForeignCurrency(dealingCurrency) ? { [dealingCurrency]: currencyRates[dealingCurrency] } : {}, phone: preservedPhone ? '+' + preservedPhone : '', default_exchange_rate: defaultRate, manual_exchange_rate: 0, currencies_configured: true }, 'تطبيق عملة عرض موحدة بسعر يدوي مع حفظ المستندات والدفاتر الأصلية', orgId);
+      if (identity.current === orgId) { if (phone === settings.phone) setPhone(preservedPhone ? '+' + preservedPhone : ''); setCurrencyNotice(`تم تطبيق ${dealingCurrency} في شاشات النظام بالسعر اليدوي المعتمد.`); }
+    } catch (error) { if (identity.current === orgId) setSaveError(error instanceof Error ? error.message : 'تعذر تطبيق العملة. أعد المحاولة.'); }
+    finally { currencyApplyLock.current = false; if (identity.current === orgId) setIsSaving(false); }
+  };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -170,7 +197,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (isSaving) return;
+    if (isSaving || currencyApplyLock.current) return;
     setSaveError(null);
     if (isUploadingLogo) {
       alert('يرجى الانتظار حتى يكتمل رفع الشعار إلى التخزين السحابي.');
@@ -189,11 +216,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     if (phone.trim() && !normalizedPhone) { setSaveError('اكتب رقم الهاتف الدولي كاملاً بمفتاح الدولة.'); return; }
     setIsSaving(true);
     try {
+    const currencyChanged = dealingCurrency !== transactionCurrency(settings) || JSON.stringify(currencyRates) !== JSON.stringify(settings.currency_rates || {});
+    const displayUpdate = settings.display_currency || currencyChanged ? { display_currency: manualDisplayQuote() } : {};
     await updateSettings({
+      ...displayUpdate,
       business_name: businessName.trim(),
       phone: normalizedPhone ? '+' + normalizedPhone : '',
       default_transaction_currency: dealingCurrency,
-      currency_rates: currencyRates,
+      currency_rates: isForeignCurrency(dealingCurrency) ? { [dealingCurrency]: currencyRates[dealingCurrency] } : {},
       address: address.trim() || '',
       logo_url: logoUrl || '',
       bank_details: bankDetails.trim() || '',
@@ -675,18 +705,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </div>
 
             <div className="bg-sf-raised border border-sf-border rounded-xl p-4 space-y-3">
-              <label className="block text-xs font-semibold">عملة التعامل الافتراضية
-                <select aria-label="عملة التعامل الافتراضية" value={dealingCurrency} onChange={event => setDealingCurrency(event.target.value as Currency)} className="w-full min-w-0 mt-2 bg-sf-surface border border-sf-border rounded-lg px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action">
+              <label className="block text-xs font-semibold">عملة النظام والتعامل الافتراضية
+                <select aria-label="عملة التعامل الافتراضية" disabled={isSaving} value={dealingCurrency} onChange={event => { const currency = event.target.value as Currency; setDealingCurrency(currency); if (isForeignCurrency(currency) && currency !== settings.display_currency?.currency) setCurrencyRates(previous => { const next = { ...previous }; delete next[currency]; return next; }); setCurrencyNotice(''); }} className="w-full min-w-0 mt-2 bg-sf-surface border border-sf-border rounded-lg px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action">
                   {CURRENCIES.map(row => <option key={row.code} value={row.code}>{currencyLabel(row.code)}</option>)}
                 </select>
               </label>
-              <p className="text-xs text-sf-muted">تُستخدم في الفواتير الجديدة ومفتاح واتساب. الفواتير السابقة تحتفظ بعملتها وسعرها، والدفاتر تظل بالجنيه والدولار.</p>
+              <p className="text-xs text-sf-muted">اختر العملة، أدخل السعر يدوياً ثم اضغط «تطبيق العملة والسعر». يتغير العرض في الشاشات والتقارير، وعملة الفواتير الجديدة ومفتاح واتساب. الفواتير وسندات القبض السابقة تبقى بأصلها؛ لا يُرحّل أو يُعاد تقييم أي قيد.</p>
               <p className="text-xs" data-testid="settings-phone-prefix">مفتاح واتساب الافتراضي: <bdi dir="ltr">+{phoneRegion(dealingCurrency).dialCode}</bdi></p>
               {isForeignCurrency(dealingCurrency) && <label className="block text-xs font-semibold">سعر العملة لكل دولار
-                <input aria-label="سعر عملة التعامل لكل دولار" type="number" min="0.00000001" step="any" value={currencyRates[dealingCurrency] || ''} onChange={event => setCurrencyRates(previous => { const next = { ...previous }; if (event.target.value === '') delete next[dealingCurrency]; else next[dealingCurrency] = Number(event.target.value); return next; })} className="w-full min-w-0 mt-2 bg-sf-surface border border-sf-border rounded-lg px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action" />
+                <input aria-label="سعر عملة التعامل لكل دولار" disabled={isSaving} type="number" min="0.00000001" step="any" value={currencyRates[dealingCurrency] || ''} onChange={event => setCurrencyRates(previous => { const next = { ...previous }; if (event.target.value === '') delete next[dealingCurrency]; else next[dealingCurrency] = Number(event.target.value); return next; })} className="w-full min-w-0 mt-2 bg-sf-surface border border-sf-border rounded-lg px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action" />
                 <span className="block mt-1" dir="ltr">1 USD = {currencyRates[dealingCurrency] || '…'} {dealingCurrency}</span>
                 <span className="block mt-1 text-sf-muted">أدخل السعر المعتمد عندك؛ لا تُفترض أسعار سوق تلقائية.</span>
               </label>}
+              <p className="text-xs text-sf-muted">أساس تحويل أرصدة الجنيه: 1 USD = {defaultRate || '…'} SDG؛ عدله في الحقل أدناه. إذا اختلف مقابل الدفترين يعرض كل مقابل مع اسم دفتره، دون جمع أو تغيير الأصل.</p>
+              <button type="button" className="sf-action" disabled={isSaving || !currentOrg || !isActionAllowed('org:update_settings')} onClick={() => void applyDisplayCurrency()}>{isSaving ? 'جارٍ التطبيق…' : 'تطبيق العملة والسعر'}</button>
+              {currencyNotice && <p role="status" className="text-xs text-sf-success">{currencyNotice}</p>}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

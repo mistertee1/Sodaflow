@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import { InvoiceStatus } from './InvoiceStatus';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
@@ -21,13 +22,7 @@ import {
   Sparkles,
   BookOpen,
 } from 'lucide-react';
-import {
-  formatMoney,
-  convertCurrency,
-  getInvoiceStatusInfo,
-  safeAdd,
-  validateExchangeRate,
-} from '../lib/currency';
+import { convertCurrency, getInvoiceStatusInfo, safeAdd, validateExchangeRate,  } from '../lib/currency';
 import { Invoice } from '../types';
 import { TopProductsChart } from './TopProductsChart';
 import { InventoryAuditModal } from './InventoryAuditModal';
@@ -57,6 +52,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigateToTab,
   onNavigate,
 }) => {
+  const { nativeMoney, pair, enabled, code: displayCode } = useDisplayMoney();
   const { invoices, customers, products, settings, updateSettings, counters } = useApp();
   const [isInventoryAuditOpen, setIsInventoryAuditOpen] = useState(false);
   const [shareInvoice, setShareInvoice] = useState<Invoice | null>(null);
@@ -137,12 +133,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   // Calculator Result
   const parsedCalcAmount = parseFloat(calcAmount) || 0;
-  const convertedCalcResult =
-    parsedCalcAmount > 0 && currentRate > 0
-      ? (calcFrom === 'USD'
-          ? convertCurrency(parsedCalcAmount, 'USD', 'SDG', currentRate, settings)
-          : convertCurrency(parsedCalcAmount, 'SDG', 'USD', currentRate, settings))
-      : 0;
+  const calcCurrency = enabled ? displayCode : 'SDG';
+  const calcRate = settings.display_currency?.sdg_per_usd || currentRate;
+  const calcSettings = { ...settings, currency_rates: { ...settings.currency_rates, ...(settings.display_currency && !['USD','SDG'].includes(displayCode) ? { [displayCode]: settings.display_currency.units_per_usd } : {}) } };
+  const convertedCalcResult = parsedCalcAmount > 0 && calcRate > 0
+    ? calcFrom === 'USD' ? convertCurrency(parsedCalcAmount, 'USD', calcCurrency, calcRate, calcSettings) : convertCurrency(parsedCalcAmount, calcCurrency, 'USD', calcRate, calcSettings)
+    : 0;
+
 
   // Recent 5 invoices
   const recentInvoices = [...invoices]
@@ -163,7 +160,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {settings.business_name ? `مرحبًا بك في لوحة تحكم ${settings.business_name}` : 'مرحبًا بك في لوحة تحكم حسابك'}
           </h2>
           <p className="text-xs sm:text-sm text-sf-muted leading-relaxed">
-            تابع مبيعاتك، تحصيلاتك، الفواتير المتأخرة، والمخزون المتبقي لحظياً بالعملتين (ج.س والدولار) مع تجميد سعر الصرف لكل فاتورة.
+            {enabled ? `تابع مبيعاتك وتحصيلاتك والمخزون بعملة العرض ${displayCode} بالسعر اليدوي المعتمد.` : 'تابع مبيعاتك وتحصيلاتك والمخزون بالعملتين مع تجميد سعر الصرف لكل فاتورة.'}
           </p>
         </div>
       </div>
@@ -179,13 +176,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-semibold text-sm text-sf-text">تعديل سعر الصرف المعتمد يدويًا</h3>
+                <h3 className="font-semibold text-sm text-sf-text">سعر صرف الدفاتر والفواتير الجديدة (SDG لكل USD)</h3>
                 <span className="font-mono font-semibold text-xs px-3 py-1 rounded-full bg-sf-selected/90 text-sf-text border border-sf-action/60">
                   1 $ = {settings.default_exchange_rate.toLocaleString()} ج.س
                 </span>
               </div>
               <p className="text-xs text-sf-muted mt-1">
-                يمكنك كتابة السعر يدوياً في أي وقت، وسيتم اعتماده للفواتير الجديدة والحسابات فوراً دون المساس بالفواتير السابقة.
+                يمكنك كتابة السعر يدوياً للفواتير الجديدة. عملة العرض وسعرها يطبقان من إعدادات المؤسسة، والمستندات السابقة تبقى بأصلها.
               </p>
             </div>
           </div>
@@ -299,11 +296,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="flex items-center gap-2 text-xs font-mono">
             <span className="text-sf-muted">إجمالي المتأخرات:</span>
             <span className="text-sf-danger font-semibold">
-              {formatMoney(totalOverdueSdg, 'SDG', settings)}
+              {enabled ? pair(totalOverdueSdg, totalOverdueUsd) : nativeMoney(totalOverdueSdg, 'SDG', settings)}
             </span>
             <span className="text-sf-muted">|</span>
             <span className="text-sf-text font-semibold">
-              {formatMoney(totalOverdueUsd, 'USD', settings)}
+              {enabled ? '' : nativeMoney(totalOverdueUsd, 'USD', settings)}
             </span>
           </div>
         </div>
@@ -358,10 +355,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     <div className="text-left">
                       <div className="text-xs text-sf-muted">المبلغ المتبقي:</div>
                       <div className="font-mono font-semibold text-sm text-sf-danger">
-                        {formatMoney(inv.remaining_sdg, 'SDG', settings)}
+                        {enabled ? pair(inv.remaining_sdg, inv.remaining_usd) : nativeMoney(inv.remaining_sdg, 'SDG', settings)}
                       </div>
                       <div className="font-mono text-xs text-sf-text">
-                        {formatMoney(inv.remaining_usd, 'USD', settings)}
+                        {enabled ? '' : nativeMoney(inv.remaining_usd, 'USD', settings)}
                       </div>
                     </div>
 
@@ -413,11 +410,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div>
             <div className="text-2xl font-semibold text-sf-text font-mono tracking-tight">
-              {formatMoney(totalSalesSdg, 'SDG', settings)}
+              {enabled ? pair(totalSalesSdg, totalSalesUsd) : nativeMoney(totalSalesSdg, 'SDG', settings)}
             </div>
             <div className="text-sm font-semibold text-sf-text mt-1 font-mono flex items-center gap-1">
-              <span>ما يعادل:</span>
-              <span>{formatMoney(totalSalesUsd, 'USD', settings)}</span>
+              <span hidden={enabled}>ما يعادل:</span>
+              <span>{enabled ? '' : nativeMoney(totalSalesUsd, 'USD', settings)}</span>
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-sf-border flex items-center justify-between text-xs text-sf-muted">
@@ -441,11 +438,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <div>
             <div className="text-2xl font-semibold text-sf-warning font-mono tracking-tight">
-              {formatMoney(totalReceivablesSdg, 'SDG', settings)}
+              {enabled ? pair(totalReceivablesSdg, totalReceivablesUsd) : nativeMoney(totalReceivablesSdg, 'SDG', settings)}
             </div>
             <div className="text-sm font-semibold text-sf-text mt-1 font-mono flex items-center gap-1">
-              <span>+ مبالغ بالدولار:</span>
-              <span className="text-sf-warning font-semibold">{formatMoney(totalReceivablesUsd, 'USD', settings)}</span>
+              <span hidden={enabled}>+ مبالغ بالدولار:</span>
+              <span className="text-sf-warning font-semibold">{enabled ? '' : nativeMoney(totalReceivablesUsd, 'USD', settings)}</span>
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-sf-border flex items-center justify-between text-xs text-sf-muted">
@@ -569,7 +566,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div>
               <h4 className="font-semibold text-sm text-sf-text">حاسبة تحويل العملات السريعة</h4>
               <p className="text-xs text-sf-muted">
-                حساب فوري للمبالغ بسعر السوق المعتمد ({currentRate > 0 ? `1$ = ${formatMoney(currentRate, 'SDG', settings)}` : 'سعر الصرف غير محدد بالإعدادات'})
+                حساب فوري للمبالغ بسعر السوق المعتمد ({settings.display_currency ? `1 USD = ${nativeMoney(settings.display_currency.units_per_usd, displayCode, settings)}` : currentRate > 0 ? `1 USD = ${nativeMoney(currentRate, 'SDG', settings)}` : 'سعر الصرف غير محدد بالإعدادات'})
               </p>
             </div>
           </div>
@@ -585,7 +582,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
           <div className="sm:col-span-5">
             <label className="block text-xs font-medium text-sf-muted mb-1">
-              المبلغ المراد تحويله ({calcFrom === 'USD' ? 'دولار أمريكي $' : 'جنيه سوداني ج.س'})
+              المبلغ المراد تحويله ({calcFrom === 'USD' ? 'USD' : calcCurrency})
             </label>
             <div className="relative">
               <input
@@ -596,7 +593,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 placeholder="أدخل المبلغ..."
               />
               <span className="absolute left-3 top-2.5 text-xs text-sf-muted font-sans">
-                {calcFrom === 'USD' ? 'USD' : 'SDG'}
+                {calcFrom === 'USD' ? 'USD' : calcCurrency}
               </span>
             </div>
           </div>
@@ -609,8 +606,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="text-xs font-medium text-sf-muted mb-1">القيمة المقابلة فورًا:</div>
             <div className="text-lg sm:text-xl font-semibold text-sf-text font-mono">
               {calcFrom === 'USD'
-                ? formatMoney(convertedCalcResult, 'SDG', settings)
-                : formatMoney(convertedCalcResult, 'USD', settings)}
+                ? nativeMoney(convertedCalcResult, calcCurrency, settings)
+                : nativeMoney(convertedCalcResult, 'USD', settings)}
             </div>
           </div>
         </div>
@@ -673,21 +670,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       {inv.customer_name}
                     </div>
                     <div className="text-xs text-sf-muted">
-                      سعر الصرف المجمّد: 1$ = {formatMoney(inv.exchange_rate_used, 'SDG', settings)}
+                      سعر الصرف المجمّد: 1$ = {nativeMoney(inv.exchange_rate_used, 'SDG', settings)}
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between sm:justify-end gap-4">
                     <div className="text-left">
                       <div className="font-mono font-semibold text-sm text-sf-text">
-                        {formatMoney(inv.grand_total_sdg, 'SDG', settings)}
+                        {enabled ? pair(inv.grand_total_sdg, inv.grand_total_usd) : nativeMoney(inv.grand_total_sdg, 'SDG', settings)}
                       </div>
                       <div className="font-mono text-xs text-sf-text font-semibold">
-                        {formatMoney(inv.grand_total_usd, 'USD', settings)}
+                        {enabled ? '' : nativeMoney(inv.grand_total_usd, 'USD', settings)}
                       </div>
                       {inv.remaining_sdg > 0 && inv.status !== 'paid' && (
                         <div className="text-xs text-sf-danger font-mono font-semibold">
-                          متبقي: {formatMoney(inv.remaining_sdg, 'SDG', settings)}
+                          متبقي: {enabled ? pair(inv.remaining_sdg, inv.remaining_usd) : nativeMoney(inv.remaining_sdg, 'SDG', settings)}
                         </div>
                       )}
                     </div>

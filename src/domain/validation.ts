@@ -55,6 +55,15 @@ export function validateSettings(settings: MerchantSettings): MerchantSettings {
   ensure(['SDG', 'USD'].includes(settings.primary_currency) && ['SDG', 'USD'].includes(settings.secondary_currency), 'المحاسبة تدعم الجنيه والدولار حالياً.');
   if (settings.default_transaction_currency !== undefined) ensure(isSupportedCurrency(settings.default_transaction_currency), 'عملة التعامل غير مدعومة.');
   validateCurrencyRates(settings.currency_rates);
+  if (settings.display_currency !== undefined) {
+    const quote = settings.display_currency;
+    ensure(!!quote && typeof quote === 'object' && !Array.isArray(quote) && Object.keys(quote).every(key => ['currency', 'units_per_usd', 'sdg_per_usd'].includes(key)), 'إعداد عملة العرض غير صالح.');
+    ensure(isSupportedCurrency(quote.currency), 'عملة العرض غير مدعومة.');
+    money(quote.units_per_usd, 8, true); money(quote.sdg_per_usd, 8, true);
+    ensure(quote.units_per_usd <= 10_000_000_000 && quote.sdg_per_usd <= 10_000_000_000, 'سعر العرض يتجاوز الحد المقبول.');
+    ensure(quote.currency !== 'USD' || quote.units_per_usd === 1, 'الدولار هو مرجع التحويل: سعره واحد.');
+    ensure(quote.currency !== 'SDG' || quote.units_per_usd === quote.sdg_per_usd, 'سعر عرض الجنيه يجب أن يطابق سعر الجنيه لكل دولار.');
+  }
   // The ledger uses whole SDG and USD cents; changing precision would reinterpret historical postings.
   ensure(settings.sdg_decimals === 0 && settings.usd_decimals === 2, 'دقة الدفاتر: الجنيه بدون كسور والدولار بدقتين عشريتين.');
   ensure(['round', 'ceil', 'floor'].includes(settings.rounding_rule), 'قاعدة التقريب غير صالحة.');

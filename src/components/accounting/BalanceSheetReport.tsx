@@ -1,10 +1,13 @@
 import React from 'react';
-import { formatMoney } from '../../lib/currency';
+import { formatDisplayMoney, displayBookLabel } from '../../lib/displayCurrency';
 import type { MerchantSettings } from '../../types';
 import { calculateTrialBalance, calculateIncomeStatement, calculateBalanceSheet, calculateCashFlowStatement } from '../../services/accountingService';
 import { BookOpen, Plus, RotateCcw, CheckCircle2, AlertCircle, Search, Filter, ArrowDownLeft, ArrowUpRight, TrendingUp, FileSpreadsheet, Coins, DollarSign, Layers, Scale, Calendar, Tag, ShieldCheck, Lock, Unlock, Landmark, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 interface Props { trialBalance: ReturnType<typeof calculateTrialBalance>; incomeStatement: ReturnType<typeof calculateIncomeStatement>; balanceSheet: ReturnType<typeof calculateBalanceSheet>; cashFlow: ReturnType<typeof calculateCashFlowStatement>; settings: MerchantSettings; theme: 'light'|'dark'; }
-export const BalanceSheetReport: React.FC<Props> = ({ trialBalance, incomeStatement, balanceSheet, cashFlow, settings, theme }) => (
+export const BalanceSheetReport: React.FC<Props> = ({ trialBalance, incomeStatement, balanceSheet, cashFlow, settings, theme }) => {
+  const formatMoney = (value: number, source: string) => formatDisplayMoney(value, source, settings);
+  const bookLabel = (source: string) => displayBookLabel(source, settings);
+  return (
         <div className="space-y-6">
           {/* Top Equation and Balance Badge */}
           <div className="bg-sf-surface border border-sf-border rounded-xl p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -31,7 +34,7 @@ export const BalanceSheetReport: React.FC<Props> = ({ trialBalance, incomeStatem
             <div className="flex items-center gap-2">
               <span className="text-xs text-sf-muted">العملة المرجعية:</span>
               <span className="text-xs font-mono font-semibold px-2 py-1 rounded bg-sf-raised text-sf-action border border-sf-border">
-                SDG / USD
+                {bookLabel('SDG')} / {bookLabel('USD')}
               </span>
             </div>
           </div>
@@ -94,7 +97,7 @@ export const BalanceSheetReport: React.FC<Props> = ({ trialBalance, incomeStatem
                     <tr>
                       <th className="py-2 px-3">الرمز</th>
                       <th className="py-2 px-3">الحساب</th>
-                      <th className="py-2 px-3">الرصيد (ج.س)</th>
+                      <th className="py-2 px-3">الرصيد ({bookLabel('SDG')})</th>
                       <th className="py-2 px-3">الرصيد ($)</th>
                     </tr>
                   </thead>
@@ -218,4 +221,4 @@ export const BalanceSheetReport: React.FC<Props> = ({ trialBalance, incomeStatem
         </div>
 
 );
-
+};

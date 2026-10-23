@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import { CURRENCIES, currencyDecimals, currencyLabel, isForeignCurrency } from '../lib/currencyCatalog';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
@@ -22,6 +23,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onPaymentRecorded,
 }) => {
   const { recordPayment, settings } = useApp();
+  const display = useDisplayMoney();
 
   const [amount, setAmount] = useState<number>(0);
   const [currency, setCurrency] = useState<Currency>('SDG');
@@ -150,13 +152,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           <div className="flex justify-between text-sf-muted">
             <span>إجمالي الفاتورة:</span>
             <span className="font-mono font-semibold text-sf-text">
-              {formatMoney(invoice.grand_total_sdg, 'SDG', settings)} ({formatMoney(invoice.grand_total_usd, 'USD', settings)})
+              {display.pair(invoice.grand_total_sdg, invoice.grand_total_usd)}
             </span>
           </div>
           <div className="flex justify-between text-sf-danger font-semibold pt-1 border-t border-sf-border">
             <span>المتبقي المطلوب:</span>
             <span className="font-mono">
-              {formatMoney(invoice.remaining_sdg, 'SDG', settings)} ({formatMoney(invoice.remaining_usd, 'USD', settings)})
+              {display.pair(invoice.remaining_sdg, invoice.remaining_usd)}
             </span>
           </div>
         </div>
@@ -239,7 +241,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </span>
             </div>
             <div className="flex items-center justify-between text-xs text-sf-muted mt-1">
-              <span>سعر الصرف عند إصدار الفاتورة: 1$ = {formatMoney(invRate, 'SDG', settings)}</span>
+              <span>سعر الصرف الأصلي عند إصدار الفاتورة: 1$ = {formatMoney(invRate, 'SDG', settings)}</span>
             </div>
           </div>
 

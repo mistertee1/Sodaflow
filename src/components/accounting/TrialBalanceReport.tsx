@@ -1,10 +1,13 @@
 import React from 'react';
-import { formatMoney } from '../../lib/currency';
+import { formatDisplayMoney, displayBookLabel } from '../../lib/displayCurrency';
 import type { MerchantSettings } from '../../types';
 import { calculateTrialBalance, calculateIncomeStatement, calculateBalanceSheet, calculateCashFlowStatement } from '../../services/accountingService';
 import { BookOpen, Plus, RotateCcw, CheckCircle2, AlertCircle, Search, Filter, ArrowDownLeft, ArrowUpRight, TrendingUp, FileSpreadsheet, Coins, DollarSign, Layers, Scale, Calendar, Tag, ShieldCheck, Lock, Unlock, Landmark, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 interface Props { trialBalance: ReturnType<typeof calculateTrialBalance>; incomeStatement: ReturnType<typeof calculateIncomeStatement>; balanceSheet: ReturnType<typeof calculateBalanceSheet>; cashFlow: ReturnType<typeof calculateCashFlowStatement>; settings: MerchantSettings; theme: 'light'|'dark'; }
-export const TrialBalanceReport: React.FC<Props> = ({ trialBalance, incomeStatement, balanceSheet, cashFlow, settings, theme }) => (
+export const TrialBalanceReport: React.FC<Props> = ({ trialBalance, incomeStatement, balanceSheet, cashFlow, settings, theme }) => {
+  const formatMoney = (value: number, source: string) => formatDisplayMoney(value, source, settings);
+  const bookLabel = (source: string) => displayBookLabel(source, settings);
+  return (
         <div className="space-y-4">
           {/* Status Header */}
           <div className="bg-sf-surface border border-sf-border rounded-xl p-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -30,14 +33,14 @@ export const TrialBalanceReport: React.FC<Props> = ({ trialBalance, incomeStatem
 
             <div className="flex items-center gap-4 text-xs font-mono">
               <div className="text-right">
-                <span className="text-sf-muted block text-xs">مجموع المدين (ج.س)</span>
+                <span className="text-sf-muted block text-xs">مجموع المدين ({bookLabel('SDG')})</span>
                 <span className="font-semibold text-sf-text text-sm">
                   {formatMoney(trialBalance.totalDebitSdg, 'SDG')}
                 </span>
               </div>
               <div className="h-8 w-px bg-sf-raised"></div>
               <div className="text-right">
-                <span className="text-sf-muted block text-xs">مجموع الدائن (ج.س)</span>
+                <span className="text-sf-muted block text-xs">مجموع الدائن ({bookLabel('SDG')})</span>
                 <span className="font-semibold text-sf-warning text-sm">
                   {formatMoney(trialBalance.totalCreditSdg, 'SDG')}
                 </span>
@@ -53,9 +56,9 @@ export const TrialBalanceReport: React.FC<Props> = ({ trialBalance, incomeStatem
                   <tr>
                     <th className="py-3 px-4">رمز الحساب</th>
                     <th className="py-3 px-4">اسم الحساب</th>
-                    <th className="py-3 px-4">مجموع المدين (ج.س)</th>
-                    <th className="py-3 px-4">مجموع الدائن (ج.س)</th>
-                    <th className="py-3 px-4">الرصيد الصافي (ج.س)</th>
+                    <th className="py-3 px-4">مجموع المدين ({bookLabel('SDG')})</th>
+                    <th className="py-3 px-4">مجموع الدائن ({bookLabel('SDG')})</th>
+                    <th className="py-3 px-4">الرصيد الصافي ({bookLabel('SDG')})</th>
                     <th className="py-3 px-4">الرصيد الصافي ($)</th>
                   </tr>
                 </thead>
@@ -103,3 +106,4 @@ export const TrialBalanceReport: React.FC<Props> = ({ trialBalance, incomeStatem
         </div>
 
 );
+};

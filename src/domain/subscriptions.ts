@@ -6,9 +6,18 @@ import { BusinessError } from './validation';
 export type LegacySubscriptionPolicy = (saved: Document | undefined, orgId: string) => OrgSubscription;
 export const subscriptionStatus = (status: string): SubscriptionStatus => status === 'trialing' ? 'trial' : status === 'past_due' ? 'expired' : status === 'canceled' ? 'cancelled' : ['trial', 'active', 'suspended', 'expired', 'cancelled'].includes(status) ? status as SubscriptionStatus : 'expired';
 
-export async function loadSubscription(tx: Transaction, orgId: string, org: Organization, now: Date, legacyPolicy: LegacySubscriptionPolicy = (_saved, id) => createDefaultSubscription(id)): Promise<OrgSubscription> {
+export async function loadSubscription(tx: Transaction, orgId: string, org: Organization, now: Date, legacyPolicy: LegacySubscriptionPolicy = (_saved, id) => createDefaultSubscription(id), controlsEnabled = true): Promise<OrgSubscription> {
   const saved = await tx.get(`organizations/${orgId}/meta/subscription`);
   const legacy = legacyPolicy(saved, orgId);
+  // Effective access only: canonical billing documents and usage remain untouched.
+  if (!controlsEnabled) {
+    const full = defaultPlatformPlans(now.toISOString()).find(plan => plan.id === 'Enterprise')!;
+    return { ...legacy, plan: org.planId || legacy.plan, plan_id: org.planId || legacy.plan,
+      status: 'active', effective_status: 'active', subscription_end: null, renewal_at: null,
+      max_members: 999999, max_branches: 999999, max_warehouses: 999999,
+      max_invoices_per_month: 999999, max_invoices_total: 999999,
+      max_customers: 999999, max_products: 999999, features: { ...full.features } as OrgSubscription['features'] };
+  }
   const planId = org.planId || legacy.plan;
   const defaults = defaultPlatformPlans(org.created_at || now.toISOString());
   const plan = (await tx.get(`plans/${planId}`) || defaults.find(p => p.id === planId)) as PlatformPlan | undefined;

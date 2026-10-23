@@ -11,6 +11,8 @@ export const INITIAL_SETTINGS: MerchantSettings = {
   freeze_exchange_rate: true, // تفعيل خيار تجميد سعر الصرف للفواتير لحماية العمليات المحاسبية
   freeze_invoice_exchange_rate: true, // مرادف متوافق
   primary_currency: 'SDG',
+  default_transaction_currency: 'SDG',
+  currency_rates: {},
   secondary_currency: 'USD',
   currencies_configured: false, // Organization must explicitly review and confirm currency configuration
   sdg_decimals: 0,

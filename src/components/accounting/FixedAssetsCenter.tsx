@@ -22,7 +22,7 @@ export function FixedAssetsCenter() {
   const scope = useRef({org: a.currentOrg?.id, uid: a.currentUser?.uid});
   const current = useRef(scope.current); current.current = {org: a.currentOrg?.id, uid: a.currentUser?.uid};
   useEffect(() => {mounted.current = true; return () => {mounted.current = false;};}, []);
-  const allowed = ['Owner', 'Accountant'].includes(a.userRole) && a.isActionAllowed('journal:create') && a.isActionAllowed('periods:adjust');
+  const allowed = a.isActionAllowed('journal:create') && a.isActionAllowed('periods:adjust');
   const permissionNow = useRef(allowed), revisionNow = useRef(a.counters.revision);
   permissionNow.current = allowed; revisionNow.current = a.counters.revision;
   const sourceLines = useMemo(() => a.journalEntries.flatMap(entry => entry.lines.flatMap((line, index) => {

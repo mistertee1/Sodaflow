@@ -1,3 +1,4 @@
+import { CURRENCIES, currencyLabel, isForeignCurrency, normalizeWhatsAppPhone, phoneRegion, transactionCurrency } from '../lib/currencyCatalog';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { BrandLogo } from './BrandLogo';
@@ -68,6 +69,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     updateSubscriptionPlan,
     orgMembers,
     userRole,
+    isActionAllowed,
   } = useApp();
 
   const [businessName, setBusinessName] = useState(settings.business_name);
@@ -83,6 +85,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [defaultRate, setDefaultRate] = useState<number>(settings.default_exchange_rate || 0);
   const [primaryCurrency, setPrimaryCurrency] = useState<Currency>(settings.primary_currency || 'SDG');
   const [secondaryCurrency, setSecondaryCurrency] = useState<Currency>(settings.secondary_currency || 'USD');
+  const [dealingCurrency, setDealingCurrency] = useState<Currency>(transactionCurrency(settings));
+  const [currencyRates, setCurrencyRates] = useState(settings.currency_rates || {});
   const [invoicePrefix, setInvoicePrefix] = useState(settings.invoice_prefix || 'INV-');
   const [defaultNotes, setDefaultNotes] = useState(settings.default_invoice_notes || '');
   const [roundingRule, setRoundingRule] = useState<'round' | 'ceil' | 'floor'>(
@@ -105,6 +109,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     setLogoUrl(settings.logo_url);
     setBankDetails(settings.bank_details || '');
     setDefaultRate(settings.default_exchange_rate || 0);
+    setDealingCurrency(transactionCurrency(settings));
+    setCurrencyRates(settings.currency_rates || {});
     setPrimaryCurrency(settings.primary_currency || 'SDG');
     setSecondaryCurrency(settings.secondary_currency || 'USD');
     setInvoicePrefix(settings.invoice_prefix || 'INV-');
@@ -136,7 +142,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       return;
     }
 
-    if (!currentOrg || currentOrg.id === 'local-guest-org' || userRole === 'Viewer') {
+    if (!currentOrg || !isActionAllowed('org:update_settings')) {
       setLogoUploadError('لم يكتمل تحميل المؤسسة أو لا تتوفر صلاحية تعديلها. أعد المزامنة أولاً ثم ارفع الشعار.');
       return;
     }
@@ -155,7 +161,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       await updateSettings({ logo_url: downloadUrl });
       setLogoUrl(downloadUrl);
     } catch (err: any) {
-      console.error('Failed to upload logo to Firebase Storage:', err);
+      console.error('Failed to upload logo to cloud file storage:', err);
       setLogoUploadError(err.message || 'فشل رفع الشعار إلى التخزين السحابي.');
     } finally {
       setIsUploadingLogo(false);
@@ -178,11 +184,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       return;
     }
 
+    if (isForeignCurrency(dealingCurrency) && !validateExchangeRate(currencyRates[dealingCurrency]).isValid) { setSaveError('حدد سعر عملة التعامل لكل دولار.'); return; }
+    const normalizedPhone = normalizeWhatsAppPhone(phone, phone === settings.phone ? transactionCurrency(settings) : dealingCurrency);
+    if (phone.trim() && !normalizedPhone) { setSaveError('اكتب رقم الهاتف الدولي كاملاً بمفتاح الدولة.'); return; }
     setIsSaving(true);
     try {
     await updateSettings({
       business_name: businessName.trim(),
-      phone: phone.trim(),
+      phone: normalizedPhone ? '+' + normalizedPhone : '',
+      default_transaction_currency: dealingCurrency,
+      currency_rates: currencyRates,
       address: address.trim() || '',
       logo_url: logoUrl || '',
       bank_details: bankDetails.trim() || '',
@@ -357,7 +368,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-sf-raised p-3 rounded-lg border border-sf-border">
                   <div>
                     <p className="text-xs text-sf-text font-medium">
-                      أنت تستخدم التطبيق في الوضع المحلي حالياً (كضيف).
+                      سجّل دخولك إلى حساب Firebase للوصول إلى مؤسستك.
                     </p>
                     <p className="text-xs text-sf-muted">
                       سجّل دخولك لحفظ فواتيرك ومخزونك سحابياً والوصول إليها من أكثر من جهاز.
@@ -662,6 +673,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               </div>
             </div>
 
+            <div className="bg-sf-raised border border-sf-border rounded-xl p-4 space-y-3">
+              <label className="block text-xs font-semibold">عملة التعامل الافتراضية
+                <select aria-label="عملة التعامل الافتراضية" value={dealingCurrency} onChange={event => setDealingCurrency(event.target.value as Currency)} className="w-full min-w-0 mt-2 bg-sf-surface border border-sf-border rounded-lg px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action">
+                  {CURRENCIES.map(row => <option key={row.code} value={row.code}>{currencyLabel(row.code)}</option>)}
+                </select>
+              </label>
+              <p className="text-xs text-sf-muted">تُستخدم في الفواتير الجديدة ومفتاح واتساب. الفواتير السابقة تحتفظ بعملتها وسعرها، والدفاتر تظل بالجنيه والدولار.</p>
+              <p className="text-xs" data-testid="settings-phone-prefix">مفتاح واتساب الافتراضي: <bdi dir="ltr">+{phoneRegion(dealingCurrency).dialCode}</bdi></p>
+              {isForeignCurrency(dealingCurrency) && <label className="block text-xs font-semibold">سعر العملة لكل دولار
+                <input aria-label="سعر عملة التعامل لكل دولار" type="number" min="0.00000001" step="any" value={currencyRates[dealingCurrency] || ''} onChange={event => setCurrencyRates(previous => { const next = { ...previous }; if (event.target.value === '') delete next[dealingCurrency]; else next[dealingCurrency] = Number(event.target.value); return next; })} className="w-full min-w-0 mt-2 bg-sf-surface border border-sf-border rounded-lg px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action" />
+                <span className="block mt-1" dir="ltr">1 USD = {currencyRates[dealingCurrency] || '…'} {dealingCurrency}</span>
+                <span className="block mt-1 text-sf-muted">أدخل السعر المعتمد عندك؛ لا تُفترض أسعار سوق تلقائية.</span>
+              </label>}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block font-semibold text-sf-text mb-1 text-xs">
@@ -821,7 +847,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
             </button>
             <button
               type="button"
-              disabled={isSaving || isUploadingLogo || (Boolean(currentUser) && userRole === 'Viewer')}
+              disabled={isSaving || isUploadingLogo || (Boolean(currentUser) && !isActionAllowed('org:update_settings'))}
               onClick={() => handleSave()}
               className="px-6 py-2 bg-sf-action hover:bg-sf-action-hover text-sf-on-action rounded-lg text-xs font-semibold shadow-lg shadow-sf-action/20 flex items-center gap-2 transition-colors "
             >

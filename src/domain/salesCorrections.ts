@@ -1,3 +1,5 @@
+import { invoicePricingShare, safeAdd, safeSub } from '../lib/currency';
+import { currencyDecimals, isSupportedCurrency } from '../lib/currencyCatalog';
 import BigNumber from 'bignumber.js';
 import { openingBalancesForParty, readOpeningData } from './openingIntegration';
 import type { Account, Invoice, JournalEntry, JournalEntryLine, Product } from '../types';
@@ -41,7 +43,7 @@ export function verifySalesSource(invoice: Invoice, entries: JournalEntry[], pay
   const original = entries.filter(entry => entry.reference_type === 'invoice' && entry.reference_id === invoice.id);
   validatePostingAccounts(original.flatMap(entry => entry.lines), accounts, false, taxGroups);
   const source = buildSalesReturnBases(invoice, original, orgId), native = receivableCurrency({ currency_mode: invoice.currency_mode, items: invoice.items });
-  ensure(['dual','single_sdg','single_usd'].includes(invoice.currency_mode) && (!invoice.receivable_currency || invoice.receivable_currency === native), 'عملة الذمم الأصلية لا تطابق مصدر الفاتورة.', 409);
+  ensure(['dual','single_sdg','single_usd','single_foreign'].includes(invoice.currency_mode) && (!invoice.receivable_currency || invoice.receivable_currency === native), 'عملة الذمم الأصلية لا تطابق مصدر الفاتورة.', 409);
   if (movements) {
     const quantities = new Map<string, { quantity: BigNumber; sdg: BigNumber; usd: BigNumber }>();
     for (const item of invoice.items.filter(item => item.cost_status === 'valued')) {
@@ -62,6 +64,8 @@ export function verifySalesSource(invoice: Invoice, entries: JournalEntry[], pay
     ...payments.filter(row => row.source_sequence !== undefined).map(row => ({ row, type: 'payment' as const, sequence: row.source_sequence })),
     ...notes.map(row => ({ row, type: 'credit_note' as const, sequence: row.source_sequence })),
     ...refunds.map(row => ({ row, type: 'customer_refund' as const, sequence: row.source_sequence }))].sort((a, b) => a.sequence - b.sequence);
+  let pricingBalance = invoice.pricing?.total ?? 0, pricingPaid = 0;
+  const pricingDp = currencyDecimals(invoice.pricing?.currency || 'SDG');
   let balance = value(invoice, 'grand_total'), paid = zero(), credited = zero(), refunded = zero(), lastDate = dateOnly(invoice.issue_date), correctionCount = 0;
   const histories = new Map<string, SalesCorrectionEvent[]>(), ids = new Set<string>();
   const checkPosting = (row: Document, type: JournalEntry['reference_type'], date: string, lines: JournalEntryLine[], rate: number) => {
@@ -80,15 +84,16 @@ export function verifySalesSource(invoice: Invoice, entries: JournalEntry[], pay
     ensure(event.sequence === index + 1 && row.org_id === invoice.org_id && row.invoice_id === invoice.id && row.customer_id === invoice.customer_id && date >= lastDate, 'تسلسل أو مؤسسة أو تاريخ حركة المصدر غير صالح.', 409);
     lastDate = date;
     if (type === 'payment') {
-      ensure(['SDG', 'USD'].includes(row.currency), 'عملة السند غير صالحة.');
+      ensure(isSupportedCurrency(row.currency), 'عملة السند غير صالحة.');
       // Pre-B3 receipts have no source sequence. Their immutable settlement/journal is retained,
       // including legitimate rounding when several receipts share a timestamp.
       const isLegacy = row.source_sequence === undefined;
       for (const book of books) { money(row[`settled_amount_${book}`], book === 'sdg' ? 0 : 2); ensure(row[`settled_amount_${book}`] <= balance[book], 'التحصيل التاريخي يتجاوز قيمة المصدر.', 409); }
-      const basis = { ...invoice, remaining_sdg: isLegacy ? row.settled_amount_sdg : balance.sdg, remaining_usd: isLegacy ? row.settled_amount_usd : balance.usd };
+      const basis = { ...invoice, ...(invoice.pricing ? { pricing_remaining: Math.max(0, pricingBalance) } : {}), remaining_sdg: isLegacy ? row.settled_amount_sdg : balance.sdg, remaining_usd: isLegacy ? row.settled_amount_usd : balance.usd };
       ensure(balance.sdg >= 0 && balance.usd >= 0, 'التحصيل لا يستهلك رصيد العميل الدائن.', 409);
-      const quote = paymentQuote(basis, row.amount, row.currency, row.exchange_rate_used);
+      const quote = paymentQuote(basis, row.amount, row.currency, row.exchange_rate_used, row.currency_rates_used);
       for (const [field, amount] of Object.entries({ settled_amount_sdg: quote.settledSdg, settled_amount_usd: quote.settledUsd, cash_amount_sdg: quote.cashSdg, cash_amount_usd: quote.cashUsd })) ensure(new BigNumber(row[field]).eq(amount), 'سند التحصيل لا يطابق القيمة الدفترية.', 409);
+      if (invoice.pricing) { ensure(row.settled_pricing_amount === quote.settledPricing, 'تسوية عملة الفاتورة لا تطابق مصدر السند.', 409); pricingBalance = safeSub(pricingBalance, quote.settledPricing!, pricingDp); pricingPaid = safeAdd(pricingPaid, quote.settledPricing!, pricingDp); }
       const posting = receiptJournal(row as any, basis, orgId, row.created_by);
       checkPosting(row, type, date, posting.lines, row.exchange_rate_used);
       const settled = { sdg: quote.settledSdg, usd: quote.settledUsd }; paid = add(paid, settled); balance = add(balance, negate(settled));
@@ -112,6 +117,7 @@ export function verifySalesSource(invoice: Invoice, entries: JournalEntry[], pay
       for (const book of books) { money(row[`credit_${book}`], book === 'sdg' ? 0 : 2); money(row[`restored_cost_${book}`], book === 'sdg' ? 0 : 2); }
       const credit = add(totals.revenue, totals.tax);
       ensure(same(credit, value(row, 'credit')) && same(totals.cost, value(row, 'restored_cost')), 'إجمالي الإشعار لا يطابق بنوده.', 409);
+      if (invoice.pricing) pricingBalance = safeSub(pricingBalance, invoicePricingShare(invoice, credit.usd), pricingDp);
       const lines = credit.sdg || credit.usd || totals.cost.sdg || totals.cost.usd ? salesCreditLines(totals.revenue, totals.tax, totals.cost, taxAccountCode) : [];
       checkPosting(row, type, date, lines, invoice.exchange_rate_used); credited = add(credited, credit); balance = add(balance, negate(credit)); correctionCount++;
     } else {
@@ -122,15 +128,18 @@ export function verifySalesSource(invoice: Invoice, entries: JournalEntry[], pay
       const quote = quoteCreditRefund(negate(balance), native, row.amount, row.currency, row.exchange_rate_used);
       ensure(same(quote.settled, value(row, 'settled_amount')) && same(quote.cash, value(row, 'cash_amount')) && same(negate(balance), value(row, 'available_credit')), 'الرد لا يطابق رصيد المصدر الدائن.', 409);
       checkPosting(row, type, date, creditRefundLines(quote, account.account_code), row.exchange_rate_used);
+      if (invoice.pricing) pricingBalance = safeAdd(pricingBalance, invoicePricingShare(invoice, quote.settled.usd), pricingDp);
       refunded = add(refunded, quote.settled); balance = add(balance, quote.settled);
     }
+    if (invoice.pricing && balance.usd === 0) pricingBalance = 0;
   }
   if (checkCaches) {
+    if (invoice.pricing) ensure(invoice.pricing_remaining === Math.max(0, pricingBalance) && invoice.pricing_credit_balance === Math.max(0, -pricingBalance) && invoice.pricing_paid === pricingPaid, 'رصيد عملة الفاتورة لا يطابق السجل الثابت.', 409);
     ensure(same(balance, invoiceSignedBalance(invoice)) && same(paid, value(invoice, 'paid_amount')) && same(credited, value(invoice, 'credited_amount')) && same(refunded, value(invoice, 'refunded_amount')), 'رصيد الفاتورة لا يطابق مصادر الذمم الثابتة.', 409);
     for (const book of books) { for (const prefix of ['paid_amount', 'credited_amount', 'refunded_amount']) money(invoice[`${prefix}_${book}` as keyof Invoice] ?? 0, book === 'sdg' ? 0 : 2); money(invoice[`remaining_${book}`], book === 'sdg' ? 0 : 2); money(invoice[`credit_balance_${book}`] ?? 0, book === 'sdg' ? 0 : 2); ensure(!invoice[`remaining_${book}`] || !invoice[`credit_balance_${book}`], 'رصيد مدين ودائن للبند نفسه.'); }
     if (notes.length || refunds.length || payments.some(row => row.source_sequence !== undefined)) ensure(invoice.source_event_sequence === timeline.length && (invoice.correction_count || 0) === correctionCount, 'عداد مصادر الفاتورة لا يطابق السجل.', 409);
   }
-  return { source, native, balance, paid, credited, refunded, lastDate, sequence: timeline.length, correctionCount, histories };
+  return { source, native, balance, paid, credited, refunded, pricingBalance, pricingPaid, lastDate, sequence: timeline.length, correctionCount, histories };
 }
 
 export async function loadSalesSource(tx: Transaction, root: string, invoice: Invoice) {
@@ -142,9 +151,9 @@ export async function loadSalesSource(tx: Transaction, root: string, invoice: In
   return { ...verifySalesSource(invoice, entries as JournalEntry[], payments, notes, refunds, financial, accounts, true, movements), entries: entries as JournalEntry[], accounts: accounts as Account[] };
 }
 
-export function salesInvoiceCaches(invoice: Invoice, state: { balance: BookAmount; paid: BookAmount; credited: BookAmount; refunded: BookAmount; sequence: number; correctionCount: number }, iso: string) {
+export function salesInvoiceCaches(invoice: Invoice, state: { balance: BookAmount; paid: BookAmount; credited: BookAmount; refunded: BookAmount; sequence: number; correctionCount: number; pricingBalance?: number; pricingPaid?: number }, iso: string) {
   const native = receivableCurrency(invoice) === 'SDG' ? 'sdg' : 'usd';
-  return { ...invoice, remaining_sdg: Math.max(0, state.balance.sdg), remaining_usd: Math.max(0, state.balance.usd), credit_balance_sdg: Math.max(0, -state.balance.sdg), credit_balance_usd: Math.max(0, -state.balance.usd),
+  return { ...invoice, ...(invoice.pricing ? { pricing_remaining: state.balance.usd === 0 ? 0 : Math.max(0, state.pricingBalance!), pricing_credit_balance: state.balance.usd === 0 ? 0 : Math.max(0, -state.pricingBalance!), pricing_paid: state.pricingPaid } : {}), remaining_sdg: Math.max(0, state.balance.sdg), remaining_usd: Math.max(0, state.balance.usd), credit_balance_sdg: Math.max(0, -state.balance.sdg), credit_balance_usd: Math.max(0, -state.balance.usd),
     paid_amount_sdg: state.paid.sdg, paid_amount_usd: state.paid.usd, credited_amount_sdg: state.credited.sdg, credited_amount_usd: state.credited.usd, refunded_amount_sdg: state.refunded.sdg, refunded_amount_usd: state.refunded.usd,
     source_event_sequence: state.sequence, correction_count: state.correctionCount, status: state.balance[native] <= 0 ? 'paid' : state.paid[native] > 0 ? 'partially_paid' : 'sent', updated_at: iso } as Invoice;
 }
@@ -208,6 +217,7 @@ export async function salesCorrectionCommand(action: string, data: Document, c: 
       c.set(`${c.root}/inventory_movements/${movementId}`, { ...stamp, id: movementId, product_id: productId, product_name: product.name, type: 'SALES_RETURN', quantity: returned.quantity, previous_stock: before.stock_quantity, resulting_stock: after.stock_quantity, reference_type: 'credit_note', reference_id: id, value_delta_sdg: returned.cost.sdg, value_delta_usd: returned.cost.usd, costing_version: 2, journal_id: journalId }); c.counterAdd('inventory_movement_count', 1);
     }
     result = { ...stamp, id, kind: data.kind, lines, credit_sdg: credit.sdg, credit_usd: credit.usd, restored_cost_sdg: totals.cost.sdg, restored_cost_usd: totals.cost.usd, ...(journalId ? { journal_id: journalId } : {}) };
+    if (invoice.pricing) state.pricingBalance = safeSub(state.pricingBalance, invoicePricingShare(invoice, credit.usd), currencyDecimals(invoice.pricing.currency));
     state.balance = add(state.balance, negate(credit)); state.credited = add(state.credited, credit); state.correctionCount++;
     c.set(`${c.root}/credit_notes/${id}`, result); c.counterAdd('credit_note_count', 1);
   } else {
@@ -227,7 +237,8 @@ export async function salesCorrectionCommand(action: string, data: Document, c: 
     ensure(!await c.tx.get(`${c.root}/customer_refunds/${id}`), 'معرّف الرد موجود؛ لا يجوز استبدال مستند مالي.', 409);
     validatePostingAccounts(creditRefundLines(quote, account.account_code), state.accounts, true);
     await c.post(journal(journalId, c.orgId, c.actor, date, 'customer_refund', id, `رد نقدي ${invoice.invoice_number}: ${reason}`, creditRefundLines(quote, account.account_code), rate));
-    result = { ...stamp, id, financial_account_id: account.id, payment_account_code: account.account_code, currency: account.currency, amount: data.amount, exchange_rate_used: rate, available_credit_sdg: available.sdg, available_credit_usd: available.usd, settled_amount_sdg: quote.settled.sdg, settled_amount_usd: quote.settled.usd, cash_amount_sdg: quote.cash.sdg, cash_amount_usd: quote.cash.usd, journal_id: journalId, ...(approvalEvidence?{approval_evidence:approvalEvidence}:{}) };
+    result = { ...stamp, id, financial_account_id: account.id, payment_account_code: account.account_code, currency: account.currency, amount: data.amount, exchange_rate_used: rate, available_credit_sdg: available.sdg, available_credit_usd: available.usd, settled_amount_sdg: quote.settled.sdg, settled_amount_usd: quote.settled.usd, cash_amount_sdg: quote.cash.sdg, cash_amount_usd: quote.cash.usd, journal_id: journalId };
+    if (invoice.pricing) state.pricingBalance = safeAdd(state.pricingBalance, invoicePricingShare(invoice, quote.settled.usd), currencyDecimals(invoice.pricing.currency));
     state.balance = add(state.balance, quote.settled); state.refunded = add(state.refunded, quote.settled);
     c.set(`${c.root}/customer_refunds/${id}`, result); c.counterAdd('customer_refund_count', 1);
     c.set(`${c.root}/financial_accounts/${account.id}`, { ...account, revision: (account.revision || 0) + 1, last_refund_id: id, updated_at: c.iso });

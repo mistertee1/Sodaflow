@@ -27,7 +27,6 @@ async function fakeFirebase(page: Page, emailVerified: boolean) {
     await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(response) });
   });
   await page.route('https://securetoken.googleapis.com/**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: token, id_token: token, refresh_token: 'test-refresh', expires_in: '3600', user_id: uid, project_id: 'sodaflow' }) }));
-  await page.addInitScript(() => localStorage.setItem('sudanese_merchant_has_seen_tour_v2', 'true'));
   return requests;
 }
 
@@ -38,6 +37,7 @@ async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, 
   let loads = 0, revision = 0, failRevision = false;
   let snapshots = 0, failWrites = false;
   const operationIds: string[] = [];
+  const intents = new Map<string, string>();
   await page.addInitScript(({ initialOrg, fallbackOrganizations, denyDirect }) => {
     (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = {
       organizations: async () => fallbackOrganizations ? [initialOrg] : [],
@@ -53,7 +53,14 @@ async function fakeCloud(page: Page, failFirstLoad = false, denyDirect = false, 
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     requests.push(path);
-    if (path === '/api/organizations') {
+    if (path === '/api/operation-intents') {
+      const body = route.request().postDataJSON(), id = intents.get(body.fingerprint) || body.operationId || crypto.randomUUID();
+      intents.set(body.fingerprint, id);
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ operationId: id }) });
+    } else if (path === '/api/operation-intents/acknowledge') {
+      const body = route.request().postDataJSON(); if (intents.get(body.fingerprint) === body.operationId) intents.delete(body.fingerprint);
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ acknowledged: true }) });
+    } else if (path === '/api/organizations') {
       if (++loads === 1 && failFirstLoad) { await route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ error: 'انقطاع اختبار مؤقت', code: 'service_unavailable' }) }); return; }
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([org]) });
     } else if (path.endsWith('/revision')) {

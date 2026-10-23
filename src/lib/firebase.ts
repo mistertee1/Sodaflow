@@ -15,7 +15,7 @@ import {
   onAuthStateChanged,
   User,
 } from 'firebase/auth';
-import { getFirestore, initializeFirestore, type Firestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, memoryLocalCache, type Firestore } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 export { firebaseConfig };
@@ -43,7 +43,7 @@ const databaseId = firebaseConfig.firestoreDatabaseId || '(default)';
 let firestore: Firestore;
 try {
   // Preserve the legacy client's transport on restricted mobile/proxy networks.
-  firestore = initializeFirestore(app, { experimentalForceLongPolling: true }, databaseId);
+  firestore = initializeFirestore(app, { experimentalForceLongPolling: true, localCache: memoryLocalCache() }, databaseId);
 } catch (error) {
   // Vite HMR can retain a Firestore instance initialized before this module reloads.
   if ((error as { code?: string }).code !== 'failed-precondition') throw error;
@@ -82,7 +82,7 @@ export const signInWithGoogle = async () => {
     } else if (code === 'auth/unauthorized-domain') {
       error.friendlyMessage = `النطاق الحالي (${host}) غير مصرح به في Firebase. يرجى إضافته في Firebase Console > Authentication > Settings > Authorized domains.`;
     } else if (code === 'auth/network-request-failed') {
-      error.friendlyMessage = 'تعذر فتح نافذة Google للمصادقة من داخل إطار المعاينة المضمن (بسبب قيود المتصفح على ملفات تعريف الارتباط للطرف الثالث). يمكنك فتح التطبيق في نافذة مستقلة، أو تسجيل الدخول بالبريد الإلكتروني، أو المتابعة كضيف.';
+      error.friendlyMessage = 'تعذر فتح نافذة Google للمصادقة من داخل إطار المعاينة المضمن (بسبب قيود المتصفح على ملفات تعريف الارتباط للطرف الثالث). يمكنك فتح التطبيق في نافذة مستقلة، أو تسجيل الدخول بالبريد الإلكتروني، ثم إعادة المحاولة.';
     } else if (code === 'auth/popup-blocked') {
       error.friendlyMessage = 'تم حظر النافذة المنبثقة بواسطة المتصفح. يرجى السماح بالنوافذ المنبثقة للموقع أو فتح التطبيق في نافذة مستقلة.';
     } else if (code === 'auth/popup-closed-by-user') {
@@ -96,7 +96,7 @@ export const signInWithGoogle = async () => {
     } else if (code === 'auth/configuration-not-found') {
       error.friendlyMessage = 'إعدادات مزود Google غير مكتملة في مشروع Firebase. يرجى تفعيل مزود Google في Firebase Console.';
     } else {
-      error.friendlyMessage = error.friendlyMessage || `تعذر إكمال تسجيل الدخول بحساب Google (${code}). يمكنك الدخول بالبريد أو المتابعة كضيف.`;
+      error.friendlyMessage = error.friendlyMessage || `تعذر إكمال تسجيل الدخول بحساب Google (${code}). يمكنك الدخول بالبريد ثم إعادة المحاولة.`;
     }
     throw error;
   }
@@ -148,7 +148,7 @@ export const loginWithEmail = async (identifier: string, password: string) => {
     if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
       error.friendlyMessage = 'بيانات الدخول غير صحيحة. يرجى التحقق من المعرف أو كلمة المرور، أو الضغط على إنشاء حساب جديد.';
     } else if (code === 'auth/network-request-failed') {
-      error.friendlyMessage = 'تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت أو المتابعة كضيف.';
+      error.friendlyMessage = 'تعذر الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت ثم إعادة المحاولة.';
     }
     throw error;
   }

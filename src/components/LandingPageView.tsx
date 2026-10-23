@@ -40,14 +40,12 @@ import { AdBanner } from './AdBanner';
 import { useApp } from '../context/AppContext';
 
 interface LandingPageViewProps {
-  onContinueAsGuest: () => void;
   onLoginSuccess: () => void;
 }
 
 type AuthMode = 'login' | 'register' | 'forgot_password';
 
 export const LandingPageView: React.FC<LandingPageViewProps> = ({
-  onContinueAsGuest,
   onLoginSuccess,
 }) => {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
@@ -81,7 +79,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
       if (err?.code === 'auth/popup-blocked') {
         setError('تم حظر النافذة المنبثقة بواسطة المتصفح. يرجى السماح بالنوافذ المنبثقة والمحاولة مجدداً.');
       } else {
-        setError(err?.friendlyMessage || 'تعذر تسجيل الدخول بحساب Google. يمكنك التسجيل بالبريد وكلمة المرور أو المتابعة كضيف.');
+        setError(err?.friendlyMessage || 'تعذر تسجيل الدخول بحساب Google. يمكنك التسجيل بالبريد وكلمة المرور ثم إعادة المحاولة.');
       }
     } finally {
       setLoading(false);
@@ -193,10 +191,10 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
             </button>
 
             <button
-              onClick={onContinueAsGuest}
+              onClick={() => { setAuthMode('register'); document.getElementById('sudaflow-auth')?.scrollIntoView({ behavior: 'smooth' }); }}
               className="hidden sm:flex text-xs text-sf-text hover:text-sf-text bg-sf-raised hover:bg-sf-raised border border-sf-border px-4 py-2 rounded-xl transition-all flex items-center gap-2 font-medium"
             >
-              <span>تجربة كضيف (محلي)</span>
+              <span>ابدأ بحساب سحابي</span>
               <ArrowLeft className="w-3.5 h-3.5" />
             </button>
             <button
@@ -229,7 +227,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <figcaption className="px-4 py-3 text-xs text-sf-muted border-t border-sf-border">بيانات تجريبية لعرض الواجهة؛ ليست سجلات متجرك أو أسعار صرف حالية.</figcaption>
             </figure>
             <div className="flex flex-wrap items-center gap-3">
-              <button type="button" onClick={onContinueAsGuest} className="sf-action inline-flex items-center gap-2">ابدأ التجربة<ArrowLeft aria-hidden="true" /></button>
+              <button type="button" onClick={() => { setAuthMode('register'); document.getElementById('sudaflow-auth')?.scrollIntoView({ behavior: 'smooth' }); }} className="sf-action inline-flex items-center gap-2">ابدأ مجاناً على السحابة<ArrowLeft aria-hidden="true" /></button>
               <a href="#sudaflow-auth" className="sf-secondary inline-flex items-center">تسجيل الدخول أو إنشاء حساب</a>
             </div>
 
@@ -266,7 +264,7 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
               <div className="flex items-center justify-between mb-3 border-b border-sf-border pb-3">
                 <div className="flex items-center gap-2">
                   <Calculator className="w-4 h-4 text-sf-action" />
-                  <span className="font-semibold text-xs text-sf-text">حاسبة العملات · تجربة محلية</span>
+                  <span className="font-semibold text-xs text-sf-text">حاسبة العملات</span>
                 </div>
                 <span className="text-xs text-sf-text font-mono font-semibold">مثال تجريبي</span>
               </div>
@@ -553,14 +551,14 @@ export const LandingPageView: React.FC<LandingPageViewProps> = ({
                 <span>المتابعة بحساب Google</span>
               </button>
 
-              {/* Guest Access Alternative */}
+              {/* Cloud registration */}
               <div className="mt-4 pt-3 border-t border-sf-border">
                 <button
                   type="button"
-                  onClick={onContinueAsGuest}
+                  onClick={() => { setAuthMode('register'); document.getElementById('sudaflow-auth')?.scrollIntoView({ behavior: 'smooth' }); }}
                   className="w-full bg-sf-raised hover:bg-sf-raised text-sf-text hover:text-sf-text border border-sf-border font-medium py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-2 transition-all"
                 >
-                  <span>استكشاف النظام كضيف (تخزين محلي مؤقت)</span>
+                  <span>إنشاء حساب سحابي مجاني</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>

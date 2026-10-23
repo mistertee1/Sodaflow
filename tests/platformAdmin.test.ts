@@ -7,6 +7,50 @@ import type { Actor } from '../src/domain/operations';
 
 const forbidden = (error: unknown) => error instanceof BusinessError && error.status === 403;
 
+test('exclusive platform access binds both UID and exact verified mailbox even when another registry and claim are active', async () => {
+  const f = await platformFixture();
+  const other = { ...f.admin, uid: 'another-platform-admin' };
+  await f.store.transaction(async tx => tx.set(`platformAdmins/${other.uid}`, { uid: other.uid, active: true, role: 'super_admin' }));
+  await f.platform.assertAdmin({ ...f.admin, email: f.admin.email.toUpperCase() });
+  for (const actor of [other, { ...f.admin, email: 'different@example.test' }, { ...f.admin, email: 'admin+alias@example.test' }]) {
+    await assert.rejects(f.platform.assertAdmin(actor), forbidden);
+  }
+  const http = await servePlatform(f, { other }), before = f.store.dump();
+  try {
+    for (const path of ['/session', '/overview', '/companies', `/companies/${f.org.id}`, '/plans', '/events', '/requests']) {
+      const response = await http.request('/super-admin' + path, 'other');
+      assert.equal(response.status, 403);
+      assert.equal((await response.json()).code, 'exclusive_super_admin_required');
+    }
+    assert.equal((await http.request(`/super-admin/companies/${f.org.id}/subscription`, 'other', {
+      action: 'change_plan', operationId: 'unapproved-admin', expectedRevision: 1,
+      payload: { planId: 'Enterprise' }, reason: 'forged approved identity', uid: f.admin.uid, email: f.admin.email,
+    })).status, 403);
+    assert.deepEqual(f.store.dump(), before);
+  } finally { await http.close(); }
+});
+
+test('missing, disabled or malformed exclusive policy fails closed and never creates a fallback administrator', async () => {
+  const f = await platformFixture();
+  const valid = f.store.dump()['platformAccess/superAdmin'];
+  for (const policy of [undefined, { ...valid, active: false }, { ...valid, active: 'true' }, { ...valid, mode: 'all' }, { ...valid, uid: 'other' }, { ...valid, email: '' }, { ...valid, email: 'ADMIN@example.test' }]) {
+    await f.store.transaction(async tx => { if (policy) tx.set('platformAccess/superAdmin', policy); else tx.delete('platformAccess/superAdmin'); });
+    const before = f.store.dump();
+    await assert.rejects(f.platform.assertAdmin(f.admin), forbidden);
+    assert.deepEqual(f.store.dump(), before);
+  }
+});
+
+test('a policy change with an open editor rejects the next transaction and preserves billing and audit state', async () => {
+  const f = await platformFixture(); await f.platform.assertAdmin(f.admin);
+  await f.store.transaction(async tx => tx.set('platformAccess/superAdmin', { uid: 'new-admin', email: 'new@example.test', active: true, mode: 'exclusive', revision: 2 }));
+  const before = f.store.dump();
+  await assert.rejects(f.platform.updateSubscription(f.admin, f.org.id, {
+    action: 'extend', payload: { days: 30 }, operationId: 'stale-policy', expectedRevision: 1, reason: 'stale editor',
+  }), forbidden);
+  assert.deepEqual(f.store.dump(), before);
+});
+
 test('organization service refuses unverified creation, existing-org retries and listing without any state change', async () => {
   const f = await platformFixture(), before = f.store.dump();
   const unverified = { ...f.owner, emailVerified: false };

@@ -1,7 +1,7 @@
 import { correctionGuestFixture } from './salesCorrections';
 import { MemoryStore } from '../../../src/domain/store';
 import { Operations } from '../../../src/domain/operations';
-import { guestActor, guestId } from '../../../src/services/guestStore';
+import { guestActor, guestId } from '../../fixtures/cloudIdentity';
 export async function correctionDocumentFixture() {
   const fixture = await correctionGuestFixture(), store = new MemoryStore(fixture.records), ops = new Operations(store, () => new Date('2026-10-07T12:00:00Z')), root = `organizations/${guestId}`;
   const run = (action: string, data: Record<string, unknown>, operationId: string) => ops.execute(guestId, guestActor, { action, data, operationId });

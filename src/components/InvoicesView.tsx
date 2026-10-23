@@ -14,7 +14,7 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react';
-import { formatMoney, safeAdd } from '../lib/currency';
+import { formatMoney, invoicePricingBalance, safeAdd } from '../lib/currency';
 
 interface InvoicesViewProps {
   onOpenNewInvoice: () => void;
@@ -157,10 +157,12 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
                 <span className="sf-detail">سعر الصرف المستخدم: <bdi dir="ltr" className="sf-number">1 USD = {formatMoney(invoice.exchange_rate_used, 'SDG', settings)}</bdi></span>
               </td>
               <td className="sf-value-cell">
+                {invoice.pricing && <bdi dir="ltr" className="sf-number block text-sf-action">{formatMoney(invoice.pricing.total, invoice.pricing.currency)}</bdi>}
                 <bdi dir="ltr" className="sf-number">{formatMoney(invoice.grand_total_sdg, 'SDG', settings)}</bdi>
                 <small className="block text-sf-muted"><bdi dir="ltr" className="sf-number">{formatMoney(invoice.grand_total_usd, 'USD', settings)}</bdi></small>
               </td>
               <td className="sf-value-cell">
+                {invoice.pricing && <bdi dir="ltr" className="sf-number block text-sf-action">{formatMoney(invoicePricingBalance(invoice), invoice.pricing.currency)}</bdi>}
                 <bdi dir="ltr" className="sf-number">{formatMoney(invoice.remaining_sdg, 'SDG', settings)}</bdi>
                 <small className="block text-sf-muted"><bdi dir="ltr" className="sf-number">{formatMoney(invoice.remaining_usd, 'USD', settings)}</bdi></small>
               </td>

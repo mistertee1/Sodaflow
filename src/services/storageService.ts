@@ -55,8 +55,8 @@ export function validateImageFile(
 }
 
 /**
- * Uploads an image to Firebase Storage scoped under organizations/{orgId}/{folder}/
- * and returns the public download URL string to store in Firestore.
+ * Uploads through the authenticated API into tenant-scoped Netlify Blobs.
+ * Logos are public on invoices; receipts are private opaque references.
  */
 export async function uploadOrganizationImage({
   file,
@@ -75,7 +75,7 @@ export async function uploadOrganizationImage({
     throw new Error('يتطلب رفع الصور السحابية تسجيل الدخول بحساب نشط في المنشأة أولاً.');
   }
 
-  if (!orgId || orgId === 'local-guest-org') {
+  if (!orgId) {
     throw new Error('يرجى اختيار أو تفعيل منشأة معتمدة لرفع الملفات سحابياً.');
   }
 
@@ -83,6 +83,25 @@ export async function uploadOrganizationImage({
   const result = await api<{ url: string }>(`/organizations/${encodeURIComponent(orgId)}/images/${folder}`, { method: 'POST', headers: { 'Content-Type': file.type }, body: file });
   onProgress?.(100);
   return result.url;
+}
+
+/** Loads a private receipt with Firebase authentication, never a public URL. */
+export async function loadCustomerImageForPreview(reference: string): Promise<{ src: string; revoke: () => void }> {
+  if (!reference.startsWith('sudaflow-file:')) return { src: reference, revoke: () => {} }; // Existing Firebase URLs remain readable.
+  const match = /^sudaflow-file:([\w.-]{1,128}):([\w.-]{1,128})$/.exec(reference);
+  if (!match) throw new Error('مرجع الملف غير صالح.');
+  const user = auth.currentUser;
+  if (!user) throw new Error('سجّل الدخول لعرض الملف.');
+  const request = async (refresh: boolean) => fetch(`/api/organizations/${encodeURIComponent(match[1])}/files/${encodeURIComponent(match[2])}`, {
+    headers: { Authorization: `Bearer ${await user.getIdToken(refresh)}` }, cache: 'no-store', signal: AbortSignal.timeout(30000),
+  });
+  let response = await request(false);
+  if (response.status === 401) response = await request(true);
+  if (auth.currentUser?.uid !== user.uid) throw new Error('تغيّرت جلسة الدخول. أعد المحاولة.');
+  if (!response.ok) throw new Error('تعذر فتح الملف أو ليست لديك صلاحية عرضه.');
+  if (!response.headers.get('content-type')?.startsWith('image/')) throw new Error('محتوى الصورة غير صالح.');
+  const url = URL.createObjectURL(await response.blob());
+  return { src: url, revoke: () => URL.revokeObjectURL(url) };
 }
 
 /**

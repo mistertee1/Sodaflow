@@ -4,7 +4,7 @@ import { INITIAL_SETTINGS } from '../../../src/data/initialData';
 import { getDefaultChartOfAccounts } from '../../../src/services/accountingService';
 import { getPlanConfig, createDefaultSubscription } from '../../../src/lib/plans';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../../../src/types';
-import { guestId, guestActor } from '../../../src/services/guestStore';
+import { guestId, guestActor } from '../../fixtures/cloudIdentity';
 export async function periodGuestFixture(funded=false, role:'Accountant'|'Admin'|'Viewer'|'Owner'='Owner') {
   const root=`organizations/${guestId}`,settings={...INITIAL_SETTINGS,business_name:'متجر الاختبار',default_exchange_rate:2000};
   const store=new MemoryStore({[root]:{id:guestId,owner_uid:'guest',name:'متجر الاختبار',status:'active',settings,schema_version:3},[`${root}/members/guest`]:{uid:'guest',role:'Owner',status:'active'},[`${root}/meta/subscription`]:{...createDefaultSubscription(guestId),...getPlanConfig('Enterprise'),plan:'Enterprise',org_id:guestId},[`${root}/meta/counters`]:DEFAULT_ORGANIZATION_COUNTERS,...Object.fromEntries(getDefaultChartOfAccounts(guestId).map(account=>[`${root}/accounts/${account.code}`,account]))});

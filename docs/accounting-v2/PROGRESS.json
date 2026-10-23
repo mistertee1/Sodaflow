@@ -4,8 +4,8 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+  "active_milestone": "C",
+  "active_branch": "codex/accounting-v2-c5-tax-ui-20261012",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -1040,30 +1040,6 @@
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "completed_at": "2026-10-12T07:15:00Z"
-            },
-            {
-              "id": "C5.3.2",
-              "scope": "Journal-backed tax period liability/receivable reports, protected API and RTL reconciliation UI",
-              "status": "implemented_ci_passed_render_acceptance_pending",
-              "branch": "codex/accounting-v2-c5-tax-period-reports-20261012",
-              "pr": 55,
-              "report": "REPORT_C5_3_2_TAX_PERIOD_REPORTS.md",
-              "checks": {
-                "unit_api": 335,
-                "types": "passed",
-                "core": "passed",
-                "build": "passed",
-                "emulator": 35,
-                "ui": 59,
-                "production_audit_vulnerabilities": 0
-              },
-              "ci": {
-                "run_id": 38228962862,
-                "commit_sha": "a234b02ebff6d0799c14453e24e6093ebdac6ce3",
-                "conclusion": "success"
-              },
-              "render_acceptance": "pending_matching_authenticated_staging_commit",
-              "completed_at": "2026-10-12T09:16:00Z"
             }
           ]
         },
@@ -2382,12 +2358,12 @@
       ]
     }
   ],
-  "last_report": "docs/accounting-v2/REPORT_EXCEL4_1E_2A_HISTORICAL_UI.md",
+  "last_report": "REPORT_C5_3_1_TAX_POLICY_UI.md",
   "next_steps": [
-    "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
-    "User reviews and merges PR #112 then PR #114; no deployment or main writes"
+    "C5.3.2 tax periods, liability/receivable aggregation and reports",
+    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1 on a matching staging commit"
   ],
-  "updated_at": "2026-10-21T15:45:00Z",
+  "updated_at": "2026-10-12T07:15:00Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2412,8 +2388,8 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1e.2b",
-  "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
+  "active_substep": "C5.3.2",
+  "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",
@@ -2531,636 +2507,15 @@
       "released_at": "2026-10-12T07:15:00Z",
       "pr": 54,
       "code_commit": "05278645316b66f931cd37cb2e185711e1500e66"
-    },
-    {
-      "worker": "c5-tax-period-reports-20261012",
-      "acquired_at": "2026-10-12T07:40:00Z",
-      "branch": "codex/accounting-v2-c5-tax-period-reports-20261012",
-      "released_at": "2026-10-12T09:16:00Z",
-      "pr": 55,
-      "code_commit": "a234b02ebff6d0799c14453e24e6093ebdac6ce3"
-    },
-    {
-      "worker": "c6-comparative-reports-20261012",
-      "acquired_at": "2026-10-12T10:59:00Z",
-      "branch": "codex/accounting-v2-c6-comparative-reports-20261012",
-      "released_at": "2026-10-12T11:11:00Z",
-      "pr": 56,
-      "code_commit": "70bbbb459bc70765624bb725dab2ec67f415a190"
-    },
-    {
-      "worker": "d1-dimensions-foundation-20261012",
-      "acquired_at": "2026-10-12T11:14:00Z",
-      "branch": "codex/accounting-v2-d1-dimensions-foundation-20261012",
-      "released_at": "2026-10-12T11:25:00Z",
-      "pr": 57,
-      "code_commit": "aa849671b479922fa840e06d17643178d601f813"
-    },
-    {
-      "worker": "d1-dimension-ui-20261012",
-      "acquired_at": "2026-10-12T13:53:00Z",
-      "branch": "codex/accounting-v2-d1-dimension-ui-20261012",
-      "released_at": "2026-10-12T15:06:00Z",
-      "pr": 59,
-      "code_commit": "48f9ffe6dfd3dedebacaaa1454b9daaf4e299194"
-    },
-    {
-      "worker": "d1-dimension-master-ui-20261012",
-      "acquired_at": "2026-10-12T15:45:00Z",
-      "branch": "codex/accounting-v2-d1-dimension-master-ui-20261012",
-      "released_at": "2026-10-12T16:05:00Z",
-      "pr": 60,
-      "code_commit": "16070f816372f39f4f8e15259f4965557eddff14"
-    },
-    {
-      "worker": "d1-dimension-propagation-20261012",
-      "acquired_at": "2026-10-12T16:10:00Z",
-      "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
-      "released_at": "2026-10-12T20:35:00Z",
-      "pr": 61,
-      "code_commit": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4"
-    },
-    {
-      "worker": "d2-product-profitability-20261013",
-      "acquired_at": "2026-10-12T21:20:00Z",
-      "branch": "codex/accounting-v2-d2-profitability-20261012",
-      "released_at": "2026-10-13T05:20:00Z",
-      "pr": 62,
-      "code_commit": "28d9e2b73d6c49f68864f1f422ba0b17eeeebeed"
-    },
-    {
-      "worker": "d2-customer-profitability-20261013",
-      "acquired_at": "2026-10-13T05:45:40.831Z",
-      "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
-      "released_at": "2026-10-13T08:55:00Z",
-      "pr": 64,
-      "code_commit": "be84b48d46ca972c14b0bc6ca7177519b14b2cca"
-    },
-    {
-      "worker": "d3-budget-ui-20261013",
-      "acquired_at": "2026-10-13T10:45:00Z",
-      "branch": "codex/accounting-v2-d3-budget-ui-20261013",
-      "released_at": "2026-10-13T13:12:00Z",
-      "pr": 66,
-      "code_commit": "c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1"
-    },
-    {
-      "worker": "d3-cash-forecast-foundation-20261013",
-      "acquired_at": "2026-10-13T16:40:00Z",
-      "branch": "codex/accounting-v2-d3-cash-forecast-foundation-20261013",
-      "released_at": "2026-10-13T17:06:00Z",
-      "pr": 68,
-      "code_commit": "9668483ad31192dbfff3a081a5712b409ca7df3d"
-    },
-    {
-      "worker": "d3-cash-forecast-ui-20261013",
-      "acquired_at": "2026-10-13T17:58:00Z",
-      "branch": "codex/accounting-v2-d3-cash-forecast-ui-20261013",
-      "released_at": "2026-10-13T18:08:00Z",
-      "pr": 69,
-      "code_commit": "24b020912e630a418321f6d71922444892e23331"
-    },
-    {
-      "worker": "d3-cash-sources-20261013",
-      "round_id": "20261013T1831Z-d3.2b.3",
-      "acquired_at": "2026-10-13T18:31:00Z",
-      "branch": "codex/accounting-v2-d3-cash-sources-20261013",
-      "released_at": "2026-10-13T18:44:00Z",
-      "pr": 70,
-      "code_commit": "216dce2cf246835f1d492a6d71c7e23764c4737e"
-    },
-    {
-      "worker": "d3-cash-sources-ui-20261013",
-      "round_id": "20261013T2350Z-d3.2b.4",
-      "acquired_at": "2026-10-13T23:50:00Z",
-      "branch": "codex/accounting-v2-d3-cash-sources-ui-20261013",
-      "released_at": "2026-10-13T23:57:00Z",
-      "pr": 72,
-      "code_commit": "b0abf3ef03ab29dde6a94be66346c8f8d9acc294"
-    },
-    {
-      "worker": "d4-credit-limits-20261014",
-      "round_id": "20261014T0040Z-d4.1",
-      "acquired_at": "2026-10-14T00:40:00Z",
-      "branch": "codex/accounting-v2-d4-credit-limits-20261014",
-      "released_at": "2026-10-14T00:55:00Z",
-      "pr": 73,
-      "code_commit": "736168470fdef5addc4bdea494634ca159cea5bb"
-    },
-    {
-      "worker": "d4-credit-ui-20261014",
-      "round_id": "20261014T0210Z-d4.2",
-      "acquired_at": "2026-10-14T02:10:00Z",
-      "branch": "codex/accounting-v2-d4-credit-ui-20261014",
-      "released_at": "2026-10-14T04:45:00Z",
-      "pr": 74,
-      "code_commit": "aae5883451125e3f78295d121d780c28814e8f9f"
-    },
-    {
-      "worker": "d4-approval-limits-20261014",
-      "round_id": "20261014T0510Z-d4.3.1",
-      "acquired_at": "2026-10-14T05:10:00Z",
-      "branch": "codex/accounting-v2-d4-approval-limits-20261014",
-      "released_at": "2026-10-14T05:22:00Z",
-      "pr": 75,
-      "code_commit": "eb20d28b55f7d07953b73b3adbf2903c96621bdd"
-    },
-    {
-      "worker": "d4-approval-ui-20261014",
-      "round_id": "20261014T1053Z-d4.3.3",
-      "acquired_at": "2026-10-14T10:53:00Z",
-      "branch": "codex/accounting-v2-d4-approval-ui-20261014",
-      "released_at": "2026-10-14T14:59:00Z",
-      "pr": 78,
-      "code_commit": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3"
-    },
-    {
-      "worker": "e1-health-foundation-20261014",
-      "round_id": "20261014T1520Z-e1.1",
-      "acquired_at": "2026-10-14T15:20:00Z",
-      "branch": "codex/accounting-v2-e1-health-foundation-20261014",
-      "released_at": "2026-10-14T15:31:00Z",
-      "pr": 79,
-      "code_commit": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab"
-    },
-    {
-      "worker": "e1-health-ui-20261014",
-      "round_id": "20261015T0615Z-e1.2-resume",
-      "acquired_at": "2026-10-15T06:15:00Z",
-      "branch": "codex/accounting-v2-e1-health-ui-20261014",
-      "released_at": "2026-10-15T06:23:00Z",
-      "pr": 80,
-      "code_commit": "9aa4a42dd71a9c59963c918b012deb79654bb7b2"
-    },
-    {
-      "worker": "e2-assistance-foundation-20261015",
-      "round_id": "20261015T0750Z-e2.1",
-      "acquired_at": "2026-10-15T07:50:00Z",
-      "branch": "codex/accounting-v2-e2-assistance-foundation-20261015",
-      "released_at": "2026-10-15T08:01:00Z",
-      "pr": 81,
-      "code_commit": "f2563de47f67310957b82f0f3c55aa34739849f1"
-    },
-    {
-      "worker": "e2-assistance-ui-20261015",
-      "round_id": "20261015T0840Z-e2.2",
-      "acquired_at": "2026-10-15T08:40:00Z",
-      "branch": "codex/accounting-v2-e2-assistance-ui-20261015",
-      "released_at": "2026-10-15T11:37:00Z",
-      "pr": 82,
-      "code_commit": "79b58707c674b4d739d1682cf84ab302c1901aca"
-    },
-    {
-      "worker": "e2-smart-suggestions-20261015",
-      "round_id": "20261015T1226Z-e2.3",
-      "acquired_at": "2026-10-15T12:26:00Z",
-      "branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
-      "released_at": "2026-10-15T12:47:00Z",
-      "pr": 84,
-      "code_commit": "1a3e6c0dcdcc389a39525f1162c9df4f21daa51c"
-    },
-    {
-      "worker": "codex-automation",
-      "round_id": "20261015T163924Z-e3-owner-summary",
-      "acquired_at": "2026-10-15T16:39:24Z",
-      "branch": "codex/accounting-v2-e3-owner-summary-20261015",
-      "released_at": "2026-10-15T16:52:00Z",
-      "pr": 85,
-      "code_commit": "bfbbfdd2e07b91907308a115f68a938cf6ca049d"
-    },
-    {
-      "worker": "excel1-import-preview-resume-20261016",
-      "round_id": "20261016T033000Z-excel1.2-resume",
-      "base_branch": "codex/accounting-v2-excel1-quick-exports-20261015",
-      "acquired_at": "2026-10-16T03:30:00Z",
-      "branch": "codex/accounting-v2-excel1-import-preview-20261015",
-      "released_at": "2026-10-16T03:41:00Z",
-      "pr": 88,
-      "code_commit": "a3a63c5f33f4fd551fbfbd3b0acffb5cc0525d35",
-      "status": "Excel1.2_implemented_ci_passed_render_acceptance_pending"
-    },
-    {
-      "worker": "excel2-accounting-export-20261016",
-      "round_id": "20261016T053000Z-excel2.1",
-      "base_branch": "codex/accounting-v2-excel1-import-preview-20261015",
-      "acquired_at": "2026-10-16T05:30:00Z",
-      "branch": "codex/accounting-v2-excel2-accountant-export-20261016",
-      "released_at": "2026-10-16T08:02:00Z",
-      "pr": 89,
-      "code_commit": "cf5c8cc5efcd2c1863857f3df2afd7ee19165ef4",
-      "status": "Excel2.1_implemented_ci_passed_render_acceptance_pending"
-    },
-    {
-      "worker": "excel2-opening-import-20261016",
-      "round_id": "20261016T081000Z-excel2.2a",
-      "base_branch": "codex/accounting-v2-excel2-accountant-export-20261016",
-      "acquired_at": "2026-10-16T08:10:00Z",
-      "branch": "codex/accounting-v2-excel2-opening-import-20261016",
-      "released_at": "2026-10-16T09:27:00Z",
-      "pr": 90,
-      "code_commit": "a3723872aa9fe9a04ca13acd097f182eba59276e",
-      "status": "Excel2.2a_implemented_ci_passed_render_acceptance_pending"
-    },
-    {
-      "worker": "excel2-opening-ui-20261016",
-      "round_id": "20261016T105500Z-excel2.2b",
-      "base_branch": "codex/accounting-v2-excel2-opening-import-20261016",
-      "acquired_at": "2026-10-16T10:55:00Z",
-      "branch": "codex/accounting-v2-excel2-opening-ui-20261016",
-      "released_at": "2026-10-16T11:27:00Z",
-      "pr": 91,
-      "code_commit": "e1a79a73a59cf5d8a562715e9a653878c94ad155",
-      "status": "Excel2.2b_implemented_ci_passed_render_acceptance_pending"
-    },
-    {
-      "worker": "excel2-bank-import-20261016",
-      "round_id": "20261016T113000Z-excel2.3a",
-      "base_branch": "codex/accounting-v2-excel2-opening-ui-20261016",
-      "acquired_at": "2026-10-16T11:30:00Z",
-      "branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
-      "released_at": "2026-10-16T14:55:00Z",
-      "pr": 92,
-      "code_commit": "80b094a422d31aa440d9f392644bff855f46c02e",
-      "status": "Excel2.3a_implemented_ci_passed_render_acceptance_pending"
-    },
-    {
-      "worker": "excel2-bank-matching-ui-20261016",
-      "round_id": "20261016T151200Z-excel2.3b",
-      "base_branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
-      "acquired_at": "2026-10-16T15:12:00Z",
-      "branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
-      "released_at": "2026-10-16T15:32:00Z",
-      "pr": 93,
-      "code_commit": "ee7f31378fcb5168286082adcd50294de00cd126",
-      "status": "Excel2.3b_implemented_ci_passed_render_acceptance_pending"
-    },
-    {
-      "worker": "excel3-company-portability-finalize-20261018",
-      "round_id": "20261018T005200Z-excel3.1-finalize",
-      "base_branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
-      "acquired_at": "2026-10-18T00:52:00Z",
-      "branch": "codex/accounting-v2-excel3-company-portability-20261016",
-      "released_at": "2026-10-18T01:08:00Z",
-      "pr": 94,
-      "code_commit": "a6f3aff6d38c8e82afac5ed0888c78a5359fc34a",
-      "status": "Excel3.1_implemented_ci_passed_render_acceptance_pending"
-    },
-    {
-      "worker": "excel3-large-export-jobs-20261018",
-      "round_id": "20261018T015200Z-excel3.2a",
-      "base_branch": "codex/accounting-v2-excel3-company-portability-20261016",
-      "acquired_at": "2026-10-18T01:52:00Z",
-      "branch": "codex/accounting-v2-excel3-large-export-jobs-20261018",
-      "released_at": "2026-10-18T02:05:00Z",
-      "pr": 95,
-      "code_commit": "7dad4dca826f31766b1b6238ead8029b9647ff17",
-      "status": "Excel3.2a_implemented_ci_passed_render_acceptance_pending"
-    },
-    {
-      "worker": "excel3-large-export-worker-20261018",
-      "round_id": "20261018T024000Z-excel3.2b",
-      "base_branch": "codex/accounting-v2-excel3-large-export-jobs-20261018",
-      "acquired_at": "2026-10-18T02:40:00Z",
-      "branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
-      "released_at": "2026-10-18T03:22:33Z",
-      "pr": 96,
-      "code_commit": "9813f0fe0b516501146e3b2dee47389890ed038e",
-      "status": "Excel3.2b_implemented_ci_passed_render_acceptance_pending"
-    },
-    {
-      "worker": "excel3-large-import-ui-resume-20261018",
-      "round_id": "20261018T070900Z-excel3.2c.1-resume",
-      "base_branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
-      "acquired_at": "2026-10-18T07:07:01Z",
-      "branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
-      "released_at": "2026-10-18T08:54:24Z",
-      "pr": 97,
-      "code_commit": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
-      "status": "Excel3.2c.1_implemented_ci_passed_render_acceptance_pending"
-    },
-    {
-      "worker": "excel3-large-import-worker-20261018",
-      "round_id": "20261018T094623Z-excel3.2c.2",
-      "base_branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
-      "acquired_at": "2026-10-18T09:46:23Z",
-      "branch": "codex/accounting-v2-excel3-large-import-worker-20261018",
-      "released_at": "2026-10-18T09:55:00Z",
-      "pr": 98,
-      "code_commit": "6662455a03830032dfb7061bdf60de8051c1866e",
-      "status": "Excel3.2c.2a_implementation_pushed_ci_pending"
-    },
-    {
-      "worker": "excel4-historical-document-staging-ci-fix-20261019",
-      "round_id": "20261019T054403Z-excel4.1d.2-ci-fix",
-      "base_branch": "codex/accounting-v2-excel4-historical-documents-20261019",
-      "acquired_at": "2026-10-19T05:44:03.571Z",
-      "released_at": "2026-10-19T08:33:00Z",
-      "branch": "codex/accounting-v2-excel4-historical-document-commit-20261019",
-      "pr": 106,
-      "code_commit": "ae41f1dcd9485cdbf9418b49e3084275f1ab5af9",
-      "status": "Excel4.1d.2_implemented_ci_passed_render_acceptance_pending",
-      "ci": {
-        "run_id": 39217835917,
-        "commit_sha": "ae41f1dcd9485cdbf9418b49e3084275f1ab5af9",
-        "conclusion": "success",
-        "gates": [
-          "npm check",
-          "npm audit --omit=dev",
-          "Firestore Emulator",
-          "Playwright UI"
-        ]
-      },
-      "next": "Proceed to Excel4.1d.3 atomic native historical document commit and reconciliation; Render acceptance remains independent"
-    },
-    {
-      "worker": "excel4-historical-native-commit-20261019",
-      "round_id": "20261019T103500Z-excel4.1d.3a",
-      "base_branch": "codex/accounting-v2-excel4-historical-document-commit-20261019",
-      "acquired_at": "2026-10-19T10:35:00Z",
-      "released_at": "2026-10-19T11:00:00Z",
-      "branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
-      "pr": 107,
-      "code_commit": "e2cb20f23bd1506a74e23285fbfefd6abaeb99a5",
-      "status": "Excel4.1d.3a_implemented_ci_passed_render_acceptance_pending",
-      "ci": {
-        "run_id": 39238894878,
-        "commit_sha": "e2cb20f23bd1506a74e23285fbfefd6abaeb99a5",
-        "conclusion": "success"
-      },
-      "next": "Proceed to Excel4.1d.3b atomic native historical document creation and reconciliation; Render acceptance remains independent"
-    },
-    {
-      "worker": "excel4-historical-sales-plan-20261019",
-      "round_id": "20261019T132244Z-excel4.1d.3b.1",
-      "base_branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
-      "acquired_at": "2026-10-19T13:22:44Z",
-      "released_at": "2026-10-19T13:31:00Z",
-      "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-      "pr": 108,
-      "code_commit": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
-      "status": "Excel4.1d.3b.1_implemented_ci_passed_render_acceptance_pending",
-      "ci": {
-        "run_id": 39260368179,
-        "commit_sha": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
-        "conclusion": "success"
-      },
-      "next": "Proceed to Excel4.1d.3b.2 atomic sales-plan persistence and reconciliation, then historical purchase planning; Render acceptance remains independent"
-    },
-    {
-      "worker": "excel4-historical-sales-commit-20261020",
-      "round_id": "20261020T133010Z-excel4.1d.3b.2",
-      "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-      "acquired_at": "2026-10-20T13:30:10.511Z",
-      "expires_at": "2026-10-20T15:00:10.513Z",
-      "released_at": "2026-10-20T18:42:26.285Z",
-      "branch": "codex/accounting-v2-excel4-historical-sales-commit-20261020",
-      "status": "expired_after_code_upload_ci_wait",
-      "code_commit": "31aa7005156b46ce25131d142e7d9fa59fec05a1",
-      "ci": {
-        "run_id": 39431979794,
-        "commit_sha": "31aa7005156b46ce25131d142e7d9fa59fec05a1",
-        "conclusion": "success"
-      }
-    },
-    {
-      "worker": "excel4-historical-sales-closeout-20261020",
-      "round_id": "20261020T184226Z-excel4.1d.3b.2-closeout",
-      "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-      "acquired_at": "2026-10-20T18:42:26.285Z",
-      "expires_at": "2026-10-20T19:42:26.285Z",
-      "released_at": "2026-10-20T18:43:03.508Z",
-      "branch": "codex/accounting-v2-excel4-historical-sales-commit-20261020",
-      "pr": 110,
-      "code_commit": "31aa7005156b46ce25131d142e7d9fa59fec05a1",
-      "status": "Excel4.1d.3b.2_implemented_ci_passed_render_acceptance_pending",
-      "ci": {
-        "run_id": 39431979794,
-        "commit_sha": "31aa7005156b46ce25131d142e7d9fa59fec05a1",
-        "conclusion": "success"
-      },
-      "next": "Proceed to Excel4.1d.3b.3 native historical purchase/AP/receipt/WAC planning, then atomic persistence and reconciliation; Render acceptance remains independent"
-    },
-    {
-      "worker": "excel4-historical-purchase-plan-20261020",
-      "round_id": "20261020T192641Z-excel4.1d.3b.3",
-      "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-      "acquired_at": "2026-10-20T19:26:41.402Z",
-      "expires_at": "2026-10-20T20:56:41.402Z",
-      "released_at": "2026-10-20T19:27:27.712Z",
-      "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
-      "status": "blocked_execution_environment_unavailable_no_code_changes",
-      "next": "Resume Excel4.1d.3b.3 native historical purchase/AP/receipt/WAC planning when the execution environment is available"
-    },
-    {
-      "worker": "excel4-historical-purchase-plan-20261020c",
-      "round_id": "20261020T235104Z-excel4.1d.3b.3",
-      "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
-      "acquired_at": "2026-10-20T23:51:04.000Z",
-      "expires_at": "2026-10-21T01:21:04.000Z",
-      "released_at": "2026-10-21T05:10:06.731Z",
-      "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
-      "pr": 112,
-      "code_commit": "043546309e2a45649f70eaeab1f08ef76211e172",
-      "status": "Excel4.1d.3b.3_implemented_ci_passed_render_acceptance_pending",
-      "ci": {
-        "run_id": 39518461024,
-        "commit_sha": "043546309e2a45649f70eaeab1f08ef76211e172",
-        "conclusion": "success"
-      },
-      "next": "Proceed to Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation; Render acceptance remains independent"
-    },
-    {
-      "worker": "excel4-historical-purchase-commit-20261021",
-      "round_id": "20261021T1109Z-excel4.1d.3b.4",
-      "acquired_at": "2026-10-21T11:09:00Z",
-      "expires_at": "2026-10-21T12:39:00Z",
-      "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
-      "base_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
-      "purpose": "Implement atomic historical purchase persistence, frozen-tax replay and strict reconciliation",
-      "released_at": "2026-10-21T11:14:00Z",
-      "pr": 114,
-      "code_commit": "b01f1730c059cf9280fc85748d5495112ffb7e64",
-      "status": "partial_implementation_draft_tax_source_reconciliation_blocker",
-      "checks": {
-        "excel_import": 71,
-        "unit_api": 373,
-        "types_core_build": "passed",
-        "production_audit_vulnerabilities": 0,
-        "emulator_ui": "pending_CI"
-      },
-      "ci": {
-        "run_id": 39590389375,
-        "conclusion": "pending"
-      },
-      "next": "Complete frozen purchase-tax source/return reconciliation on PR #114; retain source_event_sequence and strict zero-finding gate. Add USD/FX, multi-line and restore tests. Excel4.1d.3b.4 remains incomplete; Render acceptance independent."
-    },
-    {
-      "worker": "excel4-purchase-closeout-20261021",
-      "round_id": "20261021T1544Z-closeout",
-      "acquired_at": "2026-10-21T15:44:00Z",
-      "expires_at": "2026-10-21T16:04:00Z",
-      "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
-      "purpose": "Record verified CI, close Excel4.1d.3b.4 and release lease",
-      "released_at": "2026-10-21T15:45:00Z",
-      "pr": 114,
-      "status": "Excel4.1d.3b.4_implemented_ci_passed_render_acceptance_pending",
-      "code_commit": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
-      "checks": {
-        "excel_import": 73,
-        "unit_api": 381,
-        "firestore_emulator": 35,
-        "playwright": 92,
-        "production_audit_vulnerabilities": 0,
-        "types": "passed",
-        "lint_core": "passed",
-        "build": "passed"
-      },
-      "ci": {
-        "run_id": 39598908302,
-        "commit_sha": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
-        "conclusion": "success"
-      },
-      "next": "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent."
-    },
-    {
-      "worker": "excel4-workbook-closeout-20261022",
-      "acquired_at": "2026-10-22T17:43:00Z",
-      "expires_at": "2026-10-22T18:43:00Z",
-      "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
-      "purpose": "Publish whitespace validation and verify workbook milestone",
-      "released_at": "2026-10-22T17:43:00Z",
-      "pr": 117,
-      "status": "workbook_base_ci_passed_whitespace_followup_ci_pending",
-      "code_commit": "1318aaf6ea63001317eb9f9d65c4108a59c30955",
-      "checks": {
-        "targeted_xlsx": 6,
-        "status": "passed"
-      },
-      "base_ci": {
-        "run_id": 39632722205,
-        "commit_sha": "050faa10d02318ba4dea68751a80d7a8d529d46a",
-        "conclusion": "success"
-      },
-      "next": "Verify PR117 CI and integration, then Excel4.1e.2 workbook UI/staging/preview/commit. Preserve current main Super Admin pause changes."
-    },
-    {
-      "worker": "workbook-ci-close-20261022",
-      "acquired_at": "2026-10-22T18:15:00Z",
-      "expires_at": "2026-10-22T18:45:00Z",
-      "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
-      "purpose": "Record successful final workbook CI",
-      "released_at": "2026-10-22T18:16:00Z",
-      "status": "Excel4.1e.1_implemented_ci_passed",
-      "pr": 117,
-      "ci": {
-        "run_id": 39825084325,
-        "commit_sha": "f574a220a767ccb8252621b752fe8023954c7c06",
-        "conclusion": "success"
-      },
-      "next": "Implement Excel4.1e.2 historical workbook UI, server staging/preview and reviewed commit; then legacy migration and auditor/scheduled exports. Preserve main Super Admin/sync changes."
-    },
-    {
-      "worker": "historical-ui-20261022",
-      "acquired_at": "2026-10-22T19:32:00Z",
-      "expires_at": "2026-10-22T20:32:00Z",
-      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-      "purpose": "Historical workbook UI local validation first",
-      "released_at": "2026-10-22T19:34:00Z",
-      "pr": 119,
-      "status": "Excel4.1e.2a_partial_ui_ci_pending",
-      "code_commit": "11a8705f0fee8c7cfe30df75e9cd2df075348878",
-      "checks": {
-        "types": "passed",
-        "build": "passed",
-        "xlsx": 6,
-        "ui": "local_browser_download_incomplete_CI_pending"
-      },
-      "ci": {
-        "run_id": 39840990009,
-        "conclusion": "in_progress"
-      },
-      "next": "Verify PR119 CI, complete valid-file/stale-context UI coverage, then server staging and reviewed hash-bound commit. Excel4.1e.2 incomplete."
-    },
-    {
-      "worker": "historical-ui-audit-20261022",
-      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-      "acquired_at": "2026-10-22T20:24:00Z",
-      "expires_at": "2026-10-22T21:24:00Z",
-      "purpose": "Fix CI production DOMPurify audit blocker",
-      "released_at": "2026-10-22T20:26:00Z",
-      "pr": 119,
-      "status": "partial_UI_audit_fixed_CI_pending",
-      "code_commit": "6462f8634b3464aa9c2c88be77cc04ea0c8295b4",
-      "ci": {
-        "run_id": 39848463542,
-        "conclusion": "in_progress"
-      },
-      "production_audit_vulnerabilities": 0,
-      "next": "Verify repaired PR119 CI including real UI/emulator; finish valid-file and stale-context coverage then protected server staging and hash-bound approval."
-    },
-    {
-      "worker": "historical-ui-valid-file-20261022",
-      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-      "acquired_at": "2026-10-22T21:37:00Z",
-      "expires_at": "2026-10-22T22:37:00Z",
-      "purpose": "Prove valid historical workbook UI read-only review",
-      "released_at": "2026-10-22T21:39:00Z",
-      "pr": 119,
-      "status": "initial_UI_ci_passed_valid_file_test_pending",
-      "code_commit": "f5318cc5217216c8c2f154b4358afbe682952a0e",
-      "accepted_ci": {
-        "run_id": 39848463542,
-        "commit_sha": "6462f8634b3464aa9c2c88be77cc04ea0c8295b4",
-        "conclusion": "success"
-      },
-      "next": "Verify valid-file UI test CI, add stale-context coverage, then server staging/preview/hash-bound commit. Excel4.1e.2 remains incomplete."
-    },
-    {
-      "worker": "historical-ui-closeout-20261022",
-      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-      "acquired_at": "2026-10-22T22:29:00Z",
-      "expires_at": "2026-10-22T22:59:00Z",
-      "purpose": "Close verified local workbook review milestone",
-      "released_at": "2026-10-22T22:30:00Z",
-      "pr": 119,
-      "status": "Excel4.1e.2a_implemented_ci_passed",
-      "ci": {
-        "run_id": 39858718951,
-        "commit_sha": "7e1a858007b081f9d18e1acc628679a360bbd61d",
-        "conclusion": "success"
-      },
-      "checks": {
-        "excel_import": 79,
-        "unit_api": 381,
-        "firestore": 35,
-        "ui": 94,
-        "production_audit_vulnerabilities": 0
-      },
-      "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance."
     }
   ],
   "last_lease": {
-    "worker": "historical-ui-closeout-20261022",
-    "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-    "acquired_at": "2026-10-22T22:29:00Z",
-    "expires_at": "2026-10-22T22:59:00Z",
-    "purpose": "Close verified local workbook review milestone",
-    "released_at": "2026-10-22T22:30:00Z",
-    "pr": 119,
-    "status": "Excel4.1e.2a_implemented_ci_passed",
-    "ci": {
-      "run_id": 39858718951,
-      "commit_sha": "7e1a858007b081f9d18e1acc628679a360bbd61d",
-      "conclusion": "success"
-    },
-    "checks": {
-      "excel_import": 79,
-      "unit_api": 381,
-      "firestore": 35,
-      "ui": 94,
-      "production_audit_vulnerabilities": 0
-    },
-    "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance."
+    "worker": "c5-tax-policy-ui-20261012",
+    "acquired_at": "2026-10-12T04:40:00Z",
+    "branch": "codex/accounting-v2-c5-tax-ui-20261012",
+    "released_at": "2026-10-12T07:15:00Z",
+    "pr": 54,
+    "code_commit": "05278645316b66f931cd37cb2e185711e1500e66"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3174,7 +2529,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance.",
+  "next": "Proceed to C5.3.2 tax periods and reports; retain independent Render acceptance for matching staging commits",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3195,27 +2550,24 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "historical-ui-closeout-20261022",
-    "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
-    "acquired_at": "2026-10-22T22:29:00Z",
-    "expires_at": "2026-10-22T22:59:00Z",
-    "purpose": "Close verified local workbook review milestone",
-    "released_at": "2026-10-22T22:30:00Z",
-    "pr": 119,
-    "status": "Excel4.1e.2a_implemented_ci_passed",
+    "worker": "c5-tax-policy-ui-20261012",
+    "acquired_at": "2026-10-12T04:40:00Z",
+    "branch": "codex/accounting-v2-c5-tax-ui-20261012",
+    "released_at": "2026-10-12T07:15:00Z",
+    "pr": 54,
+    "code_commit": "05278645316b66f931cd37cb2e185711e1500e66",
+    "status": "C5_3_1_implemented_ci_passed_render_acceptance_pending",
+    "ended_at": "2026-10-12T07:15:00Z",
     "ci": {
-      "run_id": 39858718951,
-      "commit_sha": "7e1a858007b081f9d18e1acc628679a360bbd61d",
-      "conclusion": "success"
-    },
-    "checks": {
-      "excel_import": 79,
-      "unit_api": 381,
-      "firestore": 35,
-      "ui": 94,
+      "run_id": 38209232481,
+      "commit_sha": "05278645316b66f931cd37cb2e185711e1500e66",
+      "conclusion": "success",
+      "unit_api": 340,
+      "emulator": 35,
+      "ui": 58,
       "production_audit_vulnerabilities": 0
     },
-    "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance."
+    "next": "Proceed to C5.3.2 tax periods and reports; Render acceptance remains independent"
   },
   "acceptance_environment": {
     "provider": "Render",

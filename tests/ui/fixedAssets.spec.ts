@@ -1,4 +1,4 @@
-import {test, expect, type Page} from '@playwright/test';
+import { test, expect, type Page, cloudRecords, cloudMerchant, seedCloudMerchant, updateCloudMerchant, seedRows, openMerchant } from './helpers/cloudMerchant';
 import {INITIAL_SETTINGS} from '../../src/data/initialData';
 import {createDefaultSubscription, getPlanConfig} from '../../src/lib/plans';
 import {getDefaultChartOfAccounts} from '../../src/services/accountingService';
@@ -7,6 +7,7 @@ import {fixedAssetRegistrationEvidence} from '../../src/domain/fixedAssetSources
 
 const org = 'local-guest-org', root = `organizations/${org}`;
 const assetInput = {id: 'FA-UI', name: 'حاسوب المبيعات', category: 'معدات', purchase_date: '2026-09-01', in_service_date: '2026-09-01', source_journal_id: 'asset-source', source_line_index: 0, useful_life_months: 12, residual_value_sdg: 0, residual_value_usd: 0, asset_account_code: '1500', accumulated_depreciation_account_code: '1590', depreciation_expense_account_code: '5600', reason: 'تسجيل شراء موثق', reference_number: 'FA-2026'};
+const saved = (page: Page) => cloudRecords(page);
 async function seed(page: Page, role = 'Owner', registered = false) {
   const accounts: any[] = getDefaultChartOfAccounts(org);
   for (const [code, name, type, nature, group] of [['1500', 'معدات', 'ASSET', 'DEBIT', 'fixed_assets'], ['1590', 'مجمع إهلاك', 'ASSET', 'CREDIT', 'fixed_assets'], ['5600', 'مصروف إهلاك', 'EXPENSE', 'DEBIT', 'operating_expense']]) {
@@ -23,13 +24,10 @@ async function seed(page: Page, role = 'Owner', registered = false) {
   };
   for (const account of accounts) records[`${root}/accounts/${account.code}`] = account;
   if (registered) records[`${root}/fixed_assets/FA-UI`] = fixedAssetRegistrationEvidence(assetInput, {org_id: org, accounts, journal_entries: [entry], fixed_assets: []}, {operation_id: 'seed-asset', created_by: 'guest', created_at: '2026-09-02T12:00:00Z'});
-  await page.addInitScript(records => {
-    localStorage.setItem('mohasbasd_guest_session', 'true'); localStorage.setItem('sudanese_merchant_has_seen_tour_v2', 'true');
-    if (!localStorage.getItem('sudaflow_guest_transactions_v3')) localStorage.setItem('sudaflow_guest_transactions_v3', JSON.stringify(records));
-  }, records);
-  await page.goto('/'); await page.locator('#tab-accounting').click(); await page.getByTestId('fixed-assets-tab').click();
+  await seedCloudMerchant(page, records);
+  await openMerchant(page); await page.locator('#tab-accounting').click(); await page.getByTestId('fixed-assets-tab').click();
 }
-const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}'));
+
 async function fillRegister(page: Page) {
   const form = page.getByRole('form', {name: 'تسجيل أصل ثابت'});
   await form.getByLabel('طرف قيد شراء الأصل').selectOption('asset-source/0'); await form.getByLabel('رمز الأصل').fill('FA-UI');

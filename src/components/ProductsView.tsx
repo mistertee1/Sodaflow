@@ -52,19 +52,8 @@ export const ProductsView: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   // Pre-configured safety threshold for low stock alert
-  const [alertThreshold, setAlertThreshold] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('sudanese_merchant_stock_alert_threshold');
-      return saved ? Number(saved) : 10;
-    } catch {
-      return 10;
-    }
-  });
-
-  const handleAlertThresholdChange = (val: number) => {
-    setAlertThreshold(val);
-    localStorage.setItem('sudanese_merchant_stock_alert_threshold', val.toString());
-  };
+  const [alertThreshold, setAlertThreshold] = useState<number>(10);
+  const handleAlertThresholdChange = (val: number) => setAlertThreshold(val);
 
   // Form Fields
   const [name, setName] = useState('');

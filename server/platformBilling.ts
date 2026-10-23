@@ -8,6 +8,7 @@ import { loadSubscription } from '../src/domain/subscriptions';
 import { defaultPlatformPlans } from '../src/lib/plans';
 import type { Organization, PlatformPlan, SubscriptionEvent, SubscriptionStatus } from '../src/types';
 import { resolveSubscription } from './subscriptions';
+import { assertExclusivePlatformAdmin } from './platformAdminAccess';
 
 const dayMs = 86400000;
 const states: SubscriptionStatus[] = ['trial', 'active', 'suspended', 'expired', 'cancelled'];
@@ -39,13 +40,13 @@ export function validatePlatformPlan(input: Document, id: string, old?: Platform
 
 /** All commercial mutations use one transaction with immutable events and an idempotency record. */
 export class PlatformBilling {
-  constructor(private store: Store, private db?: Firestore) {}
+  constructor(private store: Store, private db?: Firestore, private controlsEnabled = true) {}
   async assertAdmin(actor: Actor, tx?: Transaction) {
+    if (!this.controlsEnabled) throw new BusinessError('لوحة السوبر أدمن وإدارة الاشتراكات متوقفة مؤقتاً.', 403, 'platform_controls_paused');
     ensure(actor.emailVerified === true, 'أكّد بريدك الإلكتروني قبل إدارة المنصة.', 403);
     if (actor.superAdmin !== true) throw new BusinessError('هذا الحساب لا يملك صلاحية إدارة المنصة.', 403, 'super_admin_required');
     const read = async (transaction: Transaction) => {
-      const admin = await transaction.get(`platformAdmins/${identifier(actor.uid)}`);
-      ensure(admin?.active === true && admin.role === 'super_admin', 'صلاحية إدارة المنصة غير فعّالة لهذا الحساب.', 403);
+      await assertExclusivePlatformAdmin(transaction, actor);
     };
     if (tx) await read(tx); else await this.store.transaction(read);
   }
@@ -54,6 +55,7 @@ export class PlatformBilling {
     return this.catalog();
   }
   async catalog(): Promise<PlatformPlan[]> {
+    if (!this.controlsEnabled) return [];
     return this.store.transaction(async tx => {
       const saved = await tx.list('plans') as PlatformPlan[];
       return [...saved, ...defaultPlatformPlans().filter(plan => !saved.some(record => record.id === plan.id))];

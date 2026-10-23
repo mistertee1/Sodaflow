@@ -2388,12 +2388,12 @@
       ]
     }
   ],
-  "last_report": "REPORT_CONTRACT_REGRESSIONS_20261023.md",
+  "last_report": "REPORT_HISTORICAL_REVIEW_REQUIRED_20261023.md",
   "next_steps": [
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
   ],
-  "updated_at": "2026-10-23T23:17:42.921Z",
+  "updated_at": "2026-10-23T23:22:05.356Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3584,6 +3584,13 @@
         "build": "passed",
         "baseline_failures_fixed": 11,
         "ci": "pending"
+      },
+      "ci": {
+        "run_id": 40038692077,
+        "commit_sha": "a1c747073fa8247f5141a64f313d5b04c2eb85af",
+        "conclusion": "in_progress",
+        "emulator": "passed",
+        "ui": "running"
       }
     }
   },
@@ -3658,8 +3665,20 @@
     }
   },
   "historical_review_required": {
-    "status": "in_progress",
+    "status": "source_fixed_local_check_passed_ci_pending",
     "base_pr": 138,
-    "scope": "Reject legacy unreviewed historical financial commits and forged preview flags; private read-only simulation only"
+    "scope": "Reject legacy unreviewed historical financial commits and forged preview flags; private read-only simulation only",
+    "branch": "codex/accounting-v2-historical-review-required-20261023",
+    "report": "REPORT_HISTORICAL_REVIEW_REQUIRED_20261023.md",
+    "checks": {
+      "unit_api": 564,
+      "unit_api_status": "passed",
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "final_historical_tests": 20,
+      "ci": "pending"
+    }
   }
 }

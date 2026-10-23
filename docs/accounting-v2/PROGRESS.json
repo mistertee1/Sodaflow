@@ -7,7 +7,13 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
   "overall_status": "in_progress",
-  "lease": null,
+  "lease": {
+    "worker": "historical-staging-evidence-20261023",
+    "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+    "acquired_at": "2026-10-23T04:02:00Z",
+    "expires_at": "2026-10-23T04:22:00Z",
+    "purpose": "Record successful authenticated staging retry CI"
+  },
   "milestones": [
     {
       "id": "A1",

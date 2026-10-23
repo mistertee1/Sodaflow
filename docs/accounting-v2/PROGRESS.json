@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "historical-auth-staging-test-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T02:27:00Z",
-    "expires_at": "2026-10-23T03:27:00Z",
-    "purpose": "Exercise signed-in staging and retry against real domain via isolated test API"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -3194,23 +3188,39 @@
         "conclusion": "success"
       },
       "next": "Accept authenticated staging success, retry and context isolation; then fresh protected review and hash-bound commit. PR121 remains partial draft."
+    },
+    {
+      "worker": "historical-auth-staging-test-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T02:27:00Z",
+      "expires_at": "2026-10-23T03:27:00Z",
+      "purpose": "Exercise signed-in staging and retry against real domain via isolated test API",
+      "released_at": "2026-10-23T02:30:00Z",
+      "pr": 121,
+      "status": "authenticated_staging_retry_acceptance_test_pending_CI",
+      "code_commit": "0478ee417eaed696dd5645c015e3d7a4d763930a",
+      "checks": {
+        "types": "passed",
+        "ui": "pending_CI"
+      },
+      "next": "Verify new authenticated staging/retry UI test, repair failures; then context isolation and protected fresh review/hash-bound commit. Real Firebase acceptance remains separate."
     }
   ],
   "last_lease": {
-    "worker": "guest-staging-ci-closeout-20261023",
+    "worker": "historical-auth-staging-test-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T00:57:00Z",
-    "expires_at": "2026-10-23T01:17:00Z",
-    "purpose": "Record verified guest no-write regression CI",
-    "released_at": "2026-10-23T00:58:00Z",
+    "acquired_at": "2026-10-23T02:27:00Z",
+    "expires_at": "2026-10-23T03:27:00Z",
+    "purpose": "Exercise signed-in staging and retry against real domain via isolated test API",
+    "released_at": "2026-10-23T02:30:00Z",
     "pr": 121,
-    "status": "guest_staging_guard_ci_passed_authenticated_flow_pending",
-    "ci": {
-      "run_id": 39879589869,
-      "commit_sha": "cfa3ca8ac16c4b5b6f84aa8f2bddfaa7f6660be9",
-      "conclusion": "success"
+    "status": "authenticated_staging_retry_acceptance_test_pending_CI",
+    "code_commit": "0478ee417eaed696dd5645c015e3d7a4d763930a",
+    "checks": {
+      "types": "passed",
+      "ui": "pending_CI"
     },
-    "next": "Accept authenticated staging success, retry and context isolation; then fresh protected review and hash-bound commit. PR121 remains partial draft."
+    "next": "Verify new authenticated staging/retry UI test, repair failures; then context isolation and protected fresh review/hash-bound commit. Real Firebase acceptance remains separate."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3224,7 +3234,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Accept authenticated staging success, retry and context isolation; then fresh protected review and hash-bound commit. PR121 remains partial draft.",
+  "next": "Verify new authenticated staging/retry UI test, repair failures; then context isolation and protected fresh review/hash-bound commit. Real Firebase acceptance remains separate.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3245,20 +3255,20 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "guest-staging-ci-closeout-20261023",
+    "worker": "historical-auth-staging-test-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T00:57:00Z",
-    "expires_at": "2026-10-23T01:17:00Z",
-    "purpose": "Record verified guest no-write regression CI",
-    "released_at": "2026-10-23T00:58:00Z",
+    "acquired_at": "2026-10-23T02:27:00Z",
+    "expires_at": "2026-10-23T03:27:00Z",
+    "purpose": "Exercise signed-in staging and retry against real domain via isolated test API",
+    "released_at": "2026-10-23T02:30:00Z",
     "pr": 121,
-    "status": "guest_staging_guard_ci_passed_authenticated_flow_pending",
-    "ci": {
-      "run_id": 39879589869,
-      "commit_sha": "cfa3ca8ac16c4b5b6f84aa8f2bddfaa7f6660be9",
-      "conclusion": "success"
+    "status": "authenticated_staging_retry_acceptance_test_pending_CI",
+    "code_commit": "0478ee417eaed696dd5645c015e3d7a4d763930a",
+    "checks": {
+      "types": "passed",
+      "ui": "pending_CI"
     },
-    "next": "Accept authenticated staging success, retry and context isolation; then fresh protected review and hash-bound commit. PR121 remains partial draft."
+    "next": "Verify new authenticated staging/retry UI test, repair failures; then context isolation and protected fresh review/hash-bound commit. Real Firebase acceptance remains separate."
   },
   "acceptance_environment": {
     "provider": "Render",

@@ -198,6 +198,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
       logo_url: logoUrl || '',
       bank_details: bankDetails.trim() || '',
       default_exchange_rate: rateVal.rate,
+      ...(rateVal.rate !== settings.default_exchange_rate ? { manual_exchange_rate: 0 } : {}),
       primary_currency: primaryCurrency,
       secondary_currency: secondaryCurrency,
       currencies_configured: rateVal.rate > 0,
@@ -696,9 +697,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 <div className="relative">
                   <input
                     type="number"
-                    step="1"
-                    min="1"
+                    step="0.00000001"
+                    min="0.00000001"
                     required
+                    aria-label="سعر الصرف الافتراضي"
                     value={defaultRate}
                     onChange={(e) => setDefaultRate(Number(e.target.value))}
                     className="w-full bg-sf-raised border border-sf-action/40 rounded-lg px-3 py-2 text-xs font-mono font-semibold text-sf-text focus:outline-none focus:border-sf-action"

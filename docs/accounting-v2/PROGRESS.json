@@ -4,15 +4,15 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-contract-regressions-20261023",
+  "active_milestone": "Excel4",
+  "active_branch": "codex/accounting-v2-historical-review-required-20261023",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "accounting-contract-regressions-20261023-2314",
-    "branch": "codex/accounting-v2-contract-regressions-20261023",
-    "acquired_at": "2026-10-23T23:13:18.034Z",
-    "expires_at": "2026-10-23T23:58:18.034Z",
-    "purpose": "Restore inherited D4 credit limits and Excel audit contracts after 11 failures in previously unregistered regression tests"
+    "worker": "historical-review-required-20261023-2320",
+    "branch": "codex/accounting-v2-historical-review-required-20261023",
+    "acquired_at": "2026-10-23T23:17:42.921Z",
+    "expires_at": "2026-10-24T00:02:42.921Z",
+    "purpose": "Enforce historical approval review at server entry before idempotency; keep dry-run capability private"
   },
   "milestones": [
     {
@@ -2393,7 +2393,7 @@
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
   ],
-  "updated_at": "2026-10-23T23:15:49.317Z",
+  "updated_at": "2026-10-23T23:17:42.921Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2418,7 +2418,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D4_Excel_integration_regressions",
+  "active_substep": "Excel4.1e.review_contract_required",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3496,7 +3496,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Finish inherited D4/Excel1–3 regression repair, then mandatory historical review contract and safe session/receipt recovery; original inventory PR137 CI remains independently pending.",
+  "next": "Enforce required historical review safely with unchanged dry-run and idempotent retry contracts; then recover historical session/receipt across reload, remaining Excel4 and independent authenticated acceptance.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3656,5 +3656,10 @@
       "qs": "6.16.1",
       "production_audit": "pending_on_patched_lock"
     }
+  },
+  "historical_review_required": {
+    "status": "in_progress",
+    "base_pr": 138,
+    "scope": "Reject legacy unreviewed historical financial commits and forged preview flags; private read-only simulation only"
   }
 }

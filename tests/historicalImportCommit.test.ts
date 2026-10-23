@@ -52,7 +52,7 @@ async function seedPurchaseBaseline(f:Awaited<ReturnType<typeof fixture>>){
 test('Excel4.1d.3b.4 commits native purchases, AP, receipt, WAC and retry atomically',async()=>{
   const f=await fixture();await seedPurchaseBaseline(f);
   const staged=await f.stage([purchaseRow()],'purchase-stage',{'11':purchaseEvidence()}),first=await f.commit(staged,'purchase-commit');
-  assert.deepEqual(await f.commit(staged,'purchase-commit'),first);assert.equal(first.result.purchase_bills_created,1);assert.equal(first.result.supplier_payments_created,1);assert.equal(first.result.reconciliation.findings_count,0);
+  assert.deepEqual(await f.commit(staged,'purchase-commit'),first);assert.equal(first.result.purchase_bills_created,1);assert.equal(first.result.supplier_payments_created,1);assert.equal(first.result.org_id,f.org.id);assert.equal(first.result.reconciliation.findings_count,0);
   const dump=f.store.dump(),session=dump[`${f.root}/historical_import_sessions/${staged.id}`],bill=dump[`${f.root}/purchase_bills/${session.commit_purchase_bill_ids[0]}`];
   assert.equal(bill.remaining_sdg,60);assert.equal(bill.payment_sequence,1);assert.equal(bill.items[0].value_sdg,100);assert.equal(dump[`${f.root}/suppliers/supplier-1`].payable_due_sdg,60);assert.equal(dump[`${f.root}/products/product-1`].stock_quantity,12);assert.equal(dump[`${f.root}/products/product-1`].inventory_value_sdg,1100);assert.equal(dump[`${f.root}/purchase_numbers/supplier-1.pb-h-11`].id,bill.id);
   const snapshot=await f.ops.snapshot(f.org.id,owner,true);assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData,snapshot.settings,{requireCosting:true}),[]);
@@ -147,7 +147,7 @@ test('Excel4.1c completes with an accounting block and prevents final period clo
 test('Excel4.1d.3b.2 atomically persists native historical sales and reconciles every source',async()=>{
   const f=await fixture();await seedSalesBaseline(f);
   const staged=await f.stage([salesRow()],'native-sales-stage',{'7':salesEvidence()}),first=await f.commit(staged,'native-sales-commit'),again=await f.commit(staged,'native-sales-commit');
-  assert.deepEqual(again,first);assert.equal(first.result.status,'completed');assert.equal(first.result.accounting_block,false);assert.equal(first.result.invoices_created,1);assert.equal(first.result.payments_created,1);assert.equal(first.result.inventory_movements_created,1);assert.equal(first.result.journals_created,2);assert.equal(first.result.reconciliation.findings_count,0);
+  assert.deepEqual(again,first);assert.equal(first.result.status,'completed');assert.equal(first.result.accounting_block,false);assert.equal(first.result.invoices_created,1);assert.equal(first.result.payments_created,1);assert.equal(first.result.inventory_movements_created,1);assert.equal(first.result.journals_created,2);assert.equal(first.result.org_id,f.org.id);assert.equal(first.result.reconciliation.findings_count,0);
   const dump=f.store.dump(),session=dump[`${f.root}/historical_import_sessions/${staged.id}`];
   assert.equal(session.status,'completed');assert.equal(session.commit_invoice_ids.length,1);assert.equal(session.commit_payment_ids.length,1);assert.equal(session.commit_inventory_movement_ids.length,1);
   const invoice=dump[`${f.root}/invoices/${session.commit_invoice_ids[0]}`],payment=dump[`${f.root}/payments/${session.commit_payment_ids[0]}`],movement=dump[`${f.root}/inventory_movements/${session.commit_inventory_movement_ids[0]}`];
@@ -243,7 +243,7 @@ test('Excel4.1e.2c.2b binds native historical approval to live review and preser
     assert.equal((await ops.historicalImportPreview(f.org.id,accountant,request)).review_sha256,review.review_sha256);
     const command={action:'historicalImport.commit',operationId:request.operationId,data:{...request.input,expected_review_sha256:review.review_sha256}};
     const first=await ops.execute(f.org.id,accountant,command),saved=f.store.dump();
-    assert.equal(first.result.reconciliation.findings_count,0);
+    assert.equal(first.result.org_id,f.org.id);assert.equal(first.result.reconciliation.findings_count,0);
     assert.deepEqual(await ops.execute(f.org.id,accountant,command),first);assert.deepEqual(f.store.dump(),saved);
     await assert.rejects(ops.execute(f.org.id,accountant,{...command,data:{...command.data,expected_review_sha256:'0'.repeat(64)}}),/معرّف العملية/);
   }

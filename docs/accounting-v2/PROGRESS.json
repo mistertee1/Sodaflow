@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-review-20261023",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "historical-preview-ci-closeout-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-review-20261023",
-    "acquired_at": "2026-10-23T09:52:38Z",
-    "expires_at": "2026-10-23T10:12:38.000Z",
-    "purpose": "Record verified historical preview CI and close foundation milestone"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -2418,7 +2412,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1e.2c.1",
+  "active_substep": "Excel4.1e.2c.2",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3318,27 +3312,39 @@
         "cloud_ci": "pending"
       },
       "next": "Verify PR122 CI; wire fresh server preview UI and evidence/state-hash-bound approval with context isolation; real Firebase acceptance remains independent."
+    },
+    {
+      "worker": "historical-preview-ci-closeout-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-review-20261023",
+      "acquired_at": "2026-10-23T09:52:38Z",
+      "expires_at": "2026-10-23T10:12:38.000Z",
+      "purpose": "Record verified historical preview CI and close foundation milestone",
+      "released_at": "2026-10-23T09:52:55Z",
+      "status": "Excel4.1e.2c.1_implemented_ci_passed",
+      "pr": 122,
+      "ci": {
+        "run_id": 39927620106,
+        "commit_sha": "262a4fe2b05eef87b3ce91ebe6f02bdbd5cc03b4",
+        "conclusion": "success"
+      },
+      "next": "Excel4.1e.2c.2: wire fresh server preview UI and evidence/state-hash-bound approval, tenant/context isolation and retry acceptance; real Firebase acceptance remains independent."
     }
   ],
   "last_lease": {
-    "worker": "historical-review-20261023",
+    "worker": "historical-preview-ci-closeout-20261023",
     "branch": "codex/accounting-v2-excel4-historical-review-20261023",
-    "acquired_at": "2026-10-23T08:50:00Z",
-    "expires_at": "2026-10-23T09:35:00Z",
-    "purpose": "Implement protected non-writing historical commit dry run",
-    "released_at": "2026-10-23T08:52:00Z",
+    "acquired_at": "2026-10-23T09:52:38Z",
+    "expires_at": "2026-10-23T10:12:38.000Z",
+    "purpose": "Record verified historical preview CI and close foundation milestone",
+    "released_at": "2026-10-23T09:52:55Z",
+    "status": "Excel4.1e.2c.1_implemented_ci_passed",
     "pr": 122,
-    "status": "Excel4.1e.2c.1_protected_dry_run_implemented_CI_pending",
-    "code_commit": "262a4fe2b05eef87b3ce91ebe6f02bdbd5cc03b4",
-    "checks": {
-      "types": "passed",
-      "lint_core": "passed",
-      "excel_import": 82,
-      "unit_api": 382,
-      "build": "passed",
-      "cloud_ci": "pending"
+    "ci": {
+      "run_id": 39927620106,
+      "commit_sha": "262a4fe2b05eef87b3ce91ebe6f02bdbd5cc03b4",
+      "conclusion": "success"
     },
-    "next": "Verify PR122 CI; wire fresh server preview UI and evidence/state-hash-bound approval with context isolation; real Firebase acceptance remains independent."
+    "next": "Excel4.1e.2c.2: wire fresh server preview UI and evidence/state-hash-bound approval, tenant/context isolation and retry acceptance; real Firebase acceptance remains independent."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3352,7 +3358,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Verify PR122 CI; wire fresh server preview UI and evidence/state-hash-bound approval with context isolation; real Firebase acceptance remains independent.",
+  "next": "Excel4.1e.2c.2: wire fresh server preview UI and evidence/state-hash-bound approval, tenant/context isolation and retry acceptance; real Firebase acceptance remains independent.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3373,24 +3379,20 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "historical-review-20261023",
+    "worker": "historical-preview-ci-closeout-20261023",
     "branch": "codex/accounting-v2-excel4-historical-review-20261023",
-    "acquired_at": "2026-10-23T08:50:00Z",
-    "expires_at": "2026-10-23T09:35:00Z",
-    "purpose": "Implement protected non-writing historical commit dry run",
-    "released_at": "2026-10-23T08:52:00Z",
+    "acquired_at": "2026-10-23T09:52:38Z",
+    "expires_at": "2026-10-23T10:12:38.000Z",
+    "purpose": "Record verified historical preview CI and close foundation milestone",
+    "released_at": "2026-10-23T09:52:55Z",
+    "status": "Excel4.1e.2c.1_implemented_ci_passed",
     "pr": 122,
-    "status": "Excel4.1e.2c.1_protected_dry_run_implemented_CI_pending",
-    "code_commit": "262a4fe2b05eef87b3ce91ebe6f02bdbd5cc03b4",
-    "checks": {
-      "types": "passed",
-      "lint_core": "passed",
-      "excel_import": 82,
-      "unit_api": 382,
-      "build": "passed",
-      "cloud_ci": "pending"
+    "ci": {
+      "run_id": 39927620106,
+      "commit_sha": "262a4fe2b05eef87b3ce91ebe6f02bdbd5cc03b4",
+      "conclusion": "success"
     },
-    "next": "Verify PR122 CI; wire fresh server preview UI and evidence/state-hash-bound approval with context isolation; real Firebase acceptance remains independent."
+    "next": "Excel4.1e.2c.2: wire fresh server preview UI and evidence/state-hash-bound approval, tenant/context isolation and retry acceptance; real Firebase acceptance remains independent."
   },
   "acceptance_environment": {
     "provider": "Render",

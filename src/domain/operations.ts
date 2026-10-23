@@ -1,3 +1,4 @@
+import { currencyDecimals, isForeignCurrency, isSupportedCurrency, normalizeWhatsAppPhone, transactionCurrency } from '../lib/currencyCatalog';
 import { equityCollections, verifyEquitySources, equityBackupCounts, validateEquityBackup, remapEquityEvents } from './ownerEquitySources';
 import { fxRevaluationCollections, verifyFxRevaluationSources, fxRevaluationBackupCounts, validateFxRevaluationBackup, remapFxRevaluations } from './fxRevaluationSources';
 import { fxRevaluationTransaction } from './fxRevaluationTransactions';
@@ -495,7 +496,13 @@ export class Operations {
           result = { ...old, ...pick(input, ['name', 'phone', 'email', 'address', 'preferred_currency', 'notes']), ...(!updating ? stamp : {}), id, balance_sdg: old.balance_sdg || 0, balance_usd: old.balance_usd || 0, updated_at: iso };
           result.phone ??= ''; result.preferred_currency ??= 'SDG';
           text(result.name, 200, true); text(result.phone ?? '', 100);
-          ensure(['SDG', 'USD'].includes(result.preferred_currency || 'SDG'), 'عملة العميل غير مدعومة.');
+          ensure(isSupportedCurrency(result.preferred_currency || 'SDG'), 'عملة العميل غير مدعومة.');
+          if (result.phone) {
+            const region = updating && result.phone === old.phone ? old.preferred_currency : result.preferred_currency;
+            const normalized = normalizeWhatsAppPhone(result.phone, region, updating && result.phone === old.phone ? 'SDG' : transactionCurrency(settings));
+            ensure(!!normalized, 'رقم الهاتف غير صالح. اكتب الرقم الدولي كاملاً بمفتاح الدولة.');
+            result.phone = '+' + normalized;
+          }
           set(`${root}/customers/${id}`, result); break;
         }
         case 'customer.delete': {
@@ -592,7 +599,7 @@ export class Operations {
         }
         case 'invoice.create': {
           assertOpenPeriod(data.issue_date, settings);
-          ensure(['dual', 'single_sdg', 'single_usd'].includes(data.currency_mode), 'نمط العملة غير صالح.');
+          ensure(['dual', 'single_sdg', 'single_usd', 'single_foreign'].includes(data.currency_mode), 'نمط العملة غير صالح.');
           if (data.due_date) ensure(dateOnly(data.due_date) >= dateOnly(data.issue_date), 'تاريخ الاستحقاق قبل الإصدار.');
           ensure(!(data.paid_amount_sdg || data.paid_amount_usd), 'سجّل التحصيل بسند قبض بعد إصدار الفاتورة.');
           const customer = await required('customers', data.customer_id);
@@ -626,7 +633,9 @@ export class Operations {
           while (await tx.get(numberKey)) { number++; numberKey = `${root}/invoice_numbers/${encodeURIComponent(`${prefix}${String(number).padStart(4, '0')}`)}`; }
           ensure(Number.isSafeInteger(number) && number <= 999999999, 'تسلسل الفواتير يحتاج مراجعة.');
           const id = `inv-${command.operationId}`;
-          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customer.phone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
+          const rawCustomerPhone = typeof customer.phone === 'string' ? customer.phone : '';
+          const customerPhone = normalizeWhatsAppPhone(rawCustomerPhone, customer.preferred_currency, 'SDG');
+          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customerPhone ? '+' + customerPhone : rawCustomerPhone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
           invoice.receivable_currency = receivableCurrency(invoice);
           let cogsSdg = 0, cogsUsd = 0;
           for (const item of invoice.items) item.cost_status = item.product_id ? 'unknown' : 'not_tracked';
@@ -657,7 +666,7 @@ export class Operations {
           invoice.costing_version = 2; invoice.cogs_sdg = cogsSdg; invoice.cogs_usd = cogsUsd;
           if (cogsSdg || cogsUsd) lines.push(journalLine('5100', 'تكلفة البضاعة المباعة', cogsSdg, 0, cogsUsd, 0), journalLine('1300', 'المخزون', 0, cogsSdg, 0, cogsUsd));
           await post(journal(`jv-inv-${id}`, orgId, actor.uid, data.issue_date, 'invoice', id, `إصدار الفاتورة ${invoice.invoice_number}`, lines, invoice.exchange_rate_used));
-          if (org.accounting_version === 2) await saveSalesCustomer({ tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }, customer, invoice);
+          if (org.accounting_version === 2 || invoice.pricing) await saveSalesCustomer({ tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }, customer, invoice);
           else set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeAdd(customer.balance_sdg || 0, invoice.remaining_sdg, 0), balance_usd: safeAdd(customer.balance_usd || 0, invoice.remaining_usd, 2), updated_at: iso });
           set(`${root}/invoices/${id}`, invoice); set(numberKey, { invoice_id: id }); result = invoice;
           counters.invoice_count = (existing?.length ?? counters.invoice_count) + 1; counters.last_invoice_number = number; counters.numbering_version = 3; counters.invoice_month = month; counters.monthly_invoice_count = monthCount + 1;
@@ -668,7 +677,7 @@ export class Operations {
           const invoice = await required('invoices', data.invoice_id) as Invoice;
           ensure(!['void', 'cancelled', 'draft', 'paid'].includes(invoice.status), 'لا يمكن تحصيل هذه الفاتورة.');
           assertOpenPeriod(iso, settings);
-          const sourceState = org.accounting_version === 2 ? await loadSalesSource(tx, root, invoice) : undefined;
+          const sourceState = org.accounting_version === 2 || invoice.pricing ? await loadSalesSource(tx, root, invoice) : undefined;
           if (sourceState) ensure(dateOnly(iso) >= sourceState.lastDate, 'التحصيل يسبق آخر حركة للمصدر.', 409);
           const previousPayments = await tx.find(`${root}/payments`, 'invoice_id', invoice.id);
           const linkedEntries = await tx.find(`${root}/journal_entries`, 'reference_id', invoice.id);
@@ -681,16 +690,20 @@ export class Operations {
             const carrying = linkedEntries.flatMap(e => e.lines || []).filter((l: Document) => l.account_code === '1200').reduce((n, l) => n.plus(l[`debit_${currency}`] || 0).minus(l[`credit_${currency}`] || 0), new BigNumber(0));
             ensure(sourceState || carrying.eq(invoice[`remaining_${currency}`]), 'رصيد الفاتورة لا يطابق الذمم. افحص البيانات التاريخية قبل التحصيل.', 409);
           }
-          ensure(['SDG', 'USD'].includes(data.currency) && ['cash', 'bankak', 'fawry', 'bank_transfer', 'other'].includes(data.payment_method), 'العملة أو طريقة الدفع غير مدعومة.');
+          ensure(isSupportedCurrency(data.currency) && ['cash', 'bankak', 'fawry', 'bank_transfer', 'other'].includes(data.payment_method), 'العملة أو طريقة الدفع غير مدعومة.');
           const rate = data.exchange_rate_used ?? invoice.exchange_rate_used;
-          const quote = paymentQuote(invoice, data.amount, data.currency, rate);
+          const sourceRates = data.currency_rates_used ?? settings.currency_rates;
+          const usedRates = isForeignCurrency(data.currency) ? { [data.currency]: sourceRates?.[data.currency] } : undefined;
+          const quote = paymentQuote(invoice, data.amount, data.currency, rate, usedRates);
+
           const customer = await required('customers', invoice.customer_id);
           ensure(sourceState || customer.balance_sdg >= quote.settledSdg && customer.balance_usd >= quote.settledUsd, 'رصيد العميل يحتاج مراجعة قبل التحصيل.', 409);
-          const payment: Payment = { ...pick(data, ['reference_number', 'notes']), ...stamp, id: `pay-${command.operationId}`, invoice_id: invoice.id, invoice_number: invoice.invoice_number, customer_id: customer.id, customer_name: customer.name, amount: data.amount, currency: data.currency, exchange_rate_used: rate, amount_in_other_currency: data.currency === 'USD' ? quote.cashSdg : quote.cashUsd, payment_method: data.payment_method, payment_date: iso, operation_id: command.operationId, idempotency_key: command.operationId, settled_amount_sdg: quote.settledSdg, settled_amount_usd: quote.settledUsd, cash_amount_sdg: quote.cashSdg, cash_amount_usd: quote.cashUsd };
+          const payment: Payment = { ...pick(data, ['reference_number', 'notes']), ...stamp, id: `pay-${command.operationId}`, invoice_id: invoice.id, invoice_number: invoice.invoice_number, customer_id: customer.id, customer_name: customer.name, amount: data.amount, currency: data.currency, exchange_rate_used: rate, ...(usedRates ? { currency_rates_used: usedRates } : {}), amount_in_other_currency: data.currency !== 'SDG' ? quote.cashSdg : quote.cashUsd, payment_method: data.payment_method, payment_date: iso, operation_id: command.operationId, idempotency_key: command.operationId, settled_amount_sdg: quote.settledSdg, settled_amount_usd: quote.settledUsd, cash_amount_sdg: quote.cashSdg, cash_amount_usd: quote.cashUsd, ...(quote.settledPricing === undefined ? {} : { settled_pricing_amount: quote.settledPricing }) };
           if (sourceState) { ensure(sourceState.sequence < 200, 'سجل الفاتورة يتطلب إجراء ترحيل خادمي.', 409); payment.source_sequence = sourceState.sequence + 1; }
           await post(receiptJournal(payment, invoice, orgId, actor.uid));
           const remainingSdg = safeSub(invoice.remaining_sdg, quote.settledSdg, 0), remainingUsd = safeSub(invoice.remaining_usd, quote.settledUsd, 2);
           if (sourceState) {
+            if (quote.settledPricing !== undefined) { sourceState.pricingBalance = safeSub(sourceState.pricingBalance, quote.settledPricing, currencyDecimals(invoice.pricing!.currency)); sourceState.pricingPaid = safeAdd(sourceState.pricingPaid, quote.settledPricing, currencyDecimals(invoice.pricing!.currency)); }
             sourceState.balance = { sdg: remainingSdg, usd: remainingUsd }; sourceState.paid = { sdg: safeAdd(sourceState.paid.sdg, quote.settledSdg, 0), usd: safeAdd(sourceState.paid.usd, quote.settledUsd, 2) }; sourceState.sequence++;
             const updated = salesInvoiceCaches(invoice, sourceState, iso);
             await saveSalesCustomer({ tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }, customer, updated); set(`${root}/invoices/${invoice.id}`, updated);
@@ -731,8 +744,8 @@ export class Operations {
             set(`${root}/products/${productId}`, productUpdate);
             set(`${root}/inventory_movements/${id}`, { ...stamp, ...costMovement, id, product_id: productId, product_name: product.name, type: 'VOID_REVERSAL', quantity, previous_stock: product.stock_quantity || 0, resulting_stock: resultingStock, reference_type: 'void', reference_id: invoice.id, operation_id: command.operationId }); counterAdd('inventory_movement_count', 1);
           }
-          result = { ...invoice, status: 'void', remaining_sdg: 0, remaining_usd: 0, voided_at: iso, voided_by: actor.uid, void_reason: data.reason || 'إبطال الفاتورة', updated_at: iso };
-          if (org.accounting_version === 2) await saveSalesCustomer({ tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }, customer, result as Invoice);
+          result = { ...invoice, ...(invoice.pricing ? { pricing_remaining: 0, pricing_credit_balance: 0 } : {}), status: 'void', remaining_sdg: 0, remaining_usd: 0, voided_at: iso, voided_by: actor.uid, void_reason: data.reason || 'إبطال الفاتورة', updated_at: iso };
+          if (org.accounting_version === 2 || invoice.pricing) await saveSalesCustomer({ tx, root, orgId, actor: actor.uid, iso, operationId: command.operationId, settings, set, required, post, counterAdd }, customer, result as Invoice);
           else set(`${root}/customers/${customer.id}`, { ...customer, balance_sdg: safeSub(customer.balance_sdg || 0, invoice.remaining_sdg, 0), balance_usd: safeSub(customer.balance_usd || 0, invoice.remaining_usd, 2), updated_at: iso });
           set(`${root}/invoices/${invoice.id}`, result); break;
         }
@@ -868,7 +881,7 @@ export class Operations {
           for (const customer of backup.collections.customers) { text(customer.name, 200, true); text(customer.phone, 100); ensure(typeof customer.balance_sdg === 'number' && typeof customer.balance_usd === 'number', 'رصيد العميل في النسخة يجب أن يكون رقماً.'); money(Math.abs(customer.balance_sdg), 0); money(Math.abs(customer.balance_usd), 2); }
           for (const product of backup.collections.products) { text(product.name, 200, true); text(product.unit, 50, true); money(product.price_sdg, 0); money(product.price_usd, 2); money(product.stock_quantity ?? 0, 6); ensure(typeof product.is_active === 'boolean', 'حالة المنتج غير صالحة.'); }
           for (const invoice of backup.collections.invoices) { ensure(['sent', 'paid', 'partially_paid', 'overdue', 'void'].includes(invoice.status), 'حالة الفاتورة غير قابلة للاستعادة.'); dateOnly(invoice.created_at); }
-          for (const payment of backup.collections.payments) ensure(['SDG', 'USD'].includes(payment.currency) && ['cash', 'bankak', 'fawry', 'bank_transfer', 'other'].includes(payment.payment_method), 'سند النسخة غير صالح.');
+          for (const payment of backup.collections.payments) ensure(isSupportedCurrency(payment.currency) && ['cash', 'bankak', 'fawry', 'bank_transfer', 'other'].includes(payment.payment_method), 'سند النسخة غير صالح.');
           for (const account of backup.collections.accounts) { text(account.name_ar, 200, true); ensure(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].includes(account.type) && ['DEBIT', 'CREDIT'].includes(account.nature) && typeof account.is_active === 'boolean', 'حساب النسخة غير صالح.'); money(account.balance_sdg || 0, 0); money(account.balance_usd || 0, 2); }
           for (const expense of backup.collections.expenses) { text(expense.title, 200, true); dateOnly(expense.date); ensure(['SDG', 'USD'].includes(expense.currency), 'عملة المصروف غير صالحة.'); money(expense.amount, expense.currency === 'USD' ? 2 : 0, true); }
           ensure(!reconcileFinancialData(backup.collections as FinancialData, importedSettings, { requireCosting: backupVersion === 2 }).length, 'النسخة تحتوي فروقات مالية أو مراجع ناقصة. افحصها بإجراء التدقيق قبل الاستعادة.');

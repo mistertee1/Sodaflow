@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-10-23T10:38:40.766Z",
+  "repository": "mistertee1/Sodaflow",
+  "pullRequest": 118,
+  "sourceBase": "be2523e6ee0538f874a4d12c0250df3328aa614b",
+  "acceptedSource": "df097998d9a81c7ccda57e785d5824af8e801664",
+  "acceptedTree": "943d8e6941e763b6d4571c5d5a1fa97555803509",
+  "acceptance": {
+    "unitApi": 391,
+    "netlifyLambdaRuntime": 16,
+    "firestoreEmulator": 50,
+    "ui": 71,
+    "total": 528,
+    "failed": 0,
+    "skipped": 0,
+    "productionAuditVulnerabilities": 0,
+    "types": "passed",
+    "core": "passed",
+    "build": "passed",
+    "emulatorProject": "demo-sudaflow",
+    "syntheticFinancialWritesOnly": true
+  },
+  "github": {
+    "run": 39841800045,
+    "job": 120044473420,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39841800045",
+    "node": "24.22.1",
+    "node22": {
+      "run": 39841800033,
+      "job": 120044473536,
+      "status": "completed",
+      "conclusion": "success",
+      "node": "22.23.3",
+      "url": "https://github.com/mistertee1/Sodaflow/actions/runs/39841800033"
+    }
+  },
+  "previousRuns": [
+    {
+      "source": "ea6b2521bb1fa8e76fecd4b6a84228b173da4179",
+      "run": 39840568730,
+      "job": 120040172535,
+      "conclusion": "failure",
+      "unitApi": 390,
+      "runtime": 16,
+      "reason": "npm production audit critical dompurify3.4.16",
+      "emulator": "not_run",
+      "ui": "not_run"
+    },
+    {
+      "source": "defd09e47b2b00344eed337f842229cdfbe1a992",
+      "run": 39841326602,
+      "job": 120042807899,
+      "conclusion": "success",
+      "note": "Intermediate candidate; the later source above adds legacy local-recipient preservation."
+    }
+  ],
+  "securityFix": {
+    "package": "dompurify",
+    "from": "3.4.16",
+    "to": "3.4.17",
+    "advisory": "https://github.com/advisories/GHSA-cg2g-xh64-v4q7",
+    "scope": "Compatible transitive override and one lockfile package update."
+  },
+  "otherOpenPullRequests": [
+    {
+      "number": 120,
+      "overlappingPaths": [
+        "package-lock.json",
+        "package.json",
+        "src/components/SettingsModal.tsx"
+      ],
+      "changed": false,
+      "jointAcceptance": "not_performed_unmerged_branches"
+    },
+    {
+      "number": 119,
+      "overlappingPaths": [
+        "package-lock.json"
+      ],
+      "changed": false,
+      "jointAcceptance": "not_performed_unmerged_branches"
+    },
+    {
+      "number": 121,
+      "overlappingPaths": [
+        "src/context/AppContext.tsx"
+      ],
+      "changed": false,
+      "jointAcceptance": "not_performed_unmerged_branches"
+    },
+    {
+      "number": 122,
+      "overlappingPaths": [
+        "src/domain/operations.ts"
+      ],
+      "changed": false,
+      "jointAcceptance": "not_performed_unmerged_branches"
+    }
+  ],
+  "sourceVerifiedAgainstMain": "be2523e6ee0538f874a4d12c0250df3328aa614b",
+  "shippedRulesChanged": false,
+  "superAdminControlsEnabled": false,
+  "productionWrites": 0,
+  "productionDeploymentPerformed": false,
+  "mainMergePerformed": false,
+  "productionBehaviorVerified": false
+}

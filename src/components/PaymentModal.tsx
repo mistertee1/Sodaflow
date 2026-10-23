@@ -1,9 +1,10 @@
+import { CURRENCIES, currencyDecimals, currencyLabel, isForeignCurrency } from '../lib/currencyCatalog';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Invoice, Currency, PaymentMethod, Payment } from '../types';
 import { X, CheckCircle2, CreditCard, AlertCircle, Receipt } from 'lucide-react';
-import { formatMoney, convertCurrency, safeSub, validateExchangeRate } from '../lib/currency';
-import { receivableCurrency, paymentQuote } from '../domain/financial';
+import { formatMoney, safeSub, validateExchangeRate } from '../lib/currency';
+import { receivableCurrency, paymentQuote, fullPaymentAmount } from '../domain/financial';
 import { applyRounding } from '../lib/currency';
 import { Dialog } from './Dialog';
 
@@ -24,6 +25,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const [amount, setAmount] = useState<number>(0);
   const [currency, setCurrency] = useState<Currency>('SDG');
+  const [currencyRates, setCurrencyRates] = useState(settings.currency_rates || {});
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('bankak');
   const [exchangeRateUsed, setExchangeRateUsed] = useState<number>(settings.default_exchange_rate);
   const [referenceNumber, setReferenceNumber] = useState('');
@@ -36,8 +38,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   useEffect(() => {
     if (invoice && isOpen) {
       // Default amount to remaining balance
-      const native = receivableCurrency(invoice);
-      setAmount(native === 'USD' ? invoice.remaining_usd : invoice.remaining_sdg);
+      const native = invoice.pricing?.currency || receivableCurrency(invoice);
+      const rates = { ...settings.currency_rates, ...invoice.currency_rates_used };
+      setCurrencyRates(rates);
+      setAmount(fullPaymentAmount(invoice, native, invoice.exchange_rate_used || settings.default_exchange_rate, rates));
       setCurrency(native);
       retryKey.current = crypto.randomUUID();
       submitLock.current = false;
@@ -59,13 +63,10 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
     catch (error) { setError(error instanceof Error ? error.message : 'سعر الصرف غير صالح.'); }
   };
 
-  const fullAmount = (target: Currency) => {
-    const native = receivableCurrency(invoice), remaining = native === 'USD' ? invoice.remaining_usd : invoice.remaining_sdg;
-    return target === native ? remaining : convertCurrency(remaining, native, target, exchangeRateUsed, settings);
-  };
+  const fullAmount = (target: Currency) => fullPaymentAmount(invoice, target, exchangeRateUsed, currencyRates);
 
   const handleQuickFill = (type: 'full' | 'half') => {
-    try { const remaining = fullAmount(currency); setAmount(type === 'full' ? remaining : applyRounding(remaining / 2, currency === 'USD' ? 2 : 0)); }
+    try { const remaining = fullAmount(currency); setAmount(type === 'full' ? remaining : applyRounding(remaining / 2, currencyDecimals(currency))); }
     catch (error) { setError(error instanceof Error ? error.message : 'سعر الصرف غير صالح.'); }
   };
 
@@ -85,7 +86,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       return;
     }
 
-    try { paymentQuote(invoice, amount, currency as 'SDG' | 'USD', rateVal.rate || 0); }
+    try { paymentQuote(invoice, amount, currency, rateVal.rate || 0, currencyRates); }
     catch (error) { setError(error instanceof Error ? error.message : 'مبلغ الدفعة غير صالح.'); return; }
     submitLock.current = true; setIsSubmitting(true);
     try {
@@ -93,6 +94,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         invoice_id: invoice.id,
         amount: Number(amount),
         currency,
+        currency_rates_used: isForeignCurrency(currency) ? { [currency]: currencyRates[currency] } : undefined,
         payment_method: paymentMethod,
         exchange_rate_used: rateVal.rate || 0,
         idempotency_key: retryKey.current,
@@ -189,6 +191,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
           </div>
 
+          <label className="block text-xs font-semibold">عملات دفع إضافية
+            <select aria-label="عملة التحصيل" value={currency} onChange={event => { const selected = event.target.value as Currency; setCurrency(selected); setAmount(0); setError(null); }} className="w-full min-w-0 mt-1 bg-sf-surface border border-sf-border rounded-lg px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action">
+              {CURRENCIES.map(row => <option key={row.code} value={row.code}>{currencyLabel(row.code)}</option>)}
+            </select>
+          </label>
+          {isForeignCurrency(currency) && <label className="block text-xs font-semibold">سعر عملة التحصيل لكل دولار
+            <input aria-label="سعر عملة التحصيل لكل دولار" type="number" min="0.00000001" step="any" value={currencyRates[currency] || ''} onChange={event => setCurrencyRates(previous => { const next = { ...previous }; if (event.target.value === '') delete next[currency]; else next[currency] = Number(event.target.value); return next; })} className="w-full min-w-0 mt-1 bg-sf-surface border border-sf-border rounded-lg px-3 py-2 text-sf-text focus:outline-none focus:border-sf-action" />
+            <span className="block mt-1" dir="ltr">1 USD = {currencyRates[currency] || '…'} {currency}</span>
+          </label>}
+
           {/* Amount */}
           <div>
             <div className="flex items-center justify-between mb-1">
@@ -215,7 +227,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               <input
                 type="number"
                 step="any"
-                min="0.01"
+                min={10 ** -currencyDecimals(currency)}
                 value={amount}
                 aria-label="مبلغ الدفعة"
                 onChange={(e) => setAmount(Number(e.target.value))}
@@ -223,7 +235,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
                 className="w-full bg-sf-raised border border-sf-border rounded-lg px-3 py-2 text-base font-semibold font-mono text-sf-text focus:outline-none focus:border-sf-action"
               />
               <span className="absolute left-3 top-2.5 text-xs text-sf-action font-semibold">
-                {currency === 'SDG' ? 'ج.س' : 'USD'}
+                {currency}
               </span>
             </div>
             <div className="flex items-center justify-between text-xs text-sf-muted mt-1">

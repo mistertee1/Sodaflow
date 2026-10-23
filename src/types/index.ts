@@ -1,6 +1,8 @@
-export type Currency = 'SDG' | 'USD' | 'SAR' | 'AED' | 'EUR' | 'GBP' | 'EGP';
+export type Currency = 'SDG' | 'USD' | 'SAR' | 'AED' | 'KWD' | 'QAR' | 'BHD' | 'OMR' | 'EUR' | 'GBP' | 'EGP';
+export type CurrencyRates = Partial<Record<Currency, number>>;
+export interface InvoicePricing { currency: Currency; units_per_usd: number; subtotal: number; discount: number; tax: number; total: number; rounding_rule: 'round' | 'ceil' | 'floor'; }
 
-export type CurrencyMode = 'dual' | 'single_sdg' | 'single_usd';
+export type CurrencyMode = 'dual' | 'single_sdg' | 'single_usd' | 'single_foreign';
 
 export type InvoiceStatus = 'draft' | 'sent' | 'partially_paid' | 'paid' | 'overdue' | 'cancelled' | 'void';
 
@@ -302,6 +304,11 @@ export interface InvoiceItem {
 }
 
 export interface Invoice {
+  currency_rates_used?: CurrencyRates;
+  pricing?: InvoicePricing;
+  pricing_remaining?: number;
+  pricing_credit_balance?: number;
+  pricing_paid?: number;
   tax_evidence?: Record<string, any>;
   source_event_sequence?: number;
   correction_count?: number;
@@ -357,6 +364,8 @@ export interface Invoice {
 }
 
 export interface Payment {
+  settled_pricing_amount?: number;
+  currency_rates_used?: CurrencyRates;
   source_sequence?: number;
   settled_amount_sdg?: number;
   settled_amount_usd?: number;
@@ -406,6 +415,8 @@ export interface Expense {
 }
 
 export interface MerchantSettings {
+  default_transaction_currency?: Currency;
+  currency_rates?: CurrencyRates; // Units of the selected currency per USD; no live rates are assumed.
   business_name: string;
   phone: string;
   address?: string;

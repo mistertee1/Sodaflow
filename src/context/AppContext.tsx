@@ -119,6 +119,7 @@ interface AppContextType {
   voidInvoice: (id: string, reason?: string) => Promise<void>;
   deleteInvoice: (id: string) => Promise<void>;
   recordPayment: (paymentData: {
+    currency_rates_used?: import('../types').CurrencyRates;
     invoice_id: string;
     amount: number;
     currency: Currency;

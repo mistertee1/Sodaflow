@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "historical-staging-closeout-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T07:49:00Z",
-    "expires_at": "2026-10-23T08:09:00Z",
-    "purpose": "Close protected staging UI acceptance; approval remains next"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -2418,7 +2412,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1e.2b",
+  "active_substep": "Excel4.1e.2c",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3282,18 +3276,39 @@
       "pr": 121,
       "status": "tenant_switch_during_staging_acceptance_pending_CI",
       "next": "Verify delayed staging tenant-switch test and retry regression CI; repair failures then fresh review and evidence-bound financial approval."
+    },
+    {
+      "worker": "historical-staging-closeout-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T07:49:00Z",
+      "expires_at": "2026-10-23T08:09:00Z",
+      "purpose": "Close protected staging UI acceptance; approval remains next",
+      "released_at": "2026-10-23T07:50:00Z",
+      "pr": 121,
+      "status": "Excel4.1e.2b_staging_UI_implemented_ci_passed",
+      "ci": {
+        "run_id": 39917634341,
+        "commit_sha": "1e70011c8dca16daeead1b41875d45237a0da209",
+        "conclusion": "success"
+      },
+      "next": "Excel4.1e.2c: fresh protected server review and evidence-hash-bound financial approval UI; real Firebase acceptance remains independent."
     }
   ],
   "last_lease": {
-    "worker": "historical-tenant-switch-test-20261023",
+    "worker": "historical-staging-closeout-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T07:27:00Z",
-    "expires_at": "2026-10-23T08:27:00Z",
-    "purpose": "Verify late staging response after real organization switch",
-    "released_at": "2026-10-23T07:30:00Z",
+    "acquired_at": "2026-10-23T07:49:00Z",
+    "expires_at": "2026-10-23T08:09:00Z",
+    "purpose": "Close protected staging UI acceptance; approval remains next",
+    "released_at": "2026-10-23T07:50:00Z",
     "pr": 121,
-    "status": "tenant_switch_during_staging_acceptance_pending_CI",
-    "next": "Verify delayed staging tenant-switch test and retry regression CI; repair failures then fresh review and evidence-bound financial approval."
+    "status": "Excel4.1e.2b_staging_UI_implemented_ci_passed",
+    "ci": {
+      "run_id": 39917634341,
+      "commit_sha": "1e70011c8dca16daeead1b41875d45237a0da209",
+      "conclusion": "success"
+    },
+    "next": "Excel4.1e.2c: fresh protected server review and evidence-hash-bound financial approval UI; real Firebase acceptance remains independent."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3307,7 +3322,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Verify delayed staging tenant-switch test and retry regression CI; repair failures then fresh review and evidence-bound financial approval.",
+  "next": "Excel4.1e.2c: fresh protected server review and evidence-hash-bound financial approval UI; real Firebase acceptance remains independent.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3328,15 +3343,20 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "historical-tenant-switch-test-20261023",
+    "worker": "historical-staging-closeout-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T07:27:00Z",
-    "expires_at": "2026-10-23T08:27:00Z",
-    "purpose": "Verify late staging response after real organization switch",
-    "released_at": "2026-10-23T07:30:00Z",
+    "acquired_at": "2026-10-23T07:49:00Z",
+    "expires_at": "2026-10-23T08:09:00Z",
+    "purpose": "Close protected staging UI acceptance; approval remains next",
+    "released_at": "2026-10-23T07:50:00Z",
     "pr": 121,
-    "status": "tenant_switch_during_staging_acceptance_pending_CI",
-    "next": "Verify delayed staging tenant-switch test and retry regression CI; repair failures then fresh review and evidence-bound financial approval."
+    "status": "Excel4.1e.2b_staging_UI_implemented_ci_passed",
+    "ci": {
+      "run_id": 39917634341,
+      "commit_sha": "1e70011c8dca16daeead1b41875d45237a0da209",
+      "conclusion": "success"
+    },
+    "next": "Excel4.1e.2c: fresh protected server review and evidence-hash-bound financial approval UI; real Firebase acceptance remains independent."
   },
   "acceptance_environment": {
     "provider": "Render",

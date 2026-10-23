@@ -4,9 +4,9 @@
   "baseMain": "307949a60f47aeeddc6ad3d44a1d35dd7e73edf7",
   "workBranch": "codex/invoice-save-diagnostics-20261023",
   "activeRunId": "invoice-save-20261023",
-  "leaseUntil": "2026-10-23T21:37:35.527469+00:00",
-  "updatedAt": "2026-10-23T20:07:35.527469+00:00",
-  "status": "investigation_in_progress",
+  "leaseUntil": "2026-10-23T21:48:08.951775+00:00",
+  "updatedAt": "2026-10-23T20:18:08.951775+00:00",
+  "status": "source_fixed_acceptance_in_progress",
   "userRequest": "Fix screenshot invoice save service_unavailable; avoid direct conflicts with other agent. Continue manual global display currency after independent bug fix.",
   "evidence": {
     "netlifyHealth": 200,
@@ -16,7 +16,15 @@
     "anonymousSession": 401,
     "mainCI": 39997902785,
     "mainFailure": "npm ci: missing mkdirp@0.5.6 from merged lockfile",
-    "productionFinancialWrites": 0
+    "productionFinancialWrites": 0,
+    "rootCause": "invoice.create journal tagging referenced undefined dimensions; ReferenceError reproduced on main using synthetic screenshot inputs",
+    "focusedRegression": {
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    "productionCalculationStatus": 200,
+    "productionDeploymentVerified": false
   },
   "otherAgent": {
     "branch": "codex/inventory-purchasing-workspace-20261023",
@@ -26,17 +34,21 @@
   },
   "ownedPaths": [
     "docs/invoice-save",
-    "server/serviceErrors.ts",
-    "server/api.ts (error diagnostics only)",
-    "package-lock.json (minimum transitive lock repair only)",
-    "tests focused on actual invoice save/Firebase adapter"
+    "src/domain/operations.ts (invoice dimensions, restore already-reviewed missing historical preview/audit only)",
+    "src/context/AppContext.tsx (restore existing contracts and authenticated cloud adapters only)",
+    "server/accountingRulesHash.ts (fingerprint of unchanged reviewed main Rules)",
+    "package-lock.json (missing mkdirp entry only)",
+    "package.json and tsconfig.core.json (regression registration)",
+    "tests/invoiceSave* and tests/helpers/invoiceSave.ts",
+    "tests/ui/invoiceSave.spec.ts",
+    "tests/ui/historicalStagingCloud.spec.ts and historicalWorkbook.spec.ts (cloud test compatibility)",
+    "src/domain/salesCorrections.ts (restore calculated refund approval evidence dropped by merge)"
   ],
   "userMergesOnly": true,
   "rulesChanged": false,
   "next": [
-    "Reproduce screenshot totals and investigate the exact server-side save failure without production financial writes.",
-    "Repair the minimal reproducible code/build issue, add safe operation diagnostics if the production error cannot be read, test real demo-sudaflow Emulator/HTTP flow.",
-    "Publish isolated reviewed PR and report verified limits; never claim production save fixed from health alone.",
-    "Resume currency source acceptance: a28f2a4 was merged into prior work branch, not main; integrate fresh main with three-way merge and preserve other agent changes."
+    "Complete full check, production dependency audit, demo-sudaflow Emulator and browser regressions.",
+    "Publish a draft PR until acceptance is successful; user merges only.",
+    "Resume global currency source acceptance after the isolated invoice correction, preserving the other inventory agent."
   ]
 }

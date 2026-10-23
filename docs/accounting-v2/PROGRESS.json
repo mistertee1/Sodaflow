@@ -4,16 +4,15 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-inventory-integration-20261023",
+  "active_milestone": "D",
+  "active_branch": "codex/accounting-v2-contract-regressions-20261023",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "inventory-accounting-integration-20261023-2308",
-    "branch": "codex/accounting-v2-inventory-integration-20261023",
-    "acquired_at": "2026-10-23T23:04:34.265Z",
-    "expires_at": "2026-10-23T23:55:03.145Z",
-    "purpose": "Reapply accepted inventory supplier/purchasing and product costing UI on incoming invoice-save source; preserve global Accounting V2 checkpoint",
-    "heartbeat_at": "2026-10-23T23:10:03.145Z"
+    "worker": "accounting-contract-regressions-20261023-2314",
+    "branch": "codex/accounting-v2-contract-regressions-20261023",
+    "acquired_at": "2026-10-23T23:13:18.034Z",
+    "expires_at": "2026-10-23T23:58:18.034Z",
+    "purpose": "Restore inherited D4 credit limits and Excel audit contracts after 11 failures in previously unregistered regression tests"
   },
   "milestones": [
     {
@@ -2394,7 +2393,7 @@
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
   ],
-  "updated_at": "2026-10-23T23:10:03.145Z",
+  "updated_at": "2026-10-23T23:13:18.034Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2419,7 +2418,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "inventory_request_integration",
+  "active_substep": "D4_Excel_integration_regressions",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3497,7 +3496,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Complete inventory request integration acceptance on PR136 source, then resume authoritative PR126 Excel4 reviewed-contract/session recovery checkpoint; never repeat completed C5/D/E work.",
+  "next": "Finish inherited D4/Excel1–3 regression repair, then mandatory historical review contract and safe session/receipt recovery; original inventory PR137 CI remains independently pending.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3562,6 +3561,18 @@
         "conclusion": "success"
       },
       "notes": "Real Git merge restored tax allocation/correction/restore sources while preserving D1 dimensions and D4 supplier-refund approvals."
+    },
+    "d4_excel_contracts": {
+      "status": "in_progress",
+      "baseline": {
+        "additional_unit_files": 24,
+        "initial_extended": 90,
+        "initial_extended_failed": 7,
+        "remaining": 17,
+        "remaining_failed": 4
+      },
+      "scope": "Restore credit limit persistence/precision and Excel audit events; register all non-Firestore unit files without changing Super Admin pause, sync, currencies or invoice fixes",
+      "base_pr": 137
     }
   },
   "accounting_resume_checkpoint": {

@@ -725,6 +725,7 @@ export const ProductsView: React.FC = () => {
                       <input
                         type="number"
                         min="0"
+                        step="0.000001"
                         aria-label="كمية المخزون الافتتاحية"
                         value={stockQuantity}
                         disabled={!!editingProduct}
@@ -757,7 +758,7 @@ export const ProductsView: React.FC = () => {
                 <label className="block">تكلفة الوحدة<input aria-label="تكلفة الوحدة الافتتاحية" className="sf-field w-full" type="number" min="0" step="0.00000001" required value={openingCost} onChange={e => setOpeningCost(Number(e.target.value))} /></label>
                 <label className="block">عملة التكلفة<select aria-label="عملة التكلفة الافتتاحية" className="sf-field w-full" value={costCurrency} onChange={e => setCostCurrency(e.target.value as 'SDG' | 'USD')}><option>SDG</option><option>USD</option></select></label>
                 <label className="block">سعر صرف التكلفة<input aria-label="صرف التكلفة الافتتاحية" className="sf-field w-full" type="number" min="0.00000001" step="0.00000001" required value={costRate} onChange={e => setCostRate(Number(e.target.value))} /></label>
-                {openingCost === 0 && <label className="block">سبب التكلفة الصفرية<input aria-label="سبب التكلفة الافتتاحية الصفرية" className="sf-field w-full" required value={zeroCostReason} onChange={e => setZeroCostReason(e.target.value)} /></label>}
+                <label className="block">سبب التكلفة الصفرية أو التقريب إلى صفر<input aria-label="سبب التكلفة الافتتاحية الصفرية" className="sf-field w-full" required={openingCost === 0} maxLength={500} value={zeroCostReason} onChange={e => setZeroCostReason(e.target.value)} /></label>
                 {openingValue && <p role="status">إجمالي تكلفة المخزون: {pair(openingValue.sdg, openingValue.usd)}</p>}
                 {openingCostError && <p role="alert">{openingCostError}</p>}
               </fieldset>}

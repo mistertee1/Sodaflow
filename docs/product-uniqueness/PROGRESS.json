@@ -7,7 +7,7 @@
   "workBranch": "codex/product-uniqueness-20261023",
   "activeRunId": "product-uniqueness-20261023",
   "leaseUntil": "2026-10-23T18:43:17.007931+00:00",
-  "updatedAt": "2026-10-23T17:13:17.007931+00:00",
+  "updatedAt": "2026-10-23T17:18:44.776580+00:00",
   "status": "implemented_local_pass_cloud_acceptance_pending",
   "ownedPaths": [
     "src/domain/productIdentity.ts",
@@ -49,5 +49,12 @@
     "explicitApply": true,
     "historicalBooksAndDocuments": "preserved",
     "status": "next_after_dedup_acceptance"
+  },
+  "previousCI": {
+    "run": 39993368902,
+    "status": "failed",
+    "emulatorPassed": 52,
+    "emulatorFailed": 2,
+    "cause": "New catalog fixture inherited a prior test’s incomplete plans/Free. Align Organizations fixture with paused commercial controls used by Operations; no production code weakening."
   }
 }

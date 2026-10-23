@@ -4,7 +4,8 @@ import { Organizations } from '../../server/organizations';
 import { INITIAL_SETTINGS } from '../../src/data/initialData';
 export async function catalogFixture(store: Store = new MemoryStore(), suffix = 'memory', verify?: ConstructorParameters<typeof Operations>[3]) {
   const clock=new Date('2026-10-23T18:00:00Z'),actor:Actor={uid:`catalog-${suffix}`,email:`catalog-${suffix}@example.test`,emailVerified:true,authTime:Math.floor(clock.getTime()/1000)-30};
-  const org=await new Organizations(store).create(actor,'كتالوج اصطناعي',INITIAL_SETTINGS,`setup-${suffix}`,true),root=`organizations/${org.id}`;
+  // Match the authorized paused-controls mode without depending on another test's commercial catalog.
+  const org=await new Organizations(store,undefined,()=>clock,false).create(actor,'كتالوج اصطناعي',INITIAL_SETTINGS,`setup-${suffix}`,true),root=`organizations/${org.id}`;
   const ops=new Operations(store,()=>clock,undefined,verify,false);
   const run=(action:string,data:Record<string,unknown>,operationId:string=crypto.randomUUID(),who=actor)=>ops.execute(org.id,who,{action,data,operationId});
   const input=(name:string)=>({name,unit:'قطعة',price_sdg:1000,price_usd:.5,tax_rate:0,is_active:true,track_inventory:false,stock_quantity:0});

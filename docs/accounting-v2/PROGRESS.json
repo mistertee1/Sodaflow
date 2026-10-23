@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
+  "active_branch": "codex/accounting-v2-excel4-historical-ui-20261022",
   "overall_status": "in_progress",
   "lease": null,
   "milestones": [
@@ -2382,7 +2382,7 @@
       ]
     }
   ],
-  "last_report": "docs/accounting-v2/REPORT_EXCEL4_1E_1_HISTORICAL_WORKBOOK.md",
+  "last_report": "docs/accounting-v2/REPORT_EXCEL4_1E_2A_HISTORICAL_UI.md",
   "next_steps": [
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
@@ -2412,7 +2412,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1e.2",
+  "active_substep": "Excel4.1e.2b",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3058,23 +3058,109 @@
         "conclusion": "success"
       },
       "next": "Implement Excel4.1e.2 historical workbook UI, server staging/preview and reviewed commit; then legacy migration and auditor/scheduled exports. Preserve main Super Admin/sync changes."
+    },
+    {
+      "worker": "historical-ui-20261022",
+      "acquired_at": "2026-10-22T19:32:00Z",
+      "expires_at": "2026-10-22T20:32:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+      "purpose": "Historical workbook UI local validation first",
+      "released_at": "2026-10-22T19:34:00Z",
+      "pr": 119,
+      "status": "Excel4.1e.2a_partial_ui_ci_pending",
+      "code_commit": "11a8705f0fee8c7cfe30df75e9cd2df075348878",
+      "checks": {
+        "types": "passed",
+        "build": "passed",
+        "xlsx": 6,
+        "ui": "local_browser_download_incomplete_CI_pending"
+      },
+      "ci": {
+        "run_id": 39840990009,
+        "conclusion": "in_progress"
+      },
+      "next": "Verify PR119 CI, complete valid-file/stale-context UI coverage, then server staging and reviewed hash-bound commit. Excel4.1e.2 incomplete."
+    },
+    {
+      "worker": "historical-ui-audit-20261022",
+      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+      "acquired_at": "2026-10-22T20:24:00Z",
+      "expires_at": "2026-10-22T21:24:00Z",
+      "purpose": "Fix CI production DOMPurify audit blocker",
+      "released_at": "2026-10-22T20:26:00Z",
+      "pr": 119,
+      "status": "partial_UI_audit_fixed_CI_pending",
+      "code_commit": "6462f8634b3464aa9c2c88be77cc04ea0c8295b4",
+      "ci": {
+        "run_id": 39848463542,
+        "conclusion": "in_progress"
+      },
+      "production_audit_vulnerabilities": 0,
+      "next": "Verify repaired PR119 CI including real UI/emulator; finish valid-file and stale-context coverage then protected server staging and hash-bound approval."
+    },
+    {
+      "worker": "historical-ui-valid-file-20261022",
+      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+      "acquired_at": "2026-10-22T21:37:00Z",
+      "expires_at": "2026-10-22T22:37:00Z",
+      "purpose": "Prove valid historical workbook UI read-only review",
+      "released_at": "2026-10-22T21:39:00Z",
+      "pr": 119,
+      "status": "initial_UI_ci_passed_valid_file_test_pending",
+      "code_commit": "f5318cc5217216c8c2f154b4358afbe682952a0e",
+      "accepted_ci": {
+        "run_id": 39848463542,
+        "commit_sha": "6462f8634b3464aa9c2c88be77cc04ea0c8295b4",
+        "conclusion": "success"
+      },
+      "next": "Verify valid-file UI test CI, add stale-context coverage, then server staging/preview/hash-bound commit. Excel4.1e.2 remains incomplete."
+    },
+    {
+      "worker": "historical-ui-closeout-20261022",
+      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+      "acquired_at": "2026-10-22T22:29:00Z",
+      "expires_at": "2026-10-22T22:59:00Z",
+      "purpose": "Close verified local workbook review milestone",
+      "released_at": "2026-10-22T22:30:00Z",
+      "pr": 119,
+      "status": "Excel4.1e.2a_implemented_ci_passed",
+      "ci": {
+        "run_id": 39858718951,
+        "commit_sha": "7e1a858007b081f9d18e1acc628679a360bbd61d",
+        "conclusion": "success"
+      },
+      "checks": {
+        "excel_import": 79,
+        "unit_api": 381,
+        "firestore": 35,
+        "ui": 94,
+        "production_audit_vulnerabilities": 0
+      },
+      "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance."
     }
   ],
   "last_lease": {
-    "worker": "workbook-ci-close-20261022",
-    "acquired_at": "2026-10-22T18:15:00Z",
-    "expires_at": "2026-10-22T18:45:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
-    "purpose": "Record successful final workbook CI",
-    "released_at": "2026-10-22T18:16:00Z",
-    "status": "Excel4.1e.1_implemented_ci_passed",
-    "pr": 117,
+    "worker": "historical-ui-closeout-20261022",
+    "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+    "acquired_at": "2026-10-22T22:29:00Z",
+    "expires_at": "2026-10-22T22:59:00Z",
+    "purpose": "Close verified local workbook review milestone",
+    "released_at": "2026-10-22T22:30:00Z",
+    "pr": 119,
+    "status": "Excel4.1e.2a_implemented_ci_passed",
     "ci": {
-      "run_id": 39825084325,
-      "commit_sha": "f574a220a767ccb8252621b752fe8023954c7c06",
+      "run_id": 39858718951,
+      "commit_sha": "7e1a858007b081f9d18e1acc628679a360bbd61d",
       "conclusion": "success"
     },
-    "next": "Implement Excel4.1e.2 historical workbook UI, server staging/preview and reviewed commit; then legacy migration and auditor/scheduled exports. Preserve main Super Admin/sync changes."
+    "checks": {
+      "excel_import": 79,
+      "unit_api": 381,
+      "firestore": 35,
+      "ui": 94,
+      "production_audit_vulnerabilities": 0
+    },
+    "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3088,7 +3174,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Implement Excel4.1e.2 historical workbook UI, server staging/preview and reviewed commit; then legacy migration and auditor/scheduled exports. Preserve main Super Admin/sync changes.",
+  "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3109,20 +3195,27 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "workbook-ci-close-20261022",
-    "acquired_at": "2026-10-22T18:15:00Z",
-    "expires_at": "2026-10-22T18:45:00Z",
-    "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
-    "purpose": "Record successful final workbook CI",
-    "released_at": "2026-10-22T18:16:00Z",
-    "status": "Excel4.1e.1_implemented_ci_passed",
-    "pr": 117,
+    "worker": "historical-ui-closeout-20261022",
+    "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+    "acquired_at": "2026-10-22T22:29:00Z",
+    "expires_at": "2026-10-22T22:59:00Z",
+    "purpose": "Close verified local workbook review milestone",
+    "released_at": "2026-10-22T22:30:00Z",
+    "pr": 119,
+    "status": "Excel4.1e.2a_implemented_ci_passed",
     "ci": {
-      "run_id": 39825084325,
-      "commit_sha": "f574a220a767ccb8252621b752fe8023954c7c06",
+      "run_id": 39858718951,
+      "commit_sha": "7e1a858007b081f9d18e1acc628679a360bbd61d",
       "conclusion": "success"
     },
-    "next": "Implement Excel4.1e.2 historical workbook UI, server staging/preview and reviewed commit; then legacy migration and auditor/scheduled exports. Preserve main Super Admin/sync changes."
+    "checks": {
+      "excel_import": 79,
+      "unit_api": 381,
+      "firestore": 35,
+      "ui": 94,
+      "production_audit_vulnerabilities": 0
+    },
+    "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance."
   },
   "acceptance_environment": {
     "provider": "Render",

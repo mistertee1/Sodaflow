@@ -26,6 +26,7 @@ export function defaultMerchantRecords(): Records {
 interface MerchantHarness {
   seed(records: Records): void;
   records(): Records;
+  executeCommand(action: string, data: Document, operationId?: string): Promise<Document>;
   failNextWrite(): void;
   abortAfterCommit(): void;
   failCloudReads(): void;
@@ -119,6 +120,16 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
     const harness: MerchantHarness = {
       seed: value => { if (server) throw Error('Seed before opening the cloud app; never replace committed server records on reload.'); records = structuredClone(value); },
       records: () => Object.fromEntries(Object.entries(store ? store.dump() : structuredClone(records)).filter(([path]) => !path.includes('/operationIntents/') && !path.startsWith('platformOperationIntents/'))), requests, mutations,
+      // Simulate a second signed-in client through the same real API. Never
+      // replace already committed records to manufacture a stale-state test.
+      executeCommand: async (action, data, operationId = crypto.randomUUID()) => {
+        if (!server || !token) throw Error('Open and sign into the synthetic cloud app before issuing a second-client command.');
+        const command = { action, data, operationId }; mutations.push(command);
+        const response = await fetch(`${backendUrl}/api/organizations/${guestId}/operations`, { method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`}, body:JSON.stringify(command) });
+        const result = await response.json();
+        if (!response.ok) throw Error(result.error || 'Synthetic second-client command failed.');
+        return result;
+      },
       failNextWrite: () => { failWrite = true; }, abortAfterCommit: () => { abortNext = true; },
       failCloudReads: () => { failReads = true; }, recoverCloudReads: () => { failReads = false; },
       failNextAcknowledgement: () => { failAck = true; },

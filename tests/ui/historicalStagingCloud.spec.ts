@@ -1,0 +1,51 @@
+import { test, expect } from '@playwright/test';
+import ExcelJS from 'exceljs';
+import { fakeFirebase } from './helpers/historicalAuth';
+import { periodGuestFixture } from './helpers/accountingPeriods';
+import { guestId, guestActor } from '../../src/services/guestStore';
+import { MemoryStore } from '../../src/domain/store';
+import { Operations } from '../../src/domain/operations';
+import { createHistoricalImportTemplate } from '../../src/services/historicalImportWorkbook';
+
+test('signed-in historical staging retries an uncertain response once and writes no financial sources', async ({ page }) => {
+  const orgId = 'historical-cloud-org', root = `organizations/${orgId}`;
+  const original = await periodGuestFixture(true, 'Owner');
+  const records = JSON.parse(JSON.stringify(original).replaceAll(guestId, orgId));
+  records[`${root}/customers/history-party`] = { id: 'history-party', org_id: orgId, name: 'عميل الترحيل', balance_sdg: 0, balance_usd: 0 };
+  const memory = new MemoryStore(records);
+  const operations = new Operations({ authority: 'server', transaction: work => memory.transaction(work) }, () => new Date('2026-10-23T02:00:00Z'));
+  await fakeFirebase(page, true);
+  await page.addInitScript(() => { (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = { organizations: async () => [], watchRevision: () => () => {} }; });
+  const ids: string[] = []; let loseResponse = true;
+  const before = memory.dump();
+  await page.route('**/api/**', async route => {
+    const path = new URL(route.request().url()).pathname;
+    const send = (body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+    if (path === '/api/organizations') return send([memory.dump()[root]]);
+    if (path.endsWith('/snapshot')) return send(await operations.snapshot(orgId, guestActor));
+    if (path.endsWith('/revision')) return send({ revision: memory.dump()[`${root}/meta/counters`].revision });
+    if (path.endsWith('/operations')) {
+      const command = route.request().postDataJSON(); expect(command.action).toBe('historicalImport.stage'); ids.push(command.operationId);
+      const response = await operations.execute(orgId, guestActor, command);
+      if (loseResponse) { loseResponse = false; return send({ error: 'تعذر تأكيد حفظ جلسة المراجعة', code: 'service_unavailable' }, 503); }
+      return send(response);
+    }
+    return route.abort();
+  });
+  await page.goto('/'); await page.getByRole('textbox', { name: 'البريد الإلكتروني', exact: true }).fill('owner@example.com'); await page.locator('input[type="password"]').fill('test-password'); await page.getByRole('button', { name: 'دخول الحساب السحابي', exact: true }).click();
+  await page.locator('#tab-accounting').click(); await page.getByTestId('data-import-tab').click();
+  const template = await createHistoricalImportTemplate(), workbook = new ExcelJS.Workbook(); await workbook.xlsx.load(template.bytes as never);
+  workbook.getWorksheet('Documents')!.addRow([1, 'invoice', 'CLOUD-HISTORY-1', '2026-10-01', 'SDG', 'main', '4100', 'history-party', '2026-10-31', 0, '1200', '', '', 100, 0]);
+  workbook.getWorksheet('Lines')!.addRow([1, 1, '', 'خدمة أصلية', 1, 100, 0, '', '']);
+  const center = page.getByTestId('historical-workbook-center');
+  await center.getByTestId('historical-workbook-file').setInputFiles({ name: 'cloud-history.xlsx', mimeType: template.mime_type, buffer: Buffer.from(await workbook.xlsx.writeBuffer() as ArrayBuffer) });
+  await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByRole('alert')).toContainText('تعذر تأكيد');
+  await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByTestId('historical-server-session')).toContainText('حُفظت جلسة المراجعة');
+  expect(ids).toHaveLength(2); expect(ids[0]).toBe(ids[1]);
+  const after = memory.dump(); expect(Object.keys(after).filter(path => path.startsWith(`${root}/historical_import_sessions/`))).toHaveLength(1);
+  expect(Object.keys(after).filter(path => path.startsWith(`${root}/historical_import_staging/`))).toHaveLength(1);
+  for (const name of ['invoices', 'payments', 'purchase_bills', 'supplier_payments', 'inventory_movements', 'journal_entries', 'customers', 'products']) {
+    const subset = (data: typeof after) => Object.fromEntries(Object.entries(data).filter(([path]) => path.startsWith(`${root}/${name}/`)));
+    expect(subset(after)).toEqual(subset(before));
+  }
+});

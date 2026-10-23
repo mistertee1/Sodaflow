@@ -1,3 +1,5 @@
+import { reserveProductName, releaseProductName } from './productIdentity';
+import { assertUsdCostRate, productPriceQuote, validateInvoicePriceReferences, validateProductPricing } from './productPricing';
 import { currencyDecimals, isForeignCurrency, isSupportedCurrency, normalizeWhatsAppPhone, transactionCurrency } from '../lib/currencyCatalog';
 import { equityCollections, verifyEquitySources, equityBackupCounts, validateEquityBackup, remapEquityEvents } from './ownerEquitySources';
 import { fxRevaluationCollections, verifyFxRevaluationSources, fxRevaluationBackupCounts, validateFxRevaluationBackup, remapFxRevaluations } from './fxRevaluationSources';
@@ -774,8 +776,11 @@ export class Operations {
           if (input.stock_quantity !== undefined) money(input.stock_quantity, 6);
           ensure(!updating || input.stock_quantity === undefined || input.stock_quantity === old.stock_quantity, 'تعديل الكمية يتطلب عملية تسوية مخزون.');
           ensure(!updating || input.track_inventory === undefined || input.track_inventory === old.track_inventory, 'غيّر تتبع المخزون عبر إنشاء منتج مستقل للحفاظ على الجرد.');
-          if (!updating) { const count = (await tx.list(`${root}/products`)).length; ensure(!this.controlsEnabled || count < plan.max_products, 'تم بلوغ حد المنتجات في الباقة.'); counters.product_count = count; counterAdd('product_count', 1); }
-          result = { ...old, ...pick(input, ['name', 'description', 'unit', 'price_sdg', 'price_usd', 'tax_rate', 'category', 'is_active', 'min_stock_alert', 'track_inventory']), ...(!updating ? { ...stamp, stock_quantity: input.stock_quantity || 0 } : {}), id };
+          const nameCatalog = await reserveProductName(tx, root, id, input.name === undefined ? old.name : input.name, iso, updating ? old.name : undefined);
+          if (!updating) { const count = nameCatalog!.length; ensure(!this.controlsEnabled || count < plan.max_products, 'تم بلوغ حد المنتجات في الباقة.'); counters.product_count = count; counterAdd('product_count', 1); }
+          result = { ...old, ...pick(input, ['name', 'description', 'unit', 'price_sdg', 'price_usd', 'tax_rate', 'category', 'is_active', 'min_stock_alert', 'track_inventory', 'pricing_mode', 'pricing_reference_usd', 'pricing_markup_percent']), ...(!updating ? { ...stamp, stock_quantity: input.stock_quantity || 0 } : {}), id };
+          if (input.price_usd !== undefined && input.pricing_reference_usd === undefined && old.pricing_reference_usd !== undefined) result.pricing_reference_usd = input.price_usd;
+          validateProductPricing(result as Product);
           text(result.name, 200, true); text(result.unit || '', 50, true);
           money(result.price_sdg, 0); money(result.price_usd, 2); money(result.tax_rate ?? 0, 4); ensure((result.tax_rate || 0) <= 100, 'نسبة الضريبة غير صالحة.');
           money(result.stock_quantity ?? 0, 6); money(result.min_stock_alert ?? 0, 6);
@@ -783,6 +788,7 @@ export class Operations {
           let openingValue: Document = {};
           if (!updating && result.track_inventory && org.accounting_version === 2) {
             const quantity = result.stock_quantity;
+            assertUsdCostRate(result as Product, input);
             const delta = quantity ? acquisitionCost(quantity, input) : { sdg: 0, usd: 0 };
             Object.assign(result, costState(quantity, delta.sdg, delta.usd, iso));
             const journalId = await inventoryPosting(`jv-stock-${command.operationId}`, `mov-${command.operationId}`, 'رصيد مخزون افتتاحي موثق', delta, '3900');
@@ -798,6 +804,7 @@ export class Operations {
         case 'product.delete': {
           const product = await required('products', data.id);
           ensure(!(await tx.list(`${root}/invoices`)).some(i => i.items.some((l: Document) => l.product_id === data.id)) && !(await tx.list(`${root}/inventory_movements`)).some(m => m.product_id === data.id), 'المنتج مرتبط بحركات. عطّله بدلاً من حذف سجل الجرد.');
+          await releaseProductName(tx, root, product.id, product.name);
           remove(`${root}/products/${product.id}`); counterAdd('product_count', -1); break;
         }
         case 'product.stock': {
@@ -810,7 +817,7 @@ export class Operations {
             await requireCostAuthority();
             const before = validateCostState(product as Product), quantity = new BigNumber(data.newStock).minus(before.stock_quantity).toNumber();
             let after;
-            if (quantity > 0) { const delta = acquisitionCost(quantity, data); after = receiveCost(product as Product, quantity, delta, iso); }
+            if (quantity > 0) { assertUsdCostRate(product as Product, data); const delta = acquisitionCost(quantity, data); after = receiveCost(product as Product, quantity, delta, iso); }
             else if (quantity < 0) after = issueCost(product as Product, -quantity, iso).after;
             else after = before;
             Object.assign(result, after);
@@ -824,6 +831,7 @@ export class Operations {
           const product = await required('products', data.id);
           ensure(product.track_inventory && product.cost_status !== 'valued', 'التكلفة مثبتة مسبقاً أو المنتج غير متتبع.', 409);
           await inventoryControl();
+          assertUsdCostRate(product as Product, data);
           const quantity = product.stock_quantity || 0, delta = quantity ? acquisitionCost(quantity, data) : { sdg: 0, usd: 0 }, movementId = `mov-${command.operationId}`;
           result = { ...product, ...costState(quantity, delta.sdg, delta.usd, iso) };
           const journalId = await inventoryPosting(`jv-cost-${command.operationId}`, movementId, `إثبات تكلفة افتتاحية: ${data.reason}`, delta, '3900');
@@ -833,6 +841,7 @@ export class Operations {
         case 'inventory.receive': {
           assertOpenPeriod(iso, settings); text(data.reason, 500, true);
           const product = await required('products', data.id); ensure(product.is_active, 'المنتج غير نشط.');
+          assertUsdCostRate(product as Product, data);
           const before = validateCostState(product as Product), delta = acquisitionCost(data.quantity, data), after = receiveCost(product as Product, data.quantity, delta, iso), movementId = `mov-${command.operationId}`;
           const method = data.payment_method || 'cash'; ensure(method !== 'custom' || data.payment_account_code, 'اختر حساب السداد المخصص.'); ensure(['cash', 'bankak', 'fawry', 'bank_transfer', 'other', 'custom'].includes(method), 'استلام المخزون في A2 يتطلب حساب سداد نقدي/بنكي؛ فاتورة المورد الآجلة ضمن المرحلة B.');
           const code = data.payment_account_code || getAccountCodeForPaymentMethod(method, data.cost_currency || 'SDG');
@@ -856,7 +865,22 @@ export class Operations {
           if (data.due_date) ensure(dateOnly(data.due_date) >= dateOnly(data.issue_date), 'تاريخ الاستحقاق قبل الإصدار.');
           ensure(!(data.paid_amount_sdg || data.paid_amount_usd), 'سجّل التحصيل بسند قبض بعد إصدار الفاتورة.');
           const customer = await required('customers', data.customer_id);
-          const baseFinancials = invoiceFinancials(data, settings);
+          ensure(Array.isArray(data.items) && data.items.length > 0 && data.items.length <= 100, 'الفاتورة تتطلب 1–100 بند.');
+          const pricedItems = [];
+          for (const item of data.items) {
+            ensure(item && typeof item === 'object' && !Array.isArray(item), 'بند الفاتورة غير صالح.');
+            ensure(item.price_source === undefined || ['catalog_usd', 'manual'].includes(item.price_source), 'مصدر سعر البند غير صالح.');
+            if (item.price_source === 'catalog_usd') {
+              const product = await required('products', item.product_id);
+              const quote = productPriceQuote(product as Product, item.currency, data.exchange_rate_used ?? 0, data.currency_rates_used ?? settings.currency_rates, settings.rounding_rule);
+              ensure(item.unit_price === quote.unit_price, `تغير مرجع سعر المنتج ${product.name}؛ حدّث التسعير بالدولار وراجع الفاتورة قبل الحفظ.`, 409);
+              pricedItems.push({ ...item, price_reference: quote.evidence });
+            } else {
+              const { price_reference: _untrustedReference, ...manualItem } = item;
+              pricedItems.push(manualItem);
+            }
+          }
+          const baseFinancials = invoiceFinancials({ ...data, items: pricedItems }, settings);
           let taxEvidence: Document | undefined;
           if (data.tax_configuration_id !== undefined || data.expected_tax_configuration_revision !== undefined) {
             ensure(data.tax_configuration_id && data.expected_tax_configuration_revision, 'معرف وإصدار إعداد الضريبة مطلوبان معاً.');
@@ -1139,8 +1163,8 @@ export class Operations {
           if (backupVersion === 2 || backup.collections.products.some((p: Document) => p.cost_status === 'valued')) await requireCostAuthority();
           ensure(org.accounting_version !== 2 || backupVersion === 2, 'استعادة نسخة قديمة تحتاج ترحيلاً موثقاً قبل مؤسسة V2.');
           for (const customer of backup.collections.customers) { text(customer.name, 200, true); text(customer.phone, 100); ensure(typeof customer.balance_sdg === 'number' && typeof customer.balance_usd === 'number', 'رصيد العميل في النسخة يجب أن يكون رقماً.'); money(Math.abs(customer.balance_sdg), 0); money(Math.abs(customer.balance_usd), 2); }
-          for (const product of backup.collections.products) { text(product.name, 200, true); text(product.unit, 50, true); money(product.price_sdg, 0); money(product.price_usd, 2); money(product.stock_quantity ?? 0, 6); ensure(typeof product.is_active === 'boolean', 'حالة المنتج غير صالحة.'); }
-          for (const invoice of backup.collections.invoices) { ensure(['sent', 'paid', 'partially_paid', 'overdue', 'void'].includes(invoice.status), 'حالة الفاتورة غير قابلة للاستعادة.'); dateOnly(invoice.created_at); }
+          for (const product of backup.collections.products) { validateProductPricing(product as Product); text(product.name, 200, true); text(product.unit, 50, true); money(product.price_sdg, 0); money(product.price_usd, 2); money(product.stock_quantity ?? 0, 6); ensure(typeof product.is_active === 'boolean', 'حالة المنتج غير صالحة.'); }
+          for (const invoice of backup.collections.invoices) { validateInvoicePriceReferences(invoice as Invoice); ensure(['sent', 'paid', 'partially_paid', 'overdue', 'void'].includes(invoice.status), 'حالة الفاتورة غير قابلة للاستعادة.'); dateOnly(invoice.created_at); }
           for (const payment of backup.collections.payments) ensure(isSupportedCurrency(payment.currency) && ['cash', 'bankak', 'fawry', 'bank_transfer', 'other'].includes(payment.payment_method), 'سند النسخة غير صالح.');
           for (const account of backup.collections.accounts) { text(account.name_ar, 200, true); ensure(['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'].includes(account.type) && ['DEBIT', 'CREDIT'].includes(account.nature) && typeof account.is_active === 'boolean', 'حساب النسخة غير صالح.'); money(account.balance_sdg || 0, 0); money(account.balance_usd || 0, 2); }
           for (const expense of backup.collections.expenses) { text(expense.title, 200, true); dateOnly(expense.date); ensure(['SDG', 'USD'].includes(expense.currency), 'عملة المصروف غير صالحة.'); money(expense.amount, expense.currency === 'USD' ? 2 : 0, true); }

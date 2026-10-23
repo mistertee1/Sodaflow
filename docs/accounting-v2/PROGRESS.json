@@ -7,13 +7,7 @@
   "active_milestone": "Excel4",
   "active_branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
   "overall_status": "in_progress",
-  "lease": {
-    "worker": "historical-tenant-switch-test-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T07:27:00Z",
-    "expires_at": "2026-10-23T08:27:00Z",
-    "purpose": "Verify late staging response after real organization switch"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -3271,23 +3265,29 @@
         "conclusion": "success"
       },
       "next": "Implement actual tenant-switch-during-request acceptance, then fresh review and hash-bound financial approval; PR121 partial draft."
+    },
+    {
+      "worker": "historical-tenant-switch-test-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T07:27:00Z",
+      "expires_at": "2026-10-23T08:27:00Z",
+      "purpose": "Verify late staging response after real organization switch",
+      "released_at": "2026-10-23T07:30:00Z",
+      "pr": 121,
+      "status": "tenant_switch_during_staging_acceptance_pending_CI",
+      "next": "Verify delayed staging tenant-switch test and retry regression CI; repair failures then fresh review and evidence-bound financial approval."
     }
   ],
   "last_lease": {
-    "worker": "staging-binding-ci-20261023",
+    "worker": "historical-tenant-switch-test-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T05:58:00Z",
-    "expires_at": "2026-10-23T06:18:00Z",
-    "purpose": "Record successful tenant/file binding CI",
-    "released_at": "2026-10-23T05:59:00Z",
+    "acquired_at": "2026-10-23T07:27:00Z",
+    "expires_at": "2026-10-23T08:27:00Z",
+    "purpose": "Verify late staging response after real organization switch",
+    "released_at": "2026-10-23T07:30:00Z",
     "pr": 121,
-    "status": "staging_tenant_file_binding_ci_passed_switch_commit_pending",
-    "ci": {
-      "run_id": 39907295374,
-      "commit_sha": "07f5a125592534542a67c9285830ec0e3748f2dd",
-      "conclusion": "success"
-    },
-    "next": "Implement actual tenant-switch-during-request acceptance, then fresh review and hash-bound financial approval; PR121 partial draft."
+    "status": "tenant_switch_during_staging_acceptance_pending_CI",
+    "next": "Verify delayed staging tenant-switch test and retry regression CI; repair failures then fresh review and evidence-bound financial approval."
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3301,7 +3301,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Implement actual tenant-switch-during-request acceptance, then fresh review and hash-bound financial approval; PR121 partial draft.",
+  "next": "Verify delayed staging tenant-switch test and retry regression CI; repair failures then fresh review and evidence-bound financial approval.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3322,20 +3322,15 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "staging-binding-ci-20261023",
+    "worker": "historical-tenant-switch-test-20261023",
     "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
-    "acquired_at": "2026-10-23T05:58:00Z",
-    "expires_at": "2026-10-23T06:18:00Z",
-    "purpose": "Record successful tenant/file binding CI",
-    "released_at": "2026-10-23T05:59:00Z",
+    "acquired_at": "2026-10-23T07:27:00Z",
+    "expires_at": "2026-10-23T08:27:00Z",
+    "purpose": "Verify late staging response after real organization switch",
+    "released_at": "2026-10-23T07:30:00Z",
     "pr": 121,
-    "status": "staging_tenant_file_binding_ci_passed_switch_commit_pending",
-    "ci": {
-      "run_id": 39907295374,
-      "commit_sha": "07f5a125592534542a67c9285830ec0e3748f2dd",
-      "conclusion": "success"
-    },
-    "next": "Implement actual tenant-switch-during-request acceptance, then fresh review and hash-bound financial approval; PR121 partial draft."
+    "status": "tenant_switch_during_staging_acceptance_pending_CI",
+    "next": "Verify delayed staging tenant-switch test and retry regression CI; repair failures then fresh review and evidence-bound financial approval."
   },
   "acceptance_environment": {
     "provider": "Render",

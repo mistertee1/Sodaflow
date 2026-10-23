@@ -56,7 +56,9 @@ for (const scenario of ['retry', 'switch'] as const) test(`signed-in historical 
     await page.getByTitle('الإعدادات', { exact: true }).click();
     await page.getByRole('dialog').locator('select').filter({ has: page.locator(`option[value="${secondOrgId}"]`) }).selectOption(secondOrgId);
     await expect(page.locator('header')).toContainText('المؤسسة الثانية');
-    releaseResponse();
+    const lateResponse = page.waitForResponse(response => response.url().endsWith('/operations'));
+    releaseResponse(); await (await lateResponse).finished();
+    await expect(page.locator('header')).toContainText('المؤسسة الثانية');
     await expect(page.getByTestId('historical-server-session')).toHaveCount(0);
     await expect(page.getByTestId('historical-workbook-review')).toHaveCount(0);
     expect(Object.keys(memory.dump()).filter(path => path.startsWith(`organizations/${secondOrgId}/historical_import_`))).toHaveLength(0);

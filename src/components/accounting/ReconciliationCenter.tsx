@@ -1,14 +1,16 @@
+import { useDisplayMoney } from '../../context/useDisplayMoney';
 import React, { useEffect, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import type { Document } from '../../domain/store';
 import { Dialog } from '../Dialog';
-import { formatMoney } from '../../lib/currency';
+
 
 const statuses: Record<string, string> = { matched: 'مطابق', unmatched: 'غير مطابق', pending: 'قيد المطابقة', adjustment_required: 'يحتاج تسوية', stale: 'تغيّر الدفتر — أعد المطابقة' };
 type StatementLine = { id: string; date: string; direction: string; amount: string; reference: string; description: string; match: string };
 const native = (row: Document, currency: string) => row.debit[currency] - row.credit[currency];
 
 export function ReconciliationCenter({ asOf }: { asOf: string }) {
+  const { formatMoney } = useDisplayMoney();
   const { currentOrg, currentUser, counters, financialAccounts, isActionAllowed, loadCashReconciliations, loadOperationalReport, saveBankReconciliation, recordCashCount } = useApp();
   const [report, setReport] = useState<Awaited<ReturnType<typeof loadCashReconciliations>> | null>(null);
   const [modal, setModal] = useState<'bank' | 'cash' | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false), [loading, setLoading] = useState(false), [retry, setRetry] = useState(0);

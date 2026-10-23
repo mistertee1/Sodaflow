@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import { OpeningBalancesCenter } from './accounting/OpeningBalancesCenter';
 import { OwnerEquityCenter } from './accounting/OwnerEquityCenter';
 import { FxRevaluationCenter } from './accounting/FxRevaluationCenter';
@@ -34,7 +35,7 @@ import {
   ChevronRight,
   Clock,
 } from 'lucide-react';
-import { formatMoney } from '../lib/currency';
+
 import { Account, AccountCategory, AccountNature, JournalEntry, JournalEntryLine } from '../types';
 import {
   calculateTrialBalance,
@@ -54,6 +55,7 @@ import { OperationalCenter } from './accounting/OperationalCenter';
 import { PayablesCenter } from './accounting/PayablesCenter';
 import { Dialog } from './Dialog';
 export const AccountingView: React.FC = () => {
+  const { formatMoney, bookLabel } = useDisplayMoney();
   const {
     invoices,
     products,
@@ -569,8 +571,8 @@ export const AccountingView: React.FC = () => {
                     <th className="py-3 px-4">اسم الحساب</th>
                     <th className="py-3 px-4">النوع / التبويب</th>
                     <th className="py-3 px-4">الطبيعة المحاسبية</th>
-                    <th className="py-3 px-4">الرصيد بالجنيه</th>
-                    <th className="py-3 px-4">الرصيد بالدولار</th>
+                    <th className="py-3 px-4">الرصيد — {bookLabel('SDG')}</th>
+                    <th className="py-3 px-4">الرصيد — {bookLabel('USD')}</th>
                     <th className="py-3 px-4">حالة الحساب</th>
                   </tr>
                 </thead>
@@ -787,8 +789,8 @@ export const AccountingView: React.FC = () => {
                         <th className="py-2 px-3">رقم الحساب</th>
                         <th className="py-2 px-3">اسم الحساب</th>
                         <th className="py-2 px-3">البيان الفرعي</th>
-                        <th className="py-2 px-3">مدين (ج.س)</th>
-                        <th className="py-2 px-3">دائن (ج.س)</th>
+                        <th className="py-2 px-3">مدين ({bookLabel('SDG')})</th>
+                        <th className="py-2 px-3">دائن ({bookLabel('SDG')})</th>
                         <th className="py-2 px-3">مدين ($)</th>
                         <th className="py-2 px-3">دائن ($)</th>
                       </tr>

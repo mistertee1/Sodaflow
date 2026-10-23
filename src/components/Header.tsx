@@ -19,6 +19,7 @@ import {
   Moon,
 } from 'lucide-react';
 import { formatMoney } from '../lib/currency';
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import { Dialog } from './Dialog';
 
 interface HeaderProps {
@@ -37,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenLegal,
 }) => {
   const { settings, updateSettings, currentUser, authLoading, syncStatus, lastSyncedAt, theme, toggleTheme, logoutUser, syncAllToCloud } = useApp();
+  const { quote } = useDisplayMoney();
   const [isEditingRate, setIsEditingRate] = useState(false);
   const [tempRate, setTempRate] = useState(settings.default_exchange_rate.toString());
   const [authError, setAuthError] = useState<string | null>(null);
@@ -106,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
                 سودافلو
               </span>
               <span className="hidden sm:inline-flex text-xs px-2 py-1 rounded-full bg-sf-selected/80 text-sf-action border border-sf-action/50 font-semibold">
-                SDG / USD
+                {quote?.currency || 'SDG / USD'}
               </span>
             </div>
             <p className="text-xs text-sf-muted font-normal mt-1 flex items-center gap-2 flex-wrap">
@@ -167,11 +169,12 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex flex-col">
               <span className="text-xs text-sf-muted font-medium">سعر الصرف:</span>
               <span className="font-semibold font-mono text-sm text-sf-text">
-                1 USD = {formatMoney(settings.default_exchange_rate, 'SDG', settings)}
+                1 USD = {quote ? formatMoney(quote.units_per_usd, quote.currency, settings) : formatMoney(settings.default_exchange_rate, 'SDG', settings)}
               </span>
             </div>
             <button
               onClick={() => {
+                if (quote) { onOpenSettings(); return; }
                 setTempRate(settings.default_exchange_rate.toString());
                 setRateError(null);
                 setIsEditingRate(true);

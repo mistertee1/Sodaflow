@@ -33,7 +33,7 @@ import { loadSubscription, assertSubscriptionActive, assertFeature, invoiceQuota
 import { safeAdd, safeSub } from '../lib/currency';
 import { getDefaultChartOfAccounts, generateExpenseJournalEntry, calculateTrialBalance, calculateIncomeStatement, calculateBalanceSheet, calculateCashFlowStatement, getAccountCodeForPaymentMethod } from '../services/accountingService';
 import { hasPermission, type ActionType } from '../services/rbacService';
-import { BusinessError, assertOpenPeriod, dateOnly, ensure, identifier, money, text, validateJournal, validateSettings } from './validation';
+import { BusinessError, assertOpenPeriod, dateOnly, ensure, identifier, money, text, validateJournal, validateSettings, validateCurrencyRates } from './validation';
 import { invoiceFinancials, journal, journalLine, paymentQuote, receiptJournal, receivableCurrency, reverseJournal } from './financial';
 import { clean, type Change, type Document, type Store, type Transaction } from './store';
 import { acquisitionCost, allocateCost, costFields, costState, issueCost, receiveCost, validateCostState, hasIncompleteInvoiceCosts } from './inventoryCost';
@@ -833,7 +833,8 @@ export class Operations {
         }
         case 'settings.update': {
           ensure(data.updates && typeof data.updates === 'object' && !Array.isArray(data.updates), 'بيانات الإعدادات غير صالحة.');
-          const updated = validateSettings({ ...settings, ...pick(data.updates, Object.keys(INITIAL_SETTINGS).concat(['period_lock_date', 'timezone', 'fiscal_year', 'commercial_registration', 'tax_number', 'business_activity', 'manual_exchange_rate', 'freeze_exchange_rate', 'freeze_invoice_exchange_rate'])) });
+          if (data.updates.currency_rates !== undefined) validateCurrencyRates(data.updates.currency_rates);
+          const updated = validateSettings({ ...settings, ...pick(data.updates, Object.keys(INITIAL_SETTINGS).concat(['display_currency', 'period_lock_date', 'timezone', 'fiscal_year', 'commercial_registration', 'tax_number', 'business_activity', 'manual_exchange_rate', 'freeze_exchange_rate', 'freeze_invoice_exchange_rate'])), ...(data.updates.currency_rates !== undefined ? { currency_rates: { ...settings.currency_rates, ...data.updates.currency_rates } } : {}) });
           if (settings.period_lock_date && (updated.period_lock_date || '') < settings.period_lock_date) ensure(role === 'Owner', 'إعادة فتح فترة مقفلة متاحة للمالك فقط.', 403);
           result = { ...org, settings: updated, name: updated.business_name || org.name, display_name: updated.business_name || org.display_name, base_currency: updated.primary_currency, secondary_currency: updated.secondary_currency, timezone: updated.timezone || org.timezone, fiscal_year: updated.fiscal_year || org.fiscal_year, updated_at: iso };
           result.searchName = result.name.normalize('NFKC').trim().toLowerCase();

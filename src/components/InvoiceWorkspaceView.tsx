@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import React, { useMemo, useState } from 'react';
 import {
   ArrowRight,
@@ -13,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Invoice } from '../types';
-import { formatMoney, invoicePricingBalance } from '../lib/currency';
+import { invoicePricingBalance } from '../lib/currency';
 import { InvoiceStatus } from './InvoiceStatus';
 import { InvoiceShareDialog } from './InvoiceShareDialog';
 
@@ -40,6 +41,7 @@ export const InvoiceWorkspaceView: React.FC<InvoiceWorkspaceViewProps> = ({
   onOpenDocument,
   onOpenRecordPayment,
 }) => {
+  const { formatMoney, nativeMoney, pair, enabled } = useDisplayMoney();
   const { payments, journalEntries, settings, isActionAllowed } = useApp();
   const [section, setSection] = useState<Section>('overview');
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -71,7 +73,7 @@ export const InvoiceWorkspaceView: React.FC<InvoiceWorkspaceViewProps> = ({
       ...invoicePayments.map(payment => ({
         id: `payment-${payment.id}`,
         title: 'تم تسجيل دفعة',
-        detail: `${formatMoney(payment.amount, payment.currency, settings)} · ${paymentMethodLabel(payment.payment_method)}`,
+        detail: `${formatMoney(payment.amount, payment.currency, { ...settings, currency_rates: payment.currency_rates_used || settings.currency_rates })} · ${paymentMethodLabel(payment.payment_method)}`,
         at: payment.created_at || payment.payment_date,
         kind: 'payment' as const,
       })),
@@ -141,26 +143,26 @@ export const InvoiceWorkspaceView: React.FC<InvoiceWorkspaceViewProps> = ({
       </div>
 
       {invoice.pricing && <section className="sf-card p-4 space-y-2" aria-label="عملة الفاتورة الأصلية" data-testid="invoice-native-workspace">
-        <p className="font-semibold">إجمالي عملة الفاتورة: <bdi dir="ltr" className="sf-number">{formatMoney(invoice.pricing.total, invoice.pricing.currency)}</bdi></p>
-        <p>المتبقي بعملة الفاتورة: <bdi dir="ltr" className="sf-number">{formatMoney(invoicePricingBalance(invoice), invoice.pricing.currency)}</bdi></p>
-        <p className="text-xs text-sf-muted">سعر عملة الفاتورة المجمّد: <bdi dir="ltr">1 USD = {invoice.pricing.units_per_usd} {invoice.pricing.currency}</bdi></p>
+        <p className="font-semibold">إجمالي عملة الفاتورة: <bdi dir="ltr" className="sf-number">{nativeMoney(invoice.pricing.total, invoice.pricing.currency)}</bdi></p>
+        <p>المتبقي بعملة الفاتورة: <bdi dir="ltr" className="sf-number">{nativeMoney(invoicePricingBalance(invoice), invoice.pricing.currency)}</bdi></p>
+        <p className="text-xs text-sf-muted">سعر عملة الفاتورة المجمّد: <bdi dir="ltr">1 USD = {formatMoney(invoice.pricing.units_per_usd, 'USD')} {invoice.pricing.currency}</bdi></p>
       </section>}
 
       <dl className="sf-grid">
         <div className="sf-card sf-summary-card sf-span-4">
           <dt>إجمالي الفاتورة</dt>
-          <dd><bdi dir="ltr" className="sf-number">{formatMoney(invoice.grand_total_sdg, 'SDG', settings)}</bdi></dd>
-          <small><bdi dir="ltr" className="sf-number">{formatMoney(invoice.grand_total_usd, 'USD', settings)}</bdi></small>
+          <dd><bdi dir="ltr" className="sf-number">{enabled ? pair(invoice.grand_total_sdg, invoice.grand_total_usd) : nativeMoney(invoice.grand_total_sdg, 'SDG', settings)}</bdi></dd>
+          <small><bdi dir="ltr" className="sf-number">{enabled ? '' : nativeMoney(invoice.grand_total_usd, 'USD', settings)}</bdi></small>
         </div>
         <div className="sf-card sf-summary-card sf-span-4">
           <dt>المحصّل</dt>
-          <dd><bdi dir="ltr" className="sf-number">{formatMoney(invoice.paid_amount_sdg, 'SDG', settings)}</bdi></dd>
-          <small><bdi dir="ltr" className="sf-number">{formatMoney(invoice.paid_amount_usd, 'USD', settings)}</bdi></small>
+          <dd><bdi dir="ltr" className="sf-number">{enabled ? pair(invoice.paid_amount_sdg, invoice.paid_amount_usd) : nativeMoney(invoice.paid_amount_sdg, 'SDG', settings)}</bdi></dd>
+          <small><bdi dir="ltr" className="sf-number">{enabled ? '' : nativeMoney(invoice.paid_amount_usd, 'USD', settings)}</bdi></small>
         </div>
         <div className="sf-card sf-summary-card sf-span-4">
           <dt>المتبقي</dt>
-          <dd><bdi dir="ltr" className="sf-number">{formatMoney(invoice.remaining_sdg, 'SDG', settings)}</bdi></dd>
-          <small><bdi dir="ltr" className="sf-number">{formatMoney(invoice.remaining_usd, 'USD', settings)}</bdi></small>
+          <dd><bdi dir="ltr" className="sf-number">{enabled ? pair(invoice.remaining_sdg, invoice.remaining_usd) : nativeMoney(invoice.remaining_sdg, 'SDG', settings)}</bdi></dd>
+          <small><bdi dir="ltr" className="sf-number">{enabled ? '' : nativeMoney(invoice.remaining_usd, 'USD', settings)}</bdi></small>
         </div>
       </dl>
 
@@ -185,7 +187,7 @@ export const InvoiceWorkspaceView: React.FC<InvoiceWorkspaceViewProps> = ({
             <CreditCard className="text-sf-muted" aria-hidden="true" />
             <div>
               <p className="text-xs text-sf-muted">سعر الصرف المجمّد</p>
-              <p className="text-sm font-mono"><bdi dir="ltr">1 USD = {formatMoney(invoice.exchange_rate_used, 'SDG', settings)}</bdi></p>
+              <p className="text-sm font-mono"><bdi dir="ltr">1 USD = {nativeMoney(invoice.exchange_rate_used, 'SDG', settings)}</bdi></p>
             </div>
           </div>
         </div>
@@ -232,8 +234,8 @@ export const InvoiceWorkspaceView: React.FC<InvoiceWorkspaceViewProps> = ({
                       <span className="sf-detail">{item.unit}</span>
                     </td>
                     <td className="sf-value-cell"><bdi dir="ltr" className="sf-number">{item.quantity}</bdi></td>
-                    <td className="sf-value-cell"><bdi dir="ltr" className="sf-number">{formatMoney(item.unit_price, item.currency, settings)}</bdi></td>
-                    <td className="sf-value-cell"><bdi dir="ltr" className="sf-number">{formatMoney(item.line_total, item.currency, settings)}</bdi></td>
+                    <td className="sf-value-cell"><bdi dir="ltr" className="sf-number">{formatMoney(item.unit_price, item.currency, { ...settings, currency_rates: invoice.currency_rates_used || settings.currency_rates })}</bdi></td>
+                    <td className="sf-value-cell"><bdi dir="ltr" className="sf-number">{formatMoney(item.line_total, item.currency, { ...settings, currency_rates: invoice.currency_rates_used || settings.currency_rates })}</bdi></td>
                   </tr>
                 ))}
               </tbody>
@@ -259,7 +261,7 @@ export const InvoiceWorkspaceView: React.FC<InvoiceWorkspaceViewProps> = ({
                   <td><bdi dir="ltr" className="sf-id">{payment.payment_date}</bdi></td>
                   <td>{paymentMethodLabel(payment.payment_method)}</td>
                   <td><bdi dir="ltr" className="sf-id">{payment.reference_number || '—'}</bdi></td>
-                  <td className="sf-value-cell"><bdi dir="ltr" className="sf-number">{formatMoney(payment.amount, payment.currency, settings)}</bdi></td>
+                  <td className="sf-value-cell"><bdi dir="ltr" className="sf-number">{formatMoney(payment.amount, payment.currency, { ...settings, currency_rates: payment.currency_rates_used || settings.currency_rates })}</bdi></td>
                 </tr>
               ))}</tbody>
             </table>

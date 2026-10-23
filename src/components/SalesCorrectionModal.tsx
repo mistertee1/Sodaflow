@@ -1,12 +1,14 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import React, { useRef, useState } from 'react';
 import type { Invoice } from '../types';
 import { useApp } from '../context/AppContext';
 import { Dialog } from './Dialog';
-import { formatMoney } from '../lib/currency';
+
 import { receivableCurrency } from '../domain/financial';
 import { merchantDay } from '../domain/operationalReports';
 
 export function SalesCorrectionModal({ invoice, mode, onClose }: { invoice: Invoice; mode: 'credit' | 'refund'; onClose: () => void }) {
+  const { formatMoney } = useDisplayMoney();
   const { settings, financialAccounts, createCreditNote, refundCustomer } = useApp();
   const [kind, setKind] = useState<'price_credit' | 'sales_return'>('price_credit');
   const [amounts, setAmounts] = useState<Record<string, string>>({});

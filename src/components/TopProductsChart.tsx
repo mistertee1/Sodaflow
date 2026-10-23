@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import React, { useState, useMemo } from 'react';
 import {
   ResponsiveContainer,
@@ -10,7 +11,7 @@ import {
 } from 'recharts';
 import { Package, TrendingUp, DollarSign, Layers } from 'lucide-react';
 import { Invoice, Product, MerchantSettings } from '../types';
-import { formatMoney, convertCurrency, safeAdd } from '../lib/currency';
+import { convertCurrency, safeAdd } from '../lib/currency';
 
 interface TopProductsChartProps {
   invoices?: Invoice[];
@@ -23,6 +24,7 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
   products = [],
   settings = {} as MerchantSettings,
 }) => {
+  const { formatMoney, bookLabel, enabled, code: displayCode, amount: displayValue } = useDisplayMoney();
   const [metric, setMetric] = useState<'quantity' | 'revenue'>('quantity');
 
   // Compute top products from non-cancelled invoices
@@ -56,12 +58,11 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
         const qty = Number(item.quantity) || 0;
         const price = Number(item.unit_price) || 0;
         const lineTotal = Number(item.line_total) || (qty * price);
-        const revSdg = item.currency === 'SDG' 
-          ? lineTotal 
-          : (rate > 0 ? convertCurrency(lineTotal, 'USD', 'SDG', rate, settings) : 0);
-        const revUsd = item.currency === 'USD' 
-          ? lineTotal 
-          : (rate > 0 ? convertCurrency(lineTotal, 'SDG', 'USD', rate, settings) : 0);
+        // Frozen native quotes belong to the issued invoice, never today's currency settings.
+        const sourceSettings = { ...settings, currency_rates: inv.currency_rates_used || {} };
+        const revSdg = item.currency === 'SDG' ? lineTotal : rate > 0 ? convertCurrency(lineTotal, item.currency, 'SDG', rate, sourceSettings) : 0;
+        const revUsd = item.currency === 'USD' ? lineTotal : rate > 0 ? convertCurrency(lineTotal, item.currency, 'USD', rate, sourceSettings) : 0;
+
 
         const existing = salesMap.get(key);
         if (existing) {
@@ -109,7 +110,7 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
       if (metric === 'quantity') {
         return b.quantity - a.quantity || b.revenueSdg - a.revenueSdg;
       }
-      return b.revenueSdg - a.revenueSdg || b.quantity - a.quantity;
+      return (enabled ? (displayValue(b.revenueSdg, 'SDG') ?? 0) - (displayValue(a.revenueSdg, 'SDG') ?? 0) : b.revenueSdg - a.revenueSdg) || b.quantity - a.quantity;
     });
 
     // Take top 5
@@ -119,7 +120,7 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
     return (top5 || []).map((item, index) => {
       // Short name for chart axis (truncate if too long)
       const shortName = item.name.length > 18 ? item.name.substring(0, 16) + '...' : item.name;
-      const value = metric === 'quantity' ? item.quantity : Math.round(item.revenueSdg);
+      const value = metric === 'quantity' ? item.quantity : enabled ? displayValue(item.revenueSdg, 'SDG') ?? 0 : item.revenueSdg;
 
       return {
         ...item,
@@ -152,7 +153,7 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
             </span>
           </div>
           <div className="text-sf-muted text-xs text-left font-mono">
-            ≈ {formatMoney(data.revenueUsd, 'USD', settings)}
+            {bookLabel('USD')}: {formatMoney(data.revenueUsd, 'USD', settings)}
           </div>
           {data.invoiceCount > 0 && (
             <div className="text-xs text-sf-muted border-t border-sf-border pt-1">
@@ -229,7 +230,7 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
         </div>
       ) : (
         <div className="w-full">
-          <div className="h-64 sm:h-72 w-full pt-2" dir="ltr" role="img" aria-label={metric === 'quantity' ? 'الكمية المباعة حسب المنتج؛ التفاصيل في الجدول' : 'إيرادات الفواتير بالجنيه السوداني حسب المنتج؛ التفاصيل في الجدول'}>
+          <div className="h-64 sm:h-72 w-full pt-2" dir="ltr" role="img" aria-label={metric === 'quantity' ? 'الكمية المباعة حسب المنتج؛ التفاصيل في الجدول' : `إيرادات الفواتير (${enabled ? displayCode : 'SDG'}) حسب المنتج؛ التفاصيل في الجدول`}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={safeChartData}
@@ -259,7 +260,7 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
                       ? `${(val / 1000000).toFixed(1)}M`
                       : val >= 1000
                       ? `${(val / 1000).toFixed(0)}K`
-                      : val.toString()
+                      : enabled ? new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(val) : val.toString()
                   }
                 />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--sf-surface-raised)' }} />
@@ -267,7 +268,7 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
                   dataKey="value"
                   radius={[6, 6, 0, 0]}
                   isAnimationActive={false}
-                  name={metric === 'quantity' ? 'الكمية المباعة' : 'إيراد الفواتير (SDG)'}
+                  name={metric === 'quantity' ? 'الكمية المباعة' : `إيراد الفواتير (${bookLabel('SDG')})`}
                   fill="var(--sf-action)"
                 >
                 </Bar>
@@ -280,7 +281,7 @@ export const TopProductsChart: React.FC<TopProductsChartProps> = ({
             <div className="sf-table-scroll mt-4" role="region" aria-label="أرقام مبيعات المنتجات" tabIndex={0}>
               <table className="sf-table min-w-[560px]">
                 <caption>الكمية والإيراد من الفواتير الصادرة؛ يستبعد المسودات والملغاة والمبطلة.</caption>
-                <thead><tr><th scope="col">المنتج</th><th scope="col">الكمية</th><th scope="col">الإيراد (SDG)</th><th scope="col">العرض الثاني (USD)</th></tr></thead>
+                <thead><tr><th scope="col">المنتج</th><th scope="col">الكمية</th><th scope="col">الإيراد ({bookLabel('SDG')})</th><th scope="col">{bookLabel('USD')}</th></tr></thead>
                 <tbody>{safeChartData.map(item => <tr key={item.id}>
                   <td>{item.name}</td>
                   <td><bdi dir="ltr" className="sf-number">{item.quantity}</bdi> {item.unit}</td>

@@ -420,6 +420,8 @@ export interface Expense {
 }
 
 export interface MerchantSettings {
+  /** Explicit manual presentation quote. Never changes stored books or issued documents. */
+  display_currency?: { currency: Currency; units_per_usd: number; sdg_per_usd: number };
   default_transaction_currency?: Currency;
   currency_rates?: CurrencyRates; // Units of the selected currency per USD; no live rates are assumed.
   business_name: string;

@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import { assertAvailableProductName, productDuplicateGroups } from '../domain/productIdentity';
 import BigNumber from 'bignumber.js';
 import { productPriceQuote, productPricingMode } from '../domain/productPricing';
@@ -20,13 +21,14 @@ import {
   AlertCircle,
   Lock,
 } from 'lucide-react';
-import { formatMoney, convertCurrency } from '../lib/currency';
+import { convertCurrency } from '../lib/currency';
 import { getPlanConfig, isUnlimited } from '../lib/plans';
 import { InventoryCostCenter } from './InventoryCostCenter';
 import { InventoryAuditModal } from './InventoryAuditModal';
 import { Dialog } from './Dialog';
 
 export const ProductsView: React.FC = () => {
+  const { formatMoney, nativeMoney, enabled, code: displayCode } = useDisplayMoney();
   const {
     currentOrg,
     products,
@@ -582,12 +584,12 @@ export const ProductsView: React.FC = () => {
                 {/* Price Box */}
                 <div className="bg-sf-raised p-3 rounded-xl border border-sf-border flex items-center justify-between">
                   <div>
-                    <span className="text-xs text-sf-muted block">السعر بالجنيه:</span>
+                    <span className="text-xs text-sf-muted block">{enabled ? `السعر (${displayCode})` : 'السعر بالجنيه:'}</span>
                     <span className="font-mono font-semibold text-sm text-sf-text">
-                      {localPrice === undefined ? '—' : formatMoney(localPrice, 'SDG', settings)}
+                      {enabled ? (productPricingMode(p) === 'manual' && !usdPrice && localPrice ? formatMoney(localPrice, 'SDG', settings) : (usdPrice === undefined ? '—' : formatMoney(usdPrice, 'USD', settings))) : (localPrice === undefined ? '—' : nativeMoney(localPrice, 'SDG', settings))}
                     </span>
                   </div>
-                  <div className="text-left">
+                  <div className="text-left" hidden={enabled}>
                     <span className="text-xs text-sf-muted block">السعر بالدولار:</span>
                     <span className="font-mono font-semibold text-xs text-sf-text">
                       {usdPrice === undefined ? '—' : formatMoney(usdPrice, 'USD', settings)}
@@ -738,7 +740,7 @@ export const ProductsView: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-xs text-sf-text">الدولار هو مرجع التسعير</span>
                   <span className="text-xs text-sf-warning bg-sf-warning-bg/60 px-2 py-1 rounded border border-sf-warning/40">
-                    {rate > 0 ? `1$ = ${formatMoney(rate, 'SDG', settings)}` : 'سعر الصرف غير محدد بالإعدادات'}
+                    {rate > 0 ? `1$ = ${nativeMoney(rate, 'SDG', settings)}` : 'سعر الصرف غير محدد بالإعدادات'}
                   </span>
                 </div>
 

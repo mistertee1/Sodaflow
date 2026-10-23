@@ -1,12 +1,14 @@
+import { useDisplayMoney } from '../../context/useDisplayMoney';
 import { CorrectionDocumentDownload } from '../CorrectionDocumentDownload';
 import React, { useRef, useState } from 'react';
 import { Dialog } from '../Dialog';
 import { useApp } from '../../context/AppContext';
 import type { Document } from '../../domain/store';
 import type { PurchaseBill } from '../../domain/payables';
-import { formatMoney } from '../../lib/currency';
+
 
 export function PurchaseCorrectionModal({ bill, mode, onClose }: { bill: PurchaseBill; mode: 'return' | 'refund' | 'history'; onClose: () => void }) {
+  const { formatMoney } = useDisplayMoney();
   const { purchaseReturns, supplierRefunds, financialAccounts, settings, returnPurchase, refundSupplier } = useApp();
   const [date, setDate] = useState(new Date().toISOString().slice(0,10)), [reason, setReason] = useState(''), [quantities, setQuantities] = useState<Record<string,number>>({});
   const [accountId, setAccountId] = useState(''), [amount, setAmount] = useState(0), [rate, setRate] = useState(settings.default_exchange_rate), [error, setError] = useState(''), [busy, setBusy] = useState(false);

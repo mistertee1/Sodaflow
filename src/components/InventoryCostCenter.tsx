@@ -1,10 +1,12 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import { productPricingMode } from '../domain/productPricing';
 import React, { useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { formatMoney } from '../lib/currency';
+
 import { Dialog } from './Dialog';
 
 export function InventoryCostCenter() {
+  const { formatMoney } = useDisplayMoney();
   const { products, userRole, currentOrg, settings, establishProductCost, receiveInventory, activateAccountingV2, updateProductStock, isActionAllowed } = useApp();
   const [open, setOpen] = useState(false), [productId, setProductId] = useState(''), [mode, setMode] = useState<'basis' | 'receipt' | 'count'>('basis');
   const [quantity, setQuantity] = useState(1), [unitCost, setUnitCost] = useState(0), [currency, setCurrency] = useState<'SDG' | 'USD'>('SDG'), [rate, setRate] = useState(settings.manual_exchange_rate && settings.manual_exchange_rate > 0 ? settings.manual_exchange_rate : settings.default_exchange_rate || 0), [reason, setReason] = useState(''), [method, setMethod] = useState('cash');

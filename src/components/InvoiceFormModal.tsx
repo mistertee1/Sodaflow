@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import { productPriceQuote, productPricingMode, quoteCatalogItem } from '../domain/productPricing';
 import { CURRENCIES, currencyDecimals, currencyLabel, isForeignCurrency, phoneRegion, transactionCurrency } from '../lib/currencyCatalog';
 import React, { useState, useEffect, useRef } from 'react';
@@ -44,6 +45,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
   initialCustomer,
   prefilledCustomer,
 }) => {
+  const display = useDisplayMoney();
   const {
     customers,
     products,
@@ -799,13 +801,14 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
             {/* Calculations Box (Dual Display) */}
             <div className="sm:col-span-5 bg-sf-raised border border-sf-border rounded-xl p-4 space-y-3 shadow-2xs">
               <div className="flex items-center justify-between text-xs text-sf-text">
-                <span>المجموع الفرعي:</span>
+                <span>المجموع الفرعي {display.enabled ? `(${display.bookLabel('SDG')})` : ''}:</span>
                 <span className="font-mono font-semibold text-sf-text">
-                  {formatMoney(subtotalSdg, 'SDG', settings)}
+                  {display.formatMoney(subtotalSdg, 'SDG', settings)}
                 </span>
               </div>
 
               {financials.pricing && <div className="text-sm font-semibold" data-testid="invoice-native-preview">إجمالي عملة الفاتورة: <bdi dir="ltr">{formatMoney(financials.pricing.total, financials.pricing.currency)}</bdi></div>}
+              {display.enabled && <p data-testid="invoice-display-preview" className="text-xs text-sf-action">عرض عملة النظام: <bdi dir="ltr">{display.pair(grandTotalSdg, grandTotalUsd)}</bdi> · تفاصيل البنود والخصم بعملة العملية الأصلية.</p>}
               {/* Discount Input */}
               <div className="flex items-center justify-between gap-2 text-xs">
                 <span className="text-sf-text">الخصم:</span>
@@ -832,7 +835,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 <div className="flex items-center justify-between text-xs text-sf-danger">
                   <span>قيمة الخصم:</span>
                   <span className="font-mono font-semibold">
-                    - {formatMoney(discountTotalSdg, 'SDG', settings)}
+                    - {display.formatMoney(discountTotalSdg, 'SDG', settings)}
                   </span>
                 </div>
               )}
@@ -841,7 +844,7 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 <div className="flex items-center justify-between text-xs text-sf-text">
                   <span>إجمالي الضريبة:</span>
                   <span className="font-mono font-semibold text-sf-text">
-                    + {formatMoney(taxTotalSdg, 'SDG', settings)}
+                    + {display.formatMoney(taxTotalSdg, 'SDG', settings)}
                   </span>
                 </div>
               )}
@@ -852,10 +855,10 @@ export const InvoiceFormModal: React.FC<InvoiceFormModalProps> = ({
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="font-mono font-semibold text-base text-sf-text">
-                    {formatMoney(grandTotalSdg, 'SDG', settings)}
+                    {display.enabled ? display.pair(grandTotalSdg, grandTotalUsd) : formatMoney(grandTotalSdg, 'SDG', settings)}
                   </span>
                   <span className="font-mono font-semibold text-sm text-sf-text bg-sf-action/10 px-2 py-1 rounded border border-sf-action/20">
-                    {formatMoney(grandTotalUsd, 'USD', settings)}
+                    {display.enabled ? '' : formatMoney(grandTotalUsd, 'USD', settings)}
                   </span>
                 </div>
               </div>

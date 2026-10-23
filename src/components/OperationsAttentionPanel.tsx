@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import React, { useMemo } from 'react';
 import {
   AlertTriangle,
@@ -9,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { Invoice } from '../types';
-import { formatMoney, safeAdd } from '../lib/currency';
+import { safeAdd } from '../lib/currency';
 
 interface OperationsAttentionPanelProps {
   onNavigate: (tab: string) => void;
@@ -17,6 +18,7 @@ interface OperationsAttentionPanelProps {
 }
 
 export const OperationsAttentionPanel: React.FC<OperationsAttentionPanelProps> = ({ onNavigate, onViewInvoice }) => {
+  const { formatMoney } = useDisplayMoney();
   const { invoices, products, settings, syncStatus, syncError } = useApp();
   const today = new Date().toISOString().slice(0, 10);
 

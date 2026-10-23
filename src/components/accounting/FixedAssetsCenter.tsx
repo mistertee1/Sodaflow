@@ -1,15 +1,17 @@
+import { useDisplayMoney } from '../../context/useDisplayMoney';
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {useApp} from '../../context/AppContext';
 import {classifyAccount} from '../../domain/accountClassification';
 import type {FixedAssetRegistrationInput} from '../../domain/fixedAssets';
 import type {FixedAssetPreview, FixedAssetPreviewRequest} from '../../domain/fixedAssetPreview';
 import {operationId} from '../../services/businessApi';
-import {formatMoney} from '../../lib/currency';
+
 import type {Document} from '../../domain/store';
 
 const field = 'w-full min-w-0 mt-1 p-2 rounded border border-sf-border bg-sf-raised';
-const value = (sdg: number, usd: number) => `${formatMoney(sdg, 'SDG')} / ${formatMoney(usd, 'USD')}`;
+
 export function FixedAssetsCenter() {
+  const { formatMoney, pair: value, bookLabel } = useDisplayMoney();
   const a = useApp();
   const [assetId, setAssetId] = useState(() => `fa-${operationId()}`), [sourceKey, setSourceKey] = useState('');
   const [name, setName] = useState(''), [category, setCategory] = useState(''), [serviceDate, setServiceDate] = useState('');
@@ -71,7 +73,7 @@ export function FixedAssetsCenter() {
   const accountOptions = (kind: 'accumulated' | 'expense') => a.accounts.filter(row => row.is_active && (kind === 'accumulated'
     ? row.type === 'ASSET' && row.nature === 'CREDIT' && classifyAccount(row).reporting_group === 'fixed_assets'
     : row.type === 'EXPENSE' && row.nature === 'DEBIT' && classifyAccount(row).reporting_group === 'operating_expense'));
-  const schedule = (rows: Document[], posted = 0) => <div className="overflow-auto max-h-80" tabIndex={0} aria-label="جدول الإهلاك"><table className="w-full whitespace-nowrap text-right"><thead><tr><th>القسط</th><th>التاريخ</th><th>SDG</th><th>USD</th><th>الحالة</th></tr></thead><tbody>{rows.map(row => <tr key={row.sequence}><td>{row.sequence}</td><td>{row.date}</td><td>{row.depreciation_sdg}</td><td>{row.depreciation_usd}</td><td>{row.sequence <= posted ? 'مرحّل' : 'غير مرحّل'}</td></tr>)}</tbody></table></div>;
+  const schedule = (rows: Document[], posted = 0) => <div className="overflow-auto max-h-80" tabIndex={0} aria-label="جدول الإهلاك"><table className="w-full whitespace-nowrap text-right"><thead><tr><th>القسط</th><th>التاريخ</th><th>{bookLabel('SDG')}</th><th>{bookLabel('USD')}</th><th>الحالة</th></tr></thead><tbody>{rows.map(row => <tr key={row.sequence}><td>{row.sequence}</td><td>{row.date}</td><td>{formatMoney(row.depreciation_sdg, 'SDG')}</td><td>{formatMoney(row.depreciation_usd, 'USD')}</td><td>{row.sequence <= posted ? 'مرحّل' : 'غير مرحّل'}</td></tr>)}</tbody></table></div>;
   return <section role="region" aria-label="الأصول الثابتة والإهلاك" className="space-y-4 min-w-0 text-sm">
     <h3 className="text-lg font-semibold">الأصول الثابتة والإهلاك</h3>
     <p>التكلفة من قيد شراء موجود. الإهلاك بالقسط الثابت شهرياً من نهاية شهر التشغيل، في دفتري SDG وUSD.</p>
@@ -89,8 +91,8 @@ export function FixedAssetsCenter() {
           <label>الفئة<input aria-label="فئة الأصل" className={field} required maxLength={100} value={category} onChange={e => setCategory(e.target.value)}/></label>
           <label>تاريخ التشغيل<input aria-label="تاريخ تشغيل الأصل" className={field} type="date" min={source?.entry.date} required value={serviceDate} onChange={e => setServiceDate(e.target.value)}/></label>
           <label>العمر الإنتاجي بالأشهر<input aria-label="العمر الإنتاجي بالأشهر" className={field} type="number" min={1} max={600} step={1} required value={life} onChange={e => setLife(e.target.value)}/></label>
-          <label>القيمة التخريدية SDG<input aria-label="القيمة التخريدية SDG" className={field} type="number" min={0} step={1} required value={residualSdg} onChange={e => setResidualSdg(e.target.value)}/></label>
-          <label>القيمة التخريدية USD<input aria-label="القيمة التخريدية USD" className={field} type="number" min={0} step=".01" required value={residualUsd} onChange={e => setResidualUsd(e.target.value)}/></label>
+          <label>القيمة التخريدية {bookLabel('SDG')}<input aria-label="القيمة التخريدية SDG" className={field} type="number" min={0} step={1} required value={residualSdg} onChange={e => setResidualSdg(e.target.value)}/></label>
+          <label>القيمة التخريدية {bookLabel('USD')}<input aria-label="القيمة التخريدية USD" className={field} type="number" min={0} step=".01" required value={residualUsd} onChange={e => setResidualUsd(e.target.value)}/></label>
           <label>حساب مجمع الإهلاك<select aria-label="حساب مجمع الإهلاك" className={field} required value={accumulated} onChange={e => setAccumulated(e.target.value)}><option value="">اختر حساب الأصل الدائن</option>{accountOptions('accumulated').map(row => <option key={row.code} value={row.code}>{row.code} — {row.name_ar}</option>)}</select></label>
           <label>حساب مصروف الإهلاك<select aria-label="حساب مصروف الإهلاك" className={field} required value={expense} onChange={e => setExpense(e.target.value)}><option value="">اختر حساب المصروف</option>{accountOptions('expense').map(row => <option key={row.code} value={row.code}>{row.code} — {row.name_ar}</option>)}</select></label>
           <label>المرجع<input aria-label="مرجع الأصل" className={field} maxLength={200} value={reference} onChange={e => setReference(e.target.value)}/></label>
@@ -106,14 +108,14 @@ export function FixedAssetsCenter() {
         <p>{preview.quote.name} · القسط {preview.quote.sequence} · {preview.quote.date}</p>
         <p>مبلغ الإهلاك: {value(preview.quote.amount_sdg, preview.quote.amount_usd)}</p>
         <p>القيمة الدفترية: {value(preview.quote.book_before_sdg, preview.quote.book_before_usd)} ← {value(preview.quote.book_after_sdg, preview.quote.book_after_usd)}</p>
-        {preview.quote.lines.length ? <div className="overflow-auto"><table className="w-full"><thead><tr><th>الحساب</th><th>مدين SDG</th><th>دائن SDG</th><th>مدين USD</th><th>دائن USD</th></tr></thead><tbody>{preview.quote.lines.map((row: Document) => <tr key={row.account_code}><td>{row.account_code}</td><td>{row.debit_sdg}</td><td>{row.credit_sdg}</td><td>{row.debit_usd}</td><td>{row.credit_usd}</td></tr>)}</tbody></table></div> : <p>القسط صفر بعد التقريب؛ يسجل اكتمال الشهر دون قيد مالي صفري.</p>}
+        {preview.quote.lines.length ? <div className="overflow-auto"><table className="w-full"><thead><tr><th>الحساب</th><th>مدين {bookLabel('SDG')}</th><th>دائن {bookLabel('SDG')}</th><th>مدين {bookLabel('USD')}</th><th>دائن {bookLabel('USD')}</th></tr></thead><tbody>{preview.quote.lines.map((row: Document) => <tr key={row.account_code}><td>{row.account_code}</td><td>{formatMoney(row.debit_sdg, 'SDG')}</td><td>{formatMoney(row.credit_sdg, 'SDG')}</td><td>{formatMoney(row.debit_usd, 'USD')}</td><td>{formatMoney(row.credit_usd, 'USD')}</td></tr>)}</tbody></table></div> : <p>القسط صفر بعد التقريب؛ يسجل اكتمال الشهر دون قيد مالي صفري.</p>}
       </>}
       <label className="flex gap-2"><input type="checkbox" disabled={busy} checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/>راجعت المصدر والحسابات والجدول</label>
       <button className="sf-action" disabled={busy || !confirmed || !allowed} onClick={() => void run(save)}>{preview.action === 'fixedAsset.register' ? 'تأكيد تسجيل الأصل' : 'ترحيل قسط الإهلاك'}</button>
     </section>}
     <section role="region" aria-label="سجل الأصول المحفوظ" className="sf-card p-4 space-y-3 min-w-0">
       <h4 className="font-semibold">سجل الأصول المحفوظ</h4>
-      {!a.fixedAssets.length ? <p>لا توجد أصول مسجلة.</p> : <div className="overflow-auto"><table className="w-full whitespace-nowrap text-right"><thead><tr><th>الأصل</th><th>الفئة</th><th>تاريخ الشراء</th><th>التكلفة SDG / USD</th><th>مجمع الإهلاك SDG / USD</th><th>القيمة الدفترية SDG / USD</th><th>الحالة</th><th>التفاصيل</th></tr></thead><tbody>{a.fixedAssets.map(asset => <tr key={asset.id}><td>{asset.name}</td><td>{asset.category}</td><td>{asset.purchase_date}</td><td>{value(asset.purchase_cost_sdg, asset.purchase_cost_usd)}</td><td>{value(asset.accumulated_depreciation_sdg, asset.accumulated_depreciation_usd)}</td><td>{value(asset.book_value_sdg, asset.book_value_usd)}</td><td>{asset.status === 'fully_depreciated' ? 'مكتمل الإهلاك' : 'نشط'}</td><td><button className="sf-secondary" disabled={busy} aria-label={`عرض الأصل ${asset.name}`} onClick={() => {setSelectedId(asset.id); setDepreciationReason('');}}>عرض الجدول والإهلاك</button></td></tr>)}</tbody></table></div>}
+      {!a.fixedAssets.length ? <p>لا توجد أصول مسجلة.</p> : <div className="overflow-auto"><table className="w-full whitespace-nowrap text-right"><thead><tr><th>الأصل</th><th>الفئة</th><th>تاريخ الشراء</th><th>التكلفة {bookLabel('SDG')} / {bookLabel('USD')}</th><th>مجمع الإهلاك {bookLabel('SDG')} / {bookLabel('USD')}</th><th>القيمة الدفترية {bookLabel('SDG')} / {bookLabel('USD')}</th><th>الحالة</th><th>التفاصيل</th></tr></thead><tbody>{a.fixedAssets.map(asset => <tr key={asset.id}><td>{asset.name}</td><td>{asset.category}</td><td>{asset.purchase_date}</td><td>{value(asset.purchase_cost_sdg, asset.purchase_cost_usd)}</td><td>{value(asset.accumulated_depreciation_sdg, asset.accumulated_depreciation_usd)}</td><td>{value(asset.book_value_sdg, asset.book_value_usd)}</td><td>{asset.status === 'fully_depreciated' ? 'مكتمل الإهلاك' : 'نشط'}</td><td><button className="sf-secondary" disabled={busy} aria-label={`عرض الأصل ${asset.name}`} onClick={() => {setSelectedId(asset.id); setDepreciationReason('');}}>عرض الجدول والإهلاك</button></td></tr>)}</tbody></table></div>}
     </section>
     {selected && <section role="region" aria-label="تفاصيل الأصل" className="sf-card p-4 space-y-3 min-w-0">
       <h4 className="font-semibold">{selected.name} — القسط الثابت</h4>

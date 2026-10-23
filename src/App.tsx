@@ -1,5 +1,6 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
+import { DisplayCurrencyNotice } from './components/DisplayCurrencyNotice';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { SubscriptionBanner } from './components/SubscriptionBanner';
@@ -165,6 +166,7 @@ function MainLayout() {
 
       {/* Main Content Area */}
       <main className="sf-content sf-main flex-1">
+        <DisplayCurrencyNotice onSettings={() => setIsSettingsOpen(true)} />
         <Suspense fallback={<div role="status" className="p-6 text-sf-muted">جاري التحميل…</div>}>
           {viewingInvoice ? (
             <InvoiceWorkspaceView

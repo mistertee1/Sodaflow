@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Invoice } from '../types';
@@ -14,7 +15,7 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react';
-import { formatMoney, invoicePricingBalance, safeAdd } from '../lib/currency';
+import { invoicePricingBalance, safeAdd } from '../lib/currency';
 
 interface InvoicesViewProps {
   onOpenNewInvoice: () => void;
@@ -27,6 +28,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
   onViewInvoice,
   onOpenRecordPayment,
 }) => {
+  const { nativeMoney, pair, enabled, code: displayCode } = useDisplayMoney();
   const {
     invoices,
     voidInvoice,
@@ -79,12 +81,12 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
     { id: 'void', label: 'مبطلة' },
   ];
   const issuedInvoices = safeInvoices.filter(invoice => !['draft', 'cancelled', 'void'].includes(invoice.status));
-  const sum = (field: 'grand_total_sdg' | 'paid_amount_sdg' | 'remaining_sdg') =>
-    issuedInvoices.reduce((total, invoice) => safeAdd(total, invoice[field] || 0, settings.sdg_decimals, settings.rounding_rule), 0);
+  const sum = (field: 'grand_total_sdg' | 'paid_amount_sdg' | 'remaining_sdg' | 'grand_total_usd' | 'paid_amount_usd' | 'remaining_usd') =>
+    issuedInvoices.reduce((total, invoice) => safeAdd(total, invoice[field] || 0, field.endsWith('_usd') ? settings.usd_decimals : settings.sdg_decimals, settings.rounding_rule), 0);
   const summaries = [
-    { label: 'إجمالي الفواتير', value: sum('grand_total_sdg') },
-    { label: 'المحصّل من الفواتير', value: sum('paid_amount_sdg') },
-    { label: 'المتبقي للتحصيل', value: sum('remaining_sdg') },
+    { label: 'إجمالي الفواتير', value: sum('grand_total_sdg'), usd: sum('grand_total_usd') },
+    { label: 'المحصّل من الفواتير', value: sum('paid_amount_sdg'), usd: sum('paid_amount_usd') },
+    { label: 'المتبقي للتحصيل', value: sum('remaining_sdg'), usd: sum('remaining_usd') },
   ];
   const canCreate = isActionAllowed('invoices:create');
   const permissionMessage = 'لا تملك صلاحية تعديل هذا السجل. تواصل مع مسؤول المؤسسة.';
@@ -104,12 +106,12 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
 
       <section aria-label="ملخص الفواتير الصادرة" className="space-y-3">
         <p className="text-xs text-sf-muted">
-          {hasMoreInvoices ? 'السجلات المحمّلة' : 'جميع السجلات'} · {issuedInvoices.length} فاتورة صادرة · القيم بالجنيه السوداني (SDG)
+          {hasMoreInvoices ? 'السجلات المحمّلة' : 'جميع السجلات'} · {issuedInvoices.length} فاتورة صادرة · القيم المعروضة: {enabled ? displayCode : 'SDG'}
         </p>
         <dl className="sf-grid">
           {summaries.map(summary => <div key={summary.label} className="sf-card sf-summary-card sf-span-4">
             <dt>{summary.label}</dt>
-            <dd><bdi dir="ltr" className="font-mono">{formatMoney(summary.value, 'SDG', settings)}</bdi></dd>
+            <dd><bdi dir="ltr" className="font-mono">{enabled ? pair(summary.value, summary.usd) : nativeMoney(summary.value, 'SDG', settings)}</bdi></dd>
           </div>)}
         </dl>
       </section>
@@ -154,17 +156,17 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({
               <td>
                 <span>{invoice.customer_name}</span>
                 {invoice.customer_phone && <bdi dir="ltr" className="sf-detail">{invoice.customer_phone}</bdi>}
-                <span className="sf-detail">سعر الصرف المستخدم: <bdi dir="ltr" className="sf-number">1 USD = {formatMoney(invoice.exchange_rate_used, 'SDG', settings)}</bdi></span>
+                <span className="sf-detail">سعر الصرف المستخدم: <bdi dir="ltr" className="sf-number">1 USD = {nativeMoney(invoice.exchange_rate_used, 'SDG', settings)}</bdi></span>
               </td>
               <td className="sf-value-cell">
-                {invoice.pricing && <bdi dir="ltr" className="sf-number block text-sf-action">{formatMoney(invoice.pricing.total, invoice.pricing.currency)}</bdi>}
-                <bdi dir="ltr" className="sf-number">{formatMoney(invoice.grand_total_sdg, 'SDG', settings)}</bdi>
-                <small className="block text-sf-muted"><bdi dir="ltr" className="sf-number">{formatMoney(invoice.grand_total_usd, 'USD', settings)}</bdi></small>
+                {invoice.pricing && <bdi dir="ltr" className="sf-number block text-sf-action" title="عملة المستند الأصلية">الأصل: {nativeMoney(invoice.pricing.total, invoice.pricing.currency)}</bdi>}
+                <bdi dir="ltr" className="sf-number">{enabled ? pair(invoice.grand_total_sdg, invoice.grand_total_usd) : nativeMoney(invoice.grand_total_sdg, 'SDG', settings)}</bdi>
+                <small className="block text-sf-muted"><bdi dir="ltr" className="sf-number">{enabled ? '' : nativeMoney(invoice.grand_total_usd, 'USD', settings)}</bdi></small>
               </td>
               <td className="sf-value-cell">
-                {invoice.pricing && <bdi dir="ltr" className="sf-number block text-sf-action">{formatMoney(invoicePricingBalance(invoice), invoice.pricing.currency)}</bdi>}
-                <bdi dir="ltr" className="sf-number">{formatMoney(invoice.remaining_sdg, 'SDG', settings)}</bdi>
-                <small className="block text-sf-muted"><bdi dir="ltr" className="sf-number">{formatMoney(invoice.remaining_usd, 'USD', settings)}</bdi></small>
+                {invoice.pricing && <bdi dir="ltr" className="sf-number block text-sf-action" title="عملة المستند الأصلية">الأصل: {nativeMoney(invoicePricingBalance(invoice), invoice.pricing.currency)}</bdi>}
+                <bdi dir="ltr" className="sf-number">{enabled ? pair(invoice.remaining_sdg, invoice.remaining_usd) : nativeMoney(invoice.remaining_sdg, 'SDG', settings)}</bdi>
+                <small className="block text-sf-muted"><bdi dir="ltr" className="sf-number">{enabled ? '' : nativeMoney(invoice.remaining_usd, 'USD', settings)}</bdi></small>
               </td>
               <td><InvoiceStatus status={invoice.status} /></td>
               <td><div className="sf-table-actions">

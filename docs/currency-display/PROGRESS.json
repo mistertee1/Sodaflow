@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "repository": "mistertee1/Sodaflow",
+  "baseMain": "649ea3beb09b83a89eb45834f944625086d3135c",
+  "dependency": {
+    "pr": 130,
+    "source": "76457ea0e9b9e43d78ac43abc00288638be14d50",
+    "status": "accepted_568_tests",
+    "sourceIncludes": "Reviewed USD reference PR125/128 plus main PR120 file storage",
+    "delivery": "ffd42d687013eef3afab0ebe1c3d002780dc44c3"
+  },
+  "workBranch": "codex/global-display-currency-20261023",
+  "activeRunId": "product-uniqueness-20261023",
+  "leaseUntil": "2026-10-23T19:09:20.170618+00:00",
+  "updatedAt": "2026-10-23T17:39:20.170618+00:00",
+  "status": "implemented_local_pass_cloud_acceptance_pending",
+  "userDecision": "Option 1: global presentation currency with manually entered quote and explicit Apply. Preserve original books, invoices and receipts.",
+  "otherAgent": {
+    "pr": 126,
+    "lease": null,
+    "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
+    "scope": "Do not change historical import source or its checkpoint.",
+    "head": "74e6cc0b9d3d14d6363c2f3590cf13bf06ec768c",
+    "reviewedAt": "2026-10-23T17:39:20.170618+00:00"
+  },
+  "ownedPaths": [
+    "src/lib/displayCurrency.ts",
+    "src/context/useDisplayMoney.ts",
+    "src/types/index.ts (display settings only)",
+    "src/domain/validation.ts (display settings only)",
+    "src/domain/operations.ts (settings allowlist only)",
+    "src/components (presentation and selected-currency controls)",
+    "src/services/operationalExport.ts",
+    "src/services/payablesExport.ts",
+    "tests/displayCurrency*",
+    "tests/ui/displayCurrency.spec.ts",
+    "docs/currency-display"
+  ],
+  "userMergesOnly": true,
+  "productionWrites": 0,
+  "rulesChanged": false,
+  "tests": {
+    "unit_api": 429,
+    "netlify_runtime": 16,
+    "types": "passed",
+    "core_types": "passed",
+    "build": "passed",
+    "emulator": "pending_CI",
+    "ui": "pending_CI"
+  },
+  "next": [
+    "Implement validated per-organization manual display quote persisted through the existing Firebase server transaction.",
+    "Apply all read-only ERP money views, charts and report exports, with explicit source-book labels. Financial entry inputs and issued documents retain real source units.",
+    "Test arithmetic, API/RBAC/atomicity, document immutability, tenant isolation, persistence and actual browser navigation with demo-sudaflow/MemoryStore.",
+    "Accept combined source only after PR130 and currency checks pass, publish evidence and release leases."
+  ],
+  "conflictPolicy": "User: skip any directly conflicting work with the other agent. Historical Excel source and checkpoint unchanged; current source edits are presentation and settings-validation only."
+}

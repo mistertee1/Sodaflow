@@ -1,3 +1,4 @@
+import { useDisplayMoney } from '../context/useDisplayMoney';
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { classifyAccount } from '../domain/accountClassification';
@@ -16,7 +17,7 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import { formatMoney, convertCurrency, safeAdd, validateExchangeRate } from '../lib/currency';
+import { convertCurrency, safeAdd, validateExchangeRate } from '../lib/currency';
 import {
   uploadOrganizationImage,
   loadCustomerImageForPreview,
@@ -26,6 +27,7 @@ import {
 import { Dialog } from './Dialog';
 
 export const ExpensesView: React.FC = () => {
+  const { formatMoney, bookLabel } = useDisplayMoney();
   const { accounts, expenses, addExpense, deleteExpense, settings, currentUser, currentOrg, isActionAllowed } = useApp();
 
   const submitLock = useRef(false);
@@ -196,7 +198,7 @@ export const ExpensesView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="bg-sf-surface p-4 sm:p-6 rounded-xl border border-sf-border shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs text-sf-muted font-semibold block mb-1">إجمالي المصروفات بالجنيه:</span>
+            <span className="text-xs text-sf-muted font-semibold block mb-1">إجمالي المصروفات — {bookLabel('SDG')}:</span>
             <span className="text-xl font-semibold font-mono text-sf-text">
               {formatMoney(totalSdg, 'SDG', settings)}
             </span>
@@ -208,7 +210,7 @@ export const ExpensesView: React.FC = () => {
 
         <div className="bg-sf-surface p-4 sm:p-6 rounded-xl border border-sf-border shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs text-sf-muted font-semibold block mb-1">ما يعادل بالدولار:</span>
+            <span className="text-xs text-sf-muted font-semibold block mb-1">دفتر الدولار — {bookLabel('USD')}:</span>
             <span className="text-xl font-semibold font-mono text-sf-text">
               {formatMoney(totalUsd, 'USD', settings)}
             </span>
@@ -339,7 +341,7 @@ export const ExpensesView: React.FC = () => {
                     onChange={(e) => setCurrency(e.target.value as Currency)}
                     className="w-full bg-sf-raised border border-sf-border rounded-xl px-3 py-2 text-xs text-sf-text focus:outline-none focus:border-sf-action font-semibold"
                   >
-                    <option value="SDG" className="bg-sf-raised">جنيه سوداني (ج.س)</option>
+                    <option value="SDG" className="bg-sf-raised">جنيه سوداني ({bookLabel('SDG')})</option>
                     <option value="USD" className="bg-sf-raised">دولار أمريكي ($)</option>
                   </select>
                 </div>

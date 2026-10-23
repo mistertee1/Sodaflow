@@ -1,10 +1,13 @@
 import React from 'react';
-import { formatMoney } from '../../lib/currency';
+import { formatDisplayMoney, displayBookLabel } from '../../lib/displayCurrency';
 import type { MerchantSettings } from '../../types';
 import { calculateTrialBalance, calculateIncomeStatement, calculateBalanceSheet, calculateCashFlowStatement } from '../../services/accountingService';
 import { BookOpen, Plus, RotateCcw, CheckCircle2, AlertCircle, Search, Filter, ArrowDownLeft, ArrowUpRight, TrendingUp, FileSpreadsheet, Coins, DollarSign, Layers, Scale, Calendar, Tag, ShieldCheck, Lock, Unlock, Landmark, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 interface Props { trialBalance: ReturnType<typeof calculateTrialBalance>; incomeStatement: ReturnType<typeof calculateIncomeStatement>; balanceSheet: ReturnType<typeof calculateBalanceSheet>; cashFlow: ReturnType<typeof calculateCashFlowStatement>; settings: MerchantSettings; theme: 'light'|'dark'; }
-export const CashFlowReport: React.FC<Props> = ({ trialBalance, incomeStatement, balanceSheet, cashFlow, settings, theme }) => (
+export const CashFlowReport: React.FC<Props> = ({ trialBalance, incomeStatement, balanceSheet, cashFlow, settings, theme }) => {
+  const formatMoney = (value: number, source: string) => formatDisplayMoney(value, source, settings);
+  const bookLabel = (source: string) => displayBookLabel(source, settings);
+  return (
         <div className="space-y-6">
           {/* Header */}
           <div className="bg-sf-surface border border-sf-border rounded-xl p-5 sm:p-6 shadow-sm">
@@ -167,3 +170,4 @@ export const CashFlowReport: React.FC<Props> = ({ trialBalance, incomeStatement,
         </div>
 
 );
+};

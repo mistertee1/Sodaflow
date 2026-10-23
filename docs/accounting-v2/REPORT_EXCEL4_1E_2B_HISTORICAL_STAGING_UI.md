@@ -25,3 +25,7 @@ TypeScript والبناء و5 اختبارات staging ناجحة محلياً. 
 ## قبول المسار المصادق عليه وإعادة المحاولة — قيد التحقق
 
 أضيف اختبار Playwright على 0478ee41 يمر بواجهة دخول Firebase محاكاة، مع API معزول ينفذ Operations الحقيقي على MemoryStore بسلطة server اختبارية. يحاكي 503 بعد الحفظ ثم يعيد نفس operationId، ويتطلب جلسة وstaging واحدة وتطابق invoices/payments/purchase_bills/supplier_payments/inventory_movements/journal_entries/customers/products قبل/بعد. ليس قبول Firebase حي أو اختبار إنتاج؛ المصادقة محاكاة وبيانات الذاكرة معزولة. TypeScript ناجح؛ CI واختبار Chromium لهذا الإضافة مطلوبان. ما زال عزل المؤسسة وتغير السياق والاعتماد المالي متبقيين؛ لا اكتمال أو جاهزية تجارية. حُرر lease.
+
+## إصلاح تهيئة قبول الخادم المعزول
+
+CI39889584051 اجتاز check والتدقيق وFirestore و94 UI، وتوقف الاختبار الجديد لأن fixture سلطة server لم يمرر verifyCostingSecurity المطلوب. التصحيح 40e2f99d يمرر متحققاً اختبارياً صريحاً ويثبت استدعاءه؛ لم تتغير حماية التطبيق أو مسارات الإنتاج. هذا المتحقق محاكاة في fixture الذاكرة وليس إثبات نشر Firebase Rules. نتيجة CI للتصحيح مطلوبة قبل قبول الاختبار، والمرحلة ما زالت جزئية. حُرر lease.

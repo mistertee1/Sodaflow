@@ -7,7 +7,7 @@ import { MemoryStore } from '../../src/domain/store';
 import { Operations } from '../../src/domain/operations';
 import { createHistoricalImportTemplate } from '../../src/services/historicalImportWorkbook';
 
-for (const scenario of ['retry', 'switch'] as const) test(`signed-in historical staging isolates ${scenario} without financial writes`, async ({ page }) => {
+for (const scenario of ['retry', 'switch', 'preview-switch'] as const) test(`signed-in historical staging isolates ${scenario} without financial writes`, async ({ page }) => {
   const orgId = 'historical-cloud-org', root = `organizations/${orgId}`;
   const original = await periodGuestFixture(true, 'Owner');
   const records = JSON.parse(JSON.stringify(original).replaceAll(guestId, orgId));
@@ -32,11 +32,19 @@ for (const scenario of ['retry', 'switch'] as const) test(`signed-in historical 
     if (path === '/api/organizations') return send([memory.dump()[root], memory.dump()[`organizations/${secondOrgId}`]]);
     if (path.endsWith('/snapshot')) return send(await operations.snapshot(path.includes(secondOrgId) ? secondOrgId : orgId, guestActor));
     if (path.endsWith('/revision')) return send({ revision: memory.dump()[`${root}/meta/counters`].revision });
+    if (path.endsWith('/historical-import/preview')) {
+      const beforePreview = memory.dump();
+      const response = await operations.historicalImportPreview(orgId, guestActor, route.request().postDataJSON());
+      expect(memory.dump()).toEqual(beforePreview);
+      if (scenario === 'preview-switch') { markStarted(); await heldResponse; }
+      return send(response);
+    }
     if (path.endsWith('/operations')) {
       const command = route.request().postDataJSON(); expect(command.action).toBe('historicalImport.stage'); ids.push(command.operationId);
       if (scenario === 'switch') {
         const response = await operations.execute(orgId, guestActor, command); markStarted(); await heldResponse; return send(response);
       }
+      if (scenario === 'preview-switch') return send(await operations.execute(orgId, guestActor, command));
       if (foreignResponse) { foreignResponse = false; return send({ result: { org_id: 'another-tenant', file_hash: command.data.file_hash, file_name: command.data.file_name, rows_total: 1 }, changes: [] }); }
       const response = await operations.execute(orgId, guestActor, command);
       if (loseResponse) { loseResponse = false; return send({ error: 'تعذر تأكيد حفظ جلسة المراجعة', code: 'service_unavailable' }, 503); }
@@ -64,11 +72,31 @@ for (const scenario of ['retry', 'switch'] as const) test(`signed-in historical 
     expect(Object.keys(memory.dump()).filter(path => path.startsWith(`organizations/${secondOrgId}/historical_import_`))).toHaveLength(0);
     expect(ids).toHaveLength(1); return;
   }
+  if (scenario === 'preview-switch') {
+    await center.getByTestId('stage-historical-workbook').click();
+    await expect(center.getByTestId('historical-server-session')).toContainText('حُفظت جلسة المراجعة');
+    await center.getByTestId('preview-historical-workbook').click(); await started;
+    await page.getByTitle('الإعدادات', { exact: true }).click();
+    await page.getByRole('dialog').locator('select').filter({ has: page.locator(`option[value="${secondOrgId}"]`) }).selectOption(secondOrgId);
+    await expect(page.locator('header')).toContainText('المؤسسة الثانية');
+    const lateResponse = page.waitForResponse(response => response.url().endsWith('/historical-import/preview'));
+    releaseResponse(); await (await lateResponse).finished();
+    await expect(page.locator('header')).toContainText('المؤسسة الثانية');
+    await expect(page.getByTestId('historical-server-preview')).toHaveCount(0);
+    await expect(page.getByTestId('historical-server-session')).toHaveCount(0);
+    expect(Object.keys(memory.dump()).filter(path => path.startsWith(`organizations/${secondOrgId}/historical_import_`))).toHaveLength(0);
+    return;
+  }
   await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByRole('alert')).toContainText('لا تطابق المؤسسة');
   await expect(center.getByTestId('historical-server-session')).toHaveCount(0);
   expect(memory.dump()).toEqual(before);
   await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByRole('alert')).toContainText('تعذر تأكيد');
   await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByTestId('historical-server-session')).toContainText('حُفظت جلسة المراجعة');
+  const stagedState = memory.dump();
+  await center.getByTestId('preview-historical-workbook').click();
+  await expect(center.getByTestId('historical-server-preview')).toContainText('لم يُحفظ الأثر المالي');
+  await expect(center.getByTestId('historical-server-preview')).toContainText('المستندات المقترحة: 1');
+  expect(memory.dump()).toEqual(stagedState);
   expect(securityChecks).toBeGreaterThan(0);
   expect(ids).toHaveLength(3); expect(new Set(ids).size).toBe(1);
   const after = memory.dump(); expect(Object.keys(after).filter(path => path.startsWith(`${root}/historical_import_sessions/`))).toHaveLength(1);
@@ -77,4 +105,7 @@ for (const scenario of ['retry', 'switch'] as const) test(`signed-in historical 
     const subset = (data: typeof after) => Object.fromEntries(Object.entries(data).filter(([path]) => path.startsWith(`${root}/${name}/`)));
     expect(subset(after)).toEqual(subset(before));
   }
+  await center.getByTestId('historical-workbook-file').setInputFiles({name:'invalid.csv',mimeType:'text/csv',buffer:Buffer.from('invalid')});
+  await expect(center.getByTestId('historical-server-preview')).toHaveCount(0);
+  await expect(center.getByTestId('historical-server-session')).toHaveCount(0);
 });

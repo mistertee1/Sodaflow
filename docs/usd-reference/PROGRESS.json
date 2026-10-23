@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "repository": "mistertee1/Sodaflow",
+  "baseMain": "be2523e6ee0538f874a4d12c0250df3328aa614b",
+  "sourceBase": "10e7404048eaefacd8bc9746f827303eab74fe23",
+  "dependsOnPullRequest": 118,
+  "workBranch": "codex/usd-reference-pricing-20261023",
+  "activeRunId": "usd-reference-20261023",
+  "leaseUntil": "2026-10-23T15:05:44.509895+00:00",
+  "updatedAt": "2026-10-23T13:35:44.509895+00:00",
+  "status": "implementation_in_progress",
+  "ownedPaths": [
+    "src/domain/productPricing.ts",
+    "src/domain/operations.ts (product/invoice pricing only)",
+    "src/domain/financial.ts (pricing snapshot only)",
+    "src/domain/payables.ts (USD cost FX requirement only)",
+    "src/types/index.ts",
+    "src/components/ProductsView.tsx",
+    "src/components/InvoiceFormModal.tsx",
+    "src/components/InventoryCostCenter.tsx",
+    "tests/usdReferencePricing.test.ts",
+    "tests/ui/usdReferencePricing.spec.ts",
+    "docs/usd-reference"
+  ],
+  "otherAgentsReviewed": {
+    "accountingBranch": "codex/accounting-v2-excel4-historical-approval-20261023",
+    "lease": null,
+    "overlap": "operations.ts; preserve historical import changes on integration; do not edit accounting checkpoint"
+  },
+  "productionWrites": 0,
+  "rulesChanged": false,
+  "userMergesOnly": true,
+  "tests": {
+    "status": "not_run"
+  },
+  "next": [
+    "Implement precise USD selling reference and cost-plus pricing from documented original USD cost.",
+    "Server recomputes automatic prices atomically; reject stale quotes and invalid/missing FX.",
+    "Test synthetic purchase -> FX change -> sale, manual overrides, native currencies, immutable history and permissions.",
+    "Publish draft stacked PR over PR118; release only after actual acceptance."
+  ]
+}

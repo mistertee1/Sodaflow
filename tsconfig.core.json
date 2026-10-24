@@ -79,6 +79,10 @@
     "tests/helpers/scheduledExports.ts",
     "tests/exportLiveAuthorization.test.ts",
     "tests/exportLiveAuthorizationFirestore.test.ts",
-    "tests/helpers/liveExports.ts"
+    "tests/helpers/liveExports.ts",
+    "tests/scheduledExportDispatch.test.ts",
+    "tests/scheduledExportDispatchFirestore.test.ts",
+    "tests/exportUploadRecovery.test.ts",
+    "tests/helpers/scheduledDispatch.ts"
   ]
 }

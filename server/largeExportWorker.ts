@@ -2,7 +2,7 @@ import type { Document, Store, Transaction } from '../src/domain/store';
 import { LargeExportWorker, type LargeExportArtifactStore, type LargeExportContentBuilder } from '../src/domain/largeExportWorker';
 import { Operations, type Actor } from '../src/domain/operations';
 import { buildAccountingExport } from '../src/domain/accountingExport';
-import { ensure, identifier } from '../src/domain/validation';
+import { BusinessError, ensure, identifier } from '../src/domain/validation';
 import { adminServices } from './admin';
 import { FirestoreStore } from './firestoreStore';
 import { resolveSubscription } from './subscriptions';
@@ -21,7 +21,12 @@ export class FirebaseLargeExportArtifacts implements LargeExportArtifactStore{
 
 export class ServerLargeExportBuilder implements LargeExportContentBuilder{
   private authorization: LiveExportAuthorization;
-  constructor(private operations:Operations, options:ExportAuthorizationOptions={}){this.authorization=new LiveExportAuthorization(operations.store,options);}
+  private cleanupSecurity:()=>Promise<void>;
+  constructor(private operations:Operations, options:ExportAuthorizationOptions={}){this.authorization=new LiveExportAuthorization(operations.store,options);this.cleanupSecurity=options.verifySecurity||verifyDeployedAccountingRules;}
+  async authorizeCleanup(){
+    ensure(this.operations.store.authority==='server','تنظيف ملفات التصدير يتطلب خدمة الخادم.',403);
+    try{await this.cleanupSecurity();}catch(error){if(error instanceof BusinessError)throw error;throw new BusinessError('تعذر تأكيد حماية تنظيف الملفات.',503,'accounting_rules_not_verified');}
+  }
   async build(job:Document){
     const identity=await this.authorization.identity(identifier(job.requested_by));
     return this.operations.store.transaction(async tx=>{

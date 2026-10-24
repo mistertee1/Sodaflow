@@ -11,8 +11,8 @@
     "worker": "scheduled-dispatch-resume-20261024-1630",
     "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
     "acquired_at": "2026-10-24T16:35:40.934120+00:00",
-    "heartbeat_at": "2026-10-24T16:35:40.934120+00:00",
-    "expires_at": "2026-10-24T18:05:40.934120+00:00",
+    "heartbeat_at": "2026-10-24T16:57:23.857946+00:00",
+    "expires_at": "2026-10-24T18:27:23.857946+00:00",
     "purpose": "Atomic scheduled due-to-job dispatch, worker fencing and durable upload/orphan cleanup; synthetic acceptance only; execution remains disabled"
   },
   "milestones": [
@@ -4294,7 +4294,7 @@
     }
   },
   "scheduled_export_dispatch": {
-    "status": "checkpoint_before_implementation",
+    "status": "implemented_local_check_passed_CI_pending",
     "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
     "base_commit": "f178dcf5ccbfdac1d83965b1347c0801a6ddef9a",
     "base_pr": 144,
@@ -4305,7 +4305,7 @@
       "server/scheduledExportDispatchRunner.ts",
       "src/domain/largeExportWorker.ts (claim/fencing/upload cleanup only)",
       "src/domain/largeExportJobs.ts (scheduled type metadata only if required)",
-      "server/largeExportWorker.ts (factory wiring only if required)",
+      "server/largeExportWorker.ts (cleanup protection hook only)",
       "tests/scheduledExportDispatch.test.ts",
       "tests/scheduledExportDispatchFirestore.test.ts",
       "tests/exportUploadRecovery.test.ts",
@@ -4314,9 +4314,37 @@
       "tsconfig.core.json (strict test inclusion only)",
       "docs/accounting-v2/PROGRESS.json",
       "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_DISPATCH.md",
-      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_DISPATCH.md"
+      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_DISPATCH.md",
+      "tests/largeExportWorker.test.ts (post-PUT cancellation injection; original deletion assertions retained)"
     ],
     "production_writes": 0,
-    "checks": "not_run_yet"
+    "checks": {
+      "new_dispatch_unit_api": 16,
+      "new_upload_recovery": 16,
+      "full_unit_api": 681,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "failed": 0,
+      "skipped": 0,
+      "firestore_emulator": "pending_CI_5_new_cases",
+      "full_UI": "pending_CI_existing_137",
+      "production_audit": "pending_CI"
+    },
+    "target_base": "main",
+    "integration_review": {
+      "main": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
+      "accepted_source_base": "f178dcf5ccbfdac1d83965b1347c0801a6ddef9a",
+      "virtual_merge_tree_matches_base": true,
+      "content_conflicts": false,
+      "reason": "PR141/142/143/144 were merged into intermediate branches, some after their parent PRs had already merged. One review PR to main carries the accepted complete source without automatic main mutation."
+    },
+    "runtime": {
+      "execution_enabled": false,
+      "once_runner": "disabled_by_default_no_timer_or_deployment",
+      "private_provider_IAM": "pending",
+      "unknown_PUT_cleanup_markers": "retained_and_reswept_until_acknowledged_or_operational_review"
+    }
   }
 }

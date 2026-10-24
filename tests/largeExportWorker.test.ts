@@ -29,7 +29,9 @@ test('Excel3.2b claims the queue once, persists a private artifact manifest and 
 
 test('Excel3.2b does not publish an artifact after concurrent cancellation and cleans the uploaded object',async()=>{
   const f=await fixture(),created=await f.ops.execute(f.org.id,f.owner,{action:'largeExport.request',operationId:'cancel-race',data:{kind:'company'}}),artifacts=new Artifacts();
-  const worker=new LargeExportWorker(f.store,artifacts,{build:async job=>{await f.store.transaction(async tx=>tx.set(`${f.root}/company_export_jobs/${job.id}`,{...await tx.get(`${f.root}/company_export_jobs/${job.id}`),status:'cancelled',worker_claim:null}));return{bytes:new Uint8Array([1,2]),filename:'company.json',mimeType:'application/json',recordCount:1};}},()=>new Date('2026-10-18T03:02:00Z'),()=> 'race-claim');
+  const put=artifacts.put.bind(artifacts);
+  artifacts.put=async(path,content)=>{await put(path,content);await f.store.transaction(async tx=>tx.set(`${f.root}/company_export_jobs/${created.result.id}`,{...await tx.get(`${f.root}/company_export_jobs/${created.result.id}`),status:'cancelled',worker_claim:null}));};
+  const worker=new LargeExportWorker(f.store,artifacts,{build:async()=>({bytes:new Uint8Array([1,2]),filename:'company.json',mimeType:'application/json',recordCount:1})},()=>new Date('2026-10-18T03:02:00Z'),()=> 'race-claim');
   assert.equal(await worker.run(f.org.id,'company_export_jobs',created.result.id),null);assert.equal(artifacts.files.size,0);assert.equal(artifacts.deleted.length,1);
 });
 

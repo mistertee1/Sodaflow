@@ -11,9 +11,9 @@
     "worker": "scheduled-policy-resume-20261024-1130",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
     "acquired_at": "2026-10-24T11:30:12.611Z",
-    "heartbeat_at": "2026-10-24T11:44:00.633031+00:00",
-    "expires_at": "2026-10-24T13:14:00.633031+00:00",
-    "purpose": "Resume durable scheduled export calendar/access/idempotency/expiry contracts; no runtime or production scheduling until integration acceptance"
+    "heartbeat_at": "2026-10-24T11:47:41.667559+00:00",
+    "expires_at": "2026-10-24T13:17:41.667559+00:00",
+    "purpose": "Excel4.2b.2a cloud schedule CRUD and due-index integration; no worker execution or production changes"
   },
   "milestones": [
     {
@@ -3981,5 +3981,27 @@
     ],
     "source_reconstruction": "Published checkpoint had no policy source; new implementation and results independently verified, prior unpublished 609 claim not reused.",
     "pr": 143
+  },
+  "scheduled_export_management": {
+    "status": "checkpoint_before_implementation",
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "parent_policy_source": "187c608bca28622220ee036382aa72bd43345d34",
+    "pr": 143,
+    "scope": "Server-only live-account schedule list/create/revision update, atomic private due index, shared idempotency/rate limit/audit; worker/artifact/download/UI remain separate",
+    "owned_paths": [
+      "src/domain/scheduledExportManagement.ts",
+      "server/scheduledExports.ts",
+      "server/api.ts (dedicated schedule routes and injectable service only)",
+      "tests/helpers/scheduledExports.ts",
+      "tests/scheduledExportManagement.test.ts",
+      "tests/scheduledExportManagementFirestore.test.ts",
+      "package.json (Emulator registration only)",
+      "tsconfig.core.json (strict regression inclusion only)",
+      "docs/accounting-v2/PROGRESS.json",
+      "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_MANAGEMENT.md",
+      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_MANAGEMENT.md"
+    ],
+    "production_writes": 0,
+    "checks": "not_run_yet"
   }
 }

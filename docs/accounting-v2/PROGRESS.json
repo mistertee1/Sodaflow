@@ -11,8 +11,8 @@
     "worker": "accounting-historical-recovery-20261024",
     "branch": "codex/accounting-v2-historical-recovery-20261024",
     "acquired_at": "2026-10-24T05:22:18.821Z",
-    "heartbeat_at": "2026-10-24T05:22:18.821Z",
-    "expires_at": "2026-10-24T06:52:18.821Z",
+    "heartbeat_at": "2026-10-24T05:29:06.347638+00:00",
+    "expires_at": "2026-10-24T06:59:06.347638+00:00",
     "purpose": "Safe read-only cloud historical session/receipt recovery and authenticated reload UI acceptance on the accepted PR140 stack"
   },
   "milestones": [
@@ -2395,7 +2395,7 @@
     "Complete authenticated reload and lost-response UI coverage without local business storage; publish only after synthetic unit/API, demo-sudaflow Emulator and regression acceptance.",
     "Then Excel4.2 auditor package, scheduled export permissions/expiry and final financial/restore/operational acceptance; user merges only."
   ],
-  "updated_at": "2026-10-24T05:22:18.821Z",
+  "updated_at": "2026-10-24T05:29:06.347638+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3612,24 +3612,10 @@
     }
   },
   "accounting_resume_checkpoint": {
-    "branch": "codex/accounting-v2-ui-integration-20261024",
-    "sha": "e0d1738e7b4036be51a88a2e09423bd5d9108c5b",
-    "last_run": {
-      "worker": "accounting-ui-recovery-20261024-0422",
-      "branch": "codex/accounting-v2-ui-integration-20261024",
-      "acquired_at": "2026-10-24T04:18:07.479Z",
-      "expires_at": "2026-10-24T05:21:27.138Z",
-      "purpose": "Complete AccountingView integration and authenticated browser acceptance; preserve incoming sync, receipt, currency and Super Admin work",
-      "heartbeat_at": "2026-10-24T04:36:27.138Z",
-      "started_at": "2026-10-24T04:18:07.479Z",
-      "status": "UI_source_repaired_targeted_acceptance_passed_full_CI_pending",
-      "base_pr": 139,
-      "source_commit": "03cc372872de0586ef499b2946e29ccd4b576600"
-    },
-    "next": "Verify corrected full stack CI and release this lease. Then safe cloud historical session/receipt recovery; remaining Excel4.2 auditor package/scheduled export permission and expiry; release scenario/repeated restore with zero differences and authenticated acceptance before commercial readiness.",
-    "previous_branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
-    "previous_sha": "6ffafb46410fdaad752dabe50cbf828fb1d693d1",
-    "status": "latest_stack_source_repaired_full_UI_acceptance_pending"
+    "branch": "codex/accounting-v2-historical-recovery-20261024",
+    "base_sha": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
+    "status": "historical_recovery_implemented_acceptance_pending",
+    "next": "Implement and test protected read-only historical recovery, then UI reload/lost-response/tenant isolation acceptance. No automatic financial retry or local payload storage. Excel4.2 and release/operational acceptance remain pending."
   },
   "integration_base": {
     "branch": "codex/invoice-save-diagnostics-20261023",
@@ -3771,7 +3757,7 @@
     }
   },
   "historical_recovery": {
-    "status": "checkpoint_before_source",
+    "status": "source_implemented_acceptance_pending",
     "base_source": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
     "base_pr": 140,
     "branch": "codex/accounting-v2-historical-recovery-20261024",
@@ -3786,8 +3772,16 @@
       "tests/ui/historicalRecovery.spec.ts",
       "docs/accounting-v2/PLAN_HISTORICAL_RECOVERY.md",
       "docs/accounting-v2/REPORT_HISTORICAL_RECOVERY.md",
-      "docs/accounting-v2/PROGRESS.json"
+      "docs/accounting-v2/PROGRESS.json",
+      "tests/ui/helpers/cloudMerchant.ts (optional server-authority test mode; existing default unchanged)",
+      "package.json (Emulator suite registration)",
+      "tsconfig.core.json (new strict regression inclusion)"
     ],
-    "production_writes": 0
+    "production_writes": 0,
+    "unit_api_focused": {
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    }
   }
 }

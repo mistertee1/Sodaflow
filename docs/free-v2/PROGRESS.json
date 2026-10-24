@@ -3,7 +3,7 @@
   "request_date": "2026-10-25",
   "base_main": "5025417f07011ff4b5c870ed10e5335ac0b661a5",
   "branch": "codex/free-v2-activation-20261025",
-  "status": "implemented_local_acceptance_in_progress",
+  "status": "fixture_corrected_full_acceptance_and_rules_pipeline_pending",
   "user_merges_only": true,
   "scope": [
     "Disable commercial subscription checks and quota everywhere in the current free release",
@@ -22,7 +22,9 @@
     "writes": 0,
     "rules_deployed": false,
     "commercial_migrations": 0,
-    "real_financial_tests": 0
+    "real_financial_tests": 0,
+    "rules_request": "DEPLOY_REQUEST.json; acceptance must pass in deployment workflow before any write",
+    "customer_financial_writes": 0
   },
   "limits": [
     "No main merge or force push",
@@ -58,6 +60,24 @@
     "focused_skipped": 0,
     "full_check": "in_progress",
     "firestore": "pending_CI_Java21",
-    "UI": "pending_CI"
-  }
+    "UI": "pending_CI",
+    "unit_api": 699,
+    "netlify_runtime": 16,
+    "types": "passed",
+    "core": "passed",
+    "build": "passed",
+    "firestore_emulator": 77,
+    "ui_passed": 149,
+    "ui_failed": 1,
+    "production_audit_vulnerabilities": 0,
+    "first_ci": 40136580694,
+    "first_source": "78deb133ede306a55010dee5d6201adae8e7784a",
+    "first_failure": "New UI synthetic customer and product omitted org_id; strict financial source reader correctly rejected them. Fixture repaired; source scope checks remain unchanged.",
+    "node22": {
+      "run_id": 40136580857,
+      "conclusion": "success"
+    }
+  },
+  "pr": 147,
+  "source_commit": "78deb133ede306a55010dee5d6201adae8e7784a"
 }

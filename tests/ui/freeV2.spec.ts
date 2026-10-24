@@ -5,6 +5,9 @@ test.use({ controlsEnabled: false, serverAuthority: true });
 const root = `organizations/${guestId}`;
 function freeRecords(v2 = true) {
   const records = defaultMerchantRecords();
+  // V2 source readers require tenant proof on every financial/master record.
+  records[`${root}/customers/customer`].org_id = guestId;
+  records[`${root}/products/product`].org_id = guestId;
   Object.assign(records[root], { status: 'suspended', planId: 'missing-plan', subscriptionStatus: 'expired', subscriptionEnd: '2020-01-01' });
   if (v2) {
     records[root].accounting_version = 2;

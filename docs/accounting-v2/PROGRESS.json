@@ -8,12 +8,12 @@
   "active_branch": "codex/accounting-v2-historical-recovery-20261024",
   "overall_status": "in_progress_not_commercially_ready",
   "lease": {
-    "worker": "accounting-historical-recovery-20261024",
+    "worker": "accounting-excel4-resume-20261024-0944",
     "branch": "codex/accounting-v2-historical-recovery-20261024",
-    "acquired_at": "2026-10-24T05:22:18.821Z",
-    "heartbeat_at": "2026-10-24T05:39:40.643985+00:00",
-    "expires_at": "2026-10-24T07:09:40.643985+00:00",
-    "purpose": "Safe read-only cloud historical session/receipt recovery and authenticated reload UI acceptance on the accepted PR140 stack"
+    "acquired_at": "2026-10-24T09:43:48.876Z",
+    "heartbeat_at": "2026-10-24T09:43:48.876Z",
+    "expires_at": "2026-10-24T10:28:48.876Z",
+    "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes"
   },
   "milestones": [
     {
@@ -2395,7 +2395,7 @@
     "Complete authenticated reload and lost-response UI coverage without local business storage; publish only after synthetic unit/API, demo-sudaflow Emulator and regression acceptance.",
     "Then Excel4.2 auditor package, scheduled export permissions/expiry and final financial/restore/operational acceptance; user merges only."
   ],
-  "updated_at": "2026-10-24T05:39:40.643985+00:00",
+  "updated_at": "2026-10-24T09:43:48.876Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3487,6 +3487,16 @@
       "heartbeat_at": "2026-10-24T04:36:27.138Z",
       "observed_expired_at": "2026-10-24T05:22:18.821Z",
       "handoff": "User explicitly requested continuation of the other agent's Accounting V2 work after invoice recovery."
+    },
+    {
+      "worker": "accounting-historical-recovery-20261024",
+      "branch": "codex/accounting-v2-historical-recovery-20261024",
+      "acquired_at": "2026-10-24T05:22:18.821Z",
+      "heartbeat_at": "2026-10-24T05:39:40.643985+00:00",
+      "expires_at": "2026-10-24T07:09:40.643985+00:00",
+      "purpose": "Safe read-only cloud historical session/receipt recovery and authenticated reload UI acceptance on the accepted PR140 stack",
+      "status": "expired_before_resume",
+      "observed_at": "2026-10-24T09:43:48.876Z"
     }
   ],
   "last_lease": {
@@ -3539,16 +3549,15 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "accounting-ui-recovery-20261024-0422",
-    "branch": "codex/accounting-v2-ui-integration-20261024",
-    "acquired_at": "2026-10-24T04:18:07.479Z",
-    "expires_at": "2026-10-24T05:21:27.138Z",
-    "purpose": "Complete AccountingView integration and authenticated browser acceptance; preserve incoming sync, receipt, currency and Super Admin work",
-    "heartbeat_at": "2026-10-24T04:36:27.138Z",
-    "started_at": "2026-10-24T04:18:07.479Z",
-    "status": "UI_source_repaired_targeted_acceptance_passed_full_CI_pending",
-    "base_pr": 139,
-    "source_commit": "03cc372872de0586ef499b2946e29ccd4b576600"
+    "worker": "accounting-excel4-resume-20261024-0944",
+    "branch": "codex/accounting-v2-historical-recovery-20261024",
+    "acquired_at": "2026-10-24T09:43:48.876Z",
+    "heartbeat_at": "2026-10-24T09:43:48.876Z",
+    "expires_at": "2026-10-24T10:28:48.876Z",
+    "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes",
+    "status": "verifying_passed_recovery_CI",
+    "pr": 141,
+    "source_commit": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96"
   },
   "acceptance_environment": {
     "provider": "Render",

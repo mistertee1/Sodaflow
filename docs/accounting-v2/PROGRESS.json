@@ -7,7 +7,14 @@
   "active_milestone": "Excel4.2",
   "active_branch": "codex/accounting-v2-export-live-authorization-20261024",
   "overall_status": "in_progress_not_commercially_ready",
-  "lease": null,
+  "lease": {
+    "worker": "accounting-scheduled-dispatch-20261024-1526",
+    "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+    "acquired_at": "2026-10-24T15:24:24.000Z",
+    "heartbeat_at": "2026-10-24T15:24:24.000Z",
+    "expires_at": "2026-10-24T16:09:24.000Z",
+    "purpose": "Atomic due-to-job dispatch, live authorization, replay/recovery and private orphan cleanup; synthetic tests only; production execution disabled"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -2497,7 +2504,7 @@
     "Complete remaining legacy migration/evidence package and all documented zero-difference financial/backup/restore/operational commercial acceptance. User alone reviews and merges.",
     "Preserve newest main and incoming Super Admin/sync/currency/invoice/inventory changes; no main write, production activation, deployment, Rules or real money movement."
   ],
-  "updated_at": "2026-10-24T15:20:09.601041+00:00",
+  "updated_at": "2026-10-24T15:24:24.000Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3742,35 +3749,15 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "accounting-export-live-access-20261024-1457",
-    "branch": "codex/accounting-v2-export-live-authorization-20261024",
-    "acquired_at": "2026-10-24T14:56:38.981Z",
-    "heartbeat_at": "2026-10-24T15:20:09.601041+00:00",
-    "expires_at": "2026-10-24T15:41:38.981Z",
-    "purpose": "Live Auth/role/feature gates for export generation, atomic publication and download; synthetic workers and demo Firestore only",
-    "status": "implemented_ci_passed",
-    "base_pr": 143,
-    "base_commit": "4c2c65c8599059e3f310db8bf5cdecc6a26f8823",
-    "released_at": "2026-10-24T15:20:09.601041+00:00",
-    "pr": 144,
-    "source_commit": "d37ba35418f5583ce277eca34062586d8f6d31c7",
-    "ci": {
-      "run_id": 40105798056,
-      "job_id": 120907103391,
-      "commit_sha": "d37ba35418f5583ce277eca34062586d8f6d31c7",
-      "conclusion": "success",
-      "unit_api": 649,
-      "netlify_runtime": 16,
-      "firestore_emulator": 66,
-      "ui": 137,
-      "failed": 0,
-      "skipped": 0,
-      "production_audit_vulnerabilities": 0,
-      "node22": {
-        "run_id": 40105798020,
-        "conclusion": "success"
-      }
-    }
+    "worker": "accounting-scheduled-dispatch-20261024-1526",
+    "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+    "acquired_at": "2026-10-24T15:24:24.000Z",
+    "heartbeat_at": "2026-10-24T15:24:24.000Z",
+    "expires_at": "2026-10-24T16:09:24.000Z",
+    "purpose": "Atomic due-to-job dispatch, live authorization, replay/recovery and private orphan cleanup; synthetic tests only; production execution disabled",
+    "status": "in_progress",
+    "base_pr": 144,
+    "base_commit": "1fbdce8fb7f354053c8a66d1b543e11dbe185576"
   },
   "acceptance_environment": {
     "provider": "Render",

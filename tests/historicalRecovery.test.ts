@@ -5,6 +5,7 @@ import { createApi } from '../server/api';
 import { MemoryStore } from '../src/domain/store';
 import { Operations } from '../src/domain/operations';
 import { defaultPlatformPlans } from '../src/lib/plans';
+import { largeImportValueSha256 } from '../src/domain/largeImportEvidence';
 import { historicalRecoveryFixture } from './helpers/historicalRecovery';
 
 test('staged recovery reads confirmed cloud metadata without writes, raw rows, cached review or implicit financial approval', async () => {
@@ -31,23 +32,35 @@ test('read-only recovery keeps history available after a period closes and label
   await f.store.transaction(async tx => {
     const path=`${f.root}/accounting_periods/2026`; tx.set(path,{...await tx.get(path),status:'CLOSED'});
     const auditPath=`${f.root}/audit_logs/audit-history-commit`,audit=(await tx.get(auditPath))!; delete audit.import_metadata.review_sha256;tx.set(auditPath,audit);
+    // A genuine pre-review-contract command did not contain a review digest.
+    const pathReceipt=`${f.root}/idempotency/history-commit`;tx.set(pathReceipt,{...await tx.get(pathReceipt),fingerprint:await largeImportValueSha256({action:'historicalImport.commit',data:f.input})});
   });
   const before=(f.store as MemoryStore).dump(),result=await f.recover();
   assert.equal(result.receipt?.review_status,'legacy_without_review_evidence');assert.equal(result.receipt?.review_sha256,null);assert.equal(result.requires_fresh_review,false);assert.deepEqual((f.store as MemoryStore).dump(),before);
 });
 
-for (const fault of ['rows','context','document','receipt','audit','source','foreign-session','review']) test(`recovery refuses ${fault} evidence corruption without writes or a fabricated receipt`,async()=>{
+for (const fault of ['rows','context','document','receipt','audit','source','foreign-session','review','review-valid','review-removed','fingerprint']) test(`recovery refuses ${fault} evidence corruption without writes or a fabricated receipt`,async()=>{
   const f=await historicalRecoveryFixture();await f.commit();
   await f.store.transaction(async tx=>{
     const stagePath=`${f.root}/historical_import_staging/${f.session.id}`,sessionPath=`${f.root}/historical_import_sessions/${f.session.id}`,receiptPath=`${f.root}/idempotency/history-commit`,auditPath=`${f.root}/audit_logs/audit-history-commit`;
     if(['rows','context','document'].includes(fault)){const row=(await tx.get(stagePath))!;if(fault==='rows')row.rows[0].reference='tampered';if(fault==='context')row.validation_basis.accounts=[];if(fault==='document')row.document_evidence={unexpected:{value:1}};tx.set(stagePath,row);}
     if(fault==='receipt'){const row=(await tx.get(receiptPath))!;row.response.result.rows_imported=999;tx.set(receiptPath,row);}
     if(fault==='audit')tx.delete(auditPath);
+    if(fault==='fingerprint')tx.set(receiptPath,{...await tx.get(receiptPath),fingerprint:'f'.repeat(64)});
     if(fault==='source'){const session=(await tx.get(sessionPath))!;tx.delete(`${f.root}/journal_entries/${session.commit_journal_ids[0]}`);}
     if(fault==='foreign-session')tx.set(sessionPath,{...await tx.get(sessionPath),org_id:'foreign'});
     if(fault==='review'){const row=(await tx.get(auditPath))!;row.import_metadata.review_sha256='forged';tx.set(auditPath,row);}
+    if(fault==='review-valid'){const row=(await tx.get(auditPath))!;row.import_metadata.review_sha256='f'.repeat(64);tx.set(auditPath,row);}
+    if(fault==='review-removed'){const row=(await tx.get(auditPath))!;delete row.import_metadata.review_sha256;tx.set(auditPath,row);}
   });
   const before=(f.store as MemoryStore).dump();await assert.rejects(f.recover(),(error:any)=>error.code==='historical_recovery_inconsistent');assert.deepEqual((f.store as MemoryStore).dump(),before);
+});
+
+test('reviewed journal receipts recover with the historically optional document digest omitted from the original command',async()=>{
+  const f=await historicalRecoveryFixture(),{expected_document_evidence_sha256:_omitted,...input}=f.input;
+  const operationId='optional-document-digest',review=await f.ops.historicalImportPreview(f.org.id,f.owner,{input,operationId});
+  await f.run('historicalImport.commit',{...input,expected_review_sha256:review.review_sha256},operationId);
+  assert.equal((await f.recover()).receipt?.review_status,'verified');
 });
 
 test('recovery enforces live identity, tenant membership, role, subscription, feature and server authority',async()=>{

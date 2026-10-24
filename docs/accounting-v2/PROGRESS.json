@@ -11,8 +11,8 @@
     "worker": "accounting-historical-recovery-20261024",
     "branch": "codex/accounting-v2-historical-recovery-20261024",
     "acquired_at": "2026-10-24T05:22:18.821Z",
-    "heartbeat_at": "2026-10-24T05:29:06.347638+00:00",
-    "expires_at": "2026-10-24T06:59:06.347638+00:00",
+    "heartbeat_at": "2026-10-24T05:39:40.643985+00:00",
+    "expires_at": "2026-10-24T07:09:40.643985+00:00",
     "purpose": "Safe read-only cloud historical session/receipt recovery and authenticated reload UI acceptance on the accepted PR140 stack"
   },
   "milestones": [
@@ -2395,7 +2395,7 @@
     "Complete authenticated reload and lost-response UI coverage without local business storage; publish only after synthetic unit/API, demo-sudaflow Emulator and regression acceptance.",
     "Then Excel4.2 auditor package, scheduled export permissions/expiry and final financial/restore/operational acceptance; user merges only."
   ],
-  "updated_at": "2026-10-24T05:29:06.347638+00:00",
+  "updated_at": "2026-10-24T05:39:40.643985+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3757,7 +3757,7 @@
     }
   },
   "historical_recovery": {
-    "status": "source_implemented_acceptance_pending",
+    "status": "fingerprint_bound_source_and_UI_fixture_repairs_final_acceptance_pending",
     "base_source": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
     "base_pr": 140,
     "branch": "codex/accounting-v2-historical-recovery-20261024",
@@ -3779,9 +3779,27 @@
     ],
     "production_writes": 0,
     "unit_api_focused": {
-      "passed": 14,
+      "passed": 18,
       "failed": 0,
       "skipped": 0
-    }
+    },
+    "local_check": {
+      "unit_api": 582,
+      "runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed"
+    },
+    "first_ci": {
+      "run_id": 40066476153,
+      "source": "e431dd256d34a3f86a2d046b5ef8e07b992d3984",
+      "unit_api": 578,
+      "runtime": 16,
+      "firestore": 57,
+      "ui_passed": 130,
+      "ui_failed": 2,
+      "status": "failed_UI_fixture_timing_and_initial_company"
+    },
+    "fingerprint_binding": "Committed receipt proof must match the exact stored approval command digest, including review hash and reason; deleted evidence is not treated as legacy."
   }
 }

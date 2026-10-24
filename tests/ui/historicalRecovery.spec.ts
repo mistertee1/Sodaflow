@@ -5,6 +5,9 @@ const root=`organizations/${guestId}`;
 async function openHistory(page:Page){await page.locator('#tab-accounting').click();await page.getByTestId('data-import-tab').click();return page.getByTestId('historical-workbook-center');}
 async function setup(page:Page,other=false){
  const records=await periodGuestFixture(false,'Owner');
+ // The real organization index determines the initial company. Seed the
+ // intended company first instead of depending on a browser preference.
+ records[`user_organizations/${guestActor.uid}/orgs/${guestId}`]={org_id:guestId};
  records[`${root}/accounting_periods/2026`]={id:'2026',org_id:guestId,schema_version:1,start_date:'2026-01-01',end_date:'2026-01-31',status:'OPEN',revision:1,created_by:guestActor.uid,created_at:'2026-01-01',operation_id:'period'};
  if(other){const id='recovery-other';records[`organizations/${id}`]={...records[root],id,owner_uid:guestActor.uid,name:'المؤسسة الثانية',settings:{...records[root].settings,business_name:'المؤسسة الثانية'}};records[`organizations/${id}/members/${guestActor.uid}`]={uid:guestActor.uid,role:'Owner',status:'active',org_id:id};records[`organizations/${id}/meta/subscription`]={...records[`${root}/meta/subscription`],org_id:id};records[`user_organizations/${guestActor.uid}/orgs/${id}`]={org_id:id};}
  await seedCloudMerchant(page,records);await openMerchant(page);
@@ -26,6 +29,8 @@ test('staged cloud session survives reload, requires a new review, then recovers
 
 test('a lost approval response recovers the already committed cloud receipt after reload instead of submitting another financial command',async({page})=>{
  const session=await setup(page),center=await selectSession(page,session.id);await expect(center.getByTestId('historical-server-session')).toBeVisible();await center.getByTestId('preview-historical-workbook').click();await expect(center.getByTestId('historical-server-preview')).toBeVisible();await center.getByTestId('confirm-historical-approval').check();cloudMerchant(page).abortAfterCommit();await center.getByTestId('commit-historical-workbook').click();await expect(center.getByTestId('historical-pending-approval')).toBeVisible();
+ await expect.poll(()=>cloudMerchant(page).mutations.filter(row=>row.action==='historicalImport.commit').length).toBe(1);
+ await expect(center.getByTestId('retry-historical-approval')).toBeEnabled();
  const saved=await cloudRecords(page),commits=cloudMerchant(page).mutations.filter(row=>row.action==='historicalImport.commit').length;
  expect(commits).toBe(1);expect(Object.values(saved).filter(row=>row.action==='historicalImport.commit')).toHaveLength(1);
  await page.reload();await expect(page.locator('.sf-app-shell')).toBeVisible();const recovered=await selectSession(page,session.id);await expect(recovered.getByTestId('historical-approval-receipt')).toContainText('اكتمل الاعتماد');expect(cloudMerchant(page).mutations.filter(row=>row.action==='historicalImport.commit')).toHaveLength(commits);expect(await cloudRecords(page)).toEqual(saved);
@@ -39,7 +44,9 @@ test('a delayed recovery from the previous company cannot appear after switching
  const session=await setup(page,true),center=await openHistory(page);await center.getByLabel('جلسة الاستيراد المحفوظة').selectOption(session.id);
  let started!:()=>void,release!:()=>void;const pending=new Promise<void>(resolve=>started=resolve),held=new Promise<void>(resolve=>release=resolve);
  await page.route('**/historical-import/sessions/**',async route=>{started();await held;await route.fallback();});
+ try {
  await center.getByTestId('recover-historical-session').click();await pending;await page.getByTitle('الإعدادات',{exact:true}).click();const settings=page.getByRole('dialog',{name:'إعدادات المؤسسة'});await settings.locator('select').filter({has:page.locator('option[value="recovery-other"]')}).selectOption('recovery-other');await expect(page.locator('header')).toContainText('المؤسسة الثانية');
  const late=page.waitForResponse(response=>response.url().includes('/historical-import/sessions/'));release();await(await late).finished();await settings.getByRole('button',{name:'إغلاق النافذة',exact:true}).click();
  await expect(page.getByTestId('historical-server-session')).toHaveCount(0);await expect(page.getByTestId('historical-approval-receipt')).toHaveCount(0);expect(Object.keys(await cloudRecords(page)).some(path=>path.startsWith('organizations/recovery-other/journal_entries/'))).toBe(false);
+ } finally {release();}
 });

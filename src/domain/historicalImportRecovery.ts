@@ -1,7 +1,7 @@
 import type { Document, Transaction } from './store';
 import { clean } from './store';
 import { BusinessError, identifier } from './validation';
-import { largeImportStagingSha256, sameLargeImportRecord } from './largeImportEvidence';
+import { largeImportStagingSha256, largeImportValueSha256, sameLargeImportRecord } from './largeImportEvidence';
 
 const proof: (condition: unknown) => asserts condition = condition => {
   if (!condition) throw new BusinessError('تعذر التحقق من أدلة جلسة الاستيراد أو نتيجة اعتمادها؛ لا تكرر الترحيل. راجع سجل التدقيق.', 409, 'historical_recovery_inconsistent');
@@ -61,6 +61,15 @@ export async function readHistoricalImportRecovery(tx: Transaction, orgId: strin
   }
   const review = audit.import_metadata.review_sha256;
   proof(review === undefined || digest(review));
+  // Bind the displayed proof to the exact persisted command, including its
+  // reason and review digest. A deleted digest is not a legacy approval.
+  proof(typeof audit.reason === 'string');
+  const input = { id: sessionId, expected_rows_sha256: session.rows_sha256, expected_validation_context_sha256: session.validation_context_sha256, reason: audit.reason, ...(review ? { expected_review_sha256: review } : {}) };
+  const inputs: Document[] = [];
+  if (!staging.rows.some((row: Document) => ['invoice','purchase'].includes(row.kind))) inputs.push(input);
+  if (session.document_evidence_sha256) inputs.push({ ...input, expected_document_evidence_sha256: session.document_evidence_sha256 });
+  const fingerprints = await Promise.all(inputs.map(data => largeImportValueSha256({ action: 'historicalImport.commit', data })));
+  proof(fingerprints.includes(cached.fingerprint));
   const receipt = fields(result, ['id', 'org_id', 'schema_version', 'import_type', 'file_hash', 'status', 'completion_code', 'accounting_block', 'rows_total', 'rows_imported', 'rows_failed', 'journals_created', 'invoices_created', 'payments_created', 'purchase_bills_created', 'supplier_payments_created', 'inventory_movements_created', 'rows_sha256', 'validation_context_sha256', 'document_evidence_sha256', 'reconciliation']);
   return clean({ org_id: orgId, recovered_at: now, session: summary, requires_fresh_review: false, receipt: { ...receipt, operation_id: operationId, review_sha256: review ?? null, review_status: review ? 'verified' : 'legacy_without_review_evidence' } });
 }

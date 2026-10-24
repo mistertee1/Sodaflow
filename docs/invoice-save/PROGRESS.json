@@ -3,10 +3,10 @@
   "repository": "mistertee1/Sodaflow",
   "baseMain": "307949a60f47aeeddc6ad3d44a1d35dd7e73edf7",
   "workBranch": "codex/invoice-save-diagnostics-20261023",
-  "activeRunId": "invoice-save-20261023",
-  "leaseUntil": "2026-10-23T21:48:08.951775+00:00",
-  "updatedAt": "2026-10-23T20:18:08.951775+00:00",
-  "status": "source_fixed_acceptance_in_progress",
+  "activeRunId": null,
+  "leaseUntil": null,
+  "updatedAt": "2026-10-24T05:20:00Z",
+  "status": "accepted_on_descendant_v2_stack_pending_user_merge",
   "userRequest": "Fix screenshot invoice save service_unavailable; avoid direct conflicts with other agent. Continue manual global display currency after independent bug fix.",
   "evidence": {
     "netlifyHealth": 200,
@@ -47,8 +47,25 @@
   "userMergesOnly": true,
   "rulesChanged": false,
   "next": [
-    "Complete full check, production dependency audit, demo-sudaflow Emulator and browser regressions.",
-    "Publish a draft PR until acceptance is successful; user merges only.",
-    "Resume global currency source acceptance after the isolated invoice correction, preserving the other inventory agent."
-  ]
+    "User reviews the final integrated Accounting V2 stack; standalone PR136 retains inherited main gaps that were repaired in descendant PR137–140.",
+    "Do not publish the duplicate local UI fixture repairs; the other agent completed and accepted them in PR140.",
+    "Resume the latest V2 historical session/receipt recovery milestone after respecting its current lease. Preserve the unmerged global currency branch for later integration without overwriting other agent work."
+  ],
+  "lastSourceCommit": "e2a1ffd4b79c5d3d63268f118a47e0a0006d7ca1",
+  "acceptance": {
+    "source": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
+    "pr": 140,
+    "ci": 40063035249,
+    "node22CI": 40063035248,
+    "unitApi": 564,
+    "netlifyRuntime": 16,
+    "firestoreEmulator": 56,
+    "browser": 128,
+    "failed": 0,
+    "skipped": 0,
+    "productionAuditVulnerabilities": 0,
+    "invoiceEmulator": "passed",
+    "mobileInvoiceFirstSaveAndRetry": "passed",
+    "sourceAncestry": "e2a1ffd is ancestor of accepted descendant"
+  }
 }

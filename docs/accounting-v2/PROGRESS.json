@@ -5,7 +5,7 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4.2",
-  "active_branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+  "active_branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
   "overall_status": "in_progress_not_commercially_ready",
   "lease": null,
   "milestones": [
@@ -2421,13 +2421,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_AUDITOR_PACKAGE.md",
+  "last_report": "REPORT_SCHEDULED_EXPORT_MANAGEMENT.md",
   "next_steps": [
-    "Publish and verify pure scheduled export policy/calendar/expiry contracts as a separate dependent milestone.",
-    "Then wire protected persistence, atomic due-job claiming and live requester authorization before generation/publish/download; repair accounting worker snapshot-expiry gap, add API/Firestore/browser coverage.",
-    "Remaining legacy/evidence and final zero-difference financial/restore/operational acceptance remain incomplete. User alone merges; no production schedule/worker/deployment."
+    "Complete live authorization around export generation, artifact publication and download; add real synthetic permission-revocation and Firestore regression tests.",
+    "Then atomic scheduled due claiming/recovery and worker/type integration with private expiry, before management/download UI and execution-enabled contract.",
+    "Remaining legacy/evidence and zero-difference financial/restore/operational commercial acceptance remain incomplete. User alone merges; no production execution or deployment."
   ],
-  "updated_at": "2026-10-24T10:10:01.161Z",
+  "updated_at": "2026-10-24T14:56:07.189Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2452,8 +2452,8 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.2a_implemented_ci_passed_next_scheduled_policy",
-  "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
+  "active_substep": "Excel4.2b.2a_implemented_ci_passed_next_live_export_worker",
+  "observed_main_sha": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",
@@ -3549,16 +3549,46 @@
       "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
       "released_at": "2026-10-24T10:10:01.161Z",
       "status": "completed"
+    },
+    {
+      "worker": "accounting-scheduled-policy-20261024-1011",
+      "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+      "acquired_at": "2026-10-24T10:11:01.487Z",
+      "heartbeat_at": "2026-10-24T10:11:01.487Z",
+      "expires_at": "2026-10-24T10:56:01.487Z",
+      "purpose": "Publish and verify isolated Excel4.2b.1 calendar/permission/expiry contracts; no runtime scheduling or production execution",
+      "observed_expired_at": "2026-10-24T11:30:12.611Z",
+      "handoff": "Explicit user continuation. Previously prepared source was not present in the published branch; reconstruct and verify from current GitHub base."
+    },
+    {
+      "worker": "scheduled-policy-resume-20261024-1130",
+      "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+      "acquired_at": "2026-10-24T11:30:12.611Z",
+      "heartbeat_at": "2026-10-24T12:00:31.817923+00:00",
+      "expires_at": "2026-10-24T13:30:31.817923+00:00",
+      "purpose": "Excel4.2b.2a cloud schedule CRUD and due-index integration; no worker execution or production changes",
+      "status": "expired_before_resume",
+      "observed_at": "2026-10-24T14:51:59.080Z"
+    },
+    {
+      "worker": "accounting-schedule-execution-resume-20261024-1453",
+      "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+      "acquired_at": "2026-10-24T14:51:59.080Z",
+      "heartbeat_at": "2026-10-24T14:51:59.080Z",
+      "expires_at": "2026-10-24T15:36:59.080Z",
+      "purpose": "Confirm accepted cloud schedule management, then implement next live-authorized execution/download milestone; no production execution",
+      "released_at": "2026-10-24T14:56:07.189Z",
+      "status": "completed"
     }
   ],
   "last_lease": {
-    "worker": "accounting-auditor-package-20261024-0945",
-    "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
-    "acquired_at": "2026-10-24T09:44:56.946Z",
-    "heartbeat_at": "2026-10-24T09:58:33.304Z",
-    "expires_at": "2026-10-24T10:43:33.304Z",
-    "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
-    "released_at": "2026-10-24T10:10:01.161Z",
+    "worker": "accounting-schedule-execution-resume-20261024-1453",
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "acquired_at": "2026-10-24T14:51:59.080Z",
+    "heartbeat_at": "2026-10-24T14:51:59.080Z",
+    "expires_at": "2026-10-24T15:36:59.080Z",
+    "purpose": "Confirm accepted cloud schedule management, then implement next live-authorized execution/download milestone; no production execution",
+    "released_at": "2026-10-24T14:56:07.189Z",
     "status": "completed"
   },
   "last_remote_review": {
@@ -3573,7 +3603,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Excel4.2b.1 scheduled export policy/recurrence/expiry contracts prepared in isolated worktree; publish and verify next. Then wire API/Firestore claim/worker/download/UI in Excel4.2b.2 before enabling scheduled exports.",
+  "next": "Excel4.2b.2b.1: harden live export generation/publication/download authorization before scheduler execution. Revalidate real Auth, membership, actual role, subscription/features and source identity; prevent expired snapshot from producing empty success. Then atomic due claim, artifacts/expiry and UI.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3594,29 +3624,29 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "accounting-auditor-package-20261024-0945",
-    "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
-    "acquired_at": "2026-10-24T09:44:56.946Z",
-    "heartbeat_at": "2026-10-24T09:58:33.304Z",
-    "expires_at": "2026-10-24T10:43:33.304Z",
-    "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
-    "pr": 142,
-    "source_commit": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
-    "released_at": "2026-10-24T10:10:01.161Z",
-    "status": "auditor_package_implemented_ci_passed",
+    "worker": "accounting-schedule-execution-resume-20261024-1453",
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "acquired_at": "2026-10-24T14:51:59.080Z",
+    "heartbeat_at": "2026-10-24T14:51:59.080Z",
+    "expires_at": "2026-10-24T15:36:59.080Z",
+    "purpose": "Confirm accepted cloud schedule management, then implement next live-authorized execution/download milestone; no production execution",
+    "released_at": "2026-10-24T14:56:07.189Z",
+    "pr": 143,
+    "status": "cloud_schedule_management_implemented_ci_passed",
+    "source_commit": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
     "ci": {
-      "run_id": 40084130070,
-      "commit_sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+      "run_id": 40092180614,
+      "commit_sha": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
       "conclusion": "success",
-      "unit_api": 596,
+      "unit_api": 632,
       "netlify_runtime": 16,
-      "firestore_emulator": 58,
+      "firestore_emulator": 62,
       "ui": 137,
       "failed": 0,
       "skipped": 0,
       "production_audit_vulnerabilities": 0,
       "node22": {
-        "run_id": 40084130089,
+        "run_id": 40092180619,
         "conclusion": "success"
       }
     }
@@ -3683,36 +3713,36 @@
     }
   },
   "accounting_resume_checkpoint": {
-    "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
-    "base_sha": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
-    "status": "auditor_package_implemented_ci_passed",
-    "next": "Excel4.2b.1 scheduled export policy/recurrence/expiry contracts prepared in isolated worktree; publish and verify next. Then wire API/Firestore claim/worker/download/UI in Excel4.2b.2 before enabling scheduled exports.",
-    "sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
-    "pr": 142,
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "status": "cloud_schedule_management_implemented_ci_passed",
+    "base_sha": "64dc6026229794a88401fff4d1c56dfc2598ab46",
+    "next": "Excel4.2b.2b.1: harden live export generation/publication/download authorization before scheduler execution. Revalidate real Auth, membership, actual role, subscription/features and source identity; prevent expired snapshot from producing empty success. Then atomic due claim, artifacts/expiry and UI.",
+    "sha": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
+    "pr": 143,
     "last_run": {
-      "worker": "accounting-auditor-package-20261024-0945",
-      "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
-      "acquired_at": "2026-10-24T09:44:56.946Z",
-      "heartbeat_at": "2026-10-24T09:58:33.304Z",
-      "expires_at": "2026-10-24T10:43:33.304Z",
-      "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
-      "pr": 142,
-      "source_commit": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
-      "released_at": "2026-10-24T10:10:01.161Z",
-      "status": "auditor_package_implemented_ci_passed",
+      "worker": "accounting-schedule-execution-resume-20261024-1453",
+      "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+      "acquired_at": "2026-10-24T14:51:59.080Z",
+      "heartbeat_at": "2026-10-24T14:51:59.080Z",
+      "expires_at": "2026-10-24T15:36:59.080Z",
+      "purpose": "Confirm accepted cloud schedule management, then implement next live-authorized execution/download milestone; no production execution",
+      "released_at": "2026-10-24T14:56:07.189Z",
+      "pr": 143,
+      "status": "cloud_schedule_management_implemented_ci_passed",
+      "source_commit": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
       "ci": {
-        "run_id": 40084130070,
-        "commit_sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+        "run_id": 40092180614,
+        "commit_sha": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
         "conclusion": "success",
-        "unit_api": 596,
+        "unit_api": 632,
         "netlify_runtime": 16,
-        "firestore_emulator": 58,
+        "firestore_emulator": 62,
         "ui": 137,
         "failed": 0,
         "skipped": 0,
         "production_audit_vulnerabilities": 0,
         "node22": {
-          "run_id": 40084130089,
+          "run_id": 40092180619,
           "conclusion": "success"
         }
       }
@@ -3976,5 +4006,120 @@
       }
     },
     "completed_at": "2026-10-24T10:10:01.161Z"
+  },
+  "scheduled_export_policy": {
+    "status": "implemented_ci_passed",
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "base_pr": 142,
+    "base_source": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+    "scope": "Pure calendar/access/idempotency-key/expiry contracts only; no API, persisted policy, claim, worker integration, download or UI yet",
+    "checks": {
+      "full_local_unit_api": 613,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "policy_tests": 17,
+      "CI": "passed"
+    },
+    "production_writes": 0,
+    "previous_unpublished_local_check_claim": {
+      "full_local_unit_api": 609,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "final_focused_policy_tests": 13
+    },
+    "owned_paths": [
+      "src/domain/scheduledExportPolicy.ts",
+      "tests/scheduledExportPolicy.test.ts",
+      "tsconfig.core.json (strict contract regression inclusion)",
+      "docs/accounting-v2/PROGRESS.json",
+      "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_POLICY.md",
+      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_POLICY.md"
+    ],
+    "source_reconstruction": "Published checkpoint had no policy source; new implementation and results independently verified, prior unpublished 609 claim not reused.",
+    "pr": 143,
+    "source_commit": "187c608bca28622220ee036382aa72bd43345d34",
+    "ci": {
+      "run_id": 40091171036,
+      "job_id": 120863975364,
+      "commit_sha": "187c608bca28622220ee036382aa72bd43345d34",
+      "conclusion": "success",
+      "unit_api": 613,
+      "netlify_runtime": 16,
+      "firestore_emulator": 58,
+      "ui": 137,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40091171475,
+        "conclusion": "success"
+      }
+    },
+    "completed_at": "2026-10-24T11:54:10.116467+00:00"
+  },
+  "scheduled_export_management": {
+    "status": "implemented_ci_passed",
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "parent_policy_source": "187c608bca28622220ee036382aa72bd43345d34",
+    "pr": 143,
+    "scope": "Server-only live-account schedule list/create/revision update, atomic private due index, shared idempotency/rate limit/audit; worker/artifact/download/UI remain separate",
+    "owned_paths": [
+      "src/domain/scheduledExportManagement.ts",
+      "server/scheduledExports.ts",
+      "server/api.ts (dedicated schedule routes and injectable service only)",
+      "tests/helpers/scheduledExports.ts",
+      "tests/scheduledExportManagement.test.ts",
+      "tests/scheduledExportManagementFirestore.test.ts",
+      "package.json (Emulator registration only)",
+      "tsconfig.core.json (strict regression inclusion only)",
+      "docs/accounting-v2/PROGRESS.json",
+      "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_MANAGEMENT.md",
+      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_MANAGEMENT.md"
+    ],
+    "production_writes": 0,
+    "checks": {
+      "focused_unit_api": 19,
+      "full_unit_api": 632,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "firestore_emulator": "pending_CI_4_new_tests",
+      "full_UI": "pending_CI_existing_regressions",
+      "production_audit": "pending_CI"
+    },
+    "first_ci": {
+      "run_id": 40091832037,
+      "source": "21988d029206e1ca1ac062f4df6f18aca8d29c75",
+      "conclusion": "failure",
+      "unit_api": 631,
+      "runtime": 16,
+      "emulator_passed": 58,
+      "emulator_failed": 4,
+      "ui": "not_run_after_Emulator_failure",
+      "cause": "New fixture creation inherited deliberately malformed Free plan left by an earlier permission suite; isolated demo database reset added, with no assertion or Rules weakening."
+    },
+    "source_commit": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
+    "ci": {
+      "run_id": 40092180614,
+      "commit_sha": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
+      "conclusion": "success",
+      "unit_api": 632,
+      "netlify_runtime": 16,
+      "firestore_emulator": 62,
+      "ui": 137,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40092180619,
+        "conclusion": "success"
+      }
+    },
+    "completed_at": "2026-10-24T14:56:07.189Z"
   }
 }

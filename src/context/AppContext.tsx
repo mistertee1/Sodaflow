@@ -134,6 +134,7 @@ interface AppContextType {
   createAccountingExport: (period:{start?:string;end?:string}) => Promise<{workbook_base64:string;mime_type:string;filename:string;record_count:number;line_count:number}>;
   exportPresets: Document[];
   dataTransferHistory: Document[];
+  createAuditorPackage: (period: { start?: string; end?: string }) => Promise<Document>;
   saveExportPreset: (input:{id?:string;name:string;kind:'company'|'accounting'|'master';module?:MasterExportModule;period?:{start?:string;end?:string}}) => Promise<Document>;
   deleteExportPreset: (id:string) => Promise<void>;
   createCompanyExport: (presetId?:string) => Promise<{json:string;filename:string;byte_size:number;collection_counts:Record<string,number>}>;
@@ -579,6 +580,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     recordCashCount: data => run('cashCount.create', data),
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
     isActionAllowed, createMasterExport: module => run('masterExport.create',{module}), createAccountingExport:period=>run('accountingExport.create',{period}),
+    createAuditorPackage: period => run('auditorExport.create', { period }),
     exportPresets:rows<Document>('export_presets'),dataTransferHistory:rows<Document>('audit_logs').filter(row=>['DATA_EXPORT_CREATED','DATA_IMPORT_STARTED'].includes(row.event_type)).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
     saveExportPreset:input=>run('exportPreset.save',input),deleteExportPreset:async id=>{await run('exportPreset.delete',{id});},createCompanyExport,
     historicalImportSessions: [...rows<Document>('historical_import_sessions')].sort((a,b) => String(b.created_at).localeCompare(String(a.created_at))),

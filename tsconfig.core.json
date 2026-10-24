@@ -69,6 +69,9 @@
     "tests/historicalImportCommit.test.ts",
     "tests/historicalRecovery.test.ts",
     "tests/historicalRecoveryFirestore.test.ts",
-    "tests/ui/historicalRecovery.spec.ts"
+    "tests/ui/historicalRecovery.spec.ts",
+    "tests/auditorPackage.test.ts",
+    "tests/auditorPackageFirestore.test.ts",
+    "tests/ui/auditorPackage.spec.ts"
   ]
 }

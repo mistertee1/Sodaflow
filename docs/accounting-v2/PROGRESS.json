@@ -11,8 +11,8 @@
     "worker": "scheduled-policy-resume-20261024-1130",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
     "acquired_at": "2026-10-24T11:30:12.611Z",
-    "heartbeat_at": "2026-10-24T11:30:12.611Z",
-    "expires_at": "2026-10-24T13:00:12.611Z",
+    "heartbeat_at": "2026-10-24T11:38:33.680059+00:00",
+    "expires_at": "2026-10-24T13:08:33.680059+00:00",
     "purpose": "Resume durable scheduled export calendar/access/idempotency/expiry contracts; no runtime or production scheduling until integration acceptance"
   },
   "milestones": [
@@ -2434,7 +2434,7 @@
     "Then wire protected persistence, atomic due-job claiming and live requester authorization before generation/publish/download; repair accounting worker snapshot-expiry gap, add API/Firestore/browser coverage.",
     "Remaining legacy/evidence and final zero-difference financial/restore/operational acceptance remain incomplete. User alone merges; no production schedule/worker/deployment."
   ],
-  "updated_at": "2026-10-24T11:30:12.611Z",
+  "updated_at": "2026-10-24T11:38:33.680059+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3683,40 +3683,10 @@
     }
   },
   "accounting_resume_checkpoint": {
-    "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
-    "base_sha": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
-    "status": "auditor_package_implemented_ci_passed",
-    "next": "Excel4.2b.1 scheduled export policy/recurrence/expiry contracts prepared in isolated worktree; publish and verify next. Then wire API/Firestore claim/worker/download/UI in Excel4.2b.2 before enabling scheduled exports.",
-    "sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
-    "pr": 142,
-    "last_run": {
-      "worker": "accounting-auditor-package-20261024-0945",
-      "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
-      "acquired_at": "2026-10-24T09:44:56.946Z",
-      "heartbeat_at": "2026-10-24T09:58:33.304Z",
-      "expires_at": "2026-10-24T10:43:33.304Z",
-      "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
-      "pr": 142,
-      "source_commit": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
-      "released_at": "2026-10-24T10:10:01.161Z",
-      "status": "auditor_package_implemented_ci_passed",
-      "ci": {
-        "run_id": 40084130070,
-        "commit_sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
-        "conclusion": "success",
-        "unit_api": 596,
-        "netlify_runtime": 16,
-        "firestore_emulator": 58,
-        "ui": 137,
-        "failed": 0,
-        "skipped": 0,
-        "production_audit_vulnerabilities": 0,
-        "node22": {
-          "run_id": 40084130089,
-          "conclusion": "success"
-        }
-      }
-    }
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "status": "scheduled_policy_source_implemented_acceptance_pending",
+    "base_sha": "64dc6026229794a88401fff4d1c56dfc2598ab46",
+    "next": "Complete and test pure calendar/live-access/occurrence/retention contracts from the accepted PR142 base. After acceptance, wire server API, Firestore claim, worker, secure download and UI without automatic production activation."
   },
   "integration_base": {
     "branch": "codex/invoice-save-diagnostics-20261023",
@@ -3978,13 +3948,19 @@
     "completed_at": "2026-10-24T10:10:01.161Z"
   },
   "scheduled_export_policy": {
-    "status": "checkpoint_before_reconstructed_source",
+    "status": "implemented_local_checks_passed_CI_pending",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
     "base_pr": 142,
     "base_source": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
     "scope": "Pure calendar/access/idempotency-key/expiry contracts only; no API, persisted policy, claim, worker integration, download or UI yet",
     "checks": {
-      "status": "requires_fresh_source_verification"
+      "full_local_unit_api": 612,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "policy_tests": 16,
+      "CI": "pending"
     },
     "production_writes": 0,
     "previous_unpublished_local_check_claim": {
@@ -4002,6 +3978,7 @@
       "docs/accounting-v2/PROGRESS.json",
       "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_POLICY.md",
       "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_POLICY.md"
-    ]
+    ],
+    "source_reconstruction": "Published checkpoint had no policy source; new implementation and results independently verified, prior unpublished 609 claim not reused."
   }
 }

@@ -103,7 +103,11 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
       const address = server.address(); if (!address || typeof address === 'string') throw Error('Missing synthetic API address');
       backendUrl = `http://127.0.0.1:${address.port}`;
     };
+    let tearingDown = false;
+    const pendingRoutes = new Set<Promise<void>>();
     await page.route('**/api/**', async route => {
+      if (tearingDown) { await route.abort('aborted').catch(() => {}); return; }
+      const task = (async () => {
       await initializeBackend(); clock = await page.evaluate(() => Date.now());
       const request = route.request(), url = new URL(request.url()), path = url.pathname + url.search;
       requests.push(path);
@@ -116,6 +120,9 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
       const response = await fetch(backendUrl + path, { method: request.method(), headers: { Authorization: bearer, 'Content-Type': 'application/json' }, ...(body ? { body } : {}) });
       if (abortNext && isBusinessWrite && response.ok) { abortNext = false; await response.text(); await route.abort('failed'); return; }
       await route.fulfill({ status: response.status, contentType: 'application/json', headers: { 'Cache-Control': response.headers.get('cache-control') || 'no-store' }, body: await response.text() });
+      })();
+      pendingRoutes.add(task);
+      try { await task; } finally { pendingRoutes.delete(task); }
     });
     const harness: MerchantHarness = {
       seed: value => { if (server) throw Error('Seed before opening the cloud app; never replace committed server records on reload.'); records = structuredClone(value); },
@@ -136,7 +143,14 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
     };
     harnesses.set(page, harness);
     try { await use(harness); }
-    finally { harnesses.delete(page); if (server) await new Promise<void>((resolve, reject) => server!.close(error => error ? reject(error) : resolve())); }
+    finally {
+      tearingDown = true;
+      // Keep the synthetic API alive until every route that started in this test
+      // has finished. Late refreshes during fixture teardown never open a fetch.
+      await Promise.all([...pendingRoutes]);
+      harnesses.delete(page);
+      if (server) await new Promise<void>((resolve, reject) => server!.close(error => error ? reject(error) : resolve()));
+    }
   }, { auto: true }],
 });
 export { expect, type Page };

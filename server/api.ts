@@ -23,9 +23,13 @@ import { PlatformBilling } from './platformBilling';
 import { OperationIntents } from './operationIntents';
 import { loadSubscription, assertSubscriptionActive } from '../src/domain/subscriptions';
 import { authorizedLargeExportDownload, firebaseLargeExportWorker } from './largeExportWorker';
+import { ScheduledExportManagement } from '../src/domain/scheduledExportManagement';
+import { firebaseScheduledAccountLookup } from './scheduledExports';
+import type { LargeExportWorker } from '../src/domain/largeExportWorker';
+import type { ExportAuthorizationOptions } from './exportAuthorization';
 
 type Verify = (token: string) => Promise<Actor>;
-export function createApi(options?: { operations?: Operations; verify?: Verify; fileStorage?: CustomerFileStorage; storageContext?: string }) {
+export function createApi(options?: { operations?: Operations; verify?: Verify; fileStorage?: CustomerFileStorage; storageContext?: string; scheduledExports?: ScheduledExportManagement; exportWorker?: LargeExportWorker; exportAuthorization?: ExportAuthorizationOptions }) {
   const router = express.Router();
   // Tenant records and platform access decisions must not become a browser/CDN
   // disk snapshot. Apply this to successful responses and authorization errors.
@@ -34,6 +38,7 @@ export function createApi(options?: { operations?: Operations; verify?: Verify; 
   const service = () => options?.operations || new Engine(new ResilientStore(adminServices().db), undefined, resolveSubscription, verifyDeployedAccountingRules, controlsEnabled);
   const platform = () => new PlatformBilling(service().store, options?.operations ? undefined : adminServices().db, controlsEnabled);
   const files = () => options?.fileStorage || netlifyCustomerFileStorage(options?.storageContext);
+  const schedules = () => options?.scheduledExports || new ScheduledExportManagement(service().store, firebaseScheduledAccountLookup, resolveSubscription, undefined, verifyDeployedAccountingRules);
   const verify: Verify = options?.verify || (async token => {
     const claims = await adminServices().auth.verifyIdToken(token, true);
     return { uid: claims.uid, email: claims.email || '', emailVerified: claims.email_verified === true, name: claims.name, superAdmin: claims.superAdmin === true, authTime: claims.auth_time };
@@ -114,6 +119,11 @@ export function createApi(options?: { operations?: Operations; verify?: Verify; 
     ensure(typeof req.body.initial === 'boolean', 'نوع إنشاء المؤسسة مطلوب.');
     return new Organizations(service().store, resolveSubscription, undefined, controlsEnabled).create(actor, req.body.name, req.body.settings || {}, identifier(req.body.operationId), req.body.initial);
   }));
+  router.get('/organizations/:orgId/export-schedules', route((req, actor) => { ensure(Object.keys(req.query).length === 0, 'مرشحات جداول التصدير غير صالحة.'); return schedules().list(req.params.orgId, actor); }));
+  router.get('/organizations/:orgId/export-job-history', route((req, actor) => { ensure(Object.keys(req.query).length === 0, 'مرشحات سجل التصدير غير صالحة.'); return schedules().history(req.params.orgId, actor); }));
+  router.post('/organizations/:orgId/export-schedules', route((req, actor) => { ensure(Object.keys(req.query).length === 0, 'مرشحات جداول التصدير غير صالحة.'); return schedules().create(req.params.orgId, actor, req.body); }));
+  router.post('/organizations/:orgId/export-schedules/:scheduleId', route((req, actor) => { ensure(Object.keys(req.query).length === 0, 'مرشحات جداول التصدير غير صالحة.'); return schedules().update(req.params.orgId, actor, req.params.scheduleId, req.body); }));
+  router.get('/organizations/:orgId/historical-import/sessions/:sessionId', route((req, actor) => { ensure(Object.keys(req.query).length === 0, 'مرشحات استرداد الاستيراد التاريخي غير صالحة.'); return service().historicalImportRecovery(req.params.orgId, actor, req.params.sessionId); }));
   router.post('/organizations/:orgId/historical-import/preview', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route((req,actor)=>{ensure(Object.keys(req.query).length===0,'مرشحات المعاينة التاريخية غير صالحة.');return service().historicalImportPreview(req.params.orgId,actor,req.body);}));
   router.post('/organizations/:orgId/opening-balances/preview', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route((req,actor)=>{ensure(Object.keys(req.query).length===0,'مرشحات معاينة الأرصدة غير صالحة.');return service().openingPreview(req.params.orgId,actor,req.body);}));
   router.post('/organizations/:orgId/fx-revaluations/preview', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route((req,actor)=>{ensure(Object.keys(req.query).length===0,'مرشحات معاينة إعادة التقييم غير صالحة.');return service().fxRevaluationPreview(req.params.orgId,actor,req.body);}));
@@ -122,7 +132,7 @@ export function createApi(options?: { operations?: Operations; verify?: Verify; 
   router.get('/organizations/:orgId/revision', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); }, route(async (req, actor) => organizationRevision(service().store, req.params.orgId, actor, controlsEnabled)));
   router.get('/organizations/:orgId/snapshot', route(async (req, actor) => service().snapshot(req.params.orgId, actor)));
   router.get('/organizations/:orgId/backup', route(async (req, actor) => service().snapshot(req.params.orgId, actor, true)));
-  router.get('/organizations/:orgId/export-jobs/:collection/:jobId/download', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route(async(req,actor)=>authorizedLargeExportDownload(service().store,firebaseLargeExportWorker(),req.params.orgId,req.params.collection,req.params.jobId,actor)));
+  router.get('/organizations/:orgId/export-jobs/:collection/:jobId/download', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route(async(req,actor)=>authorizedLargeExportDownload(service().store,options?.exportWorker||firebaseLargeExportWorker(),req.params.orgId,req.params.collection,req.params.jobId,actor,options?.exportAuthorization)));
   router.get('/organizations/:orgId/reports/advanced', route(async (req, actor) => {ensure(Object.keys(req.query).every(key=>['start','end','compareStart','compareEnd'].includes(key)),'مرشحات التقارير المتقدمة غير صالحة.');const value=(key:string)=>typeof req.query[key]==='string'&&req.query[key]?req.query[key] as string:undefined,comparison=value('compareStart')||value('compareEnd')?{start:value('compareStart'),end:value('compareEnd')}:undefined;ensure(!comparison||comparison.start&&comparison.end,'المقارنة تتطلب بداية ونهاية كاملتين.');return service().advancedReports(req.params.orgId,actor,{start:value('start'),end:value('end')},comparison);}));
   router.get('/organizations/:orgId/reports/accounting-health', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route(async(req,actor)=>{ensure(Object.keys(req.query).every(key=>key==='asOf')&&(!('asOf' in req.query)||typeof req.query.asOf==='string'&&!!req.query.asOf),'مرشحات صحة المحاسبة غير صالحة.');return service().accountingHealth(req.params.orgId,actor,req.query.asOf as string|undefined);}));
   router.get('/organizations/:orgId/reports/accounting-assistance', (_req,res,next)=>{res.setHeader('Cache-Control','no-store');next();}, route(async(req,actor)=>{ensure(Object.keys(req.query).every(key=>key==='asOf')&&(!('asOf' in req.query)||typeof req.query.asOf==='string'&&!!req.query.asOf),'مرشحات مساعد المحاسبة غير صالحة.');return service().accountingAssistance(req.params.orgId,actor,req.query.asOf as string|undefined);}));

@@ -36,7 +36,7 @@ export function InventoryCostCenter() {
       <button onClick={() => { setMode(userRole === 'Owner' ? 'basis' : 'receipt'); setProductId(''); setOpen(true); setError(''); }} className="bg-sf-action text-sf-on-action rounded-xl px-3 py-2 text-xs">تسجيل تكلفة أو استلام مخزون</button>
       {userRole === 'Owner' && currentOrg?.accounting_version !== 2 && <button disabled={busy || unknown > 0} onClick={activate} className="border border-sf-border rounded-xl px-3 py-2 text-xs disabled:opacity-50">تفعيل المحاسبة V2 بعد المطابقة</button>}
     </div>
-    <p className="text-xs text-sf-muted">إثبات التكلفة يخص المخزون الحالي بوثيقة مصدر؛ لا يغير فواتير الماضي. الاستلام النقدي يزيد قيمة المخزون، والجرد يصحح الكمية والقيمة بسبب موثق. الموردون وفواتير الشراء الآجلة ضمن المرحلة التالية.</p>
+    <p className="text-xs text-sf-muted">إثبات التكلفة يخص المخزون الحالي بوثيقة مصدر؛ لا يغير فواتير الماضي. الاستلام النقدي يزيد قيمة المخزون، والجرد يصحح الكمية والقيمة بسبب موثق. الموردون وفواتير الشراء النقدية والآجلة وسداد الذمم متاحة من «الموردون ومنتجاتهم والمشتريات والذمم الدائنة» في هذا القسم.</p>
     {error && !open && <p role="alert" className="text-sf-danger">{error}</p>}
     {open && <Dialog label="تكلفة المخزون" onClose={() => { if (!busy) setOpen(false); }} className="fixed inset-0 z-50 flex items-center justify-center bg-sf-canvas/80 backdrop-blur-sm p-4 overflow-y-auto"><div className="bg-sf-surface rounded-xl p-5 w-full max-w-lg space-y-4 my-auto">
       <h3 id="inventory-cost-title" className="font-semibold">تكلفة المخزون</h3>

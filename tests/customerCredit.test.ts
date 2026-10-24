@@ -34,7 +34,14 @@ test('D4.1 protected customer limits require Owner/Admin and validate precision'
   await assert.rejects(f.run('customer.update', { id: f.customer.id, updates: { credit_limit_usd: 100 } }, 'sales-limit', sales), /المالك أو المدير|للمالك أو المدير/);
   const saved = (await f.run('customer.update', { id: f.customer.id, updates: { credit_limit_usd: 100, credit_policy: 'approval_required' } }, 'owner-limit')).result;
   assert.equal(saved.credit_limit_usd, 100);
+  const path = `organizations/${f.org.id}/customers/${f.customer.id}`;
+  const audit = f.store.dump()[`organizations/${f.org.id}/audit_logs/audit-owner-limit`];
+  assert.equal(audit.new_state[path].credit_limit_usd, 100);
+  assert.equal(audit.new_state[path].credit_policy, 'approval_required');
+  const before = f.store.dump();
   await assert.rejects(f.run('customer.update', { id: f.customer.id, updates: { credit_limit_usd: 1.001 } }, 'bad-precision'), /الدقة/);
+  await assert.rejects(f.run('customer.update', { id: f.customer.id, updates: { credit_policy: 'ignore' } }, 'bad-policy'), /سياسة حد الائتمان/);
+  assert.deepEqual(f.store.dump(), before);
 });
 
 test('D4.1 approval policy rejects sales over-limit atomically and records Owner evidence', async () => {

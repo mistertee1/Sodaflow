@@ -38,14 +38,32 @@ beforeEach(async () => {
 });
 after(async () => { if (env) await env.cleanup(); if (app) await deleteApp(app); });
 
-test('shipped paused Rules allow every real role and suspended member to read company operations without a plan', async () => {
+test('paused tenant snapshots remain readable through the server while API-only collections stay SDK-denied', async () => {
+  // These later accounting/Excel collections use authenticated server snapshots;
+  // pausing commercial controls must not create new direct SDK grants for them.
+  const serverOnly = new Set(['export_presets', 'accounting_export_jobs', 'company_export_jobs', 'approval_policies', 'historical_import_sessions']);
+  const operations = new Operations(new FirestoreStore(db), undefined, undefined, undefined, false);
+  const organizationBefore = (await db.doc(root).get()).data();
+  for (const name of serverOnly) assert.ok(name in readPermissions, name);
   for (const uid of ['owner', 'admin', 'accountant', 'sales', 'cashier', 'viewer']) {
     const firestore = client(uid);
+    const memberBefore = (await db.doc(`${root}/members/${uid}`).get()).data();
     await assertSucceeds(getDoc(doc(firestore, root)));
     for (const name of Object.keys(readPermissions)) {
-      const result = await assertSucceeds(getDocs(collection(firestore, `${root}/${name}`))); assert.ok(result.size > 0, name);
+      if (serverOnly.has(name)) {
+        await assertFails(getDocs(collection(firestore, `${root}/${name}`)));
+        await assertFails(getDoc(doc(firestore, `${root}/${name}/record`)));
+      } else {
+        const result = await assertSucceeds(getDocs(collection(firestore, `${root}/${name}`))); assert.ok(result.size > 0, name);
+      }
     }
+    const snapshot = await operations.snapshot('paused-org', { uid, email: `${uid}@example.test`, emailVerified: true });
+    assert.equal(snapshot.platform_controls_enabled, false);
+    for (const name of Object.keys(readPermissions)) assert.ok(snapshot.collections[name].length > 0, `server snapshot: ${uid}/${name}`);
+    for (const name of serverOnly) assert.deepEqual(snapshot.collections[name], [{ id: 'record', org_id: 'paused-org' }], `server snapshot: ${uid}/${name}`);
+    assert.deepEqual((await db.doc(`${root}/members/${uid}`).get()).data(), memberBefore);
   }
+  assert.deepEqual((await db.doc(root).get()).data(), organizationBefore);
 });
 
 test('paused Rules retain isolation, verification and real ownership even with forged claims or index entries', async () => {

@@ -1,11 +1,17 @@
 import { test as base, expect, type Page } from '@playwright/test';
 import express from 'express';
+import { readFileSync } from 'node:fs';
+import { verifyAccountingRulesSource } from '../../../server/accountingSecurity';
 import { createApi } from '../../../server/api';
-import { MemoryStore, type Document } from '../../../src/domain/store';
+import { MemoryStore, type Document, type Store } from '../../../src/domain/store';
 import { Operations, type Actor } from '../../../src/domain/operations';
 import { INITIAL_SETTINGS } from '../../../src/data/initialData';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../../../src/types';
 import { getDefaultChartOfAccounts } from '../../../src/services/accountingService';
+import { ScheduledExportManagement } from '../../../src/domain/scheduledExportManagement';
+import { LargeExportWorker } from '../../../src/domain/largeExportWorker';
+import { ServerLargeExportBuilder } from '../../../server/largeExportWorker';
+import { TestExportArtifacts } from '../../helpers/liveExports';
 
 import { guestId, guestActor } from '../../fixtures/cloudIdentity';
 export { guestId, guestActor } from '../../fixtures/cloudIdentity';
@@ -27,6 +33,10 @@ interface MerchantHarness {
   seed(records: Records): void;
   records(): Records;
   executeCommand(action: string, data: Document, operationId?: string): Promise<Document>;
+  createSchedule(input: Document, operationId?: string): Promise<Document>;
+  updateSchedule(id: string, revision: number, updates: Document, operationId?: string): Promise<Document>;
+  runExportWorker(): Promise<Document | null>;
+  disableExportAccount(): void;
   failNextWrite(): void;
   abortAfterCommit(): void;
   failCloudReads(): void;
@@ -59,34 +69,48 @@ export async function openMerchant(page: Page, waitForCompany = true) {
   if (waitForCompany) await expect(page.locator('.sf-app-shell')).toBeVisible();
 }
 
-export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: boolean }>({
+export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: boolean; serverAuthority: boolean }>({
   controlsEnabled: [true, { option: true }],
-  merchant: [async ({ page, controlsEnabled }, use) => {
+  serverAuthority: [false, { option: true }],
+  merchant: [async ({ page, controlsEnabled, serverAuthority }, use) => {
     let records = defaultMerchantRecords(), store: MemoryStore | undefined;
     let failWrite = false, abortNext = false, failReads = false, failAck = false, clock = Date.now();
     const actor = { ...guestActor, authTime: Math.floor(clock / 1000) };
     const issued = new Set<string>();
     let token = '';
-    const issueToken = async () => {
-      clock = await page.evaluate(() => Date.now()); actor.authTime = Math.floor(clock / 1000);
+    const issueToken = async (sourcePage = page) => {
+      clock = await sourcePage.evaluate(() => Date.now()); actor.authTime = Math.floor(clock / 1000);
       token = [{ alg: 'RS256', typ: 'JWT' }, { aud: 'sodaflow', iss: 'https://securetoken.google.com/sodaflow', sub: actor.uid, user_id: actor.uid, auth_time: actor.authTime, iat: actor.authTime, exp: actor.authTime + 3600, email: actor.email, email_verified: true, firebase: { sign_in_provider: 'password' } }].map(v => Buffer.from(JSON.stringify(v)).toString('base64url')).join('.') + '.synthetic-signature';
       issued.add(token);
       return token;
     };
-    await page.route('https://identitytoolkit.googleapis.com/**', async route => {
+    await page.context().route('https://identitytoolkit.googleapis.com/**', async route => {
       const action = new URL(route.request().url()).pathname.split(':').at(-1);
       const response = action === 'lookup' ? { users: [{ localId: actor.uid, email: actor.email, emailVerified: true, displayName: actor.name, providerUserInfo: [{ providerId: 'password', email: actor.email }], createdAt: String(clock), lastLoginAt: String(clock) }] }
-        : { localId: actor.uid, email: actor.email, idToken: await issueToken(), refreshToken: 'synthetic-refresh', expiresIn: '3600', registered: true };
+        : { localId: actor.uid, email: actor.email, idToken: await issueToken(route.request().frame().page()), refreshToken: 'synthetic-refresh', expiresIn: '3600', registered: true };
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(response) });
     });
-    await page.route('https://securetoken.googleapis.com/**', async route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: await issueToken(), id_token: token, refresh_token: 'synthetic-refresh', expires_in: '3600', user_id: actor.uid, project_id: 'sodaflow' }) }));
+    await page.context().route('https://securetoken.googleapis.com/**', async route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: await issueToken(route.request().frame().page()), id_token: token, refresh_token: 'synthetic-refresh', expires_in: '3600', user_id: actor.uid, project_id: 'sodaflow' }) }));
     // Only Firestore discovery/notifications are doubled. Reads, reports, owner
     // verification, accounting writes, idempotency and quotas use the real API.
-    await page.addInitScript(() => {
+    await page.context().addInitScript(() => {
       (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = { organizations: async () => [], watchRevision: () => () => {} };
     });
     const requests: string[] = [], mutations: Document[] = [];
     let server: ReturnType<ReturnType<typeof express>['listen']> | undefined;
+    let exportWorker: LargeExportWorker, exportAccountDisabled = false;
+    const artifacts = new TestExportArtifacts();
+    artifacts.signedUrl = async (path, expires) => {
+      if (!artifacts.files.has(path)) throw Error('Missing synthetic artifact');
+      artifacts.signed.push({ path, expires: expires.toISOString() });
+      return `https://private-export.invalid/${encodeURIComponent(path)}?expires=${expires.toISOString()}`;
+    };
+    await page.context().route('https://private-export.invalid/**', async route => {
+      const url = new URL(route.request().url()), path = decodeURIComponent(url.pathname.slice(1));
+      const file = artifacts.files.get(path), expiry = url.searchParams.get('expires');
+      if (!file || !expiry || Date.parse(expiry) <= clock) { await route.fulfill({ status: 410, body: 'Expired synthetic export' }); return; }
+      await route.fulfill({ status: 200, contentType: file.mimeType, headers: { 'Content-Disposition': `attachment; filename="${file.filename}"`, 'Cache-Control': 'no-store' }, body: Buffer.from(file.bytes) });
+    });
     let backendUrl: string;
     const initializeBackend = async () => {
       if (server) return;
@@ -95,16 +119,27 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
         [`${root}/meta/counters`]: { ...DEFAULT_ORGANIZATION_COUNTERS, ...records[`${root}/meta/counters`] },
         [`user_organizations/${actor.uid}/orgs/${guestId}`]: { org_id: guestId },
       };
-      store = new MemoryStore(records, () => { if (failWrite) { failWrite = false; throw Object.assign(Error('Synthetic cloud commit unavailable'), { code: 14 }); } });
+      store = new MemoryStore(records, next => { if (failWrite && JSON.stringify(next) !== JSON.stringify(store!.dump())) { failWrite = false; throw Object.assign(Error('Synthetic cloud commit unavailable'), { code: 14 }); } });
       const app = express(); app.use(express.json({ limit: '10mb' }));
-      app.use('/api', createApi({ operations: new Operations(store, () => new Date(clock), undefined, undefined, controlsEnabled), verify: async value => { if (!issued.has(value)) throw Error('Invalid synthetic token'); return { ...actor }; } }));
+      const authority: Store = serverAuthority ? {authority:'server',transaction:work=>store!.transaction(work)} : store;
+      const verifyRules = serverAuthority ? async () => verifyAccountingRulesSource([{content:readFileSync('firestore.rules','utf8')}]) : undefined;
+      const operations = new Operations(authority, () => new Date(clock), undefined, verifyRules, controlsEnabled);
+      const lookupAccount = async (uid: string) => ({ uid, emailVerified: true, disabled: uid === actor.uid && exportAccountDisabled });
+      const exportAuthorization = { lookupAccount, now: () => new Date(clock), verifySecurity: verifyRules || (async () => {}) };
+      exportWorker = new LargeExportWorker(authority, artifacts, new ServerLargeExportBuilder(operations, exportAuthorization), () => new Date(clock));
+      const scheduledExports = new ScheduledExportManagement(authority, lookupAccount, undefined, () => new Date(clock), verifyRules);
+      app.use('/api', createApi({ operations, scheduledExports, exportWorker, exportAuthorization, verify: async value => { if (!issued.has(value)) throw Error('Invalid synthetic token'); return { ...actor }; } }));
       server = app.listen(0, '127.0.0.1');
       await new Promise<void>((resolve, reject) => { server!.once('listening', resolve); server!.once('error', reject); });
       const address = server.address(); if (!address || typeof address === 'string') throw Error('Missing synthetic API address');
       backendUrl = `http://127.0.0.1:${address.port}`;
     };
-    await page.route('**/api/**', async route => {
-      await initializeBackend(); clock = await page.evaluate(() => Date.now());
+    let tearingDown = false;
+    const pendingRoutes = new Set<Promise<void>>();
+    await page.context().route('**/api/**', async route => {
+      if (tearingDown) { await route.abort('aborted').catch(() => {}); return; }
+      const task = (async () => {
+      await initializeBackend(); clock = await route.request().frame().page().evaluate(() => Date.now());
       const request = route.request(), url = new URL(request.url()), path = url.pathname + url.search;
       requests.push(path);
       const bearer = request.headers().authorization || '';
@@ -116,6 +151,9 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
       const response = await fetch(backendUrl + path, { method: request.method(), headers: { Authorization: bearer, 'Content-Type': 'application/json' }, ...(body ? { body } : {}) });
       if (abortNext && isBusinessWrite && response.ok) { abortNext = false; await response.text(); await route.abort('failed'); return; }
       await route.fulfill({ status: response.status, contentType: 'application/json', headers: { 'Cache-Control': response.headers.get('cache-control') || 'no-store' }, body: await response.text() });
+      })();
+      pendingRoutes.add(task);
+      try { await task; } finally { pendingRoutes.delete(task); }
     });
     const harness: MerchantHarness = {
       seed: value => { if (server) throw Error('Seed before opening the cloud app; never replace committed server records on reload.'); records = structuredClone(value); },
@@ -130,13 +168,32 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
         if (!response.ok) throw Error(result.error || 'Synthetic second-client command failed.');
         return result;
       },
+      createSchedule: async (input, operationId = crypto.randomUUID()) => {
+        if (!server || !token) throw Error('Open the signed-in synthetic API first.');
+        const response = await fetch(`${backendUrl}/api/organizations/${guestId}/export-schedules`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ input, operationId }) });
+        const value = await response.json(); if (!response.ok) throw Error(value.error); return value;
+      },
+      updateSchedule: async (id, revision, updates, operationId = crypto.randomUUID()) => {
+        if (!server || !token) throw Error('Open the signed-in synthetic API first.');
+        const response = await fetch(`${backendUrl}/api/organizations/${guestId}/export-schedules/${encodeURIComponent(id)}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ expected_revision: revision, updates, operationId }) });
+        const value = await response.json(); if (!response.ok) throw Error(value.error); return value;
+      },
+      runExportWorker: async () => { if (!server || !serverAuthority) throw Error('Use a server-authority synthetic harness.'); clock = await page.evaluate(() => Date.now()); return exportWorker.runNext(); },
+      disableExportAccount: () => { exportAccountDisabled = true; },
       failNextWrite: () => { failWrite = true; }, abortAfterCommit: () => { abortNext = true; },
       failCloudReads: () => { failReads = true; }, recoverCloudReads: () => { failReads = false; },
       failNextAcknowledgement: () => { failAck = true; },
     };
     harnesses.set(page, harness);
     try { await use(harness); }
-    finally { harnesses.delete(page); if (server) await new Promise<void>((resolve, reject) => server!.close(error => error ? reject(error) : resolve())); }
+    finally {
+      tearingDown = true;
+      // Keep the synthetic API alive until every route that started in this test
+      // has finished. Late refreshes during fixture teardown never open a fetch.
+      await Promise.all([...pendingRoutes]);
+      harnesses.delete(page);
+      if (server) await new Promise<void>((resolve, reject) => server!.close(error => error ? reject(error) : resolve()));
+    }
   }, { auto: true }],
 });
 export { expect, type Page };

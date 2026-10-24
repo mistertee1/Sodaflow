@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "milestone": "Excel4.2b.2b.2",
+  "verified_at": "2026-10-24T17:18:09.285526+00:00",
+  "repository": "mistertee1/Sodaflow",
+  "source_commit": "ad78eb3c13f3498b5d74cbeb0e98d661c9eb2b63",
+  "pr": 145,
+  "ci": {
+    "run_id": 40113997694,
+    "job_id": 120931393951,
+    "commit_sha": "ad78eb3c13f3498b5d74cbeb0e98d661c9eb2b63",
+    "conclusion": "success",
+    "unit_api": 681,
+    "netlify_runtime": 16,
+    "firestore_emulator": 71,
+    "ui": 137,
+    "failed": 0,
+    "skipped": 0,
+    "production_audit_vulnerabilities": 0,
+    "node22": {
+      "run_id": 40113997723,
+      "conclusion": "success"
+    },
+    "tested_merge_commit": "77e7908160e5578bf7d17c7bc2c8df373cd642d9",
+    "base_main": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
+    "tested_tree": "df36c8a7e9d2ae77a56da9a724ef9fef34e28030",
+    "merge_tree_equals_source": true
+  },
+  "local_check": {
+    "unit_api": 681,
+    "netlify_runtime": 16,
+    "types": "passed",
+    "core": "passed",
+    "build": "passed",
+    "failed": 0,
+    "skipped": 0
+  },
+  "new_cases": {
+    "dispatch_unit_api": 16,
+    "upload_recovery": 16,
+    "firestore": 5
+  },
+  "source_files_modified_after_acceptance": false,
+  "production": {
+    "writes": 0,
+    "deployment": false,
+    "rules_or_claims_changed": false,
+    "execution_enabled": false,
+    "private_storage_IAM": "not_verified",
+    "paid_resources_created": 0
+  },
+  "next_milestone": "Excel4.2b.2b.3 UI, history and authorized downloads"
+}

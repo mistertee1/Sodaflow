@@ -146,7 +146,7 @@ test('invoice and receipt UI preserve historical receivable and do not duplicate
 });
 
 test('D4.2 owner configures customer credit and documents an approved invoice override across reload', async ({ page }) => {
-  await page.goto('/');
+  await openMerchant(page);
   await page.locator('#tab-customers').click();
   await page.getByTitle('تعديل بيانات العميل').click();
   const customerDialog = page.getByRole('dialog', { name: 'إضافة أو تعديل عميل' });
@@ -156,8 +156,8 @@ test('D4.2 owner configures customer credit and documents an approved invoice ov
   await customerDialog.getByLabel('حد الائتمان دولار').fill('50');
   await customerDialog.getByLabel('سياسة حد الائتمان').selectOption('approval_required');
   await customerDialog.getByRole('button', { name: 'حفظ التعديلات', exact: true }).click();
-  await expect.poll(() => page.evaluate(() => Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}'))
-    .filter(([path]) => path.includes('/customers/')).map(([, row]) => row as any)[0]?.credit_limit_usd)).toBe(50);
+  await expect.poll(() => (async () => Object.entries((await cloudRecords(page)))
+    .filter(([path]) => path.includes('/customers/')).map(([, row]) => row as any)[0]?.credit_limit_usd)()).toBe(50);
 
   await page.reload();
   await page.locator('#tab-customers').click();
@@ -176,8 +176,8 @@ test('D4.2 owner configures customer credit and documents an approved invoice ov
   await invoiceForm.getByRole('button', { name: 'إصدار الفاتورة وحفظها', exact: true }).click();
   await expect(page.getByRole('button', { name: 'تسجيل دفعة', exact: true })).toBeVisible();
 
-  const invoice = await page.evaluate(() => Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3') || '{}'))
-    .filter(([path]) => path.includes('/invoices/')).map(([, row]) => row)[0] as any);
+  const invoice = await (async () => Object.entries((await cloudRecords(page)))
+    .filter(([path]) => path.includes('/invoices/')).map(([, row]) => row)[0] as any)();
   expect(invoice.credit_decision).toMatchObject({
     currency: 'USD', limit: 50, exposure_after: 60, exceeded: true,
     policy: 'approval_required', approved_by: 'guest', approval_reason: 'اعتماد المالك لطلب موثق',
@@ -332,11 +332,11 @@ test('A1 expense payment selection saves the bank account and removes merchandis
 test('D1.2 expense and manual journal dimensions survive posting and reload', async ({ page }) => {
   const records=await periodGuestFixture(false,'Owner'),root='organizations/local-guest-org',now='2026-10-05T12:00:00.000Z';
   Object.assign(records,{[`${root}/branches/north`]:{id:'north',org_id:'local-guest-org',kind:'branch',code:'NORTH',name_ar:'الفرع الشمالي',status:'active',created_by:'guest',created_at:now,updated_at:now,revision:1},[`${root}/cost_centers/sales`]:{id:'sales',org_id:'local-guest-org',kind:'cost_center',code:'SALES',name_ar:'المبيعات',status:'active',created_by:'guest',created_at:now,updated_at:now,revision:1},[`${root}/projects/contract-a`]:{id:'contract-a',org_id:'local-guest-org',kind:'project',code:'A',name_ar:'العقد أ',status:'active',created_by:'guest',created_at:now,updated_at:now,revision:1}});
-  await page.addInitScript(records=>localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records)),records);await page.goto('/');await page.locator('#tab-expenses').click();await page.getByRole('button',{name:/إضافة مصروف|مصروف جديد/}).first().click();let dialog=page.getByRole('dialog',{name:'تسجيل مصروف'});
+  await seedCloudMerchant(page, records);await openMerchant(page);await page.locator('#tab-expenses').click();await page.getByRole('button',{name:/إضافة مصروف|مصروف جديد/}).first().click();let dialog=page.getByRole('dialog',{name:'تسجيل مصروف'});
   await dialog.locator('input[type="text"]').first().fill('إيجار مشروع الفرع');await dialog.locator('input[type="number"]').first().fill('75');await dialog.getByLabel('فرع المصروف').selectOption('north');await dialog.getByLabel('مركز تكلفة المصروف').selectOption('sales');await dialog.getByLabel('مشروع المصروف').selectOption('contract-a');await dialog.locator('form').evaluate(form=>(form as HTMLFormElement).requestSubmit());await expect(dialog).toHaveCount(0);
   await page.locator('#tab-accounting').click();await page.getByRole('button',{name:'قيد يومية يدوي',exact:true}).click();dialog=page.getByRole('dialog',{name:'إنشاء قيد يومية'});await dialog.getByLabel('البيان العام للقيد').fill('قيد أبعاد مستقل');await dialog.getByLabel('فرع القيد').selectOption('north');await dialog.getByLabel('مركز تكلفة القيد').selectOption('sales');await dialog.getByLabel('مشروع القيد').selectOption('contract-a');const lineSelects=dialog.locator('.space-y-3 select');await lineSelects.nth(0).selectOption('1110');await lineSelects.nth(1).selectOption('3100');await dialog.getByPlaceholder('مدين ج.س').nth(0).fill('10');await dialog.getByPlaceholder('دائن ج.س').nth(1).fill('10');await dialog.locator('form').evaluate(form=>(form as HTMLFormElement).requestSubmit());await expect(dialog).toHaveCount(0);
-  const verify=async()=>page.evaluate(()=>Object.entries(JSON.parse(localStorage.getItem('sudaflow_guest_transactions_v3')||'{}')).filter(([path])=>path.includes('/journal_entries/')).map(([,row])=>row as any).filter(row=>row.description?.includes('إيجار مشروع الفرع')||row.description==='قيد أبعاد مستقل').every(row=>row.lines.every((line:any)=>line.branch_id==='north'&&line.cost_center_id==='sales'&&line.project_id==='contract-a')));expect(await verify()).toBe(true);
-  const saved=await page.evaluate(()=>localStorage.getItem('sudaflow_guest_transactions_v3'));await page.addInitScript(saved=>localStorage.setItem('sudaflow_guest_transactions_v3',saved!),saved);await page.reload();expect(await verify()).toBe(true);
+  const verify=async()=>(async ()=>Object.entries((await cloudRecords(page))).filter(([path])=>path.includes('/journal_entries/')).map(([,row])=>row as any).filter(row=>row.description?.includes('إيجار مشروع الفرع')||row.description==='قيد أبعاد مستقل').every(row=>row.lines.every((line:any)=>line.branch_id==='north'&&line.cost_center_id==='sales'&&line.project_id==='contract-a')))();expect(await verify()).toBe(true);
+  const saved=await (async ()=>JSON.stringify(await cloudRecords(page)))();await page.reload();expect(await verify()).toBe(true);
 });
 
 test('A1 report dates reject reversed ranges without hiding account repair controls', async ({ page }) => {
@@ -351,7 +351,7 @@ test('A1 report dates reject reversed ranges without hiding account repair contr
 });
 
 test('C6 report shortcuts derive a complete prior comparison period and can clear it', async ({ page }) => {
-  await page.goto('/'); await page.locator('#tab-accounting').click();
+  await openMerchant(page); await page.locator('#tab-accounting').click();
   await page.getByRole('button', { name: 'هذا الشهر', exact: true }).click();
   const start = await page.getByLabel('بداية فترة التقرير').inputValue(); const end = await page.getByLabel('نهاية فترة التقرير').inputValue();
   expect(start).toMatch(/^\d{4}-\d{2}-01$/); expect(end >= start).toBeTruthy();
@@ -485,8 +485,8 @@ test('B2 mobile bank matching and cash counts preserve evidence, require differe
   }
   const center=page.getByRole('region',{name:'النقدية والبنوك',exact:true});await center.getByLabel('بداية التقرير التشغيلي').fill('2026-10-01');await center.getByLabel('نهاية التقرير التشغيلي').fill('2026-10-05');
   await page.getByRole('button',{name:'مطابقة كشف بنك',exact:true}).click();let dialog=page.getByRole('dialog',{name:'مطابقة كشف بنك',exact:true});await dialog.getByLabel('حساب المطابقة').selectOption({label:'بنك المطابقة (SDG)'});await dialog.getByLabel('بداية المطابقة').fill('2026-10-01');await dialog.getByLabel('نهاية المطابقة').fill('2026-10-05');await expect(dialog).toContainText('5,000');await dialog.getByLabel('ختامي كشف البنك').fill('5000');
-  const workbook=new ExcelJS.Workbook();workbook.addWorksheet('Instructions').addRow(['التعليمات']);const statement=workbook.addWorksheet('Statement');statement.addRow(['id','date','direction','amount','reference','description']);statement.addRow(['statement-open','2026-10-01','inflow',6000,'OPEN','افتتاحي الكشف']);statement.addRow(['statement-out','2026-10-03','outflow',1000,'OUT','صرف مثبت']);const bytes=Buffer.from(await workbook.xlsx.writeBuffer()),beforeImport=await page.evaluate(()=>localStorage.getItem('sudaflow_guest_transactions_v3'));
-  await dialog.getByLabel('رفع كشف البنك').setInputFiles({name:'bank.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:bytes});await expect(dialog.getByRole('status')).toContainText('تمت قراءة 2 حركة');await expect(dialog.getByTestId('bank-import-evidence')).toContainText('فرق الختامي: 0 SDG');expect(await page.evaluate(()=>localStorage.getItem('sudaflow_guest_transactions_v3'))).toBe(beforeImport);
+  const workbook=new ExcelJS.Workbook();workbook.addWorksheet('Instructions').addRow(['التعليمات']);const statement=workbook.addWorksheet('Statement');statement.addRow(['id','date','direction','amount','reference','description']);statement.addRow(['statement-open','2026-10-01','inflow',6000,'OPEN','افتتاحي الكشف']);statement.addRow(['statement-out','2026-10-03','outflow',1000,'OUT','صرف مثبت']);const bytes=Buffer.from(await workbook.xlsx.writeBuffer()),beforeImport=await (async ()=>JSON.stringify(await cloudRecords(page)))();
+  await dialog.getByLabel('رفع كشف البنك').setInputFiles({name:'bank.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',buffer:bytes});await expect(dialog.getByRole('status')).toContainText('تمت قراءة 2 حركة');await expect(dialog.getByTestId('bank-import-evidence')).toContainText('فرق الختامي: 0 SDG');expect(await (async ()=>JSON.stringify(await cloudRecords(page)))()).toBe(beforeImport);
   await dialog.getByLabel('مطابقة حركة 1').selectOption('opening-reconcile:0');await dialog.getByLabel('مطابقة حركة 2').selectOption('bank-out:1');
   await dialog.locator('form').evaluate(form=>{(form as HTMLFormElement).requestSubmit();(form as HTMLFormElement).requestSubmit();});await expect(dialog).toHaveCount(0);
   const rec=page.getByRole('region',{name:'مطابقة البنك وجرد الصندوق',exact:true});await expect(rec.getByRole('cell',{name:'مطابق',exact:true})).toBeVisible();

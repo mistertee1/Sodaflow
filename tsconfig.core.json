@@ -66,6 +66,26 @@
     "tests/invoiceSave.test.ts",
     "tests/invoiceSaveFirestore.test.ts",
     "tests/ui/invoiceSave.spec.ts",
-    "tests/historicalImportCommit.test.ts"
+    "tests/historicalImportCommit.test.ts",
+    "tests/historicalRecovery.test.ts",
+    "tests/historicalRecoveryFirestore.test.ts",
+    "tests/ui/historicalRecovery.spec.ts",
+    "tests/auditorPackage.test.ts",
+    "tests/auditorPackageFirestore.test.ts",
+    "tests/ui/auditorPackage.spec.ts",
+    "tests/scheduledExportPolicy.test.ts",
+    "tests/scheduledExportManagement.test.ts",
+    "tests/scheduledExportManagementFirestore.test.ts",
+    "tests/helpers/scheduledExports.ts",
+    "tests/exportLiveAuthorization.test.ts",
+    "tests/exportLiveAuthorizationFirestore.test.ts",
+    "tests/helpers/liveExports.ts",
+    "tests/scheduledExportDispatch.test.ts",
+    "tests/scheduledExportDispatchFirestore.test.ts",
+    "tests/exportUploadRecovery.test.ts",
+    "tests/helpers/scheduledDispatch.ts",
+    "tests/scheduledExportUIApi.test.ts",
+    "tests/scheduledExportHistoryFirestore.test.ts",
+    "tests/ui/scheduledExports.spec.ts"
   ]
 }

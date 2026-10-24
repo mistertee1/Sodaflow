@@ -22,7 +22,8 @@ import type { FinancialAccount } from '../domain/cashManagement';
 import type { OperationalReportTypes, OperationalView, LedgerQuery, ReportPeriod } from '../domain/operationalReports';
 import type { CostInput } from '../domain/inventoryCost';
 import type { Change, Document } from '../domain/store';
-import { api, operationId } from '../services/businessApi';
+import { api, operationId, organizationMutation } from '../services/businessApi';
+import type { ExportScheduleInput, ExportScheduleUpdates, ExportScheduleList, ExportScheduleMutation, ExportJobHistory, ExportJobView, ExportDownload } from '../types/exportSchedules';
 import { firebaseCommand, firebaseSnapshot, watchFirebaseRevision } from '../services/firebaseSync';
 import { cloudOrganizations } from '../services/cloudOrganizations';
 import { hasPermission, type ActionType } from '../services/rbacService';
@@ -34,6 +35,11 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  loadExportSchedules: (expectedOrgId: string) => Promise<ExportScheduleList>;
+  loadExportJobHistory: (expectedOrgId: string) => Promise<ExportJobHistory>;
+  createExportSchedule: (input: ExportScheduleInput, expectedOrgId: string) => Promise<ExportScheduleMutation>;
+  updateExportSchedule: (id: string, revision: number, updates: ExportScheduleUpdates, expectedOrgId: string) => Promise<ExportScheduleMutation>;
+  getExportDownload: (job: ExportJobView, expectedOrgId: string) => Promise<ExportDownload>;
   approvalPolicies: ApprovalPolicy[];
   saveApprovalPolicy:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<ApprovalPolicy>;
   recurringCashSources:RecurringCashSource[];
@@ -134,9 +140,12 @@ interface AppContextType {
   createAccountingExport: (period:{start?:string;end?:string}) => Promise<{workbook_base64:string;mime_type:string;filename:string;record_count:number;line_count:number}>;
   exportPresets: Document[];
   dataTransferHistory: Document[];
+  createAuditorPackage: (period: { start?: string; end?: string }) => Promise<Document>;
   saveExportPreset: (input:{id?:string;name:string;kind:'company'|'accounting'|'master';module?:MasterExportModule;period?:{start?:string;end?:string}}) => Promise<Document>;
   deleteExportPreset: (id:string) => Promise<void>;
   createCompanyExport: (presetId?:string) => Promise<{json:string;filename:string;byte_size:number;collection_counts:Record<string,number>}>;
+  historicalImportSessions: Document[];
+  recoverHistoricalImport: (id: string, expectedOrgId: string) => Promise<Awaited<ReturnType<Operations['historicalImportRecovery']>>>;
   commitHistoricalImport: (input: Parameters<Operations['historicalImportPreview']>[2]['input'] & {expected_review_sha256:string}, expectedOrgId:string, operationId:string) => Promise<Document>;
   previewHistoricalImport: (request: Parameters<Operations['historicalImportPreview']>[2], expectedOrgId: string) => Promise<Awaited<ReturnType<Operations['historicalImportPreview']>>>;
   stageHistoricalImport: (input: HistoricalImportStageInput, operationId: string) => Promise<Document>;
@@ -455,7 +464,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
   const nothing = async () => {};
+  const exportScope = (expectedOrgId: string) => {
+    const id = activeOrg.current, epoch = session.current, uid = userRef.current?.uid;
+    const check = () => {
+      if (!uid || userRef.current?.uid !== uid || id !== activeOrg.current || epoch !== session.current || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة أو جلسة الدخول؛ حدّث بيانات التصدير.', 409, 'scope_changed');
+    };
+    check();
+    return { id: id!, check, path: `/organizations/${encodeURIComponent(id!)}` };
+  };
   const value: AppContextType = {
+    loadExportSchedules: async expectedOrgId => {
+      const scope = exportScope(expectedOrgId), result = await api<ExportScheduleList>(`${scope.path}/export-schedules`); scope.check();
+      if (result.org_id !== scope.id || !Array.isArray(result.schedules) || result.schedules.some(row => row.org_id !== scope.id)) throw new BusinessError('نتيجة جداول التصدير غير مطابقة للمؤسسة.', 409);
+      return result;
+    },
+    loadExportJobHistory: async expectedOrgId => {
+      const scope = exportScope(expectedOrgId), result = await api<ExportJobHistory>(`${scope.path}/export-job-history`); scope.check();
+      if (result.org_id !== scope.id || !Array.isArray(result.jobs) || result.jobs.some(row => row.org_id !== scope.id)) throw new BusinessError('نتيجة سجل التصدير غير مطابقة للمؤسسة.', 409);
+      return result;
+    },
+    createExportSchedule: async (input, expectedOrgId) => {
+      const scope = exportScope(expectedOrgId), result = await organizationMutation<ExportScheduleMutation>(scope.id, `${scope.path}/export-schedules`, { input }, scope.check); scope.check();
+      if (result.org_id !== scope.id || result.schedule.org_id !== scope.id) throw new BusinessError('نتيجة حفظ الجدول غير مطابقة للمؤسسة.', 409);
+      return result;
+    },
+    updateExportSchedule: async (id, revision, updates, expectedOrgId) => {
+      const scope = exportScope(expectedOrgId), result = await organizationMutation<ExportScheduleMutation>(scope.id, `${scope.path}/export-schedules/${encodeURIComponent(id)}`, { expected_revision: revision, updates }, scope.check); scope.check();
+      if (result.org_id !== scope.id || result.schedule.org_id !== scope.id || result.schedule.id !== id) throw new BusinessError('نتيجة تعديل الجدول غير مطابقة للمؤسسة.', 409);
+      return result;
+    },
+    getExportDownload: async (job, expectedOrgId) => {
+      const scope = exportScope(expectedOrgId);
+      if (job.org_id !== scope.id || !['accounting_export_jobs', 'company_export_jobs'].includes(job.collection)) throw new BusinessError('ملف التصدير من مؤسسة أخرى.', 409);
+      const result = await api<ExportDownload>(`${scope.path}/export-jobs/${job.collection}/${encodeURIComponent(job.id)}/download`); scope.check();
+      let url: URL; try { url = new URL(result.url); } catch { throw new BusinessError('رابط التنزيل غير صالح.', 502); }
+      if (url.protocol !== 'https:' || url.username || url.password || !Number.isFinite(Date.parse(result.expires_at)) || Date.parse(result.expires_at) <= Date.now()) throw new BusinessError('رابط التنزيل غير آمن أو منتهي.', 502);
+      return result;
+    },
     taxConfigurations: rows<TaxConfiguration>('tax_configurations'),
     saveTaxConfiguration: (data, updating, expectedOrgId, requestId) => activeOrg.current === expectedOrgId
       ? run<TaxConfiguration>(updating ? 'taxConfiguration.update' : 'taxConfiguration.create', data, requestId)
@@ -577,8 +622,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     recordCashCount: data => run('cashCount.create', data),
     counters: state.counters, subscription: state.subscription as OrgSubscription, theme, setTheme, toggleTheme: () => setTheme(t => t === 'light' ? 'dark' : 'light'),
     isActionAllowed, createMasterExport: module => run('masterExport.create',{module}), createAccountingExport:period=>run('accountingExport.create',{period}),
+    createAuditorPackage: period => run('auditorExport.create', { period }),
     exportPresets:rows<Document>('export_presets'),dataTransferHistory:rows<Document>('audit_logs').filter(row=>['DATA_EXPORT_CREATED','DATA_IMPORT_STARTED'].includes(row.event_type)).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
     saveExportPreset:input=>run('exportPreset.save',input),deleteExportPreset:async id=>{await run('exportPreset.delete',{id});},createCompanyExport,
+    historicalImportSessions: [...rows<Document>('historical_import_sessions')].sort((a,b) => String(b.created_at).localeCompare(String(a.created_at))),
+    recoverHistoricalImport: async (sessionId, expectedOrgId) => {
+      const id = activeOrg.current, epoch = session.current;
+      if (!userRef.current) throw new BusinessError('استرداد الجلسة يتطلب حساباً مسجلاً وخدمة الخادم.', 403);
+      if (!id || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد تحميل الجلسة.', 409);
+      const result = await api<Awaited<ReturnType<Operations['historicalImportRecovery']>>>(`/organizations/${encodeURIComponent(id)}/historical-import/sessions/${encodeURIComponent(sessionId)}`);
+      if (id !== activeOrg.current || epoch !== session.current || result.org_id !== id || result.session.id !== sessionId || result.session.org_id !== id) throw new BusinessError('تغيرت المؤسسة أو نتيجة الجلسة؛ أعد الاسترداد.', 409);
+      return result;
+    },
     commitHistoricalImport: (input, expectedOrgId, id) => {
       if (!userRef.current) return Promise.reject(new BusinessError('الاعتماد التاريخي يتطلب حساباً مسجلاً وخدمة الخادم.',403,'accounting_server_required'));
       if (activeOrg.current !== expectedOrgId || !/^[a-f0-9]{64}$/.test(input.expected_review_sha256)) return Promise.reject(new BusinessError('تغيرت المؤسسة أو بصمة المعاينة؛ أعد المعاينة.',409));

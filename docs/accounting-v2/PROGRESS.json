@@ -4,15 +4,16 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "C",
-  "active_branch": "codex/accounting-v2-c5-tax-ui-20261012",
-  "overall_status": "in_progress",
+  "active_milestone": "Excel4.2",
+  "active_branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+  "overall_status": "in_progress_not_commercially_ready",
   "lease": {
-    "worker": "inventory-workspace-request-20261023",
-    "acquired_at": "2026-10-23T17:36:57.832Z",
-    "expires_at": "2026-10-23T18:21:57.832Z",
-    "purpose": "User request: inventory suppliers, repeat purchases and product costing UI",
-    "branch": "codex/inventory-purchasing-workspace-20261023"
+    "worker": "scheduled-export-ui-resume-20261024-2010",
+    "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+    "acquired_at": "2026-10-24T20:08:21.000Z",
+    "heartbeat_at": "2026-10-24T20:32:25.726437+00:00",
+    "expires_at": "2026-10-24T21:32:25.726437+00:00",
+    "purpose": "Complete newest whitelisted history, cloud schedule management and authorized download UI; synthetic acceptance only; no production activation"
   },
   "milestones": [
     {
@@ -1046,6 +1047,30 @@
               },
               "render_acceptance": "pending_matching_authenticated_staging_commit",
               "completed_at": "2026-10-12T07:15:00Z"
+            },
+            {
+              "id": "C5.3.2",
+              "scope": "Journal-backed tax period liability/receivable reports, protected API and RTL reconciliation UI",
+              "status": "implemented_ci_passed_render_acceptance_pending",
+              "branch": "codex/accounting-v2-c5-tax-period-reports-20261012",
+              "pr": 55,
+              "report": "REPORT_C5_3_2_TAX_PERIOD_REPORTS.md",
+              "checks": {
+                "unit_api": 335,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "emulator": 35,
+                "ui": 59,
+                "production_audit_vulnerabilities": 0
+              },
+              "ci": {
+                "run_id": 38228962862,
+                "commit_sha": "a234b02ebff6d0799c14453e24e6093ebdac6ce3",
+                "conclusion": "success"
+              },
+              "render_acceptance": "pending_matching_authenticated_staging_commit",
+              "completed_at": "2026-10-12T09:16:00Z"
             }
           ]
         },
@@ -2357,19 +2382,153 @@
         {
           "id": "Excel4.2",
           "scope": "Auditor package and scheduled export permissions/expiry",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-export-live-authorization-20261024",
+          "pr": null,
+          "substeps": [
+            {
+              "id": "Excel4.2a",
+              "scope": "Protected bounded Auditor Package with dual-book GL/TB, source/audit references, period close/reopen and reconciliation",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+              "checks": {
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "unit_api": 596,
+                "netlify_runtime": 16,
+                "targeted_ui": 8,
+                "targeted_ui_status": "passed",
+                "new_unit_api": 14,
+                "new_ui": 5,
+                "firestore": "requires_CI_Java21",
+                "full_ui": "requires_CI"
+              },
+              "report": "REPORT_AUDITOR_PACKAGE.md",
+              "pr": 142,
+              "ci": {
+                "run_id": 40084130070,
+                "commit_sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+                "conclusion": "success",
+                "unit_api": 596,
+                "netlify_runtime": 16,
+                "firestore_emulator": 58,
+                "ui": 137,
+                "failed": 0,
+                "skipped": 0,
+                "production_audit_vulnerabilities": 0,
+                "node22": {
+                  "run_id": 40084130089,
+                  "conclusion": "success"
+                }
+              }
+            },
+            {
+              "id": "Excel4.2b.1",
+              "scope": "Pure IANA calendar, permissions and retention contracts",
+              "status": "implemented_ci_passed",
+              "pr": 143,
+              "source_commit": "187c608bca28622220ee036382aa72bd43345d34"
+            },
+            {
+              "id": "Excel4.2b.2a",
+              "scope": "Atomic cloud schedule management and private due index; execution remains disabled",
+              "status": "implemented_ci_passed",
+              "pr": 143,
+              "source_commit": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
+              "ci": {
+                "run_id": 40092180614,
+                "commit_sha": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
+                "conclusion": "success",
+                "unit_api": 632,
+                "netlify_runtime": 16,
+                "firestore_emulator": 62,
+                "ui": 137,
+                "failed": 0,
+                "skipped": 0,
+                "production_audit_vulnerabilities": 0,
+                "node22": {
+                  "run_id": 40092180619,
+                  "conclusion": "success"
+                }
+              }
+            },
+            {
+              "id": "Excel4.2b.2b.1",
+              "scope": "Live Auth and transactional export build/publication/download authorization",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-export-live-authorization-20261024",
+              "report": "REPORT_LIVE_EXPORT_AUTHORIZATION.md",
+              "checks": {
+                "focused_worker_unit_api": 21,
+                "focused_failed": 0,
+                "full_check": "passed",
+                "firestore_emulator": 66,
+                "full_UI": 137,
+                "unit_api": 649,
+                "netlify_runtime": 16,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "production_audit_vulnerabilities": 0,
+                "ci": "passed"
+              },
+              "pr": 144,
+              "source_commit": "d37ba35418f5583ce277eca34062586d8f6d31c7",
+              "ci": {
+                "run_id": 40105798056,
+                "job_id": 120907103391,
+                "commit_sha": "d37ba35418f5583ce277eca34062586d8f6d31c7",
+                "conclusion": "success",
+                "unit_api": 649,
+                "netlify_runtime": 16,
+                "firestore_emulator": 66,
+                "ui": 137,
+                "failed": 0,
+                "skipped": 0,
+                "production_audit_vulnerabilities": 0,
+                "node22": {
+                  "run_id": 40105798020,
+                  "conclusion": "success"
+                }
+              }
+            },
+            {
+              "id": "Excel4.2b.2b.3",
+              "scope": "Whitelisted newest export-job history and allowed schedule kinds; cloud retry-safe management UI and authorized short-lived download links; no production worker activation",
+              "status": "implemented_local_check_passed_ci_pending",
+              "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+              "pr": 145,
+              "report": "REPORT_SCHEDULED_EXPORT_UI.md",
+              "checks": {
+                "new_unit_api": 11,
+                "focused_management_and_history": 30,
+                "unit_api": 692,
+                "netlify_runtime": 16,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "targeted_UI": 16,
+                "new_UI": 11,
+                "failed": 0,
+                "skipped": 0,
+                "firestore_emulator": "pending_CI_3_new_cases",
+                "full_UI": "pending_CI",
+                "production_audit": "pending_CI"
+              }
+            }
+          ]
         }
       ]
     }
   ],
-  "last_report": "REPORT_C5_3_1_TAX_POLICY_UI.md",
+  "last_report": "REPORT_SCHEDULED_EXPORT_UI.md",
   "next_steps": [
-    "C5.3.2 tax periods, liability/receivable aggregation and reports",
-    "Independent authenticated Render acceptance for C5.2b/C5.2c/C5.3.1 on a matching staging commit"
+    "Verify current UI source with CI on the main merge result, including 3 new history Emulator cases and complete UI regressions; do not inherit dispatcher acceptance.",
+    "Then complete the remaining Legacy Migration Package and any outstanding evidence in the PRD.",
+    "Operational acceptance still requires reviewed environment indexes, actual private provider/IAM, periodic execution and authenticated zero-difference financial/backup/restore/user acceptance. No main merge, production activation or deployment by this automation."
   ],
-  "updated_at": "2026-10-12T07:15:00Z",
+  "updated_at": "2026-10-24T20:32:25.726437+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2394,8 +2553,8 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "C5.3.2",
-  "observed_main_sha": "0d06eaf65ae43984369c354ec1dcf53986f128b1",
+  "active_substep": "Excel4.2b.2b.3_scheduled_export_UI",
+  "observed_main_sha": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
   "lease_history": [
     {
       "worker": "accounting-v2-20261007-c11-2042",
@@ -2513,15 +2672,1083 @@
       "released_at": "2026-10-12T07:15:00Z",
       "pr": 54,
       "code_commit": "05278645316b66f931cd37cb2e185711e1500e66"
+    },
+    {
+      "worker": "c5-tax-period-reports-20261012",
+      "acquired_at": "2026-10-12T07:40:00Z",
+      "branch": "codex/accounting-v2-c5-tax-period-reports-20261012",
+      "released_at": "2026-10-12T09:16:00Z",
+      "pr": 55,
+      "code_commit": "a234b02ebff6d0799c14453e24e6093ebdac6ce3"
+    },
+    {
+      "worker": "c6-comparative-reports-20261012",
+      "acquired_at": "2026-10-12T10:59:00Z",
+      "branch": "codex/accounting-v2-c6-comparative-reports-20261012",
+      "released_at": "2026-10-12T11:11:00Z",
+      "pr": 56,
+      "code_commit": "70bbbb459bc70765624bb725dab2ec67f415a190"
+    },
+    {
+      "worker": "d1-dimensions-foundation-20261012",
+      "acquired_at": "2026-10-12T11:14:00Z",
+      "branch": "codex/accounting-v2-d1-dimensions-foundation-20261012",
+      "released_at": "2026-10-12T11:25:00Z",
+      "pr": 57,
+      "code_commit": "aa849671b479922fa840e06d17643178d601f813"
+    },
+    {
+      "worker": "d1-dimension-ui-20261012",
+      "acquired_at": "2026-10-12T13:53:00Z",
+      "branch": "codex/accounting-v2-d1-dimension-ui-20261012",
+      "released_at": "2026-10-12T15:06:00Z",
+      "pr": 59,
+      "code_commit": "48f9ffe6dfd3dedebacaaa1454b9daaf4e299194"
+    },
+    {
+      "worker": "d1-dimension-master-ui-20261012",
+      "acquired_at": "2026-10-12T15:45:00Z",
+      "branch": "codex/accounting-v2-d1-dimension-master-ui-20261012",
+      "released_at": "2026-10-12T16:05:00Z",
+      "pr": 60,
+      "code_commit": "16070f816372f39f4f8e15259f4965557eddff14"
+    },
+    {
+      "worker": "d1-dimension-propagation-20261012",
+      "acquired_at": "2026-10-12T16:10:00Z",
+      "branch": "codex/accounting-v2-d1-dimension-propagation-20261012",
+      "released_at": "2026-10-12T20:35:00Z",
+      "pr": 61,
+      "code_commit": "9f5f2f78ae21004ff6b2c0f3ded3e536bfbe38c4"
+    },
+    {
+      "worker": "d2-product-profitability-20261013",
+      "acquired_at": "2026-10-12T21:20:00Z",
+      "branch": "codex/accounting-v2-d2-profitability-20261012",
+      "released_at": "2026-10-13T05:20:00Z",
+      "pr": 62,
+      "code_commit": "28d9e2b73d6c49f68864f1f422ba0b17eeeebeed"
+    },
+    {
+      "worker": "d2-customer-profitability-20261013",
+      "acquired_at": "2026-10-13T05:45:40.831Z",
+      "branch": "codex/accounting-v2-d2-customer-profitability-20261013",
+      "released_at": "2026-10-13T08:55:00Z",
+      "pr": 64,
+      "code_commit": "be84b48d46ca972c14b0bc6ca7177519b14b2cca"
+    },
+    {
+      "worker": "d3-budget-ui-20261013",
+      "acquired_at": "2026-10-13T10:45:00Z",
+      "branch": "codex/accounting-v2-d3-budget-ui-20261013",
+      "released_at": "2026-10-13T13:12:00Z",
+      "pr": 66,
+      "code_commit": "c05f6d500a69a58f5fbaf3fc8836c0f8291e59b1"
+    },
+    {
+      "worker": "d3-cash-forecast-foundation-20261013",
+      "acquired_at": "2026-10-13T16:40:00Z",
+      "branch": "codex/accounting-v2-d3-cash-forecast-foundation-20261013",
+      "released_at": "2026-10-13T17:06:00Z",
+      "pr": 68,
+      "code_commit": "9668483ad31192dbfff3a081a5712b409ca7df3d"
+    },
+    {
+      "worker": "d3-cash-forecast-ui-20261013",
+      "acquired_at": "2026-10-13T17:58:00Z",
+      "branch": "codex/accounting-v2-d3-cash-forecast-ui-20261013",
+      "released_at": "2026-10-13T18:08:00Z",
+      "pr": 69,
+      "code_commit": "24b020912e630a418321f6d71922444892e23331"
+    },
+    {
+      "worker": "d3-cash-sources-20261013",
+      "round_id": "20261013T1831Z-d3.2b.3",
+      "acquired_at": "2026-10-13T18:31:00Z",
+      "branch": "codex/accounting-v2-d3-cash-sources-20261013",
+      "released_at": "2026-10-13T18:44:00Z",
+      "pr": 70,
+      "code_commit": "216dce2cf246835f1d492a6d71c7e23764c4737e"
+    },
+    {
+      "worker": "d3-cash-sources-ui-20261013",
+      "round_id": "20261013T2350Z-d3.2b.4",
+      "acquired_at": "2026-10-13T23:50:00Z",
+      "branch": "codex/accounting-v2-d3-cash-sources-ui-20261013",
+      "released_at": "2026-10-13T23:57:00Z",
+      "pr": 72,
+      "code_commit": "b0abf3ef03ab29dde6a94be66346c8f8d9acc294"
+    },
+    {
+      "worker": "d4-credit-limits-20261014",
+      "round_id": "20261014T0040Z-d4.1",
+      "acquired_at": "2026-10-14T00:40:00Z",
+      "branch": "codex/accounting-v2-d4-credit-limits-20261014",
+      "released_at": "2026-10-14T00:55:00Z",
+      "pr": 73,
+      "code_commit": "736168470fdef5addc4bdea494634ca159cea5bb"
+    },
+    {
+      "worker": "d4-credit-ui-20261014",
+      "round_id": "20261014T0210Z-d4.2",
+      "acquired_at": "2026-10-14T02:10:00Z",
+      "branch": "codex/accounting-v2-d4-credit-ui-20261014",
+      "released_at": "2026-10-14T04:45:00Z",
+      "pr": 74,
+      "code_commit": "aae5883451125e3f78295d121d780c28814e8f9f"
+    },
+    {
+      "worker": "d4-approval-limits-20261014",
+      "round_id": "20261014T0510Z-d4.3.1",
+      "acquired_at": "2026-10-14T05:10:00Z",
+      "branch": "codex/accounting-v2-d4-approval-limits-20261014",
+      "released_at": "2026-10-14T05:22:00Z",
+      "pr": 75,
+      "code_commit": "eb20d28b55f7d07953b73b3adbf2903c96621bdd"
+    },
+    {
+      "worker": "d4-approval-ui-20261014",
+      "round_id": "20261014T1053Z-d4.3.3",
+      "acquired_at": "2026-10-14T10:53:00Z",
+      "branch": "codex/accounting-v2-d4-approval-ui-20261014",
+      "released_at": "2026-10-14T14:59:00Z",
+      "pr": 78,
+      "code_commit": "6f8363a57596acf65f05d6d09f02f4a7eb4c96f3"
+    },
+    {
+      "worker": "e1-health-foundation-20261014",
+      "round_id": "20261014T1520Z-e1.1",
+      "acquired_at": "2026-10-14T15:20:00Z",
+      "branch": "codex/accounting-v2-e1-health-foundation-20261014",
+      "released_at": "2026-10-14T15:31:00Z",
+      "pr": 79,
+      "code_commit": "9c2b0f2e4f2d9334fbe63eb86bb614bea24628ab"
+    },
+    {
+      "worker": "e1-health-ui-20261014",
+      "round_id": "20261015T0615Z-e1.2-resume",
+      "acquired_at": "2026-10-15T06:15:00Z",
+      "branch": "codex/accounting-v2-e1-health-ui-20261014",
+      "released_at": "2026-10-15T06:23:00Z",
+      "pr": 80,
+      "code_commit": "9aa4a42dd71a9c59963c918b012deb79654bb7b2"
+    },
+    {
+      "worker": "e2-assistance-foundation-20261015",
+      "round_id": "20261015T0750Z-e2.1",
+      "acquired_at": "2026-10-15T07:50:00Z",
+      "branch": "codex/accounting-v2-e2-assistance-foundation-20261015",
+      "released_at": "2026-10-15T08:01:00Z",
+      "pr": 81,
+      "code_commit": "f2563de47f67310957b82f0f3c55aa34739849f1"
+    },
+    {
+      "worker": "e2-assistance-ui-20261015",
+      "round_id": "20261015T0840Z-e2.2",
+      "acquired_at": "2026-10-15T08:40:00Z",
+      "branch": "codex/accounting-v2-e2-assistance-ui-20261015",
+      "released_at": "2026-10-15T11:37:00Z",
+      "pr": 82,
+      "code_commit": "79b58707c674b4d739d1682cf84ab302c1901aca"
+    },
+    {
+      "worker": "e2-smart-suggestions-20261015",
+      "round_id": "20261015T1226Z-e2.3",
+      "acquired_at": "2026-10-15T12:26:00Z",
+      "branch": "codex/accounting-v2-e2-smart-suggestions-20261015",
+      "released_at": "2026-10-15T12:47:00Z",
+      "pr": 84,
+      "code_commit": "1a3e6c0dcdcc389a39525f1162c9df4f21daa51c"
+    },
+    {
+      "worker": "codex-automation",
+      "round_id": "20261015T163924Z-e3-owner-summary",
+      "acquired_at": "2026-10-15T16:39:24Z",
+      "branch": "codex/accounting-v2-e3-owner-summary-20261015",
+      "released_at": "2026-10-15T16:52:00Z",
+      "pr": 85,
+      "code_commit": "bfbbfdd2e07b91907308a115f68a938cf6ca049d"
+    },
+    {
+      "worker": "excel1-import-preview-resume-20261016",
+      "round_id": "20261016T033000Z-excel1.2-resume",
+      "base_branch": "codex/accounting-v2-excel1-quick-exports-20261015",
+      "acquired_at": "2026-10-16T03:30:00Z",
+      "branch": "codex/accounting-v2-excel1-import-preview-20261015",
+      "released_at": "2026-10-16T03:41:00Z",
+      "pr": 88,
+      "code_commit": "a3a63c5f33f4fd551fbfbd3b0acffb5cc0525d35",
+      "status": "Excel1.2_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel2-accounting-export-20261016",
+      "round_id": "20261016T053000Z-excel2.1",
+      "base_branch": "codex/accounting-v2-excel1-import-preview-20261015",
+      "acquired_at": "2026-10-16T05:30:00Z",
+      "branch": "codex/accounting-v2-excel2-accountant-export-20261016",
+      "released_at": "2026-10-16T08:02:00Z",
+      "pr": 89,
+      "code_commit": "cf5c8cc5efcd2c1863857f3df2afd7ee19165ef4",
+      "status": "Excel2.1_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel2-opening-import-20261016",
+      "round_id": "20261016T081000Z-excel2.2a",
+      "base_branch": "codex/accounting-v2-excel2-accountant-export-20261016",
+      "acquired_at": "2026-10-16T08:10:00Z",
+      "branch": "codex/accounting-v2-excel2-opening-import-20261016",
+      "released_at": "2026-10-16T09:27:00Z",
+      "pr": 90,
+      "code_commit": "a3723872aa9fe9a04ca13acd097f182eba59276e",
+      "status": "Excel2.2a_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel2-opening-ui-20261016",
+      "round_id": "20261016T105500Z-excel2.2b",
+      "base_branch": "codex/accounting-v2-excel2-opening-import-20261016",
+      "acquired_at": "2026-10-16T10:55:00Z",
+      "branch": "codex/accounting-v2-excel2-opening-ui-20261016",
+      "released_at": "2026-10-16T11:27:00Z",
+      "pr": 91,
+      "code_commit": "e1a79a73a59cf5d8a562715e9a653878c94ad155",
+      "status": "Excel2.2b_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel2-bank-import-20261016",
+      "round_id": "20261016T113000Z-excel2.3a",
+      "base_branch": "codex/accounting-v2-excel2-opening-ui-20261016",
+      "acquired_at": "2026-10-16T11:30:00Z",
+      "branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
+      "released_at": "2026-10-16T14:55:00Z",
+      "pr": 92,
+      "code_commit": "80b094a422d31aa440d9f392644bff855f46c02e",
+      "status": "Excel2.3a_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel2-bank-matching-ui-20261016",
+      "round_id": "20261016T151200Z-excel2.3b",
+      "base_branch": "codex/accounting-v2-excel2-bank-statement-import-20261016",
+      "acquired_at": "2026-10-16T15:12:00Z",
+      "branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
+      "released_at": "2026-10-16T15:32:00Z",
+      "pr": 93,
+      "code_commit": "ee7f31378fcb5168286082adcd50294de00cd126",
+      "status": "Excel2.3b_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel3-company-portability-finalize-20261018",
+      "round_id": "20261018T005200Z-excel3.1-finalize",
+      "base_branch": "codex/accounting-v2-excel2-bank-matching-ui-20261016",
+      "acquired_at": "2026-10-18T00:52:00Z",
+      "branch": "codex/accounting-v2-excel3-company-portability-20261016",
+      "released_at": "2026-10-18T01:08:00Z",
+      "pr": 94,
+      "code_commit": "a6f3aff6d38c8e82afac5ed0888c78a5359fc34a",
+      "status": "Excel3.1_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel3-large-export-jobs-20261018",
+      "round_id": "20261018T015200Z-excel3.2a",
+      "base_branch": "codex/accounting-v2-excel3-company-portability-20261016",
+      "acquired_at": "2026-10-18T01:52:00Z",
+      "branch": "codex/accounting-v2-excel3-large-export-jobs-20261018",
+      "released_at": "2026-10-18T02:05:00Z",
+      "pr": 95,
+      "code_commit": "7dad4dca826f31766b1b6238ead8029b9647ff17",
+      "status": "Excel3.2a_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel3-large-export-worker-20261018",
+      "round_id": "20261018T024000Z-excel3.2b",
+      "base_branch": "codex/accounting-v2-excel3-large-export-jobs-20261018",
+      "acquired_at": "2026-10-18T02:40:00Z",
+      "branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
+      "released_at": "2026-10-18T03:22:33Z",
+      "pr": 96,
+      "code_commit": "9813f0fe0b516501146e3b2dee47389890ed038e",
+      "status": "Excel3.2b_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel3-large-import-ui-resume-20261018",
+      "round_id": "20261018T070900Z-excel3.2c.1-resume",
+      "base_branch": "codex/accounting-v2-excel3-large-export-worker-20261018",
+      "acquired_at": "2026-10-18T07:07:01Z",
+      "branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
+      "released_at": "2026-10-18T08:54:24Z",
+      "pr": 97,
+      "code_commit": "afd3a39cc8c9fe64cdacd0d4cc2d73faa7ffbfda",
+      "status": "Excel3.2c.1_implemented_ci_passed_render_acceptance_pending"
+    },
+    {
+      "worker": "excel3-large-import-worker-20261018",
+      "round_id": "20261018T094623Z-excel3.2c.2",
+      "base_branch": "codex/accounting-v2-excel3-large-import-ui-20261018",
+      "acquired_at": "2026-10-18T09:46:23Z",
+      "branch": "codex/accounting-v2-excel3-large-import-worker-20261018",
+      "released_at": "2026-10-18T09:55:00Z",
+      "pr": 98,
+      "code_commit": "6662455a03830032dfb7061bdf60de8051c1866e",
+      "status": "Excel3.2c.2a_implementation_pushed_ci_pending"
+    },
+    {
+      "worker": "excel4-historical-document-staging-ci-fix-20261019",
+      "round_id": "20261019T054403Z-excel4.1d.2-ci-fix",
+      "base_branch": "codex/accounting-v2-excel4-historical-documents-20261019",
+      "acquired_at": "2026-10-19T05:44:03.571Z",
+      "released_at": "2026-10-19T08:33:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-document-commit-20261019",
+      "pr": 106,
+      "code_commit": "ae41f1dcd9485cdbf9418b49e3084275f1ab5af9",
+      "status": "Excel4.1d.2_implemented_ci_passed_render_acceptance_pending",
+      "ci": {
+        "run_id": 39217835917,
+        "commit_sha": "ae41f1dcd9485cdbf9418b49e3084275f1ab5af9",
+        "conclusion": "success",
+        "gates": [
+          "npm check",
+          "npm audit --omit=dev",
+          "Firestore Emulator",
+          "Playwright UI"
+        ]
+      },
+      "next": "Proceed to Excel4.1d.3 atomic native historical document commit and reconciliation; Render acceptance remains independent"
+    },
+    {
+      "worker": "excel4-historical-native-commit-20261019",
+      "round_id": "20261019T103500Z-excel4.1d.3a",
+      "base_branch": "codex/accounting-v2-excel4-historical-document-commit-20261019",
+      "acquired_at": "2026-10-19T10:35:00Z",
+      "released_at": "2026-10-19T11:00:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
+      "pr": 107,
+      "code_commit": "e2cb20f23bd1506a74e23285fbfefd6abaeb99a5",
+      "status": "Excel4.1d.3a_implemented_ci_passed_render_acceptance_pending",
+      "ci": {
+        "run_id": 39238894878,
+        "commit_sha": "e2cb20f23bd1506a74e23285fbfefd6abaeb99a5",
+        "conclusion": "success"
+      },
+      "next": "Proceed to Excel4.1d.3b atomic native historical document creation and reconciliation; Render acceptance remains independent"
+    },
+    {
+      "worker": "excel4-historical-sales-plan-20261019",
+      "round_id": "20261019T132244Z-excel4.1d.3b.1",
+      "base_branch": "codex/accounting-v2-excel4-historical-native-commit-20261019",
+      "acquired_at": "2026-10-19T13:22:44Z",
+      "released_at": "2026-10-19T13:31:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+      "pr": 108,
+      "code_commit": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
+      "status": "Excel4.1d.3b.1_implemented_ci_passed_render_acceptance_pending",
+      "ci": {
+        "run_id": 39260368179,
+        "commit_sha": "4da1038e005867e8228c879f1e6b9cbe4c63244f",
+        "conclusion": "success"
+      },
+      "next": "Proceed to Excel4.1d.3b.2 atomic sales-plan persistence and reconciliation, then historical purchase planning; Render acceptance remains independent"
+    },
+    {
+      "worker": "excel4-historical-sales-commit-20261020",
+      "round_id": "20261020T133010Z-excel4.1d.3b.2",
+      "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+      "acquired_at": "2026-10-20T13:30:10.511Z",
+      "expires_at": "2026-10-20T15:00:10.513Z",
+      "released_at": "2026-10-20T18:42:26.285Z",
+      "branch": "codex/accounting-v2-excel4-historical-sales-commit-20261020",
+      "status": "expired_after_code_upload_ci_wait",
+      "code_commit": "31aa7005156b46ce25131d142e7d9fa59fec05a1",
+      "ci": {
+        "run_id": 39431979794,
+        "commit_sha": "31aa7005156b46ce25131d142e7d9fa59fec05a1",
+        "conclusion": "success"
+      }
+    },
+    {
+      "worker": "excel4-historical-sales-closeout-20261020",
+      "round_id": "20261020T184226Z-excel4.1d.3b.2-closeout",
+      "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+      "acquired_at": "2026-10-20T18:42:26.285Z",
+      "expires_at": "2026-10-20T19:42:26.285Z",
+      "released_at": "2026-10-20T18:43:03.508Z",
+      "branch": "codex/accounting-v2-excel4-historical-sales-commit-20261020",
+      "pr": 110,
+      "code_commit": "31aa7005156b46ce25131d142e7d9fa59fec05a1",
+      "status": "Excel4.1d.3b.2_implemented_ci_passed_render_acceptance_pending",
+      "ci": {
+        "run_id": 39431979794,
+        "commit_sha": "31aa7005156b46ce25131d142e7d9fa59fec05a1",
+        "conclusion": "success"
+      },
+      "next": "Proceed to Excel4.1d.3b.3 native historical purchase/AP/receipt/WAC planning, then atomic persistence and reconciliation; Render acceptance remains independent"
+    },
+    {
+      "worker": "excel4-historical-purchase-plan-20261020",
+      "round_id": "20261020T192641Z-excel4.1d.3b.3",
+      "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+      "acquired_at": "2026-10-20T19:26:41.402Z",
+      "expires_at": "2026-10-20T20:56:41.402Z",
+      "released_at": "2026-10-20T19:27:27.712Z",
+      "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+      "status": "blocked_execution_environment_unavailable_no_code_changes",
+      "next": "Resume Excel4.1d.3b.3 native historical purchase/AP/receipt/WAC planning when the execution environment is available"
+    },
+    {
+      "worker": "excel4-historical-purchase-plan-20261020c",
+      "round_id": "20261020T235104Z-excel4.1d.3b.3",
+      "base_branch": "codex/accounting-v2-excel4-historical-sales-plan-20261019",
+      "acquired_at": "2026-10-20T23:51:04.000Z",
+      "expires_at": "2026-10-21T01:21:04.000Z",
+      "released_at": "2026-10-21T05:10:06.731Z",
+      "branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+      "pr": 112,
+      "code_commit": "043546309e2a45649f70eaeab1f08ef76211e172",
+      "status": "Excel4.1d.3b.3_implemented_ci_passed_render_acceptance_pending",
+      "ci": {
+        "run_id": 39518461024,
+        "commit_sha": "043546309e2a45649f70eaeab1f08ef76211e172",
+        "conclusion": "success"
+      },
+      "next": "Proceed to Excel4.1d.3b.4 atomic historical purchase persistence, frozen-tax replay and strict reconciliation; Render acceptance remains independent"
+    },
+    {
+      "worker": "excel4-historical-purchase-commit-20261021",
+      "round_id": "20261021T1109Z-excel4.1d.3b.4",
+      "acquired_at": "2026-10-21T11:09:00Z",
+      "expires_at": "2026-10-21T12:39:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+      "base_branch": "codex/accounting-v2-excel4-historical-purchase-plan-20261020",
+      "purpose": "Implement atomic historical purchase persistence, frozen-tax replay and strict reconciliation",
+      "released_at": "2026-10-21T11:14:00Z",
+      "pr": 114,
+      "code_commit": "b01f1730c059cf9280fc85748d5495112ffb7e64",
+      "status": "partial_implementation_draft_tax_source_reconciliation_blocker",
+      "checks": {
+        "excel_import": 71,
+        "unit_api": 373,
+        "types_core_build": "passed",
+        "production_audit_vulnerabilities": 0,
+        "emulator_ui": "pending_CI"
+      },
+      "ci": {
+        "run_id": 39590389375,
+        "conclusion": "pending"
+      },
+      "next": "Complete frozen purchase-tax source/return reconciliation on PR #114; retain source_event_sequence and strict zero-finding gate. Add USD/FX, multi-line and restore tests. Excel4.1d.3b.4 remains incomplete; Render acceptance independent."
+    },
+    {
+      "worker": "excel4-purchase-closeout-20261021",
+      "round_id": "20261021T1544Z-closeout",
+      "acquired_at": "2026-10-21T15:44:00Z",
+      "expires_at": "2026-10-21T16:04:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-purchase-commit-20261021",
+      "purpose": "Record verified CI, close Excel4.1d.3b.4 and release lease",
+      "released_at": "2026-10-21T15:45:00Z",
+      "pr": 114,
+      "status": "Excel4.1d.3b.4_implemented_ci_passed_render_acceptance_pending",
+      "code_commit": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+      "checks": {
+        "excel_import": 73,
+        "unit_api": 381,
+        "firestore_emulator": 35,
+        "playwright": 92,
+        "production_audit_vulnerabilities": 0,
+        "types": "passed",
+        "lint_core": "passed",
+        "build": "passed"
+      },
+      "ci": {
+        "run_id": 39598908302,
+        "commit_sha": "b9681b8b2977ca3e6bf1dd6e95dc15763818ea2c",
+        "conclusion": "success"
+      },
+      "next": "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent."
+    },
+    {
+      "worker": "excel4-workbook-closeout-20261022",
+      "acquired_at": "2026-10-22T17:43:00Z",
+      "expires_at": "2026-10-22T18:43:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
+      "purpose": "Publish whitespace validation and verify workbook milestone",
+      "released_at": "2026-10-22T17:43:00Z",
+      "pr": 117,
+      "status": "workbook_base_ci_passed_whitespace_followup_ci_pending",
+      "code_commit": "1318aaf6ea63001317eb9f9d65c4108a59c30955",
+      "checks": {
+        "targeted_xlsx": 6,
+        "status": "passed"
+      },
+      "base_ci": {
+        "run_id": 39632722205,
+        "commit_sha": "050faa10d02318ba4dea68751a80d7a8d529d46a",
+        "conclusion": "success"
+      },
+      "next": "Verify PR117 CI and integration, then Excel4.1e.2 workbook UI/staging/preview/commit. Preserve current main Super Admin pause changes."
+    },
+    {
+      "worker": "workbook-ci-close-20261022",
+      "acquired_at": "2026-10-22T18:15:00Z",
+      "expires_at": "2026-10-22T18:45:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-workbook-20261021",
+      "purpose": "Record successful final workbook CI",
+      "released_at": "2026-10-22T18:16:00Z",
+      "status": "Excel4.1e.1_implemented_ci_passed",
+      "pr": 117,
+      "ci": {
+        "run_id": 39825084325,
+        "commit_sha": "f574a220a767ccb8252621b752fe8023954c7c06",
+        "conclusion": "success"
+      },
+      "next": "Implement Excel4.1e.2 historical workbook UI, server staging/preview and reviewed commit; then legacy migration and auditor/scheduled exports. Preserve main Super Admin/sync changes."
+    },
+    {
+      "worker": "historical-ui-20261022",
+      "acquired_at": "2026-10-22T19:32:00Z",
+      "expires_at": "2026-10-22T20:32:00Z",
+      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+      "purpose": "Historical workbook UI local validation first",
+      "released_at": "2026-10-22T19:34:00Z",
+      "pr": 119,
+      "status": "Excel4.1e.2a_partial_ui_ci_pending",
+      "code_commit": "11a8705f0fee8c7cfe30df75e9cd2df075348878",
+      "checks": {
+        "types": "passed",
+        "build": "passed",
+        "xlsx": 6,
+        "ui": "local_browser_download_incomplete_CI_pending"
+      },
+      "ci": {
+        "run_id": 39840990009,
+        "conclusion": "in_progress"
+      },
+      "next": "Verify PR119 CI, complete valid-file/stale-context UI coverage, then server staging and reviewed hash-bound commit. Excel4.1e.2 incomplete."
+    },
+    {
+      "worker": "historical-ui-audit-20261022",
+      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+      "acquired_at": "2026-10-22T20:24:00Z",
+      "expires_at": "2026-10-22T21:24:00Z",
+      "purpose": "Fix CI production DOMPurify audit blocker",
+      "released_at": "2026-10-22T20:26:00Z",
+      "pr": 119,
+      "status": "partial_UI_audit_fixed_CI_pending",
+      "code_commit": "6462f8634b3464aa9c2c88be77cc04ea0c8295b4",
+      "ci": {
+        "run_id": 39848463542,
+        "conclusion": "in_progress"
+      },
+      "production_audit_vulnerabilities": 0,
+      "next": "Verify repaired PR119 CI including real UI/emulator; finish valid-file and stale-context coverage then protected server staging and hash-bound approval."
+    },
+    {
+      "worker": "historical-ui-valid-file-20261022",
+      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+      "acquired_at": "2026-10-22T21:37:00Z",
+      "expires_at": "2026-10-22T22:37:00Z",
+      "purpose": "Prove valid historical workbook UI read-only review",
+      "released_at": "2026-10-22T21:39:00Z",
+      "pr": 119,
+      "status": "initial_UI_ci_passed_valid_file_test_pending",
+      "code_commit": "f5318cc5217216c8c2f154b4358afbe682952a0e",
+      "accepted_ci": {
+        "run_id": 39848463542,
+        "commit_sha": "6462f8634b3464aa9c2c88be77cc04ea0c8295b4",
+        "conclusion": "success"
+      },
+      "next": "Verify valid-file UI test CI, add stale-context coverage, then server staging/preview/hash-bound commit. Excel4.1e.2 remains incomplete."
+    },
+    {
+      "worker": "historical-ui-closeout-20261022",
+      "branch": "codex/accounting-v2-excel4-historical-ui-20261022",
+      "acquired_at": "2026-10-22T22:29:00Z",
+      "expires_at": "2026-10-22T22:59:00Z",
+      "purpose": "Close verified local workbook review milestone",
+      "released_at": "2026-10-22T22:30:00Z",
+      "pr": 119,
+      "status": "Excel4.1e.2a_implemented_ci_passed",
+      "ci": {
+        "run_id": 39858718951,
+        "commit_sha": "7e1a858007b081f9d18e1acc628679a360bbd61d",
+        "conclusion": "success"
+      },
+      "checks": {
+        "excel_import": 79,
+        "unit_api": 381,
+        "firestore": 35,
+        "ui": 94,
+        "production_audit_vulnerabilities": 0
+      },
+      "next": "Excel4.1e.2b: protected server staging, fresh review and hash-bound commit with context isolation and atomicity UI acceptance."
+    },
+    {
+      "worker": "historical-staging-ui-20261022",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-22T23:28:00Z",
+      "expires_at": "2026-10-23T00:28:00Z",
+      "purpose": "Connect reviewed workbook to protected server staging",
+      "released_at": "2026-10-22T23:29:00Z",
+      "pr": 121,
+      "status": "Excel4.1e.2b_partial_staging_bridge_CI_pending",
+      "code_commit": "8027b0dd84a9ccd360dce907bd4287894d22ff97",
+      "checks": {
+        "types": "passed",
+        "build": "passed",
+        "staging_tests": 5,
+        "ui": "pending_CI"
+      },
+      "next": "Verify PR121 CI, accept authenticated staging success/retry/context isolation, then fresh server review and hash-bound financial approval. No commercial readiness."
+    },
+    {
+      "worker": "historical-guest-staging-fix-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T00:42:00Z",
+      "expires_at": "2026-10-23T01:42:00Z",
+      "purpose": "Reject guest staging before local writes after CI acceptance finding",
+      "released_at": "2026-10-23T00:44:00Z",
+      "pr": 121,
+      "status": "guest_staging_rejected_before_write_CI_pending",
+      "code_commit": "b6e9dbfdcefd47b7a0976d73d45241308e545ac4",
+      "previous_ci": {
+        "run_id": 39871910468,
+        "conclusion": "failure",
+        "reason": "Guest local store accepted staging; UI guard fixed, regression assertion retained"
+      },
+      "next": "Verify fixed PR121 CI and unchanged guest no-write assertion; then accept authenticated staging/retry/isolation before adding financial commit."
+    },
+    {
+      "worker": "guest-staging-ci-closeout-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T00:57:00Z",
+      "expires_at": "2026-10-23T01:17:00Z",
+      "purpose": "Record verified guest no-write regression CI",
+      "released_at": "2026-10-23T00:58:00Z",
+      "pr": 121,
+      "status": "guest_staging_guard_ci_passed_authenticated_flow_pending",
+      "ci": {
+        "run_id": 39879589869,
+        "commit_sha": "cfa3ca8ac16c4b5b6f84aa8f2bddfaa7f6660be9",
+        "conclusion": "success"
+      },
+      "next": "Accept authenticated staging success, retry and context isolation; then fresh protected review and hash-bound commit. PR121 remains partial draft."
+    },
+    {
+      "worker": "historical-auth-staging-test-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T02:27:00Z",
+      "expires_at": "2026-10-23T03:27:00Z",
+      "purpose": "Exercise signed-in staging and retry against real domain via isolated test API",
+      "released_at": "2026-10-23T02:30:00Z",
+      "pr": 121,
+      "status": "authenticated_staging_retry_acceptance_test_pending_CI",
+      "code_commit": "0478ee417eaed696dd5645c015e3d7a4d763930a",
+      "checks": {
+        "types": "passed",
+        "ui": "pending_CI"
+      },
+      "next": "Verify new authenticated staging/retry UI test, repair failures; then context isolation and protected fresh review/hash-bound commit. Real Firebase acceptance remains separate."
+    },
+    {
+      "worker": "historical-staging-fixture-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T03:43:00Z",
+      "expires_at": "2026-10-23T04:43:00Z",
+      "purpose": "Complete isolated server security-verifier fixture required by staging",
+      "released_at": "2026-10-23T03:45:00Z",
+      "pr": 121,
+      "status": "isolated_server_fixture_repaired_CI_pending",
+      "code_commit": "40e2f99df74db7f50004319af0b0b6d3e9aae95e",
+      "previous_ci": {
+        "run_id": 39889584051,
+        "conclusion": "failure",
+        "reason": "Isolated server fixture omitted required Rules verifier; explicit test-only callback and invocation assertion added"
+      },
+      "next": "Verify authenticated staging retry CI; repair remaining test/application failures, then isolation and hash-bound financial approval. No live Rules verification claimed."
+    },
+    {
+      "worker": "historical-staging-evidence-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T04:02:00Z",
+      "expires_at": "2026-10-23T04:22:00Z",
+      "purpose": "Record successful authenticated staging retry CI",
+      "released_at": "2026-10-23T04:03:00Z",
+      "pr": 121,
+      "status": "isolated_authenticated_staging_retry_ci_passed_isolation_commit_pending",
+      "ci": {
+        "run_id": 39896414668,
+        "commit_sha": "a29fe662f3c559c54e5df415d28f8dc5644390ae",
+        "conclusion": "success"
+      },
+      "next": "Add context/tenant switch acceptance, then fresh server review and evidence-hash-bound commit UI. PR121 remains partial draft; live Firebase acceptance independent."
+    },
+    {
+      "worker": "historical-staging-result-binding-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T05:44:00Z",
+      "expires_at": "2026-10-23T06:44:00Z",
+      "purpose": "Bind displayed staging result to tenant and workbook evidence",
+      "released_at": "2026-10-23T05:46:00Z",
+      "pr": 121,
+      "status": "staging_result_tenant_file_binding_CI_pending",
+      "code_commit": "28a7b63da0389d27620e10c9af293291fa622930",
+      "next": "Verify foreign-result rejection plus uncertain retry CI, then actual tenant-switch-during-request acceptance and protected review/financial approval. PR121 partial draft."
+    },
+    {
+      "worker": "staging-binding-ci-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T05:58:00Z",
+      "expires_at": "2026-10-23T06:18:00Z",
+      "purpose": "Record successful tenant/file binding CI",
+      "released_at": "2026-10-23T05:59:00Z",
+      "pr": 121,
+      "status": "staging_tenant_file_binding_ci_passed_switch_commit_pending",
+      "ci": {
+        "run_id": 39907295374,
+        "commit_sha": "07f5a125592534542a67c9285830ec0e3748f2dd",
+        "conclusion": "success"
+      },
+      "next": "Implement actual tenant-switch-during-request acceptance, then fresh review and hash-bound financial approval; PR121 partial draft."
+    },
+    {
+      "worker": "historical-tenant-switch-test-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T07:27:00Z",
+      "expires_at": "2026-10-23T08:27:00Z",
+      "purpose": "Verify late staging response after real organization switch",
+      "released_at": "2026-10-23T07:30:00Z",
+      "pr": 121,
+      "status": "tenant_switch_during_staging_acceptance_pending_CI",
+      "next": "Verify delayed staging tenant-switch test and retry regression CI; repair failures then fresh review and evidence-bound financial approval."
+    },
+    {
+      "worker": "historical-staging-closeout-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-staging-ui-20261022",
+      "acquired_at": "2026-10-23T07:49:00Z",
+      "expires_at": "2026-10-23T08:09:00Z",
+      "purpose": "Close protected staging UI acceptance; approval remains next",
+      "released_at": "2026-10-23T07:50:00Z",
+      "pr": 121,
+      "status": "Excel4.1e.2b_staging_UI_implemented_ci_passed",
+      "ci": {
+        "run_id": 39917634341,
+        "commit_sha": "1e70011c8dca16daeead1b41875d45237a0da209",
+        "conclusion": "success"
+      },
+      "next": "Excel4.1e.2c: fresh protected server review and evidence-hash-bound financial approval UI; real Firebase acceptance remains independent."
+    },
+    {
+      "worker": "historical-review-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-review-20261023",
+      "acquired_at": "2026-10-23T08:50:00Z",
+      "expires_at": "2026-10-23T09:35:00Z",
+      "purpose": "Implement protected non-writing historical commit dry run",
+      "released_at": "2026-10-23T08:52:00Z",
+      "pr": 122,
+      "status": "Excel4.1e.2c.1_protected_dry_run_implemented_CI_pending",
+      "code_commit": "262a4fe2b05eef87b3ce91ebe6f02bdbd5cc03b4",
+      "checks": {
+        "types": "passed",
+        "lint_core": "passed",
+        "excel_import": 82,
+        "unit_api": 382,
+        "build": "passed",
+        "cloud_ci": "pending"
+      },
+      "next": "Verify PR122 CI; wire fresh server preview UI and evidence/state-hash-bound approval with context isolation; real Firebase acceptance remains independent."
+    },
+    {
+      "worker": "historical-preview-ci-closeout-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-review-20261023",
+      "acquired_at": "2026-10-23T09:52:38Z",
+      "expires_at": "2026-10-23T10:12:38.000Z",
+      "purpose": "Record verified historical preview CI and close foundation milestone",
+      "released_at": "2026-10-23T09:52:55Z",
+      "status": "Excel4.1e.2c.1_implemented_ci_passed",
+      "pr": 122,
+      "ci": {
+        "run_id": 39927620106,
+        "commit_sha": "262a4fe2b05eef87b3ce91ebe6f02bdbd5cc03b4",
+        "conclusion": "success"
+      },
+      "next": "Excel4.1e.2c.2: wire fresh server preview UI and evidence/state-hash-bound approval, tenant/context isolation and retry acceptance; real Firebase acceptance remains independent."
+    },
+    {
+      "worker": "historical-preview-ui-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-preview-ui-20261023",
+      "acquired_at": "2026-10-23T11:07:02Z",
+      "expires_at": "2026-10-23T11:52:02.000Z",
+      "purpose": "Connect read-only live historical preview UI with context isolation",
+      "released_at": "2026-10-23T11:09:19Z",
+      "pr": 123,
+      "status": "Excel4.1e.2c.2a_preview_UI_implemented_CI_pending",
+      "code_commit": "79c25ba52749664863d721e0acba45770000a5d2",
+      "checks": {
+        "types": "passed",
+        "lint_core": "passed",
+        "excel_import": 82,
+        "unit_api": 382,
+        "build": "passed",
+        "new_ui": "pending_CI"
+      },
+      "next": "Verify PR123 preview success/no-write, file replacement and late-response tenant-switch CI; then evidence/state-hash-bound financial approval. Live Firebase acceptance independent."
+    },
+    {
+      "worker": "historical-preview-ui-ci-closeout-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-preview-ui-20261023",
+      "acquired_at": "2026-10-23T12:35:05Z",
+      "expires_at": "2026-10-23T12:55:05.000Z",
+      "purpose": "Close verified protected historical preview UI",
+      "released_at": "2026-10-23T12:35:19Z",
+      "pr": 123,
+      "status": "Excel4.1e.2c.2a_preview_UI_implemented_ci_passed",
+      "ci": {
+        "run_id": 39944015473,
+        "commit_sha": "79c25ba52749664863d721e0acba45770000a5d2",
+        "conclusion": "success"
+      },
+      "next": "Excel4.1e.2c.2b: bind financial approval to reviewed state/evidence hashes, implement explicit approval UI and retry/stale/context-isolation acceptance. Real Firebase acceptance remains independent."
+    },
+    {
+      "worker": "historical-approval-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-approval-20261023",
+      "acquired_at": "2026-10-23T12:50:55Z",
+      "expires_at": "2026-10-23T13:35:55.000Z",
+      "purpose": "Bind historical commit to reviewed live state/evidence",
+      "released_at": "2026-10-23T12:53:13Z",
+      "pr": 124,
+      "status": "Excel4.1e.2c.2b.1_review_binding_implemented_CI_pending",
+      "code_commit": "c0dd70600e76a66f092aa31548beb87d43dad065",
+      "checks": {
+        "types": "passed",
+        "lint_core": "passed",
+        "excel_import": 84,
+        "unit_api": 382,
+        "build": "passed",
+        "ci": "pending"
+      },
+      "next": "Verify PR124 CI; then explicit approval UI using review hash and same operationId, stale-state/retry/tenant isolation acceptance, and reviewed-contract enforcement. Real Firebase acceptance remains independent."
+    },
+    {
+      "worker": "review-binding-ci-closeout-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-approval-20261023",
+      "acquired_at": "2026-10-23T14:35:45Z",
+      "expires_at": "2026-10-23T14:55:45.000Z",
+      "purpose": "Close verified reviewed-state binding foundation",
+      "released_at": "2026-10-23T14:36:00Z",
+      "pr": 124,
+      "status": "Excel4.1e.2c.2b.1_review_binding_implemented_ci_passed",
+      "ci": {
+        "run_id": 39956684842,
+        "commit_sha": "c0dd70600e76a66f092aa31548beb87d43dad065",
+        "conclusion": "success"
+      },
+      "next": "Excel4.1e.2c.2b.2: explicit approval UI with reviewed hash and same operationId; retry/stale-state/context isolation tests, then reviewed-contract enforcement. Live Firebase acceptance independent."
+    },
+    {
+      "worker": "historical-approval-ui-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
+      "acquired_at": "2026-10-23T15:00:16Z",
+      "expires_at": "2026-10-23T15:45:16.000Z",
+      "purpose": "Implement explicit reviewed historical approval UI and retained retry",
+      "released_at": "2026-10-23T15:03:05Z",
+      "pr": 126,
+      "status": "Excel4.1e.2c.2b.2_explicit_approval_UI_implemented_CI_pending",
+      "code_commit": "acc486f786ee3f772ae5cd34de3ef32c825eccfa",
+      "checks": {
+        "types": "passed",
+        "lint_core": "passed",
+        "excel_import": 84,
+        "unit_api": 382,
+        "build": "passed",
+        "new_ui": "pending_CI"
+      },
+      "next": "Verify PR126 explicit approval/retry/stale/context-switch CI; repair failures. Then reviewed-contract enforcement and safe session/receipt recovery before full historical migration acceptance. Live Firebase acceptance independent."
+    },
+    {
+      "worker": "historical-approval-receipt-fix-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
+      "acquired_at": "2026-10-23T16:26:09Z",
+      "expires_at": "2026-10-23T16:56:09.000Z",
+      "purpose": "Add tenant binding to historical commit receipt after CI finding",
+      "released_at": "2026-10-23T16:26:46Z",
+      "pr": 126,
+      "status": "approval_receipt_tenant_binding_fixed_CI_pending",
+      "code_commit": "00de5a00092e9b0a1ebe62e8aa40e37d96fcf90f",
+      "checks": {
+        "historical_commit": 18,
+        "types": "passed",
+        "new_ui": "pending_CI"
+      },
+      "previous_ci": {
+        "run_id": 39974838023,
+        "conclusion": "failure",
+        "reason": "Commit receipt omitted org_id required by unchanged UI binding guard; 99 UI passed"
+      },
+      "next": "Verify repaired PR126 CI including commit retry receipt, stale state and tenant switch. Keep unchanged tenant guard and no-duplication assertions; then enforce reviewed contract and session recovery."
+    },
+    {
+      "worker": "approval-ci-retry-20261023",
+      "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
+      "acquired_at": "2026-10-23T17:22:21Z",
+      "expires_at": "2026-10-23T17:42:21.000Z",
+      "purpose": "Record passing approval regressions and retry unrelated receipt UI failure",
+      "released_at": "2026-10-23T17:22:24Z",
+      "pr": 126,
+      "status": "approval_regressions_passed_full_CI_retry_pending",
+      "ci": {
+        "run_id": 39986838841,
+        "commit_sha": "7ea927906ce74ac33ac1f3f9f5c3f1fce4455d40",
+        "conclusion": "failure_retry_requested",
+        "reason": "All historical import UI scenarios passed; unrelated receipt app.spec.ts:139 failed waiting title,99 UI passed"
+      },
+      "next": "Verify rerun39986838841. If receipt UI fails again investigate without weakening assertions; only close PR126 after full green CI. Then reviewed-contract enforcement and safe session/receipt recovery."
+    },
+    {
+      "worker": "accounting-review-acceptance-20261024-0414",
+      "branch": "codex/accounting-v2-historical-review-required-20261023",
+      "acquired_at": "2026-10-23T23:17:42.921Z",
+      "expires_at": "2026-10-24T00:02:42.921Z",
+      "purpose": "Enforce historical approval review at server entry before idempotency; keep dry-run capability private",
+      "released_at": "2026-10-24T04:18:07.479Z",
+      "handed_off_to": "codex/accounting-v2-ui-integration-20261024",
+      "status": "superseded_by_descendant_lease"
+    },
+    {
+      "worker": "accounting-ui-recovery-20261024-0422",
+      "branch": "codex/accounting-v2-ui-integration-20261024",
+      "acquired_at": "2026-10-24T04:18:07.479Z",
+      "expires_at": "2026-10-24T05:21:27.138Z",
+      "purpose": "Complete AccountingView integration and authenticated browser acceptance; preserve incoming sync, receipt, currency and Super Admin work",
+      "heartbeat_at": "2026-10-24T04:36:27.138Z",
+      "observed_expired_at": "2026-10-24T05:22:18.821Z",
+      "handoff": "User explicitly requested continuation of the other agent's Accounting V2 work after invoice recovery."
+    },
+    {
+      "worker": "accounting-historical-recovery-20261024",
+      "branch": "codex/accounting-v2-historical-recovery-20261024",
+      "acquired_at": "2026-10-24T05:22:18.821Z",
+      "heartbeat_at": "2026-10-24T05:39:40.643985+00:00",
+      "expires_at": "2026-10-24T07:09:40.643985+00:00",
+      "purpose": "Safe read-only cloud historical session/receipt recovery and authenticated reload UI acceptance on the accepted PR140 stack",
+      "status": "expired_before_resume",
+      "observed_at": "2026-10-24T09:43:48.876Z"
+    },
+    {
+      "worker": "accounting-excel4-resume-20261024-0944",
+      "branch": "codex/accounting-v2-historical-recovery-20261024",
+      "acquired_at": "2026-10-24T09:43:48.876Z",
+      "heartbeat_at": "2026-10-24T09:43:48.876Z",
+      "expires_at": "2026-10-24T10:28:48.876Z",
+      "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes",
+      "released_at": "2026-10-24T09:44:29.992Z",
+      "status": "completed"
+    },
+    {
+      "worker": "accounting-auditor-package-20261024-0945",
+      "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+      "acquired_at": "2026-10-24T09:44:56.946Z",
+      "heartbeat_at": "2026-10-24T09:58:33.304Z",
+      "expires_at": "2026-10-24T10:43:33.304Z",
+      "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
+      "released_at": "2026-10-24T10:10:01.161Z",
+      "status": "completed"
+    },
+    {
+      "worker": "accounting-scheduled-policy-20261024-1011",
+      "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+      "acquired_at": "2026-10-24T10:11:01.487Z",
+      "heartbeat_at": "2026-10-24T10:11:01.487Z",
+      "expires_at": "2026-10-24T10:56:01.487Z",
+      "purpose": "Publish and verify isolated Excel4.2b.1 calendar/permission/expiry contracts; no runtime scheduling or production execution",
+      "observed_expired_at": "2026-10-24T11:30:12.611Z",
+      "handoff": "Explicit user continuation. Previously prepared source was not present in the published branch; reconstruct and verify from current GitHub base."
+    },
+    {
+      "worker": "scheduled-policy-resume-20261024-1130",
+      "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+      "acquired_at": "2026-10-24T11:30:12.611Z",
+      "heartbeat_at": "2026-10-24T12:00:31.817923+00:00",
+      "expires_at": "2026-10-24T13:30:31.817923+00:00",
+      "purpose": "Excel4.2b.2a cloud schedule CRUD and due-index integration; no worker execution or production changes",
+      "status": "expired_before_resume",
+      "observed_at": "2026-10-24T14:51:59.080Z"
+    },
+    {
+      "worker": "accounting-schedule-execution-resume-20261024-1453",
+      "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+      "acquired_at": "2026-10-24T14:51:59.080Z",
+      "heartbeat_at": "2026-10-24T14:51:59.080Z",
+      "expires_at": "2026-10-24T15:36:59.080Z",
+      "purpose": "Confirm accepted cloud schedule management, then implement next live-authorized execution/download milestone; no production execution",
+      "released_at": "2026-10-24T14:56:07.189Z",
+      "status": "completed"
+    },
+    {
+      "worker": "accounting-export-live-access-20261024-1457",
+      "branch": "codex/accounting-v2-export-live-authorization-20261024",
+      "acquired_at": "2026-10-24T14:56:38.981Z",
+      "heartbeat_at": "2026-10-24T15:20:09.601041+00:00",
+      "expires_at": "2026-10-24T15:41:38.981Z",
+      "purpose": "Live Auth/role/feature gates for export generation, atomic publication and download; synthetic workers and demo Firestore only",
+      "released_at": "2026-10-24T15:20:09.601041+00:00",
+      "status": "implemented_ci_passed",
+      "pr": 144,
+      "source_commit": "d37ba35418f5583ce277eca34062586d8f6d31c7",
+      "ci": {
+        "run_id": 40105798056,
+        "job_id": 120907103391,
+        "commit_sha": "d37ba35418f5583ce277eca34062586d8f6d31c7",
+        "conclusion": "success",
+        "unit_api": 649,
+        "netlify_runtime": 16,
+        "firestore_emulator": 66,
+        "ui": 137,
+        "failed": 0,
+        "skipped": 0,
+        "production_audit_vulnerabilities": 0,
+        "node22": {
+          "run_id": 40105798020,
+          "conclusion": "success"
+        }
+      }
+    },
+    {
+      "worker": "accounting-scheduled-dispatch-20261024-1526",
+      "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+      "acquired_at": "2026-10-24T15:24:24.000Z",
+      "heartbeat_at": "2026-10-24T15:24:24.000Z",
+      "expires_at": "2026-10-24T16:09:24.000Z",
+      "purpose": "Atomic due-to-job dispatch, live authorization, replay/recovery and private orphan cleanup; synthetic tests only; production execution disabled",
+      "resumed_after_expiry_at": "2026-10-24T16:35:40.934120+00:00",
+      "note": "Dispatch branch points to checkpoint f178dcf with no dispatcher implementation; resume from durable GitHub snapshot only."
     }
   ],
   "last_lease": {
-    "worker": "c5-tax-policy-ui-20261012",
-    "acquired_at": "2026-10-12T04:40:00Z",
-    "branch": "codex/accounting-v2-c5-tax-ui-20261012",
-    "released_at": "2026-10-12T07:15:00Z",
-    "pr": 54,
-    "code_commit": "05278645316b66f931cd37cb2e185711e1500e66"
+    "worker": "accounting-export-live-access-20261024-1457",
+    "branch": "codex/accounting-v2-export-live-authorization-20261024",
+    "acquired_at": "2026-10-24T14:56:38.981Z",
+    "heartbeat_at": "2026-10-24T15:20:09.601041+00:00",
+    "expires_at": "2026-10-24T15:41:38.981Z",
+    "purpose": "Live Auth/role/feature gates for export generation, atomic publication and download; synthetic workers and demo Firestore only",
+    "released_at": "2026-10-24T15:20:09.601041+00:00",
+    "status": "implemented_ci_passed",
+    "pr": 144,
+    "source_commit": "d37ba35418f5583ce277eca34062586d8f6d31c7",
+    "ci": {
+      "run_id": 40105798056,
+      "job_id": 120907103391,
+      "commit_sha": "d37ba35418f5583ce277eca34062586d8f6d31c7",
+      "conclusion": "success",
+      "unit_api": 649,
+      "netlify_runtime": 16,
+      "firestore_emulator": 66,
+      "ui": 137,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40105798020,
+        "conclusion": "success"
+      }
+    }
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -2535,7 +3762,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Proceed to C5.3.2 tax periods and reports; retain independent Render acceptance for matching staging commits",
+  "next": "Excel4.2b.2b.2: atomic scheduled due claiming/recovery and worker/type integration, including orphan/upload cleanup recovery; then management/history/download UI and authenticated private-storage/expiry acceptance. execution_enabled remains false; no production execution or deployment.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -2556,24 +3783,15 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "c5-tax-policy-ui-20261012",
-    "acquired_at": "2026-10-12T04:40:00Z",
-    "branch": "codex/accounting-v2-c5-tax-ui-20261012",
-    "released_at": "2026-10-12T07:15:00Z",
-    "pr": 54,
-    "code_commit": "05278645316b66f931cd37cb2e185711e1500e66",
-    "status": "C5_3_1_implemented_ci_passed_render_acceptance_pending",
-    "ended_at": "2026-10-12T07:15:00Z",
-    "ci": {
-      "run_id": 38209232481,
-      "commit_sha": "05278645316b66f931cd37cb2e185711e1500e66",
-      "conclusion": "success",
-      "unit_api": 340,
-      "emulator": 35,
-      "ui": 58,
-      "production_audit_vulnerabilities": 0
-    },
-    "next": "Proceed to C5.3.2 tax periods and reports; Render acceptance remains independent"
+    "worker": "scheduled-export-ui-resume-20261024-2010",
+    "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+    "acquired_at": "2026-10-24T20:08:21.000Z",
+    "heartbeat_at": "2026-10-24T20:32:25.726437+00:00",
+    "expires_at": "2026-10-24T21:32:25.726437+00:00",
+    "purpose": "Complete newest whitelisted history, cloud schedule management and authorized download UI; synthetic acceptance only; no production activation",
+    "status": "in_progress",
+    "base_pr": 145,
+    "base_commit": "bec17fb371b4db6426fef285c755e8fd1ae67c91"
   },
   "acceptance_environment": {
     "provider": "Render",
@@ -2603,6 +3821,639 @@
         "conclusion": "success"
       },
       "notes": "Real Git merge restored tax allocation/correction/restore sources while preserving D1 dimensions and D4 supplier-refund approvals."
+    },
+    "d4_excel_contracts": {
+      "status": "source_fixed_local_check_passed_ci_pending",
+      "baseline": {
+        "additional_unit_files": 24,
+        "initial_extended": 90,
+        "initial_extended_failed": 7,
+        "remaining": 17,
+        "remaining_failed": 4
+      },
+      "scope": "Restore credit limit persistence/precision and Excel audit events; register all non-Firestore unit files without changing Super Admin pause, sync, currencies or invoice fixes",
+      "base_pr": 137,
+      "branch": "codex/accounting-v2-contract-regressions-20261023",
+      "report": "REPORT_CONTRACT_REGRESSIONS_20261023.md",
+      "checks": {
+        "unit_api": 562,
+        "unit_api_status": "passed",
+        "netlify_runtime": 16,
+        "types": "passed",
+        "core": "passed",
+        "build": "passed",
+        "baseline_failures_fixed": 11,
+        "ci": "pending"
+      },
+      "ci": {
+        "run_id": 40038692077,
+        "commit_sha": "a1c747073fa8247f5141a64f313d5b04c2eb85af",
+        "conclusion": "cancelled",
+        "emulator": "passed",
+        "ui": "cancelled_requires_log_review"
+      }
     }
+  },
+  "accounting_resume_checkpoint": {
+    "branch": "codex/accounting-v2-export-live-authorization-20261024",
+    "pr": 144,
+    "sha": "d37ba35418f5583ce277eca34062586d8f6d31c7",
+    "status": "live_export_authorization_implemented_ci_passed",
+    "base_sha": "4c2c65c8599059e3f310db8bf5cdecc6a26f8823",
+    "next": "Excel4.2b.2b.2: atomic scheduled due claiming/recovery and worker/type integration, including orphan/upload cleanup recovery; then management/history/download UI and authenticated private-storage/expiry acceptance. execution_enabled remains false; no production execution or deployment.",
+    "last_run": {
+      "worker": "accounting-export-live-access-20261024-1457",
+      "branch": "codex/accounting-v2-export-live-authorization-20261024",
+      "acquired_at": "2026-10-24T14:56:38.981Z",
+      "heartbeat_at": "2026-10-24T15:20:09.601041+00:00",
+      "expires_at": "2026-10-24T15:41:38.981Z",
+      "purpose": "Live Auth/role/feature gates for export generation, atomic publication and download; synthetic workers and demo Firestore only",
+      "released_at": "2026-10-24T15:20:09.601041+00:00",
+      "status": "implemented_ci_passed",
+      "pr": 144,
+      "source_commit": "d37ba35418f5583ce277eca34062586d8f6d31c7",
+      "ci": {
+        "run_id": 40105798056,
+        "job_id": 120907103391,
+        "commit_sha": "d37ba35418f5583ce277eca34062586d8f6d31c7",
+        "conclusion": "success",
+        "unit_api": 649,
+        "netlify_runtime": 16,
+        "firestore_emulator": 66,
+        "ui": 137,
+        "failed": 0,
+        "skipped": 0,
+        "production_audit_vulnerabilities": 0,
+        "node22": {
+          "run_id": 40105798020,
+          "conclusion": "success"
+        }
+      }
+    }
+  },
+  "integration_base": {
+    "branch": "codex/invoice-save-diagnostics-20261023",
+    "pr": 136,
+    "sha": "e2a1ffd4b79c5d3d63268f118a47e0a0006d7ca1",
+    "main_sha": "307949a60f47aeeddc6ad3d44a1d35dd7e73edf7",
+    "original_inventory_pr": 135,
+    "inventory_ci": 40001136418
+  },
+  "inventory_request": {
+    "status": "source_reapplied_acceptance_in_progress",
+    "branch": "codex/accounting-v2-inventory-integration-20261023",
+    "base_pr": 136,
+    "original_pr": 135,
+    "report": "REPORT_INVENTORY_INTEGRATION_20261023.md",
+    "checks": {
+      "original_ci": {
+        "run_id": 40001136418,
+        "conclusion": "success",
+        "ui": 92
+      },
+      "current_local": {
+        "types": "passed",
+        "core": "passed",
+        "unit_api": 455,
+        "unit_api_status": "passed",
+        "netlify_runtime": 16,
+        "build": "passed"
+      },
+      "current_ci": {
+        "run_id": 40038101273,
+        "commit_sha": "e0673c1c12ada6e15459f45d9fb6b1520a74d636",
+        "conclusion": "cancelled",
+        "check": "passed",
+        "production_audit_vulnerabilities": 0,
+        "emulator": "passed",
+        "ui": "cancelled_requires_log_review"
+      }
+    },
+    "production_activation": false,
+    "pr": 137,
+    "dependency_fix": {
+      "advisory": "GHSA-27r3-jxmh-p828",
+      "body_parser": "1.20.9",
+      "dev_body_parser": "2.4.0",
+      "qs": "6.16.1",
+      "production_audit": "pending_on_patched_lock"
+    }
+  },
+  "historical_review_required": {
+    "status": "core_and_firestore_contract_passed_UI_stack_recovery_pending",
+    "base_pr": 138,
+    "scope": "Reject legacy unreviewed historical financial commits and forged preview flags; private read-only simulation only",
+    "branch": "codex/accounting-v2-historical-review-required-20261023",
+    "report": "REPORT_HISTORICAL_REVIEW_REQUIRED_20261023.md",
+    "checks": {
+      "unit_api": 564,
+      "unit_api_status": "passed",
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "final_historical_tests": 20,
+      "ci": {
+        "run_id": 40061724207,
+        "commit_sha": "03cc372872de0586ef499b2946e29ccd4b576600",
+        "conclusion": "cancelled_due_to_inherited_UI_integration_failures",
+        "check": "passed",
+        "audit": "passed",
+        "emulator": "passed",
+        "ui": "superseded_by_UI_integration_branch"
+      },
+      "firestore_review_contract": "passed_CI",
+      "previous_ci": {
+        "run_id": 40039303158,
+        "conclusion": "cancelled",
+        "unit_api": 564,
+        "netlify_runtime": 16,
+        "production_audit_vulnerabilities": 0,
+        "emulator": "passed_before_new_review_test",
+        "ui": "failed_missing_accounting_UI_tabs_then_job_timeout"
+      },
+      "emulator": 56,
+      "production_audit_vulnerabilities": 0
+    },
+    "code_commit": "03cc372872de0586ef499b2946e29ccd4b576600"
+  },
+  "ui_integration": {
+    "status": "implemented_ci_passed",
+    "base_pr": 139,
+    "root_cause": "AccountingView lost imports, tab state variants, protected tab buttons and mounted D/E/Excel centers",
+    "previous_ci": [
+      40038101273,
+      40038692077,
+      40039303158
+    ],
+    "remaining_failures_to_diagnose": [],
+    "cause_detail": "Confirmed missing AccountingView center wiring plus obsolete guest/localStorage fixtures; credit/dimension/comparison controls already existed and were not overwritten.",
+    "branch": "codex/accounting-v2-ui-integration-20261024",
+    "report": "REPORT_UI_INTEGRATION_RECOVERY.md",
+    "additional_causes": [
+      "Historical staging UI fixture aborted operation-intent requests; now uses actual OperationIntents service",
+      "Real PDF font/rasterization outlasted synchronous 5s assertion; file/content checks retained with bounded 30s artifact wait within 60s test"
+    ],
+    "local_checks": {
+      "first_full_ui": {
+        "passed": 121,
+        "total": 128,
+        "failed": 7
+      },
+      "repaired_targeted_ui": {
+        "passed": 9,
+        "total": 9
+      },
+      "build": "passed",
+      "full_check": "passed",
+      "no_assertions_removed": true,
+      "unit_api": 564,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed"
+    },
+    "source_preservation": [
+      "Only AccountingView runtime imports/tab wiring changed; no replacement of customer/expense/currency/receipt/sync/Super Admin code",
+      "Cloud-only denial tests unchanged",
+      "No dependency/browser package added to repository"
+    ],
+    "ci": {
+      "run_id": 40063035249,
+      "commit_sha": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
+      "conclusion": "success",
+      "unit_api": 564,
+      "netlify_runtime": 16,
+      "firestore_emulator": 56,
+      "ui": 128,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0
+    },
+    "pr": 140
+  },
+  "historical_recovery": {
+    "status": "implemented_ci_passed",
+    "base_source": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
+    "base_pr": 140,
+    "branch": "codex/accounting-v2-historical-recovery-20261024",
+    "owned_paths": [
+      "src/domain/historicalImportRecovery.ts",
+      "src/domain/operations.ts (new read-only recovery method only)",
+      "server/api.ts (new no-store recovery GET only)",
+      "src/context/AppContext.tsx (recovery session list/reader only)",
+      "src/components/accounting/HistoricalWorkbookCenter.tsx",
+      "tests/historicalRecovery*",
+      "tests/helpers/historicalRecovery.ts",
+      "tests/ui/historicalRecovery.spec.ts",
+      "docs/accounting-v2/PLAN_HISTORICAL_RECOVERY.md",
+      "docs/accounting-v2/REPORT_HISTORICAL_RECOVERY.md",
+      "docs/accounting-v2/PROGRESS.json",
+      "tests/ui/helpers/cloudMerchant.ts (optional server-authority test mode; existing default unchanged)",
+      "package.json (Emulator suite registration)",
+      "tsconfig.core.json (new strict regression inclusion)"
+    ],
+    "production_writes": 0,
+    "unit_api_focused": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    "local_check": {
+      "unit_api": 582,
+      "runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed"
+    },
+    "first_ci": {
+      "run_id": 40066476153,
+      "source": "e431dd256d34a3f86a2d046b5ef8e07b992d3984",
+      "unit_api": 578,
+      "runtime": 16,
+      "firestore": 57,
+      "ui_passed": 130,
+      "ui_failed": 2,
+      "status": "failed_UI_fixture_timing_and_initial_company"
+    },
+    "fingerprint_binding": "Committed receipt proof must match the exact stored approval command digest, including review hash and reason; deleted evidence is not treated as legacy.",
+    "pr": 141,
+    "source_commit": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+    "ci": {
+      "run_id": 40067157901,
+      "commit_sha": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+      "conclusion": "success",
+      "unit_api": 582,
+      "netlify_runtime": 16,
+      "firestore_emulator": 57,
+      "ui": 132,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40067157897,
+        "conclusion": "success"
+      }
+    },
+    "completed_at": "2026-10-24T09:44:29.992Z"
+  },
+  "auditor_package": {
+    "status": "implemented_ci_passed",
+    "base_pr": 141,
+    "base_commit": "344c3b57d5812eac8923dfb59300fd5311e43a25",
+    "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+    "scope": "Bounded permission-gated workbook; TB/GL/journals/source references/adjustments/close-reopen/audit/reconciliation; no scheduled execution in this substep",
+    "report": "REPORT_AUDITOR_PACKAGE.md",
+    "plan": "PLAN_AUDITOR_PACKAGE.md",
+    "checks": {
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "unit_api": 596,
+      "netlify_runtime": 16,
+      "targeted_ui": 8,
+      "targeted_ui_status": "passed",
+      "new_unit_api": 14,
+      "new_ui": 5,
+      "firestore": "requires_CI_Java21",
+      "full_ui": "requires_CI"
+    },
+    "limits": {
+      "source_records": 5000,
+      "source_bytes": 5000000,
+      "journal_lines": 20000,
+      "workbook_rows": 50000,
+      "artifact_bytes": 600000
+    },
+    "runtime_paths": [
+      "src/domain/auditorPackage.ts",
+      "src/domain/operations.ts (auditor export guard, builder and audit only)",
+      "src/context/AppContext.tsx (export action only)",
+      "src/components/accounting/DataExportCenter.tsx (auditor section only)"
+    ],
+    "production_writes": 0,
+    "pr": 142,
+    "ci": {
+      "run_id": 40084130070,
+      "commit_sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+      "conclusion": "success",
+      "unit_api": 596,
+      "netlify_runtime": 16,
+      "firestore_emulator": 58,
+      "ui": 137,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40084130089,
+        "conclusion": "success"
+      }
+    },
+    "completed_at": "2026-10-24T10:10:01.161Z"
+  },
+  "scheduled_export_policy": {
+    "status": "implemented_ci_passed",
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "base_pr": 142,
+    "base_source": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+    "scope": "Pure calendar/access/idempotency-key/expiry contracts only; no API, persisted policy, claim, worker integration, download or UI yet",
+    "checks": {
+      "full_local_unit_api": 613,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "policy_tests": 17,
+      "CI": "passed"
+    },
+    "production_writes": 0,
+    "previous_unpublished_local_check_claim": {
+      "full_local_unit_api": 609,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "final_focused_policy_tests": 13
+    },
+    "owned_paths": [
+      "src/domain/scheduledExportPolicy.ts",
+      "tests/scheduledExportPolicy.test.ts",
+      "tsconfig.core.json (strict contract regression inclusion)",
+      "docs/accounting-v2/PROGRESS.json",
+      "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_POLICY.md",
+      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_POLICY.md"
+    ],
+    "source_reconstruction": "Published checkpoint had no policy source; new implementation and results independently verified, prior unpublished 609 claim not reused.",
+    "pr": 143,
+    "source_commit": "187c608bca28622220ee036382aa72bd43345d34",
+    "ci": {
+      "run_id": 40091171036,
+      "job_id": 120863975364,
+      "commit_sha": "187c608bca28622220ee036382aa72bd43345d34",
+      "conclusion": "success",
+      "unit_api": 613,
+      "netlify_runtime": 16,
+      "firestore_emulator": 58,
+      "ui": 137,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40091171475,
+        "conclusion": "success"
+      }
+    },
+    "completed_at": "2026-10-24T11:54:10.116467+00:00"
+  },
+  "scheduled_export_management": {
+    "status": "implemented_ci_passed",
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "parent_policy_source": "187c608bca28622220ee036382aa72bd43345d34",
+    "pr": 143,
+    "scope": "Server-only live-account schedule list/create/revision update, atomic private due index, shared idempotency/rate limit/audit; worker/artifact/download/UI remain separate",
+    "owned_paths": [
+      "src/domain/scheduledExportManagement.ts",
+      "server/scheduledExports.ts",
+      "server/api.ts (dedicated schedule routes and injectable service only)",
+      "tests/helpers/scheduledExports.ts",
+      "tests/scheduledExportManagement.test.ts",
+      "tests/scheduledExportManagementFirestore.test.ts",
+      "package.json (Emulator registration only)",
+      "tsconfig.core.json (strict regression inclusion only)",
+      "docs/accounting-v2/PROGRESS.json",
+      "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_MANAGEMENT.md",
+      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_MANAGEMENT.md"
+    ],
+    "production_writes": 0,
+    "checks": {
+      "focused_unit_api": 19,
+      "full_unit_api": 632,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "firestore_emulator": 62,
+      "full_UI": 137,
+      "production_audit": 0
+    },
+    "first_ci": {
+      "run_id": 40091832037,
+      "source": "21988d029206e1ca1ac062f4df6f18aca8d29c75",
+      "conclusion": "failure",
+      "unit_api": 631,
+      "runtime": 16,
+      "emulator_passed": 58,
+      "emulator_failed": 4,
+      "ui": "not_run_after_Emulator_failure",
+      "cause": "New fixture creation inherited deliberately malformed Free plan left by an earlier permission suite; isolated demo database reset added, with no assertion or Rules weakening."
+    },
+    "source_commit": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
+    "ci": {
+      "run_id": 40092180614,
+      "commit_sha": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
+      "conclusion": "success",
+      "unit_api": 632,
+      "netlify_runtime": 16,
+      "firestore_emulator": 62,
+      "ui": 137,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40092180619,
+        "conclusion": "success"
+      }
+    },
+    "completed_at": "2026-10-24T14:56:07.189Z"
+  },
+  "live_export_authorization": {
+    "status": "implemented_ci_passed",
+    "base_pr": 143,
+    "branch": "codex/accounting-v2-export-live-authorization-20261024",
+    "scope": "Prevent filtered-empty accounting exports and revoked/private artifact access around existing worker generation/publication/download; scheduler claim/UI remain next",
+    "report": "REPORT_LIVE_EXPORT_AUTHORIZATION.md",
+    "plan": "PLAN_LIVE_EXPORT_AUTHORIZATION.md",
+    "base_commit": "4c2c65c8599059e3f310db8bf5cdecc6a26f8823",
+    "reviewed_main": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
+    "checks": {
+      "focused_worker_unit_api": 21,
+      "focused_failed": 0,
+      "full_check": "passed",
+      "firestore_emulator": 66,
+      "full_UI": 137,
+      "unit_api": 649,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "production_audit_vulnerabilities": 0,
+      "ci": "passed"
+    },
+    "production_writes": 0,
+    "pr": 144,
+    "source_commit": "d37ba35418f5583ce277eca34062586d8f6d31c7",
+    "completed_at": "2026-10-24T15:20:09.601041+00:00",
+    "ci": {
+      "run_id": 40105798056,
+      "job_id": 120907103391,
+      "commit_sha": "d37ba35418f5583ce277eca34062586d8f6d31c7",
+      "conclusion": "success",
+      "unit_api": 649,
+      "netlify_runtime": 16,
+      "firestore_emulator": 66,
+      "ui": 137,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40105798020,
+        "conclusion": "success"
+      }
+    },
+    "limits": {
+      "scheduled_execution_enabled": false,
+      "private_storage_IAM_acceptance": "pending",
+      "signed_urls_max_minutes": 5,
+      "already_signed_urls_revocation": "valid_until_short_expiry",
+      "storage_delete_failure_orphan_recovery": "next_milestone"
+    }
+  },
+  "scheduled_export_dispatch": {
+    "status": "implemented_ci_passed",
+    "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+    "base_commit": "f178dcf5ccbfdac1d83965b1347c0801a6ddef9a",
+    "base_pr": 144,
+    "reviewed_main": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
+    "scope": "Atomic due-to-job dispatch, deterministic occurrence receipts, bounded active jobs, safe skipped slots, worker upload intent/fencing/orphan recovery and disabled-by-default once runner; UI and production activation separate",
+    "owned_paths": [
+      "server/scheduledExportDispatch.ts",
+      "server/scheduledExportDispatchRunner.ts",
+      "src/domain/largeExportWorker.ts (claim/fencing/upload cleanup only)",
+      "src/domain/largeExportJobs.ts (scheduled type metadata only if required)",
+      "server/largeExportWorker.ts (cleanup protection hook only)",
+      "tests/scheduledExportDispatch.test.ts",
+      "tests/scheduledExportDispatchFirestore.test.ts",
+      "tests/exportUploadRecovery.test.ts",
+      "tests/helpers/scheduledDispatch.ts",
+      "package.json (once runner and Emulator registration only)",
+      "tsconfig.core.json (strict test inclusion only)",
+      "docs/accounting-v2/PROGRESS.json",
+      "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_DISPATCH.md",
+      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_DISPATCH.md",
+      "tests/largeExportWorker.test.ts (post-PUT cancellation injection; original deletion assertions retained)"
+    ],
+    "production_writes": 0,
+    "checks": {
+      "new_dispatch_unit_api": 16,
+      "new_upload_recovery": 16,
+      "full_unit_api": 681,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "failed": 0,
+      "skipped": 0,
+      "firestore_emulator": 71,
+      "full_UI": 137,
+      "production_audit": 0
+    },
+    "target_base": "main",
+    "integration_review": {
+      "main": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
+      "accepted_source_base": "f178dcf5ccbfdac1d83965b1347c0801a6ddef9a",
+      "virtual_merge_tree_matches_base": true,
+      "content_conflicts": false,
+      "reason": "PR141/142/143/144 were merged into intermediate branches, some after their parent PRs had already merged. One review PR to main carries the accepted complete source without automatic main mutation."
+    },
+    "runtime": {
+      "execution_enabled": false,
+      "once_runner": "disabled_by_default_no_timer_or_deployment",
+      "private_provider_IAM": "pending",
+      "unknown_PUT_cleanup_markers": "retained_and_reswept_until_acknowledged_or_operational_review"
+    },
+    "source_commit": "ad78eb3c13f3498b5d74cbeb0e98d661c9eb2b63",
+    "pr": 145,
+    "completed_at": "2026-10-24T17:18:09.285526+00:00",
+    "ci": {
+      "run_id": 40113997694,
+      "job_id": 120931393951,
+      "commit_sha": "ad78eb3c13f3498b5d74cbeb0e98d661c9eb2b63",
+      "conclusion": "success",
+      "unit_api": 681,
+      "netlify_runtime": 16,
+      "firestore_emulator": 71,
+      "ui": 137,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40113997723,
+        "conclusion": "success"
+      },
+      "tested_merge_commit": "77e7908160e5578bf7d17c7bc2c8df373cd642d9",
+      "base_main": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
+      "tested_tree": "df36c8a7e9d2ae77a56da9a724ef9fef34e28030",
+      "merge_tree_equals_source": true
+    }
+  },
+  "scheduled_export_ui": {
+    "status": "implemented_local_check_passed_ci_pending",
+    "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+    "base_source": "ad78eb3c13f3498b5d74cbeb0e98d661c9eb2b63",
+    "base_pr": 145,
+    "scope": "Whitelisted newest export-job history and allowed schedule kinds; cloud retry-safe management UI and authorized short-lived download links; no production worker activation",
+    "owned_paths": [
+      "src/types/exportSchedules.ts",
+      "src/domain/store.ts (optional descending list order; default unchanged)",
+      "server/firestoreStore.ts (matching list order only)",
+      "src/domain/scheduledExportManagement.ts (allowed kinds and whitelisted job history only)",
+      "server/api.ts (history route and export worker/Auth dependency injection only)",
+      "src/services/businessApi.ts (organization-scoped durable mutation helper)",
+      "src/context/AppContext.tsx (schedule/history/download actions with session and org guards only)",
+      "src/components/accounting/ScheduledExportsCenter.tsx",
+      "src/components/accounting/DataExportCenter.tsx (scoped panel wiring only)",
+      "server/largeExportWorker.ts (attachment disposition if required)",
+      "tests/scheduledExportUIApi.test.ts",
+      "tests/scheduledExportHistoryFirestore.test.ts",
+      "tests/ui/scheduledExports.spec.ts",
+      "tests/ui/helpers/cloudMerchant.ts (synthetic services/worker harness only)",
+      "package.json (Emulator registration only)",
+      "tsconfig.core.json (new strict test includes only)",
+      "docs/accounting-v2/PROGRESS.json",
+      "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_UI.md",
+      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_UI.md",
+      "firestore.indexes.json (two reviewed history query indexes only; not deployed)"
+    ],
+    "production_writes": 0,
+    "checks": {
+      "new_unit_api": 11,
+      "focused_management_and_history": 30,
+      "unit_api": 692,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "targeted_UI": 16,
+      "new_UI": 11,
+      "failed": 0,
+      "skipped": 0,
+      "firestore_emulator": "pending_CI_3_new_cases",
+      "full_UI": "pending_CI",
+      "production_audit": "pending_CI",
+      "download_regression_after_attachment": 4,
+      "attachment_types_and_build": "passed"
+    },
+    "report": "REPORT_SCHEDULED_EXPORT_UI.md",
+    "plan": "PLAN_SCHEDULED_EXPORT_UI.md",
+    "reviewed_main": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
+    "reviewed_head": "bec17fb371b4db6426fef285c755e8fd1ae67c91",
+    "deployment_limits": {
+      "execution_enabled": false,
+      "history_query_indexes": "source_only_not_deployed",
+      "private_provider_IAM": "not_verified",
+      "signed_links_already_issued": "remain_valid_until_short_expiry",
+      "production_writes": 0,
+      "paid_resources": 0
+    },
+    "download_disposition": "signed attachment for JSON and workbook artifacts"
   }
 }

@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import express from 'express';
+import { createApi } from '../server/api';
 import { MemoryStore } from '../src/domain/store';
 import { Operations, type Actor } from '../src/domain/operations';
 import { Organizations } from '../server/organizations';
@@ -23,8 +25,16 @@ async function fixture(){
     tx.set(`${root}/accounting_periods/2026`,{id:'2026',org_id:org.id,schema_version:1,start_date:'2026-01-01',end_date:'2026-01-31',status:'OPEN',revision:1,created_by:'owner',created_at:'2026-01-01',operation_id:'period'});
   });
   const ops=new Operations(store,()=>now),stage=async(rows:HistoricalImportRow[],operationId='history-stage',document_evidence?:Record<string,HistoricalDocumentEvidence>)=>(await ops.execute(org.id,accountant,{action:'historicalImport.stage',operationId,data:{file_name:'history.xlsx',file_hash:'e'.repeat(64),schema_version:1,rows,...(document_evidence?{document_evidence}:{})}})).result;
-  const commit=async(session:Record<string,any>,operationId='history-commit')=>ops.execute(org.id,accountant,{action:'historicalImport.commit',operationId,data:{id:session.id,expected_rows_sha256:session.rows_sha256,expected_validation_context_sha256:session.validation_context_sha256,...(session.document_evidence_sha256?{expected_document_evidence_sha256:session.document_evidence_sha256}:{}),reason:'اعتماد تاريخي مراجع'}});
-  return{store,org,root,ops,stage,commit};
+  const serverOps=new Operations({authority:'server',transaction:work=>store.transaction(work)},()=>now,undefined,async()=>{});
+  const reviews=new Map<string,Awaited<ReturnType<Operations['historicalImportPreview']>>>();
+  const commit=async(session:Record<string,any>,operationId='history-commit')=>{
+    const input={id:session.id,expected_rows_sha256:session.rows_sha256,expected_validation_context_sha256:session.validation_context_sha256,...(session.document_evidence_sha256?{expected_document_evidence_sha256:session.document_evidence_sha256}:{}),reason:'اعتماد تاريخي مراجع'};
+    const key=JSON.stringify({operationId,input});
+    let review=reviews.get(key);
+    if(!review){review=await serverOps.historicalImportPreview(org.id,accountant,{input,operationId});reviews.set(key,review);}
+    return serverOps.execute(org.id,accountant,{action:'historicalImport.commit',operationId,data:{...input,expected_review_sha256:review.review_sha256}});
+  };
+  return{store,org,root,ops,serverOps,stage,commit};
 }
 
 async function seedSalesBaseline(f:Awaited<ReturnType<typeof fixture>>){
@@ -183,10 +193,10 @@ test('Excel4.1d.3a requires and replays the reviewed document evidence hash befo
   const row:HistoricalImportRow={row_number:7,kind:'invoice',reference:'INV-H-7',date:'2026-01-10',currency:'SDG',branch_id:'main',account_code:'4100',counterparty_code:'customer-1',total:115,paid:0,debit:115,credit:115};
   const evidence={party_id:'customer-1',due_date:'2026-02-10',exchange_rate_used:0,control_account_code:'1200',tax_account_code:'2130',tax_configuration_version_hash:'a'.repeat(64),lines:[{product_id:'product-1',description:'بضاعة تاريخية',quantity:2,net:100,tax:15,cogs:60}]};
   const staged=(await f.ops.execute(f.org.id,accountant,{action:'historicalImport.stage',operationId:'document-proof-stage',data:{file_name:'documents.xlsx',file_hash:'f'.repeat(64),schema_version:1,rows:[row],document_evidence:{'7':evidence}}})).result;
-  await assert.rejects(f.ops.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:'document-proof-missing',data:{id:staged.id,expected_rows_sha256:staged.rows_sha256,expected_validation_context_sha256:staged.validation_context_sha256,reason:'مراجعة الدليل'}}),/بصمة دليل المستندات/);
+  await assert.rejects(f.serverOps.historicalImportPreview(f.org.id,accountant,{operationId:'document-proof-missing',input:{id:staged.id,expected_rows_sha256:staged.rows_sha256,expected_validation_context_sha256:staged.validation_context_sha256,reason:'مراجعة الدليل'}}),/بصمة دليل المستندات/);
   await f.store.transaction(async tx=>{const saved=await tx.get(`${f.root}/historical_import_staging/${staged.id}`);tx.set(`${f.root}/historical_import_staging/${staged.id}`,{...saved,document_evidence:{'7':{...evidence,due_date:'2026-03-01'}}});});
   const before=f.store.dump();
-  await assert.rejects(f.ops.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:'document-proof-tampered',data:{id:staged.id,expected_rows_sha256:staged.rows_sha256,expected_validation_context_sha256:staged.validation_context_sha256,expected_document_evidence_sha256:staged.document_evidence_sha256,reason:'مراجعة الدليل'}}),/بصمة دليل المستندات التاريخية مختلفة/);
+  await assert.rejects(f.serverOps.historicalImportPreview(f.org.id,accountant,{operationId:'document-proof-tampered',input:{id:staged.id,expected_rows_sha256:staged.rows_sha256,expected_validation_context_sha256:staged.validation_context_sha256,expected_document_evidence_sha256:staged.document_evidence_sha256,reason:'مراجعة الدليل'}}),/بصمة دليل المستندات التاريخية مختلفة/);
   assert.deepEqual(f.store.dump(),before);
 });
 
@@ -207,7 +217,7 @@ test('Excel4.1e.2c preview validates real native sales/purchases without invokin
     assert.equal(review.proposed_result.reconciliation.findings_count,0);assert.ok(review.proposed_changes.some((change:any)=>change.path.includes('/journal_entries/')));
     assert.deepEqual(f.store.dump(),before);assert.equal(server.writes(),0);assert.ok(verified>0);
     // The same operation ID remains available for the later real command.
-    await f.ops.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:request.operationId,data:request.input});
+    await f.serverOps.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:request.operationId,data:{...request.input,expected_review_sha256:review.review_sha256}});
     await assert.rejects(server.ops.historicalImportPreview(f.org.id,accountant,request),/مستخدم بالفعل/);
   }
 });
@@ -264,4 +274,51 @@ test('Excel4.1e.2c.2b rejects stale state, forged digest and changed intent befo
       await ops.execute(f.org.id,accountant,{action:'historicalImport.commit',operationId:request.operationId,data:{...request.input,expected_review_sha256:refreshed.review_sha256}});
     }
   }
+});
+
+test('historical financial approval requires a server review before new commands or cached receipts',async()=>{
+  const f=await fixture(),session=await f.stage([journalRow()]),request=previewRequest(session);
+  const command={action:'historicalImport.commit',operationId:request.operationId,data:request.input},before=f.store.dump();
+  const reviewRequired=(error:any)=>error.status===409&&error.code==='historical_review_required';
+  await assert.rejects(f.serverOps.execute(f.org.id,accountant,command),reviewRequired);
+  for(const flag of ['previewOnly','dry_run','skip_review'])await assert.rejects(f.serverOps.execute(f.org.id,accountant,{...command,data:{...request.input,[flag]:true}}),/حقول/);
+  await assert.rejects((f.serverOps.execute as any)(f.org.id,accountant,command,true),reviewRequired);
+  assert.deepEqual(f.store.dump(),before);
+  const review=await f.serverOps.historicalImportPreview(f.org.id,accountant,request);
+  assert.deepEqual(f.store.dump(),before);
+  const reviewed={...command,data:{...request.input,expected_review_sha256:review.review_sha256}};
+  await assert.rejects(f.ops.execute(f.org.id,accountant,reviewed),/خدمة الخادم/);
+  assert.deepEqual(f.store.dump(),before);
+  const first=await f.serverOps.execute(f.org.id,accountant,reviewed),saved=f.store.dump();
+  assert.equal(saved[`${f.root}/audit_logs/audit-${request.operationId}`].import_metadata.review_sha256,review.review_sha256);
+  await assert.rejects(f.serverOps.execute(f.org.id,accountant,command),reviewRequired);
+  assert.deepEqual(await f.serverOps.execute(f.org.id,accountant,reviewed),first);
+  assert.deepEqual(f.store.dump(),saved);
+});
+
+test('HTTP historical approval rejects legacy and forged preview requests and records one reviewed result',async()=>{
+  const f=await fixture(),session=await f.stage([journalRow()]),request=previewRequest(session),before=f.store.dump();
+  const app=express();app.use(express.json());app.use('/api',createApi({operations:f.serverOps,verify:async token=>{
+    if(token==='reviewer')return accountant;
+    if(token==='outside')return{...accountant,uid:'outside'};
+    throw new Error('invalid synthetic token');
+  }}));
+  const server=app.listen(0,'127.0.0.1');await new Promise<void>(resolve=>server.once('listening',resolve));
+  const address=server.address();assert.ok(address&&typeof address!=='string');
+  const post=(path:string,body:unknown,token='reviewer')=>fetch(`http://127.0.0.1:${address.port}/api/organizations/${f.org.id}/${path}`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  try{
+    const command={action:'historicalImport.commit',operationId:request.operationId,data:request.input};
+    let response=await post('operations',command);assert.equal(response.status,409);assert.equal((await response.json()).code,'historical_review_required');
+    response=await post('operations',{...command,data:{...request.input,previewOnly:true}});assert.equal(response.status,400);await response.json();
+    response=await post('operations',command,'outside');assert.equal(response.status,403);await response.json();
+    assert.deepEqual(f.store.dump(),before);
+    response=await post('historical-import/preview',request);assert.equal(response.status,200);const review=await response.json();
+    assert.match(review.review_sha256,/^[a-f0-9]{64}$/);assert.deepEqual(f.store.dump(),before);
+    const reviewed={...command,data:{...request.input,expected_review_sha256:review.review_sha256}};
+    response=await post('operations',reviewed);assert.equal(response.status,200);const result=await response.json();
+    response=await post('operations',reviewed);assert.equal(response.status,200);assert.deepEqual(await response.json(),result);
+    const saved=f.store.dump();assert.equal(Object.keys(saved).filter(path=>path.startsWith(`${f.root}/journal_entries/`)).length,1);
+    assert.equal(Object.values(saved).filter(row=>row.event_type==='DATA_IMPORT_COMPLETED').length,1);
+    assert.equal(saved[`${f.root}/audit_logs/audit-${request.operationId}`].import_metadata.review_sha256,review.review_sha256);
+  }finally{await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));}
 });

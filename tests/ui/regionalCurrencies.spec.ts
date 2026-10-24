@@ -56,7 +56,9 @@ test('KWD invoice, partial milliunit receipt and WhatsApp PDF retain the origina
   await expect(detail.getByTestId('invoice-native-summary')).toContainText('2.701 KWD');
   await detail.getByRole('button', { name: /واتساب/ }).click();
   const share = page.getByRole('dialog', { name: 'مشاركة الفاتورة مع PDF' });
-  await expect(share.getByText(/\.pdf$/).first()).toBeVisible();
+  // Generate the real branded PDF, including font loading and rasterization,
+  // before checking its attachment; this is not a synchronous DOM update.
+  await expect(share.getByText(/\.pdf$/).first()).toBeVisible({ timeout: 30000 });
   await share.getByText('تنزيل الملف أو الإرفاق اليدوي', { exact: true }).click();
   const link = share.getByRole('link', { name: 'فتح واتساب للإرفاق اليدوي', exact: true });
   const url = new URL((await link.getAttribute('href'))!);

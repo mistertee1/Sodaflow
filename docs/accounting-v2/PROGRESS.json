@@ -11,8 +11,8 @@
     "worker": "scheduled-policy-resume-20261024-1130",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
     "acquired_at": "2026-10-24T11:30:12.611Z",
-    "heartbeat_at": "2026-10-24T11:47:41.667559+00:00",
-    "expires_at": "2026-10-24T13:17:41.667559+00:00",
+    "heartbeat_at": "2026-10-24T11:55:06.796266+00:00",
+    "expires_at": "2026-10-24T13:25:06.796266+00:00",
     "purpose": "Excel4.2b.2a cloud schedule CRUD and due-index integration; no worker execution or production changes"
   },
   "milestones": [
@@ -3948,7 +3948,7 @@
     "completed_at": "2026-10-24T10:10:01.161Z"
   },
   "scheduled_export_policy": {
-    "status": "implemented_local_checks_passed_CI_pending",
+    "status": "implemented_ci_passed",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
     "base_pr": 142,
     "base_source": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
@@ -3960,7 +3960,7 @@
       "core": "passed",
       "build": "passed",
       "policy_tests": 17,
-      "CI": "pending"
+      "CI": "passed"
     },
     "production_writes": 0,
     "previous_unpublished_local_check_claim": {
@@ -3980,10 +3980,29 @@
       "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_POLICY.md"
     ],
     "source_reconstruction": "Published checkpoint had no policy source; new implementation and results independently verified, prior unpublished 609 claim not reused.",
-    "pr": 143
+    "pr": 143,
+    "source_commit": "187c608bca28622220ee036382aa72bd43345d34",
+    "ci": {
+      "run_id": 40091171036,
+      "job_id": 120863975364,
+      "commit_sha": "187c608bca28622220ee036382aa72bd43345d34",
+      "conclusion": "success",
+      "unit_api": 613,
+      "netlify_runtime": 16,
+      "firestore_emulator": 58,
+      "ui": 137,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40091171475,
+        "conclusion": "success"
+      }
+    },
+    "completed_at": "2026-10-24T11:54:10.116467+00:00"
   },
   "scheduled_export_management": {
-    "status": "checkpoint_before_implementation",
+    "status": "implemented_local_check_passed_CI_pending",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
     "parent_policy_source": "187c608bca28622220ee036382aa72bd43345d34",
     "pr": 143,
@@ -4002,6 +4021,16 @@
       "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_MANAGEMENT.md"
     ],
     "production_writes": 0,
-    "checks": "not_run_yet"
+    "checks": {
+      "focused_unit_api": 18,
+      "full_unit_api": 631,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "firestore_emulator": "pending_CI_4_new_tests",
+      "full_UI": "pending_CI_existing_regressions",
+      "production_audit": "pending_CI"
+    }
   }
 }

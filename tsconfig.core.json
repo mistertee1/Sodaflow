@@ -73,6 +73,9 @@
     "tests/auditorPackage.test.ts",
     "tests/auditorPackageFirestore.test.ts",
     "tests/ui/auditorPackage.spec.ts",
-    "tests/scheduledExportPolicy.test.ts"
+    "tests/scheduledExportPolicy.test.ts",
+    "tests/scheduledExportManagement.test.ts",
+    "tests/scheduledExportManagementFirestore.test.ts",
+    "tests/helpers/scheduledExports.ts"
   ]
 }

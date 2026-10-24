@@ -119,3 +119,16 @@ test('downloads recheck live scope, creator/Owner, revision, state and current e
  for(const record of [{...artifact,org_id:'foreign'},{...artifact,policy_revision:2},{...artifact,requested_by:'other'}])assert.throws(()=>scheduledDownloadExpiry(p,record,access({now})));
  assert.throws(()=>scheduledDownloadExpiry({...p,active:false},artifact,access({now})));
 });
+
+
+test('JSON updates explicitly clear obsolete cadence and end-date fields without accepting null in required fields',()=>{
+ const p=policy({cadence:'weekly',weekday:1,end_date:'2026-12-31'});
+ const request=JSON.parse(JSON.stringify({id:p.id,expected_revision:1,updates:{cadence:'daily',weekday:null,end_date:null}}));
+ const daily=updateExportSchedule(p,request,access());assert.equal(daily.weekday,undefined);assert.equal(daily.end_date,undefined);assert.equal(daily.next_run_at,'2026-10-24T07:00:00.000Z');
+ const monthly=updateExportSchedule(daily,{id:p.id,expected_revision:2,updates:{cadence:'monthly',month_day:31}},access());
+ const weekly=updateExportSchedule(monthly,{id:p.id,expected_revision:3,updates:{cadence:'weekly',weekday:1,month_day:null}},access());
+ assert.equal(weekly.month_day,undefined);assert.equal(weekly.weekday,1);
+ assert.throws(()=>updateExportSchedule(p,{...request,updates:{weekday:null}},access()));
+ assert.throws(()=>updateExportSchedule(p,{...request,updates:{active:null}},access()));
+ assert.throws(()=>policy({end_date:null}));
+});

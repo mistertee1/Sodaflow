@@ -133,9 +133,14 @@ export function updateExportSchedule(policy: ExportSchedule, value: unknown, acc
   ensure(policy.revision<Number.MAX_SAFE_INTEGER,'استنفد الجدول تسلسل إصداراته.',409);
   ensure(request.updates&&typeof request.updates==='object'&&!Array.isArray(request.updates)&&Object.keys(request.updates).every(k=>inputKeys.includes(k)),'حقول تحديث الجدول غير صالحة.');
   ensure(request.updates.kind===undefined||request.updates.kind===policy.kind,'نوع الجدول ثابت؛ أنشئ جدولاً جديداً لتغييره.');
-  const input=spec({...original,...request.updates},access.now);ensure(JSON.stringify(input)!==JSON.stringify(original),'لم تتغير إعدادات الجدول.',409);
+  // JSON null explicitly clears optional fields; omitted fields remain unchanged.
+  const merged:Document={...original,...request.updates};
+  for(const field of ['weekday','month_day','end_date'])if(request.updates[field]===null)delete merged[field];
+  const input=spec(merged,access.now);ensure(JSON.stringify(input)!==JSON.stringify(original),'لم تتغير إعدادات الجدول.',409);
   const next=nextScheduledExportRun(input,access.now);ensure(!input.active||next,'لا يوجد موعد قادم ضمن فترة الجدول.');
-  return {...policy,...input,revision:policy.revision+1,updated_by:access.uid,updated_at:access.now.toISOString(),next_run_at:next};
+  const updated:ExportSchedule={...policy,...input,revision:policy.revision+1,updated_by:access.uid,updated_at:access.now.toISOString(),next_run_at:next};
+  for(const field of ['weekday','month_day','end_date'] as const)if(input[field]===undefined)delete updated[field];
+  return updated;
 }
 export async function scheduledExportOccurrence(policy: ExportSchedule, dueAt: string, access: ScheduledExportAccess) {
   const input=savedSpec(policy);assertScheduledExportAccess(input.kind,access);

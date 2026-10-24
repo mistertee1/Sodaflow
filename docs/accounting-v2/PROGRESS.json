@@ -11,8 +11,8 @@
     "worker": "scheduled-policy-resume-20261024-1130",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
     "acquired_at": "2026-10-24T11:30:12.611Z",
-    "heartbeat_at": "2026-10-24T11:38:33.680059+00:00",
-    "expires_at": "2026-10-24T13:08:33.680059+00:00",
+    "heartbeat_at": "2026-10-24T11:44:00.633031+00:00",
+    "expires_at": "2026-10-24T13:14:00.633031+00:00",
     "purpose": "Resume durable scheduled export calendar/access/idempotency/expiry contracts; no runtime or production scheduling until integration acceptance"
   },
   "milestones": [
@@ -3954,12 +3954,12 @@
     "base_source": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
     "scope": "Pure calendar/access/idempotency-key/expiry contracts only; no API, persisted policy, claim, worker integration, download or UI yet",
     "checks": {
-      "full_local_unit_api": 612,
+      "full_local_unit_api": 613,
       "netlify_runtime": 16,
       "types": "passed",
       "core": "passed",
       "build": "passed",
-      "policy_tests": 16,
+      "policy_tests": 17,
       "CI": "pending"
     },
     "production_writes": 0,
@@ -3979,6 +3979,7 @@
       "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_POLICY.md",
       "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_POLICY.md"
     ],
-    "source_reconstruction": "Published checkpoint had no policy source; new implementation and results independently verified, prior unpublished 609 claim not reused."
+    "source_reconstruction": "Published checkpoint had no policy source; new implementation and results independently verified, prior unpublished 609 claim not reused.",
+    "pr": 143
   }
 }

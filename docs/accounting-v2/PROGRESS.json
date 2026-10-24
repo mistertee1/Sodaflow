@@ -4,15 +4,15 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "Excel4",
-  "active_branch": "codex/accounting-v2-historical-review-required-20261023",
+  "active_milestone": "D/E/Excel integration",
+  "active_branch": "codex/accounting-v2-ui-integration-20261024",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "accounting-review-acceptance-20261024-0414",
-    "branch": "codex/accounting-v2-historical-review-required-20261023",
-    "acquired_at": "2026-10-24T04:13:58.884Z",
-    "expires_at": "2026-10-24T04:58:58.884Z",
-    "purpose": "Resume cancelled browser acceptance, finish prepared Firestore review test and recover latest Accounting V2 milestone"
+    "worker": "accounting-ui-recovery-20261024-0422",
+    "branch": "codex/accounting-v2-ui-integration-20261024",
+    "acquired_at": "2026-10-24T04:18:07.479Z",
+    "expires_at": "2026-10-24T05:03:07.479Z",
+    "purpose": "Restore missing D/E/Excel accounting tabs and diagnose residual credit/dimension/report UI acceptance failures"
   },
   "milestones": [
     {
@@ -2393,7 +2393,7 @@
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
   ],
-  "updated_at": "2026-10-24T04:16:49.606Z",
+  "updated_at": "2026-10-24T04:18:07.479Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2418,7 +2418,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.1e.review_contract_required",
+  "active_substep": "restore_accounting_UI_acceptance",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3496,7 +3496,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Repair inherited missing Accounting D/E/Excel UI wiring and preserved credit/dimension/report controls; verify complete stack including new Firestore historical review contract. Then session/receipt recovery and remaining Excel4.",
+  "next": "Finish complete stack browser acceptance after UI wiring recovery; preserve historical review/private dry-run and incoming phone/currency/receipt/sync changes. Then safe historical session/receipt recovery and remaining Excel4.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3688,5 +3688,20 @@
         "ui": "failed_missing_accounting_UI_tabs_then_job_timeout"
       }
     }
+  },
+  "ui_integration": {
+    "status": "in_progress",
+    "base_pr": 139,
+    "root_cause": "AccountingView lost imports, tab state variants, protected tab buttons and mounted D/E/Excel centers",
+    "previous_ci": [
+      40038101273,
+      40038692077,
+      40039303158
+    ],
+    "remaining_failures_to_diagnose": [
+      "credit workflow",
+      "dimension posting UI",
+      "comparison report controls"
+    ]
   }
 }

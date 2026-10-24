@@ -1,21 +1,44 @@
 name: Deploy Firebase rules
 on:
   workflow_dispatch:
-    inputs:
-      super_admin_uid:
-        description: 'Optional exact verified Firebase UID for technical Super Admin bootstrap'
-        required: false
-        type: string
-      super_admin_email:
-        description: 'Exact verified mailbox, required when bootstrapping the exclusive administrator'
-        required: false
-        type: string
+  push:
+    branches: [codex/free-v2-activation-20261025]
+    paths: [docs/free-v2/DEPLOY_REQUEST.json]
 
 permissions:
   contents: read
 
+concurrency:
+  group: sudaflow-reviewed-firebase-rules
+  cancel-in-progress: false
+
 jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npm run check
+      - run: npm audit --omit=dev
+      - run: npm run test:emulator
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: rules-acceptance-failures
+          path: test-results/
   deploy-rules:
+    needs: acceptance
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -25,36 +48,26 @@ jobs:
           node-version: '24'
           cache: npm
       - run: npm ci
+      - name: Verify reviewed Rules fingerprint
+        run: node scripts/accounting-rules-hash.mjs --check
       - name: Prepare Firebase credentials
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
           if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
-            echo "::error::Missing repository secret FIREBASE_SERVICE_ACCOUNT_JSON"
+            echo "::error::Missing repository secret FIREBASE_SERVICE_ACCOUNT_JSON; no Rules or customer data changed"
             exit 1
           fi
-          CREDENTIALS="$RUNNER_TEMP/firebase-service-account.json"
-          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$CREDENTIALS"
-          chmod 600 "$CREDENTIALS"
-          echo "GOOGLE_APPLICATION_CREDENTIALS=$CREDENTIALS" >> "$GITHUB_ENV"
-      - name: Check Firestore access before activation
+          RULES_CREDENTIALS="$RUNNER_TEMP/firebase-rules-service-account.json"
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RULES_CREDENTIALS"
+          chmod 600 "$RULES_CREDENTIALS"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RULES_CREDENTIALS" >> "$GITHUB_ENV"
+      - name: Check original Firebase database access (read only)
         run: npm run billing:readiness
-      - name: Preview billing migration
-        env:
-          BILLING_SIGNING_SECRET: ${{ secrets.BILLING_SIGNING_SECRET }}
-        run: npm run billing:migrate
-      - name: Initialize plans and migrate canonical subscriptions
-        env:
-          BILLING_SIGNING_SECRET: ${{ secrets.BILLING_SIGNING_SECRET }}
-        run: npm run billing:migrate -- --apply
-      - name: Bootstrap the explicitly supplied administrator
-        if: inputs.super_admin_uid != ''
-        env:
-          SUPER_ADMIN_UID: ${{ inputs.super_admin_uid }}
-          SUPER_ADMIN_EMAIL: ${{ inputs.super_admin_email }}
-        run: |
-          node --import tsx scripts/bootstrap-platform-admin.ts --uid "$SUPER_ADMIN_UID" > "$RUNNER_TEMP/platform-admin-preview.json"
-          REVIEW_HASH=$(node --input-type=module -e 'import fs from "node:fs"; console.log(JSON.parse(fs.readFileSync(process.argv[1], "utf8")).reviewHash)' "$RUNNER_TEMP/platform-admin-preview.json")
-          node --import tsx scripts/bootstrap-platform-admin.ts --uid "$SUPER_ADMIN_UID" --apply --review-hash "$REVIEW_HASH"
-      - name: Deploy Firestore rules and indexes
-        run: npm run deploy:firebase:rules
+      - name: Deploy only Firestore Rules and indexes
+        run: npm run deploy:firebase:rules -- --non-interactive
+      - name: Prove deployed V2 Rules match this release
+        run: npm run accounting:rules:verify
+      - name: Remove temporary credentials
+        if: always()
+        run: rm -f "$RUNNER_TEMP/firebase-rules-service-account.json"

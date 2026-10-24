@@ -86,6 +86,10 @@
     "tests/helpers/scheduledDispatch.ts",
     "tests/scheduledExportUIApi.test.ts",
     "tests/scheduledExportHistoryFirestore.test.ts",
-    "tests/ui/scheduledExports.spec.ts"
+    "tests/ui/scheduledExports.spec.ts",
+    "tests/freeV2.test.ts",
+    "tests/freeV2Firestore.test.ts",
+    "tests/ui/freeV2.spec.ts",
+    "scripts/verify-accounting-rules.ts"
   ]
 }

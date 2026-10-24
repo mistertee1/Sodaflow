@@ -125,9 +125,9 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
       const verifyRules = serverAuthority ? async () => verifyAccountingRulesSource([{content:readFileSync('firestore.rules','utf8')}]) : undefined;
       const operations = new Operations(authority, () => new Date(clock), undefined, verifyRules, controlsEnabled);
       const lookupAccount = async (uid: string) => ({ uid, emailVerified: true, disabled: uid === actor.uid && exportAccountDisabled });
-      const exportAuthorization = { lookupAccount, now: () => new Date(clock), verifySecurity: verifyRules || (async () => {}) };
+      const exportAuthorization = { controlsEnabled, lookupAccount, now: () => new Date(clock), verifySecurity: verifyRules || (async () => {}) };
       exportWorker = new LargeExportWorker(authority, artifacts, new ServerLargeExportBuilder(operations, exportAuthorization), () => new Date(clock));
-      const scheduledExports = new ScheduledExportManagement(authority, lookupAccount, undefined, () => new Date(clock), verifyRules);
+      const scheduledExports = new ScheduledExportManagement(authority, lookupAccount, undefined, () => new Date(clock), verifyRules, controlsEnabled);
       app.use('/api', createApi({ operations, scheduledExports, exportWorker, exportAuthorization, verify: async value => { if (!issued.has(value)) throw Error('Invalid synthetic token'); return { ...actor }; } }));
       server = app.listen(0, '127.0.0.1');
       await new Promise<void>((resolve, reject) => { server!.once('listening', resolve); server!.once('error', reject); });

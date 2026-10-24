@@ -46,6 +46,7 @@ export class ScheduledExportManagement {
     private subscriptionPolicy: LegacySubscriptionPolicy = (_saved, id) => createDefaultSubscription(id),
     private now: () => Date = () => new Date(),
     private verifySecurity?: () => Promise<void>,
+    private controlsEnabled = true,
   ) {}
 
   private async account(actor: Actor) {
@@ -60,14 +61,13 @@ export class ScheduledExportManagement {
   }
 
   private async access(tx: Transaction, orgId: string, actor: Actor, account: ScheduledAccountIdentity, now: Date): Promise<ScheduledExportAccess> {
-    // Always use the actual stored role and canonical entitlements here. The
-    // platform pause's request-scoped Owner elevation is not an export grant.
-    const { org, role } = await membership(tx, orgId, actor);
-    const subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
+    // Free access removes billing gates; export rights still use the actual role.
+    const { org, storedRole: role } = await membership(tx, orgId, actor, false, this.controlsEnabled);
+    const subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);
     return {
       authority: 'server', orgId, ownerUid: org.owner_uid, uid: actor.uid, role,
       emailVerified: account.emailVerified && actor.emailVerified,
-      activeMember: true, accountEnabled: !account.disabled, organizationActive: org.status === 'active',
+      activeMember: true, accountEnabled: !account.disabled, organizationActive: !this.controlsEnabled || org.status === 'active',
       accountingVersion: Number(org.accounting_version), subscriptionStatus: subscription.effective_status || subscription.status,
       subscriptionEnd: subscription.subscription_end ?? null, features: subscription.features, now,
     };

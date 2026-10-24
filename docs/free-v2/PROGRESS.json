@@ -3,7 +3,7 @@
   "request_date": "2026-10-25",
   "base_main": "5025417f07011ff4b5c870ed10e5335ac0b661a5",
   "branch": "codex/free-v2-activation-20261025",
-  "status": "checkpoint_before_implementation",
+  "status": "implemented_local_acceptance_in_progress",
   "user_merges_only": true,
   "scope": [
     "Disable commercial subscription checks and quota everywhere in the current free release",
@@ -30,5 +30,34 @@
     "Do not invent historical product costs or globally flip existing accounting versions",
     "Do not modify another live lease or scheduled UI stage",
     "No reactivation of the paused automation"
-  ]
+  ],
+  "owned_paths": [
+    "src/domain/subscriptions.ts",
+    "src/domain/operations.ts (read-report gates and nested policy propagation)",
+    "src/domain/scheduledExportManagement.ts (billing policy only)",
+    "server/exportAuthorization.ts",
+    "server/largeExportWorker.ts (release policy only)",
+    "server/scheduledExportDispatch.ts (production factory only)",
+    "server/api.ts (release policy and new-company verification injection)",
+    "server/organizations.ts (verified new companies only)",
+    "src/components/SubscriptionPanel.tsx",
+    "tests/freeV2.test.ts",
+    "tests/freeV2Firestore.test.ts",
+    "tests/ui/freeV2.spec.ts",
+    "tests/ui/helpers/cloudMerchant.ts (release policy only)",
+    "tests/platformPause.test.ts (unlimited projection assertions)",
+    "scripts/verify-accounting-rules.ts",
+    ".github/workflows/deploy-firebase-rules.yml",
+    "package.json",
+    "tsconfig.core.json",
+    "docs/free-v2/*"
+  ],
+  "checks": {
+    "focused_unit_api": 7,
+    "focused_failed": 0,
+    "focused_skipped": 0,
+    "full_check": "in_progress",
+    "firestore": "pending_CI_Java21",
+    "UI": "pending_CI"
+  }
 }

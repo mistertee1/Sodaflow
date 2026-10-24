@@ -8,12 +8,12 @@
   "active_branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
   "overall_status": "in_progress_not_commercially_ready",
   "lease": {
-    "worker": "scheduled-policy-resume-20261024-1130",
+    "worker": "accounting-schedule-execution-resume-20261024-1453",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
-    "acquired_at": "2026-10-24T11:30:12.611Z",
-    "heartbeat_at": "2026-10-24T12:00:31.817923+00:00",
-    "expires_at": "2026-10-24T13:30:31.817923+00:00",
-    "purpose": "Excel4.2b.2a cloud schedule CRUD and due-index integration; no worker execution or production changes"
+    "acquired_at": "2026-10-24T14:51:59.080Z",
+    "heartbeat_at": "2026-10-24T14:51:59.080Z",
+    "expires_at": "2026-10-24T15:36:59.080Z",
+    "purpose": "Confirm accepted cloud schedule management, then implement next live-authorized execution/download milestone; no production execution"
   },
   "milestones": [
     {
@@ -2434,7 +2434,7 @@
     "Then4.2b.2b: atomic due claim/recovery with live requester access before generation/publish/download, private artifacts and expiry, plus API/Firestore/browser acceptance. No runtime schedule is enabled by policy storage.",
     "Final legacy/evidence and zero-difference financial/restore/operational acceptance remain incomplete; user alone merges and deploys. Preserve paused Super Admin, Firebase-only sync, invoices and USD pricing; display-currency backlog remains isolated."
   ],
-  "updated_at": "2026-10-24T11:38:33.680059+00:00",
+  "updated_at": "2026-10-24T14:51:59.080Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3566,6 +3566,16 @@
       "purpose": "Publish and verify isolated Excel4.2b.1 calendar/permission/expiry contracts; no runtime scheduling or production execution",
       "observed_expired_at": "2026-10-24T11:30:12.611Z",
       "handoff": "Explicit user continuation. Previously prepared source was not present in the published branch; reconstruct and verify from current GitHub base."
+    },
+    {
+      "worker": "scheduled-policy-resume-20261024-1130",
+      "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+      "acquired_at": "2026-10-24T11:30:12.611Z",
+      "heartbeat_at": "2026-10-24T12:00:31.817923+00:00",
+      "expires_at": "2026-10-24T13:30:31.817923+00:00",
+      "purpose": "Excel4.2b.2a cloud schedule CRUD and due-index integration; no worker execution or production changes",
+      "status": "expired_before_resume",
+      "observed_at": "2026-10-24T14:51:59.080Z"
     }
   ],
   "last_lease": {
@@ -3611,15 +3621,15 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "accounting-scheduled-policy-20261024-1011",
+    "worker": "accounting-schedule-execution-resume-20261024-1453",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
-    "acquired_at": "2026-10-24T10:11:01.487Z",
-    "heartbeat_at": "2026-10-24T10:11:01.487Z",
-    "expires_at": "2026-10-24T10:56:01.487Z",
-    "purpose": "Publish and verify isolated Excel4.2b.1 calendar/permission/expiry contracts; no runtime scheduling or production execution",
-    "status": "scheduled_export_policy_local_checks_passed",
-    "base_pr": 142,
-    "base_commit": "64dc6026229794a88401fff4d1c56dfc2598ab46"
+    "acquired_at": "2026-10-24T14:51:59.080Z",
+    "heartbeat_at": "2026-10-24T14:51:59.080Z",
+    "expires_at": "2026-10-24T15:36:59.080Z",
+    "purpose": "Confirm accepted cloud schedule management, then implement next live-authorized execution/download milestone; no production execution",
+    "status": "verifying_cloud_schedule_management_CI",
+    "pr": 143,
+    "source_commit": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0"
   },
   "acceptance_environment": {
     "provider": "Render",

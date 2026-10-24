@@ -4,8 +4,8 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "D/E/Excel integration",
-  "active_branch": "codex/accounting-v2-historical-recovery-20261024",
+  "active_milestone": "Excel4.2",
+  "active_branch": "codex/accounting-v2-excel4-auditor-package-20261024",
   "overall_status": "in_progress_not_commercially_ready",
   "lease": null,
   "milestones": [
@@ -2375,20 +2375,59 @@
         {
           "id": "Excel4.2",
           "scope": "Auditor package and scheduled export permissions/expiry",
-          "status": "pending",
-          "branch": null,
-          "pr": null
+          "status": "in_progress",
+          "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+          "pr": null,
+          "substeps": [
+            {
+              "id": "Excel4.2a",
+              "scope": "Protected bounded Auditor Package with dual-book GL/TB, source/audit references, period close/reopen and reconciliation",
+              "status": "implemented_ci_passed",
+              "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+              "checks": {
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "unit_api": 596,
+                "netlify_runtime": 16,
+                "targeted_ui": 8,
+                "targeted_ui_status": "passed",
+                "new_unit_api": 14,
+                "new_ui": 5,
+                "firestore": "requires_CI_Java21",
+                "full_ui": "requires_CI"
+              },
+              "report": "REPORT_AUDITOR_PACKAGE.md",
+              "pr": 142,
+              "ci": {
+                "run_id": 40084130070,
+                "commit_sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+                "conclusion": "success",
+                "unit_api": 596,
+                "netlify_runtime": 16,
+                "firestore_emulator": 58,
+                "ui": 137,
+                "failed": 0,
+                "skipped": 0,
+                "production_audit_vulnerabilities": 0,
+                "node22": {
+                  "run_id": 40084130089,
+                  "conclusion": "success"
+                }
+              }
+            }
+          ]
         }
       ]
     }
   ],
-  "last_report": "REPORT_HISTORICAL_RECOVERY.md",
+  "last_report": "REPORT_AUDITOR_PACKAGE.md",
   "next_steps": [
-    "Implement and verify Excel4.2a Auditor Package on accepted PR141; preserve source permissions and frozen historical evidence.",
-    "Implement scheduled exports with live permissions and expiry after package acceptance.",
-    "User reviews/merges stack; final commercial financial/restore/operational acceptance and deferred evidence remain incomplete."
+    "Publish and verify pure scheduled export policy/calendar/expiry contracts as a separate dependent milestone.",
+    "Then wire protected persistence, atomic due-job claiming and live requester authorization before generation/publish/download; repair accounting worker snapshot-expiry gap, add API/Firestore/browser coverage.",
+    "Remaining legacy/evidence and final zero-difference financial/restore/operational acceptance remain incomplete. User alone merges; no production schedule/worker/deployment."
   ],
-  "updated_at": "2026-10-24T09:44:29.992Z",
+  "updated_at": "2026-10-24T10:10:01.161Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2413,7 +2452,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "historical_recovery_implemented_ci_passed_next_auditor_package",
+  "active_substep": "Excel4.2a_implemented_ci_passed_next_scheduled_policy",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3500,16 +3539,26 @@
       "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes",
       "released_at": "2026-10-24T09:44:29.992Z",
       "status": "completed"
+    },
+    {
+      "worker": "accounting-auditor-package-20261024-0945",
+      "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+      "acquired_at": "2026-10-24T09:44:56.946Z",
+      "heartbeat_at": "2026-10-24T09:58:33.304Z",
+      "expires_at": "2026-10-24T10:43:33.304Z",
+      "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
+      "released_at": "2026-10-24T10:10:01.161Z",
+      "status": "completed"
     }
   ],
   "last_lease": {
-    "worker": "accounting-excel4-resume-20261024-0944",
-    "branch": "codex/accounting-v2-historical-recovery-20261024",
-    "acquired_at": "2026-10-24T09:43:48.876Z",
-    "heartbeat_at": "2026-10-24T09:43:48.876Z",
-    "expires_at": "2026-10-24T10:28:48.876Z",
-    "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes",
-    "released_at": "2026-10-24T09:44:29.992Z",
+    "worker": "accounting-auditor-package-20261024-0945",
+    "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+    "acquired_at": "2026-10-24T09:44:56.946Z",
+    "heartbeat_at": "2026-10-24T09:58:33.304Z",
+    "expires_at": "2026-10-24T10:43:33.304Z",
+    "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
+    "released_at": "2026-10-24T10:10:01.161Z",
     "status": "completed"
   },
   "last_remote_review": {
@@ -3524,7 +3573,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Excel4.2a Auditor Package: bounded permission-gated source-linked workbook with numeric values, current reconciliation and audit; then scheduled exports and remaining release/restore/operational acceptance.",
+  "next": "Excel4.2b.1 scheduled export policy/recurrence/expiry contracts prepared in isolated worktree; publish and verify next. Then wire API/Firestore claim/worker/download/UI in Excel4.2b.2 before enabling scheduled exports.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3545,29 +3594,29 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "accounting-excel4-resume-20261024-0944",
-    "branch": "codex/accounting-v2-historical-recovery-20261024",
-    "acquired_at": "2026-10-24T09:43:48.876Z",
-    "heartbeat_at": "2026-10-24T09:43:48.876Z",
-    "expires_at": "2026-10-24T10:28:48.876Z",
-    "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes",
-    "released_at": "2026-10-24T09:44:29.992Z",
-    "status": "historical_recovery_implemented_ci_passed",
-    "pr": 141,
-    "source_commit": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+    "worker": "accounting-auditor-package-20261024-0945",
+    "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+    "acquired_at": "2026-10-24T09:44:56.946Z",
+    "heartbeat_at": "2026-10-24T09:58:33.304Z",
+    "expires_at": "2026-10-24T10:43:33.304Z",
+    "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
+    "pr": 142,
+    "source_commit": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+    "released_at": "2026-10-24T10:10:01.161Z",
+    "status": "auditor_package_implemented_ci_passed",
     "ci": {
-      "run_id": 40067157901,
-      "commit_sha": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+      "run_id": 40084130070,
+      "commit_sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
       "conclusion": "success",
-      "unit_api": 582,
+      "unit_api": 596,
       "netlify_runtime": 16,
-      "firestore_emulator": 57,
-      "ui": 132,
+      "firestore_emulator": 58,
+      "ui": 137,
       "failed": 0,
       "skipped": 0,
       "production_audit_vulnerabilities": 0,
       "node22": {
-        "run_id": 40067157897,
+        "run_id": 40084130089,
         "conclusion": "success"
       }
     }
@@ -3634,36 +3683,36 @@
     }
   },
   "accounting_resume_checkpoint": {
-    "branch": "codex/accounting-v2-historical-recovery-20261024",
+    "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
     "base_sha": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
-    "status": "historical_recovery_implemented_ci_passed",
-    "next": "Excel4.2a Auditor Package: bounded permission-gated source-linked workbook with numeric values, current reconciliation and audit; then scheduled exports and remaining release/restore/operational acceptance.",
-    "sha": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
-    "pr": 141,
+    "status": "auditor_package_implemented_ci_passed",
+    "next": "Excel4.2b.1 scheduled export policy/recurrence/expiry contracts prepared in isolated worktree; publish and verify next. Then wire API/Firestore claim/worker/download/UI in Excel4.2b.2 before enabling scheduled exports.",
+    "sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+    "pr": 142,
     "last_run": {
-      "worker": "accounting-excel4-resume-20261024-0944",
-      "branch": "codex/accounting-v2-historical-recovery-20261024",
-      "acquired_at": "2026-10-24T09:43:48.876Z",
-      "heartbeat_at": "2026-10-24T09:43:48.876Z",
-      "expires_at": "2026-10-24T10:28:48.876Z",
-      "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes",
-      "released_at": "2026-10-24T09:44:29.992Z",
-      "status": "historical_recovery_implemented_ci_passed",
-      "pr": 141,
-      "source_commit": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+      "worker": "accounting-auditor-package-20261024-0945",
+      "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+      "acquired_at": "2026-10-24T09:44:56.946Z",
+      "heartbeat_at": "2026-10-24T09:58:33.304Z",
+      "expires_at": "2026-10-24T10:43:33.304Z",
+      "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
+      "pr": 142,
+      "source_commit": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+      "released_at": "2026-10-24T10:10:01.161Z",
+      "status": "auditor_package_implemented_ci_passed",
       "ci": {
-        "run_id": 40067157901,
-        "commit_sha": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+        "run_id": 40084130070,
+        "commit_sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
         "conclusion": "success",
-        "unit_api": 582,
+        "unit_api": 596,
         "netlify_runtime": 16,
-        "firestore_emulator": 57,
-        "ui": 132,
+        "firestore_emulator": 58,
+        "ui": 137,
         "failed": 0,
         "skipped": 0,
         "production_audit_vulnerabilities": 0,
         "node22": {
-          "run_id": 40067157897,
+          "run_id": 40084130089,
           "conclusion": "success"
         }
       }
@@ -3873,5 +3922,59 @@
       }
     },
     "completed_at": "2026-10-24T09:44:29.992Z"
+  },
+  "auditor_package": {
+    "status": "implemented_ci_passed",
+    "base_pr": 141,
+    "base_commit": "344c3b57d5812eac8923dfb59300fd5311e43a25",
+    "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+    "scope": "Bounded permission-gated workbook; TB/GL/journals/source references/adjustments/close-reopen/audit/reconciliation; no scheduled execution in this substep",
+    "report": "REPORT_AUDITOR_PACKAGE.md",
+    "plan": "PLAN_AUDITOR_PACKAGE.md",
+    "checks": {
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "unit_api": 596,
+      "netlify_runtime": 16,
+      "targeted_ui": 8,
+      "targeted_ui_status": "passed",
+      "new_unit_api": 14,
+      "new_ui": 5,
+      "firestore": "requires_CI_Java21",
+      "full_ui": "requires_CI"
+    },
+    "limits": {
+      "source_records": 5000,
+      "source_bytes": 5000000,
+      "journal_lines": 20000,
+      "workbook_rows": 50000,
+      "artifact_bytes": 600000
+    },
+    "runtime_paths": [
+      "src/domain/auditorPackage.ts",
+      "src/domain/operations.ts (auditor export guard, builder and audit only)",
+      "src/context/AppContext.tsx (export action only)",
+      "src/components/accounting/DataExportCenter.tsx (auditor section only)"
+    ],
+    "production_writes": 0,
+    "pr": 142,
+    "ci": {
+      "run_id": 40084130070,
+      "commit_sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+      "conclusion": "success",
+      "unit_api": 596,
+      "netlify_runtime": 16,
+      "firestore_emulator": 58,
+      "ui": 137,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40084130089,
+        "conclusion": "success"
+      }
+    },
+    "completed_at": "2026-10-24T10:10:01.161Z"
   }
 }

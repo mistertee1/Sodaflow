@@ -66,6 +66,7 @@ import { cancelLargeImportJob, requestLargeImportJob, retryLargeImportJob } from
 import { commitLargeImport, undoLargeImport } from './largeImportCommit';
 import { assertHistoricalImportStagePayload, buildHistoricalImportStage } from './historicalImportStaging';
 import { assertHistoricalImportCommitPayload, buildHistoricalImportCommit } from './historicalImportCommit';
+import { auditorPeriod, buildAuditorPackage, canExportAuditorPackage, readAuditorSources } from './auditorPackage';
 
 export interface Actor { uid: string; email: string; emailVerified: boolean; name?: string; superAdmin?: boolean; authTime?: number; }
 export interface Command { action: string; operationId: string; data: Document; }
@@ -85,7 +86,7 @@ const actions: Record<string, ActionType> = {
   'bankReconciliation.create': 'journal:create', 'cashCount.create': 'journal:create',
   'financialAccount.create': 'accounts:create', 'financialAccount.update': 'accounts:update', 'cashTransfer.create': 'journal:create',
   'correctionDocument.export': 'backup:export', 'operational.export': 'backup:export', 'payables.export': 'backup:export', 'supplier.create': 'payables:write', 'supplier.update': 'payables:write', 'purchase.create': 'payables:write', 'supplierPayment.create': 'payables:write',
-  'masterExport.create': 'org:read', 'accountingExport.create': 'export:accounting', 'companyExport.record':'export:company',
+  'masterExport.create': 'org:read', 'accountingExport.create': 'export:accounting', 'auditorExport.create': 'export:accounting', 'companyExport.record':'export:company',
   'exportPreset.save':'export:accounting', 'exportPreset.delete':'export:accounting',
   'largeExport.request':'export:accounting', 'largeExport.cancel':'export:accounting', 'largeExport.retry':'export:accounting',
   'masterImport.stage': 'org:read', 'historicalImport.stage':'import:accounting', 'historicalImport.commit':'import:accounting', 'largeImport.request':'org:read', 'largeImport.cancel':'org:read', 'largeImport.retry':'org:read', 'largeImport.commit':'org:read', 'largeImport.undo':'org:read',
@@ -354,6 +355,18 @@ export class Operations {
       }
       if(command.action==='accountingExport.create'){
         ensure(Object.keys(command.data).every(key=>key==='period')&&hasPermission(role,'export:accounting')&&hasPermission(role,'journal:read')&&hasPermission(role,'reports:advanced'),'ليس لديك صلاحية التصدير المحاسبي.',403);
+      }
+      if (command.action === 'auditorExport.create') {
+        ensure(Object.keys(command.data).every(key => key === 'period'), 'حقول حزمة المراجع غير صالحة أو محمية.');
+        auditorPeriod(command.data.period === undefined ? {} : command.data.period);
+        // Audit evidence requires actual stored permissions, even while platform
+        // commercial controls are paused. A cached file never bypasses revocation.
+        ensure(canExportAuditorPackage(storedRole), 'ليس لديك صلاحية حزمة المراجع وسجل التدقيق.', 403);
+        ensure(this.store.authority === 'server', 'حزمة المراجع تتطلب خدمة الخادم.', 403);
+        ensure(org.accounting_version === 2, 'حزمة المراجع تتطلب محاسبة V2.', 409);
+        const entitlement = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);
+        assertSubscriptionActive(entitlement);
+        for (const feature of ['accounting', 'advanced_reports', 'audit_trail'] as const) assertFeature(entitlement, feature);
       }
       if (command.action === 'masterImport.stage') {
         assertMasterImportPayload(command.data);
@@ -671,6 +684,13 @@ export class Operations {
           const period=(data.period||{}) as {start?:string;end?:string};if(period.start)dateOnly(period.start);if(period.end)dateOnly(period.end);ensure(!period.start||!period.end||period.start<=period.end,'فترة التصدير غير صالحة.');
           const [accounts,entries,bank,cash]=await Promise.all(['accounts','journal_entries','bank_reconciliations','cash_reconciliations'].map(name=>tx.list(`${root}/${name}`)));
           result=buildAccountingExport({orgId,role,createdAt:iso,operationId:command.operationId,period,accounts:accounts as Account[],entries:entries as JournalEntry[],reconciliations:[...bank,...cash],settings});break;
+        }
+        case 'auditorExport.create': {
+          const period = auditorPeriod(data.period === undefined ? {} : data.period);
+          if (!period.end) period.end = merchantDay(now, settings.timezone || 'Africa/Khartoum');
+          const sources = await readAuditorSources(tx, root);
+          result = await buildAuditorPackage({ orgId, operationId: command.operationId, createdAt: iso, period, settings, financial: sources.financial, audit: sources.audit });
+          break;
         }
         case 'exportPreset.save': {
           const kind=String(data.kind||'');ensure(['company','accounting','master'].includes(kind),'نوع إعداد التصدير غير صالح.');
@@ -1258,6 +1278,7 @@ export class Operations {
       const audit = {...(isEquity?{reauthentication:{auth_time:actor.authTime},owner_equity_evidence:{event_id:result.id,journal_id:result.journal_id,sequence:result.sequence,quote:result.quote}}:{}), ...(isTaxConfiguration?{reauthentication:{auth_time:actor.authTime},tax_configuration_evidence:{configuration_id:result.id,revision:result.revision,version_id:`${result.id}-r${result.revision}`}}:{}), ...(openingProof?{opening_evidence:openingProof,...(command.action==='opening.commit'?{reauthentication:{auth_time:actor.authTime}}:{})}:{}), ...(command.action==='period.reopen'?{reauthentication:{auth_time:actor.authTime}}:{}), ...(command.action==='settings.update' && Object.prototype.hasOwnProperty.call(data.updates,'period_lock_date')?{legacy_period_lock:{previous:settings.period_lock_date||null,new:data.updates.period_lock_date||null}}:{}), ...(command.action === 'correctionDocument.export' ? { event_type: 'DATA_EXPORT_CREATED', export_metadata: { format: 'pdf', document_type: result.document_type, document_id: result.document.id, source_id: result.source.id, schema_version: result.schema_version, record_count: 1 } } : {}), ...(command.action === 'operational.export' ? { export_metadata: { report: data.view, period: result.period, account_code: data.query?.accountCode || '', currency: data.query?.currency || 'SDG/USD' } } : {}), ...(command.action === 'payables.export' ? { export_metadata: { report: 'payables', period: result.period } } : {}), actor_role: storedRole, effective_actor_role: role, platform_controls_enabled: this.controlsEnabled, reason: isEquity?result.input.reason:isOpening?result.reason:data.reason || '', cost_evidence: costEvidence, previous_state: previousState, new_state: newState, id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
       if(command.action==='masterExport.create')Object.assign(audit,{event_type:'DATA_EXPORT_CREATED',export_metadata:{export_type:'quick',format:result.format,module:result.module,record_count:result.record_count,masked_fields:result.masked_fields}});
       if(command.action==='accountingExport.create')Object.assign(audit,{event_type:'DATA_EXPORT_CREATED',export_metadata:{export_type:'accounting',format:result.format,record_count:result.record_count,line_count:result.line_count,period:result.period,schema_version:result.schema_version}});
+      if(command.action==='auditorExport.create')Object.assign(audit,{event_type:'DATA_EXPORT_CREATED',export_metadata:{export_type:'auditor',format:result.format,record_count:result.record_count,line_count:result.line_count,period:result.period,schema_version:result.schema_version,byte_size:result.byte_size,sha256:result.sha256,source_snapshot_sha256:result.source_snapshot_sha256,findings_count:result.findings_count,trial_balance_balanced:result.trial_balance_balanced}});
       if(command.action==='companyExport.record')Object.assign(audit,{event_type:'DATA_EXPORT_CREATED',export_metadata:{export_type:'company',format:'json',byte_size:result.byte_size,collection_counts:result.collection_counts,preset_id:result.preset_id,schema_version:result.schema_version}});
       if(command.action==='largeExport.request')Object.assign(audit,{event_type:'DATA_EXPORT_QUEUED',export_metadata:{export_type:result.kind,format:result.format,status:result.status,attempt:result.attempt,period:result.period,preset_id:result.preset_id}});
       if(command.action==='largeExport.cancel')Object.assign(audit,{event_type:'DATA_EXPORT_CANCELLED',export_metadata:{export_type:result.kind,format:result.format,status:result.status,attempt:result.attempt}});

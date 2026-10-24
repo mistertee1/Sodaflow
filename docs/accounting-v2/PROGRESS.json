@@ -5,9 +5,16 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4.2",
-  "active_branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+  "active_branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
   "overall_status": "in_progress_not_commercially_ready",
-  "lease": null,
+  "lease": {
+    "worker": "accounting-scheduled-policy-20261024-1011",
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "acquired_at": "2026-10-24T10:11:01.487Z",
+    "heartbeat_at": "2026-10-24T10:11:01.487Z",
+    "expires_at": "2026-10-24T10:56:01.487Z",
+    "purpose": "Publish and verify isolated Excel4.2b.1 calendar/permission/expiry contracts; no runtime scheduling or production execution"
+  },
   "milestones": [
     {
       "id": "A1",
@@ -2421,13 +2428,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_AUDITOR_PACKAGE.md",
+  "last_report": "REPORT_SCHEDULED_EXPORT_POLICY.md",
   "next_steps": [
     "Publish and verify pure scheduled export policy/calendar/expiry contracts as a separate dependent milestone.",
     "Then wire protected persistence, atomic due-job claiming and live requester authorization before generation/publish/download; repair accounting worker snapshot-expiry gap, add API/Firestore/browser coverage.",
     "Remaining legacy/evidence and final zero-difference financial/restore/operational acceptance remain incomplete. User alone merges; no production schedule/worker/deployment."
   ],
-  "updated_at": "2026-10-24T10:10:01.161Z",
+  "updated_at": "2026-10-24T10:11:01.487Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2452,7 +2459,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.2a_implemented_ci_passed_next_scheduled_policy",
+  "active_substep": "Excel4.2b.1_scheduled_export_policy",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3594,32 +3601,15 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "accounting-auditor-package-20261024-0945",
-    "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
-    "acquired_at": "2026-10-24T09:44:56.946Z",
-    "heartbeat_at": "2026-10-24T09:58:33.304Z",
-    "expires_at": "2026-10-24T10:43:33.304Z",
-    "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
-    "pr": 142,
-    "source_commit": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
-    "released_at": "2026-10-24T10:10:01.161Z",
-    "status": "auditor_package_implemented_ci_passed",
-    "ci": {
-      "run_id": 40084130070,
-      "commit_sha": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
-      "conclusion": "success",
-      "unit_api": 596,
-      "netlify_runtime": 16,
-      "firestore_emulator": 58,
-      "ui": 137,
-      "failed": 0,
-      "skipped": 0,
-      "production_audit_vulnerabilities": 0,
-      "node22": {
-        "run_id": 40084130089,
-        "conclusion": "success"
-      }
-    }
+    "worker": "accounting-scheduled-policy-20261024-1011",
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "acquired_at": "2026-10-24T10:11:01.487Z",
+    "heartbeat_at": "2026-10-24T10:11:01.487Z",
+    "expires_at": "2026-10-24T10:56:01.487Z",
+    "purpose": "Publish and verify isolated Excel4.2b.1 calendar/permission/expiry contracts; no runtime scheduling or production execution",
+    "status": "scheduled_export_policy_local_checks_passed",
+    "base_pr": 142,
+    "base_commit": "64dc6026229794a88401fff4d1c56dfc2598ab46"
   },
   "acceptance_environment": {
     "provider": "Render",
@@ -3976,5 +3966,21 @@
       }
     },
     "completed_at": "2026-10-24T10:10:01.161Z"
+  },
+  "scheduled_export_policy": {
+    "status": "implemented_local_checks_passed_CI_pending",
+    "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+    "base_pr": 142,
+    "base_source": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
+    "scope": "Pure calendar/access/idempotency-key/expiry contracts only; no API, persisted policy, claim, worker integration, download or UI yet",
+    "checks": {
+      "full_local_unit_api": 609,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "final_focused_policy_tests": 13
+    },
+    "production_writes": 0
   }
 }

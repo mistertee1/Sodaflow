@@ -7,14 +7,7 @@
   "active_milestone": "D/E/Excel integration",
   "active_branch": "codex/accounting-v2-historical-recovery-20261024",
   "overall_status": "in_progress_not_commercially_ready",
-  "lease": {
-    "worker": "accounting-excel4-resume-20261024-0944",
-    "branch": "codex/accounting-v2-historical-recovery-20261024",
-    "acquired_at": "2026-10-24T09:43:48.876Z",
-    "heartbeat_at": "2026-10-24T09:43:48.876Z",
-    "expires_at": "2026-10-24T10:28:48.876Z",
-    "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes"
-  },
+  "lease": null,
   "milestones": [
     {
       "id": "A1",
@@ -2391,11 +2384,11 @@
   ],
   "last_report": "REPORT_HISTORICAL_RECOVERY.md",
   "next_steps": [
-    "Complete read-only recovery of staged sessions and provable committed receipts; fresh review is always required before any new approval.",
-    "Complete authenticated reload and lost-response UI coverage without local business storage; publish only after synthetic unit/API, demo-sudaflow Emulator and regression acceptance.",
-    "Then Excel4.2 auditor package, scheduled export permissions/expiry and final financial/restore/operational acceptance; user merges only."
+    "Implement and verify Excel4.2a Auditor Package on accepted PR141; preserve source permissions and frozen historical evidence.",
+    "Implement scheduled exports with live permissions and expiry after package acceptance.",
+    "User reviews/merges stack; final commercial financial/restore/operational acceptance and deferred evidence remain incomplete."
   ],
-  "updated_at": "2026-10-24T09:43:48.876Z",
+  "updated_at": "2026-10-24T09:44:29.992Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2420,7 +2413,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "historical_session_receipt_recovery",
+  "active_substep": "historical_recovery_implemented_ci_passed_next_auditor_package",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3497,24 +3490,27 @@
       "purpose": "Safe read-only cloud historical session/receipt recovery and authenticated reload UI acceptance on the accepted PR140 stack",
       "status": "expired_before_resume",
       "observed_at": "2026-10-24T09:43:48.876Z"
+    },
+    {
+      "worker": "accounting-excel4-resume-20261024-0944",
+      "branch": "codex/accounting-v2-historical-recovery-20261024",
+      "acquired_at": "2026-10-24T09:43:48.876Z",
+      "heartbeat_at": "2026-10-24T09:43:48.876Z",
+      "expires_at": "2026-10-24T10:28:48.876Z",
+      "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes",
+      "released_at": "2026-10-24T09:44:29.992Z",
+      "status": "completed"
     }
   ],
   "last_lease": {
-    "worker": "approval-ci-retry-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
-    "acquired_at": "2026-10-23T17:22:21Z",
-    "expires_at": "2026-10-23T17:42:21.000Z",
-    "purpose": "Record passing approval regressions and retry unrelated receipt UI failure",
-    "released_at": "2026-10-23T17:22:24Z",
-    "pr": 126,
-    "status": "approval_regressions_passed_full_CI_retry_pending",
-    "ci": {
-      "run_id": 39986838841,
-      "commit_sha": "7ea927906ce74ac33ac1f3f9f5c3f1fce4455d40",
-      "conclusion": "failure_retry_requested",
-      "reason": "All historical import UI scenarios passed; unrelated receipt app.spec.ts:139 failed waiting title,99 UI passed"
-    },
-    "next": "Verify rerun39986838841. If receipt UI fails again investigate without weakening assertions; only close PR126 after full green CI. Then reviewed-contract enforcement and safe session/receipt recovery."
+    "worker": "accounting-excel4-resume-20261024-0944",
+    "branch": "codex/accounting-v2-historical-recovery-20261024",
+    "acquired_at": "2026-10-24T09:43:48.876Z",
+    "heartbeat_at": "2026-10-24T09:43:48.876Z",
+    "expires_at": "2026-10-24T10:28:48.876Z",
+    "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes",
+    "released_at": "2026-10-24T09:44:29.992Z",
+    "status": "completed"
   },
   "last_remote_review": {
     "checked_at": "2026-10-11T04:56:11Z",
@@ -3528,7 +3524,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Implement and test protected read-only historical recovery, then UI reload/lost-response/tenant isolation acceptance. No automatic financial retry or local payload storage. Excel4.2 and release/operational acceptance remain pending.",
+  "next": "Excel4.2a Auditor Package: bounded permission-gated source-linked workbook with numeric values, current reconciliation and audit; then scheduled exports and remaining release/restore/operational acceptance.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3555,9 +3551,26 @@
     "heartbeat_at": "2026-10-24T09:43:48.876Z",
     "expires_at": "2026-10-24T10:28:48.876Z",
     "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes",
-    "status": "verifying_passed_recovery_CI",
+    "released_at": "2026-10-24T09:44:29.992Z",
+    "status": "historical_recovery_implemented_ci_passed",
     "pr": 141,
-    "source_commit": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96"
+    "source_commit": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+    "ci": {
+      "run_id": 40067157901,
+      "commit_sha": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+      "conclusion": "success",
+      "unit_api": 582,
+      "netlify_runtime": 16,
+      "firestore_emulator": 57,
+      "ui": 132,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40067157897,
+        "conclusion": "success"
+      }
+    }
   },
   "acceptance_environment": {
     "provider": "Render",
@@ -3623,8 +3636,38 @@
   "accounting_resume_checkpoint": {
     "branch": "codex/accounting-v2-historical-recovery-20261024",
     "base_sha": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
-    "status": "historical_recovery_implemented_acceptance_pending",
-    "next": "Implement and test protected read-only historical recovery, then UI reload/lost-response/tenant isolation acceptance. No automatic financial retry or local payload storage. Excel4.2 and release/operational acceptance remain pending."
+    "status": "historical_recovery_implemented_ci_passed",
+    "next": "Excel4.2a Auditor Package: bounded permission-gated source-linked workbook with numeric values, current reconciliation and audit; then scheduled exports and remaining release/restore/operational acceptance.",
+    "sha": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+    "pr": 141,
+    "last_run": {
+      "worker": "accounting-excel4-resume-20261024-0944",
+      "branch": "codex/accounting-v2-historical-recovery-20261024",
+      "acquired_at": "2026-10-24T09:43:48.876Z",
+      "heartbeat_at": "2026-10-24T09:43:48.876Z",
+      "expires_at": "2026-10-24T10:28:48.876Z",
+      "purpose": "Verify PR141 passing source acceptance, release completed recovery milestone and implement next Excel4 milestone without production writes",
+      "released_at": "2026-10-24T09:44:29.992Z",
+      "status": "historical_recovery_implemented_ci_passed",
+      "pr": 141,
+      "source_commit": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+      "ci": {
+        "run_id": 40067157901,
+        "commit_sha": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+        "conclusion": "success",
+        "unit_api": 582,
+        "netlify_runtime": 16,
+        "firestore_emulator": 57,
+        "ui": 132,
+        "failed": 0,
+        "skipped": 0,
+        "production_audit_vulnerabilities": 0,
+        "node22": {
+          "run_id": 40067157897,
+          "conclusion": "success"
+        }
+      }
+    }
   },
   "integration_base": {
     "branch": "codex/invoice-save-diagnostics-20261023",
@@ -3713,7 +3756,7 @@
     "code_commit": "03cc372872de0586ef499b2946e29ccd4b576600"
   },
   "ui_integration": {
-    "status": "full_stack_ci_passed",
+    "status": "implemented_ci_passed",
     "base_pr": 139,
     "root_cause": "AccountingView lost imports, tab state variants, protected tab buttons and mounted D/E/Excel centers",
     "previous_ci": [
@@ -3753,20 +3796,21 @@
       "No dependency/browser package added to repository"
     ],
     "ci": {
-      "source": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
       "run_id": 40063035249,
+      "commit_sha": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
       "conclusion": "success",
       "unit_api": 564,
-      "runtime": 16,
-      "firestore": 56,
+      "netlify_runtime": 16,
+      "firestore_emulator": 56,
       "ui": 128,
       "failed": 0,
       "skipped": 0,
       "production_audit_vulnerabilities": 0
-    }
+    },
+    "pr": 140
   },
   "historical_recovery": {
-    "status": "fingerprint_bound_source_and_UI_fixture_repairs_final_acceptance_pending",
+    "status": "implemented_ci_passed",
     "base_source": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
     "base_pr": 140,
     "branch": "codex/accounting-v2-historical-recovery-20261024",
@@ -3809,6 +3853,25 @@
       "ui_failed": 2,
       "status": "failed_UI_fixture_timing_and_initial_company"
     },
-    "fingerprint_binding": "Committed receipt proof must match the exact stored approval command digest, including review hash and reason; deleted evidence is not treated as legacy."
+    "fingerprint_binding": "Committed receipt proof must match the exact stored approval command digest, including review hash and reason; deleted evidence is not treated as legacy.",
+    "pr": 141,
+    "source_commit": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+    "ci": {
+      "run_id": 40067157901,
+      "commit_sha": "2eb0b88cd907d8e94d2c4aaf5eba5ee912de8a96",
+      "conclusion": "success",
+      "unit_api": 582,
+      "netlify_runtime": 16,
+      "firestore_emulator": 57,
+      "ui": 132,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "node22": {
+        "run_id": 40067157897,
+        "conclusion": "success"
+      }
+    },
+    "completed_at": "2026-10-24T09:44:29.992Z"
   }
 }

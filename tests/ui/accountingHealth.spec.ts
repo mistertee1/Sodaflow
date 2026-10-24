@@ -1,10 +1,10 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, seedCloudMerchant, openMerchant } from './helpers/cloudMerchant';
 import { periodGuestFixture } from './helpers/accountingPeriods';
 
 async function open(page:Page,role:'Owner'|'Accountant'|'Viewer'='Owner'){
   const records=await periodGuestFixture(true,role);
-  await page.addInitScript(records=>{localStorage.setItem('mohasbasd_guest_session','true');localStorage.setItem('sudanese_merchant_has_seen_tour_v2','true');localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records));},records);
-  await page.goto('/');await page.locator('#tab-accounting').click();
+  await seedCloudMerchant(page, records);
+  await openMerchant(page);await page.locator('#tab-accounting').click();
 }
 
 test('E1.2 Owner sees evidence, refreshes the date and reloads the accounting health center',async({page})=>{
@@ -20,7 +20,9 @@ test('E1.2 Owner sees evidence, refreshes the date and reloads the accounting he
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 
-test('E1.2 Accountant can read health while Viewer cannot discover the advanced health tab',async({page})=>{
+test('E1.2 Accountant can read the accounting health center',async({page})=>{
   await open(page,'Accountant');await expect(page.getByTestId('accounting-health-tab')).toBeVisible();await page.getByTestId('accounting-health-tab').click();await expect(page.getByRole('region',{name:'مركز صحة المحاسبة'})).toContainText('الفحوص المحاسبية');
-  await page.evaluate(()=>localStorage.clear());await open(page,'Viewer');await expect(page.getByTestId('accounting-health-tab')).toHaveCount(0);
+});
+test('E1.2 Viewer cannot discover the advanced health tab',async({page})=>{
+  await open(page,'Viewer');await expect(page.getByTestId('accounting-health-tab')).toHaveCount(0);
 });

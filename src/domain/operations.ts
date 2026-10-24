@@ -148,7 +148,7 @@ export class Operations {
         list:async(path,options)=>{const rows=await tx.list(path,options);capture('list',path,sorted(rows),options??null);return rows;},find:async(path,field,value)=>{const rows=await tx.find(path,field,value);capture('find',path,sorted(rows),{field,value});return rows;},
         set:()=>{},delete:()=>{},
       })};
-      const proposal=await new Operations(readOnly,()=>now,this.subscriptionPolicy,this.verifyCostingSecurity).execute(orgId,actor,{action:'historicalImport.commit',operationId:request.operationId,data:input});
+      const proposal=await new Operations(readOnly,()=>now,this.subscriptionPolicy,this.verifyCostingSecurity).#executeCommand(orgId,actor,{action:'historicalImport.commit',operationId:request.operationId,data:input},true);
       const evidence=canonical({schema_version:1,orgId,actorUid:actor.uid,operationId:request.operationId,input,reads:reads.sort((a,b)=>canonical(a).localeCompare(canonical(b)))});
       const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(evidence));
       const review_sha256=Array.from(new Uint8Array(digest),n=>n.toString(16).padStart(2,'0')).join('');
@@ -319,6 +319,11 @@ export class Operations {
     return this.store.transaction(async tx=>{const {org,role}=await membership(tx,orgId,actor);ensure(['reports:advanced','invoices:read','payments:read','payables:read','budget:read'].every(permission=>hasPermission(role,permission as ActionType)),'ليس لديك صلاحية توقع التدفقات النقدية.',403);const now=this.now(),subscription=await loadSubscription(tx,orgId,org,now,this.subscriptionPolicy);assertSubscriptionActive(subscription);assertFeature(subscription,'accounting');assertFeature(subscription,'advanced_reports');ensure(org.accounting_version===2,'توقع التدفقات النقدية يتطلب محاسبة V2.',409);const root=`organizations/${orgId}`,asOf=input.asOf?dateOnly(input.asOf):merchantDay(now,org.settings.timezone||'Africa/Khartoum'),days=Number(input.days||30),receivables=await readOperationalReport(tx,root,'receivables',{end:asOf},asOf),payables=await readPayableReport(tx,root,{end:asOf},asOf);return{organizationId:orgId,generatedAt:now.toISOString(),...cashForecast(asOf,days,receivables.aging,payables.aging,await tx.list(`${root}/recurring_cash_sources`) as never,await tx.list(`${root}/scheduled_cash_sources`) as never)};});
   }
   async execute(orgId: string, actor: Actor, command: Command): Promise<OperationResult> {
+    return this.#executeCommand(orgId, actor, command);
+  }
+  // The preview bypass is a private capability used only with the read-only
+  // transaction adapter above. No command field or public argument can set it.
+  async #executeCommand(orgId: string, actor: Actor, command: Command, previewOnly = false): Promise<OperationResult> {
     identifier(orgId); identifier(actor.uid); identifier(command.operationId); ensure(command.operationId.length <= 64, 'معرّف العملية طويل جداً.');
     ensure(command.data && typeof command.data === 'object' && !Array.isArray(command.data), 'بيانات العملية غير صالحة.');
     const now = this.now(), iso = now.toISOString(), root = `organizations/${orgId}`;
@@ -341,7 +346,13 @@ export class Operations {
         ensure(hasPermission(role, masterImportPermission(masterImportModule(command.data.module))), 'ليس لديك صلاحية استيراد هذه البيانات.', 403);
       }
       if(command.action==='historicalImport.stage')assertHistoricalImportStagePayload(command.data);
-      if(command.action==='historicalImport.commit')assertHistoricalImportCommitPayload(command.data);
+      if(command.action==='historicalImport.commit'){
+        assertHistoricalImportCommitPayload(command.data);
+        if(!previewOnly){
+          if(command.data.expected_review_sha256===undefined)throw new BusinessError('اعتماد الاستيراد التاريخي يتطلب بصمة معاينة خادمية مراجعة؛ أعد المعاينة قبل الاعتماد.',409,'historical_review_required');
+          ensure(this.store.authority==='server','الاعتماد ببصمة المعاينة يتطلب خدمة الخادم.',403);
+        }
+      }
       if(command.action==='largeImport.request'){
         const sessionId=identifier(command.data.session_id),session=await tx.get(`${root}/import_sessions/${sessionId}`);
         ensure(session,'جلسة الاستيراد غير موجودة.',404);ensure(hasPermission(role,masterImportPermission(masterImportModule(session.import_type))),'ليس لديك صلاحية استيراد هذه البيانات.',403);
@@ -1245,7 +1256,7 @@ export class Operations {
       if(command.action==='largeImport.undo')Object.assign(audit,{event_type:'DATA_IMPORT_ROLLED_BACK',reauthentication:{auth_time:actor.authTime},import_metadata:{import_type:result.module,status:result.status,backup_id:result.commit_backup_id}});
       if(command.action==='historicalImport.stage')Object.assign(audit,{event_type:'DATA_IMPORT_STARTED',import_metadata:{import_type:result.import_type,file_name:result.file_name,file_hash:result.file_hash,rows_total:result.rows_total,rows_imported:0,rows_failed:result.rows_failed,status:result.status,schema_version:result.schema_version,accounting_block:result.accounting_block,rows_sha256:result.rows_sha256}});
       if(command.action==='historicalImport.commit')Object.assign(audit,{event_type:'DATA_IMPORT_COMPLETED',import_metadata:{import_session_id:result.id,import_type:result.import_type,file_hash:result.file_hash,rows_total:result.rows_total,rows_imported:result.rows_imported,rows_failed:result.rows_failed,status:result.status,completion_code:result.completion_code,schema_version:result.schema_version,accounting_block:result.accounting_block,journals_created:result.journals_created,invoices_created:result.invoices_created||0,payments_created:result.payments_created||0,inventory_movements_created:result.inventory_movements_created||0,rows_sha256:result.rows_sha256,document_evidence_sha256:result.document_evidence_sha256,reconciliation:result.reconciliation}});
-      if(command.action==='historicalImport.commit')Object.assign((audit as Document).import_metadata,{purchase_bills_created:result.purchase_bills_created||0,supplier_payments_created:result.supplier_payments_created||0});
+      if(command.action==='historicalImport.commit')Object.assign((audit as Document).import_metadata,{purchase_bills_created:result.purchase_bills_created||0,supplier_payments_created:result.supplier_payments_created||0,review_sha256:data.expected_review_sha256});
       if(isOpening)ensure(new TextEncoder().encode(JSON.stringify(audit)).length<=650000,'حجم تدقيق الأرصدة يتجاوز حد المستند.',413);
       tx.set(`${root}/audit_logs/${audit.id}`, audit);
       const visible = changes.filter(c => {

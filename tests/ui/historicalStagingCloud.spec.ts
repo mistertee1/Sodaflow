@@ -5,6 +5,7 @@ import { periodGuestFixture } from './helpers/accountingPeriods';
 import { guestId, guestActor } from '../fixtures/cloudIdentity';
 import { MemoryStore } from '../../src/domain/store';
 import { Operations } from '../../src/domain/operations';
+import { OperationIntents } from '../../server/operationIntents';
 import { createHistoricalImportTemplate } from '../../src/services/historicalImportWorkbook';
 
 for (const scenario of ['retry', 'switch', 'preview-switch', 'commit-retry', 'commit-stale', 'commit-switch'] as const) test(`signed-in historical import isolates ${scenario}`, async ({ page }) => {
@@ -17,6 +18,10 @@ for (const scenario of ['retry', 'switch', 'preview-switch', 'commit-retry', 'co
   secondRecords[`organizations/${secondOrgId}`].name = 'المؤسسة الثانية';
   secondRecords[`organizations/${secondOrgId}`].settings.business_name = 'المؤسسة الثانية';
   const memory = new MemoryStore({ ...records, ...secondRecords });
+  const intents = new OperationIntents(memory);
+  // Retry metadata is server control state, separate from the financial records
+  // whose immutability these scenarios assert before approval.
+  const businessState = () => Object.fromEntries(Object.entries(memory.dump()).filter(([path]) => !path.includes('/operationIntents/')));
   let releaseResponse!: () => void, markStarted!: () => void;
   const heldResponse = new Promise<void>(resolve => { releaseResponse = resolve; });
   const started = new Promise<void>(resolve => { markStarted = resolve; });
@@ -26,10 +31,12 @@ for (const scenario of ['retry', 'switch', 'preview-switch', 'commit-retry', 'co
   await page.addInitScript(() => { (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = { organizations: async () => [], watchRevision: () => () => {} }; });
   const commitIds:string[]=[];let loseCommit=true;
   const ids: string[] = []; let loseResponse = true, foreignResponse = true;
-  const before = memory.dump();
+  const before = businessState();
   await page.route('**/api/**', async route => {
     const path = new URL(route.request().url()).pathname;
     const send = (body: unknown, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+    if (path === '/api/operation-intents') return send(await intents.begin(guestActor, route.request().postDataJSON()));
+    if (path === '/api/operation-intents/acknowledge') return send(await intents.acknowledge(guestActor, route.request().postDataJSON()));
     if (path === '/api/organizations') return send([memory.dump()[root], memory.dump()[`organizations/${secondOrgId}`]]);
     if (path.endsWith('/snapshot')) return send(await operations.snapshot(path.includes(secondOrgId) ? secondOrgId : orgId, guestActor));
     if (path.endsWith('/revision')) return send({ revision: memory.dump()[`${root}/meta/counters`].revision });
@@ -133,7 +140,7 @@ for (const scenario of ['retry', 'switch', 'preview-switch', 'commit-retry', 'co
   }
   await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByRole('alert')).toContainText('لا تطابق المؤسسة');
   await expect(center.getByTestId('historical-server-session')).toHaveCount(0);
-  expect(memory.dump()).toEqual(before);
+  expect(businessState()).toEqual(before);
   await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByRole('alert')).toContainText('تعذر تأكيد');
   await center.getByTestId('stage-historical-workbook').click(); await expect(center.getByTestId('historical-server-session')).toContainText('حُفظت جلسة المراجعة');
   const stagedState = memory.dump();

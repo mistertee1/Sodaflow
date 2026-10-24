@@ -4,15 +4,16 @@
   "repository": "mistertee1/Sodaflow",
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
-  "active_milestone": "D",
-  "active_branch": "codex/accounting-v2-contract-regressions-20261023",
-  "overall_status": "in_progress",
+  "active_milestone": "D/E/Excel integration",
+  "active_branch": "codex/accounting-v2-ui-integration-20261024",
+  "overall_status": "in_progress_not_commercially_ready",
   "lease": {
-    "worker": "accounting-contract-regressions-20261023-2314",
-    "branch": "codex/accounting-v2-contract-regressions-20261023",
-    "acquired_at": "2026-10-23T23:13:18.034Z",
-    "expires_at": "2026-10-23T23:58:18.034Z",
-    "purpose": "Restore inherited D4 credit limits and Excel audit contracts after 11 failures in previously unregistered regression tests"
+    "worker": "accounting-ui-recovery-20261024-0422",
+    "branch": "codex/accounting-v2-ui-integration-20261024",
+    "acquired_at": "2026-10-24T04:18:07.479Z",
+    "expires_at": "2026-10-24T05:21:27.138Z",
+    "purpose": "Complete AccountingView integration and authenticated browser acceptance; preserve incoming sync, receipt, currency and Super Admin work",
+    "heartbeat_at": "2026-10-24T04:36:27.138Z"
   },
   "milestones": [
     {
@@ -2388,12 +2389,13 @@
       ]
     }
   ],
-  "last_report": "REPORT_CONTRACT_REGRESSIONS_20261023.md",
+  "last_report": "REPORT_UI_INTEGRATION_RECOVERY.md",
   "next_steps": [
-    "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
-    "User reviews and merges PR #112 then PR #114; no deployment or main writes"
+    "Complete UI integration acceptance against the latest stack; preserve restored mandatory historical review and incoming product/currency/receipt/sync changes.",
+    "Implement safe historical session/approval receipt recovery after reload without local financial persistence, then remaining Excel4 and deferred source evidence requirements.",
+    "User alone reviews/merges the stacked PRs toward main. No deploy, production Rules, tenant activation or real money migration."
   ],
-  "updated_at": "2026-10-23T23:15:49.317Z",
+  "updated_at": "2026-10-24T04:36:27.138Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -2418,7 +2420,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "D4_Excel_integration_regressions",
+  "active_substep": "restore_accounting_UI_acceptance",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -3465,6 +3467,16 @@
         "reason": "All historical import UI scenarios passed; unrelated receipt app.spec.ts:139 failed waiting title,99 UI passed"
       },
       "next": "Verify rerun39986838841. If receipt UI fails again investigate without weakening assertions; only close PR126 after full green CI. Then reviewed-contract enforcement and safe session/receipt recovery."
+    },
+    {
+      "worker": "accounting-review-acceptance-20261024-0414",
+      "branch": "codex/accounting-v2-historical-review-required-20261023",
+      "acquired_at": "2026-10-23T23:17:42.921Z",
+      "expires_at": "2026-10-24T00:02:42.921Z",
+      "purpose": "Enforce historical approval review at server entry before idempotency; keep dry-run capability private",
+      "released_at": "2026-10-24T04:18:07.479Z",
+      "handed_off_to": "codex/accounting-v2-ui-integration-20261024",
+      "status": "superseded_by_descendant_lease"
     }
   ],
   "last_lease": {
@@ -3496,7 +3508,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Finish inherited D4/Excel1–3 regression repair, then mandatory historical review contract and safe session/receipt recovery; original inventory PR137 CI remains independently pending.",
+  "next": "Verify corrected full stack CI and release this lease. Then safe cloud historical session/receipt recovery; remaining Excel4.2 auditor package/scheduled export permission and expiry; release scenario/repeated restore with zero differences and authenticated acceptance before commercial readiness.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3517,21 +3529,16 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "approval-ci-retry-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
-    "acquired_at": "2026-10-23T17:22:21Z",
-    "expires_at": "2026-10-23T17:42:21.000Z",
-    "purpose": "Record passing approval regressions and retry unrelated receipt UI failure",
-    "released_at": "2026-10-23T17:22:24Z",
-    "pr": 126,
-    "status": "approval_regressions_passed_full_CI_retry_pending",
-    "ci": {
-      "run_id": 39986838841,
-      "commit_sha": "7ea927906ce74ac33ac1f3f9f5c3f1fce4455d40",
-      "conclusion": "failure_retry_requested",
-      "reason": "All historical import UI scenarios passed; unrelated receipt app.spec.ts:139 failed waiting title,99 UI passed"
-    },
-    "next": "Verify rerun39986838841. If receipt UI fails again investigate without weakening assertions; only close PR126 after full green CI. Then reviewed-contract enforcement and safe session/receipt recovery."
+    "worker": "accounting-ui-recovery-20261024-0422",
+    "branch": "codex/accounting-v2-ui-integration-20261024",
+    "acquired_at": "2026-10-24T04:18:07.479Z",
+    "expires_at": "2026-10-24T05:21:27.138Z",
+    "purpose": "Complete AccountingView integration and authenticated browser acceptance; preserve incoming sync, receipt, currency and Super Admin work",
+    "heartbeat_at": "2026-10-24T04:36:27.138Z",
+    "started_at": "2026-10-24T04:18:07.479Z",
+    "status": "UI_source_repaired_targeted_acceptance_passed_full_CI_pending",
+    "base_pr": 139,
+    "source_commit": "03cc372872de0586ef499b2946e29ccd4b576600"
   },
   "acceptance_environment": {
     "provider": "Render",
@@ -3584,30 +3591,35 @@
         "build": "passed",
         "baseline_failures_fixed": 11,
         "ci": "pending"
+      },
+      "ci": {
+        "run_id": 40038692077,
+        "commit_sha": "a1c747073fa8247f5141a64f313d5b04c2eb85af",
+        "conclusion": "cancelled",
+        "emulator": "passed",
+        "ui": "cancelled_requires_log_review"
       }
     }
   },
   "accounting_resume_checkpoint": {
-    "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
-    "sha": "6ffafb46410fdaad752dabe50cbf828fb1d693d1",
+    "branch": "codex/accounting-v2-ui-integration-20261024",
+    "sha": "e0d1738e7b4036be51a88a2e09423bd5d9108c5b",
     "last_run": {
-      "worker": "approval-ci-retry-20261023",
-      "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
-      "acquired_at": "2026-10-23T17:22:21Z",
-      "expires_at": "2026-10-23T17:42:21.000Z",
-      "purpose": "Record passing approval regressions and retry unrelated receipt UI failure",
-      "released_at": "2026-10-23T17:22:24Z",
-      "pr": 126,
-      "status": "approval_regressions_passed_full_CI_retry_pending",
-      "ci": {
-        "run_id": 39986838841,
-        "commit_sha": "7ea927906ce74ac33ac1f3f9f5c3f1fce4455d40",
-        "conclusion": "failure_retry_requested",
-        "reason": "All historical import UI scenarios passed; unrelated receipt app.spec.ts:139 failed waiting title,99 UI passed"
-      },
-      "next": "Verify rerun39986838841. If receipt UI fails again investigate without weakening assertions; only close PR126 after full green CI. Then reviewed-contract enforcement and safe session/receipt recovery."
+      "worker": "accounting-ui-recovery-20261024-0422",
+      "branch": "codex/accounting-v2-ui-integration-20261024",
+      "acquired_at": "2026-10-24T04:18:07.479Z",
+      "expires_at": "2026-10-24T05:21:27.138Z",
+      "purpose": "Complete AccountingView integration and authenticated browser acceptance; preserve incoming sync, receipt, currency and Super Admin work",
+      "heartbeat_at": "2026-10-24T04:36:27.138Z",
+      "started_at": "2026-10-24T04:18:07.479Z",
+      "status": "UI_source_repaired_targeted_acceptance_passed_full_CI_pending",
+      "base_pr": 139,
+      "source_commit": "03cc372872de0586ef499b2946e29ccd4b576600"
     },
-    "next": "Verify rerun39986838841. If receipt UI fails again investigate without weakening assertions; only close PR126 after full green CI. Then reviewed-contract enforcement and safe session/receipt recovery."
+    "next": "Verify corrected full stack CI and release this lease. Then safe cloud historical session/receipt recovery; remaining Excel4.2 auditor package/scheduled export permission and expiry; release scenario/repeated restore with zero differences and authenticated acceptance before commercial readiness.",
+    "previous_branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
+    "previous_sha": "6ffafb46410fdaad752dabe50cbf828fb1d693d1",
+    "status": "latest_stack_source_repaired_full_UI_acceptance_pending"
   },
   "integration_base": {
     "branch": "codex/invoice-save-diagnostics-20261023",
@@ -3640,11 +3652,11 @@
       "current_ci": {
         "run_id": 40038101273,
         "commit_sha": "e0673c1c12ada6e15459f45d9fb6b1520a74d636",
-        "conclusion": "in_progress",
+        "conclusion": "cancelled",
         "check": "passed",
         "production_audit_vulnerabilities": 0,
         "emulator": "passed",
-        "ui": "running"
+        "ui": "cancelled_requires_log_review"
       }
     },
     "production_activation": false,
@@ -3656,5 +3668,85 @@
       "qs": "6.16.1",
       "production_audit": "pending_on_patched_lock"
     }
+  },
+  "historical_review_required": {
+    "status": "core_and_firestore_contract_passed_UI_stack_recovery_pending",
+    "base_pr": 138,
+    "scope": "Reject legacy unreviewed historical financial commits and forged preview flags; private read-only simulation only",
+    "branch": "codex/accounting-v2-historical-review-required-20261023",
+    "report": "REPORT_HISTORICAL_REVIEW_REQUIRED_20261023.md",
+    "checks": {
+      "unit_api": 564,
+      "unit_api_status": "passed",
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "final_historical_tests": 20,
+      "ci": {
+        "run_id": 40061724207,
+        "commit_sha": "03cc372872de0586ef499b2946e29ccd4b576600",
+        "conclusion": "cancelled_due_to_inherited_UI_integration_failures",
+        "check": "passed",
+        "audit": "passed",
+        "emulator": "passed",
+        "ui": "superseded_by_UI_integration_branch"
+      },
+      "firestore_review_contract": "passed_CI",
+      "previous_ci": {
+        "run_id": 40039303158,
+        "conclusion": "cancelled",
+        "unit_api": 564,
+        "netlify_runtime": 16,
+        "production_audit_vulnerabilities": 0,
+        "emulator": "passed_before_new_review_test",
+        "ui": "failed_missing_accounting_UI_tabs_then_job_timeout"
+      },
+      "emulator": 56,
+      "production_audit_vulnerabilities": 0
+    },
+    "code_commit": "03cc372872de0586ef499b2946e29ccd4b576600"
+  },
+  "ui_integration": {
+    "status": "source_repaired_local_targeted_acceptance_passed_full_CI_pending",
+    "base_pr": 139,
+    "root_cause": "AccountingView lost imports, tab state variants, protected tab buttons and mounted D/E/Excel centers",
+    "previous_ci": [
+      40038101273,
+      40038692077,
+      40039303158
+    ],
+    "remaining_failures_to_diagnose": [],
+    "cause_detail": "Confirmed missing AccountingView center wiring plus obsolete guest/localStorage fixtures; credit/dimension/comparison controls already existed and were not overwritten.",
+    "branch": "codex/accounting-v2-ui-integration-20261024",
+    "report": "REPORT_UI_INTEGRATION_RECOVERY.md",
+    "additional_causes": [
+      "Historical staging UI fixture aborted operation-intent requests; now uses actual OperationIntents service",
+      "Real PDF font/rasterization outlasted synchronous 5s assertion; file/content checks retained with bounded 30s artifact wait within 60s test"
+    ],
+    "local_checks": {
+      "first_full_ui": {
+        "passed": 121,
+        "total": 128,
+        "failed": 7
+      },
+      "repaired_targeted_ui": {
+        "passed": 9,
+        "total": 9
+      },
+      "build": "passed",
+      "full_check": "passed",
+      "no_assertions_removed": true,
+      "unit_api": 564,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed"
+    },
+    "source_preservation": [
+      "Only AccountingView runtime imports/tab wiring changed; no replacement of customer/expense/currency/receipt/sync/Super Admin code",
+      "Cloud-only denial tests unchanged",
+      "No dependency/browser package added to repository"
+    ],
+    "ci": "pending_PR_creation"
   }
 }

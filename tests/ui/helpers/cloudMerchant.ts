@@ -67,22 +67,22 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
     const actor = { ...guestActor, authTime: Math.floor(clock / 1000) };
     const issued = new Set<string>();
     let token = '';
-    const issueToken = async () => {
-      clock = await page.evaluate(() => Date.now()); actor.authTime = Math.floor(clock / 1000);
+    const issueToken = async (sourcePage = page) => {
+      clock = await sourcePage.evaluate(() => Date.now()); actor.authTime = Math.floor(clock / 1000);
       token = [{ alg: 'RS256', typ: 'JWT' }, { aud: 'sodaflow', iss: 'https://securetoken.google.com/sodaflow', sub: actor.uid, user_id: actor.uid, auth_time: actor.authTime, iat: actor.authTime, exp: actor.authTime + 3600, email: actor.email, email_verified: true, firebase: { sign_in_provider: 'password' } }].map(v => Buffer.from(JSON.stringify(v)).toString('base64url')).join('.') + '.synthetic-signature';
       issued.add(token);
       return token;
     };
-    await page.route('https://identitytoolkit.googleapis.com/**', async route => {
+    await page.context().route('https://identitytoolkit.googleapis.com/**', async route => {
       const action = new URL(route.request().url()).pathname.split(':').at(-1);
       const response = action === 'lookup' ? { users: [{ localId: actor.uid, email: actor.email, emailVerified: true, displayName: actor.name, providerUserInfo: [{ providerId: 'password', email: actor.email }], createdAt: String(clock), lastLoginAt: String(clock) }] }
-        : { localId: actor.uid, email: actor.email, idToken: await issueToken(), refreshToken: 'synthetic-refresh', expiresIn: '3600', registered: true };
+        : { localId: actor.uid, email: actor.email, idToken: await issueToken(route.request().frame().page()), refreshToken: 'synthetic-refresh', expiresIn: '3600', registered: true };
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(response) });
     });
-    await page.route('https://securetoken.googleapis.com/**', async route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: await issueToken(), id_token: token, refresh_token: 'synthetic-refresh', expires_in: '3600', user_id: actor.uid, project_id: 'sodaflow' }) }));
+    await page.context().route('https://securetoken.googleapis.com/**', async route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ access_token: await issueToken(route.request().frame().page()), id_token: token, refresh_token: 'synthetic-refresh', expires_in: '3600', user_id: actor.uid, project_id: 'sodaflow' }) }));
     // Only Firestore discovery/notifications are doubled. Reads, reports, owner
     // verification, accounting writes, idempotency and quotas use the real API.
-    await page.addInitScript(() => {
+    await page.context().addInitScript(() => {
       (window as any).__SUDANFLOW_FIREBASE_SYNC_TEST__ = { organizations: async () => [], watchRevision: () => () => {} };
     });
     const requests: string[] = [], mutations: Document[] = [];
@@ -105,10 +105,10 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
     };
     let tearingDown = false;
     const pendingRoutes = new Set<Promise<void>>();
-    await page.route('**/api/**', async route => {
+    await page.context().route('**/api/**', async route => {
       if (tearingDown) { await route.abort('aborted').catch(() => {}); return; }
       const task = (async () => {
-      await initializeBackend(); clock = await page.evaluate(() => Date.now());
+      await initializeBackend(); clock = await route.request().frame().page().evaluate(() => Date.now());
       const request = route.request(), url = new URL(request.url()), path = url.pathname + url.search;
       requests.push(path);
       const bearer = request.headers().authorization || '';

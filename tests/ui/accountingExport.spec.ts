@@ -1,11 +1,11 @@
-import {test,expect,type Page} from '@playwright/test';
+import { test, expect, type Page, seedCloudMerchant, openMerchant } from './helpers/cloudMerchant';
 import {readFile} from 'node:fs/promises';
 import {periodGuestFixture} from './helpers/accountingPeriods';
 
 async function open(page:Page,role:'Owner'|'Accountant'|'Viewer'){
   const records=await periodGuestFixture(true,role);
-  await page.addInitScript(records=>{localStorage.setItem('mohasbasd_guest_session','true');localStorage.setItem('sudanese_merchant_has_seen_tour_v2','true');if(!localStorage.getItem('sudaflow_guest_transactions_v3'))localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records));},records);
-  await page.goto('/');await page.locator('#tab-accounting').click();
+  await seedCloudMerchant(page, records);
+  await openMerchant(page);await page.locator('#tab-accounting').click();
 }
 
 test('Excel2.1 accountant downloads the scoped dual-book workbook and export survives reload',async({page},testInfo)=>{

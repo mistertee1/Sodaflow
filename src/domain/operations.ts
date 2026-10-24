@@ -1,3 +1,4 @@
+import { readHistoricalImportRecovery } from './historicalImportRecovery';
 import { reserveProductName, releaseProductName } from './productIdentity';
 import { assertUsdCostRate, productPriceQuote, validateInvoicePriceReferences, validateProductPricing } from './productPricing';
 import { currencyDecimals, isForeignCurrency, isSupportedCurrency, normalizeWhatsAppPhone, transactionCurrency } from '../lib/currencyCatalog';
@@ -132,6 +133,19 @@ function monthKey(now: Date, timeZone: string) {
 /** Strict by default for embedded callers; the production API injects its reviewed release policy. */
 export class Operations {
   constructor(public store: Store, private now: () => Date = () => new Date(), private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = (_saved, orgId) => createDefaultSubscription(orgId), private verifyCostingSecurity?: () => Promise<void>, public readonly controlsEnabled = true) {}
+  async historicalImportRecovery(orgId: string, actor: Actor, sessionId: string) {
+    identifier(orgId); identifier(sessionId);
+    ensure(this.store.authority === 'server', 'استرداد الاستيراد التاريخي يتطلب خدمة الخادم.', 403);
+    return this.store.transaction(async tx => {
+      const { org, role } = await membership(tx, orgId, actor, false, this.controlsEnabled);
+      ensure(hasPermission(role, 'import:accounting'), 'ليس لديك صلاحية مراجعة الاستيراد التاريخي.', 403);
+      const subscription = await loadSubscription(tx, orgId, org, this.now(), this.subscriptionPolicy, this.controlsEnabled);
+      assertSubscriptionActive(subscription); assertFeature(subscription, 'accounting');
+      ensure(org.accounting_version === 2, 'استرداد الاستيراد التاريخي يتطلب محاسبة V2.', 409);
+      return readHistoricalImportRecovery(tx, orgId, sessionId, this.now().toISOString());
+    });
+  }
+
   async historicalImportPreview(orgId:string,actor:Actor,request:{input:import('./historicalImportCommit').HistoricalImportCommitInput;operationId:string}) {
     ensure(request && typeof request==='object' && !Array.isArray(request) && Object.keys(request).every(key=>['input','operationId'].includes(key)),'حقول المعاينة التاريخية غير صالحة.');
     assertHistoricalImportCommitPayload(request.input);identifier(request.operationId);

@@ -23,9 +23,11 @@ export function HistoricalWorkbookCenter() {
   const [confirmed,setConfirmed] = useState(false), [pendingApproval,setPendingApproval] = useState<ServerPreview|null>(null), [receipt,setReceipt] = useState<Document|null>(null);
   const committing = useRef(false), approvalIdentity = useRef('');
   const [session, setSession] = useState<Document | null>(null);
+  const [recoveryId, setRecoveryId] = useState('');
+  const recoveryLock = useRef(false);
   const identity = `${app.currentOrg?.id}:${app.currentUser?.uid}:${allowed}`;
   const currentIdentity = useRef(identity); currentIdentity.current = identity;
-  useEffect(() => { setSession(null); setPendingApproval(null); setReceipt(null); pendingStage.current = null; }, [identity]);
+  useEffect(() => { setSession(null); setPendingApproval(null); setReceipt(null); setRecoveryId(''); pendingStage.current = null; }, [identity]);
   const [reviewScope, setReviewScope] = useState('');
   useEffect(() => { generation.current++; setConfirmed(false); setPreview(null); setReview(null); setError(''); setBusy(false); }, [scope]);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; generation.current++; }; }, []);
@@ -70,12 +72,34 @@ export function HistoricalWorkbookCenter() {
       }
     } finally {committing.current=false;if(mounted.current && currentIdentity.current===captured)setBusy(false);}
   };
+  const recover = async () => {
+    if (!recoveryId || recoveryLock.current || busy || pendingApproval) return;
+    recoveryLock.current = true;
+    const captured = identity, orgId = app.currentOrg!.id, id = recoveryId, token = ++generation.current;
+    try {
+      await run(async () => {
+        const recovered = await app.recoverHistoricalImport(id, orgId);
+        if (!mounted.current || currentIdentity.current !== captured || generation.current !== token) return;
+        setReview(null); setPreview(null); setConfirmed(false); pendingStage.current = null;
+        setSession(recovered.session); setReceipt(recovered.receipt); setPendingApproval(null);
+        approvalIdentity.current = captured;
+      });
+    } finally { recoveryLock.current = false; }
+  };
   if (!allowed) return null;
   const visible = reviewScope === scope ? review : null;
   const livePreview = preview?.scope === scope ? preview.value : null;
   return <section className="sf-card space-y-4" aria-label="مراجعة المصنف التاريخي" data-testid="historical-workbook-center">
     <h2 className="text-xl font-bold">استيراد المستندات التاريخية — مراجعة الملف</h2>
     <p>نزّل القالب وأدخل أدلة الفواتير أو المشتريات الأصلية وبنودها ودفعاتها. القراءة والتحقق هنا لا يحفظان جلسة أو بيانات مالية.</p>
+    <div className="space-y-2" data-testid="historical-cloud-recovery">
+      <label className="block">جلسة سابقة محفوظة في السحابة<select aria-label="جلسة الاستيراد المحفوظة" value={recoveryId} disabled={busy || Boolean(pendingApproval)} onChange={e => setRecoveryId(e.target.value)} className="sf-field w-full">
+        <option value="">اختر جلسة لاستكمال مراجعتها أو عرض نتيجة اعتمادها</option>
+        {app.historicalImportSessions.map(row => <option key={row.id} value={row.id}>{String(row.file_name)} — {String(row.created_at).slice(0,10)} — {String(row.status).startsWith('completed') ? 'معتمدة' : 'بانتظار المراجعة'}</option>)}
+      </select></label>
+      <button type="button" className="sf-secondary" data-testid="recover-historical-session" disabled={!recoveryId || busy || Boolean(pendingApproval)} onClick={() => void recover()}>استرداد الجلسة من الخادم</button>
+      <p className="text-sm">الاسترداد لا يرحّل أي مستند. الجلسة غير المعتمدة تحتاج معاينة جديدة وموافقة صريحة؛ نتيجة الاعتماد السابقة تُعرض دون تكرارها.</p>
+    </div>
     <button className="sf-secondary" disabled={busy} onClick={() => void run(async () => {
       const captured = scope, template = await createHistoricalImportTemplate();
       if (!mounted.current || current.current !== captured) return;
@@ -102,7 +126,7 @@ export function HistoricalWorkbookCenter() {
       })}>تحقق خادمياً واحفظ جلسة المراجعة</button>
       <p className="text-sm">لم يُحفظ شيء. التحقق الخادمي يحفظ جلسة مراجعة فقط. الاعتماد المالي غير متاح في هذه الخطوة.</p>
     </div>}
-    {session && <div role="status" data-testid="historical-server-session"><p>حُفظت جلسة المراجعة الخادمية فقط؛ لم تُعتمد مستندات أو قيود.</p><p>الملف: {String(session.file_name)} — المستندات: {Number(session.rows_total)}</p>{session.file_duplicate_warning && <p>{String(session.file_duplicate_warning)}</p>}<button className="sf-secondary" data-testid="preview-historical-workbook" disabled={busy || Boolean(pendingApproval) || Boolean(receipt)} onClick={() => void run(async () => {
+    {session && !receipt && <div role="status" data-testid="historical-server-session"><p>حُفظت جلسة المراجعة الخادمية فقط؛ لم تُعتمد مستندات أو قيود.</p><p>الملف: {String(session.file_name)} — المستندات: {Number(session.rows_total)}</p>{session.file_duplicate_warning && <p>{String(session.file_duplicate_warning)}</p>}<button className="sf-secondary" data-testid="preview-historical-workbook" disabled={busy || Boolean(pendingApproval) || Boolean(receipt)} onClick={() => void run(async () => {
       setPreview(null);setConfirmed(false);
       const captured = scope, token = generation.current;
       const input = {id:String(session.id),expected_rows_sha256:String(session.rows_sha256),expected_validation_context_sha256:String(session.validation_context_sha256),...(session.document_evidence_sha256?{expected_document_evidence_sha256:String(session.document_evidence_sha256)}:{}),reason:'معاينة المستندات التاريخية قبل الاعتماد'};
@@ -122,6 +146,6 @@ export function HistoricalWorkbookCenter() {
       <details><summary>القيود والمطابقة المقترحة</summary><pre className="whitespace-pre-wrap">{JSON.stringify({reconciliation:livePreview.proposed_result.reconciliation,journals:livePreview.proposed_changes.filter((change:Document)=>change.path.includes('/journal_entries/')).map((change:Document)=>change.value)},null,2)}</pre></details>
     </div>}
     {pendingApproval && approvalIdentity.current===identity && <div data-testid="historical-pending-approval"><p>لم يُؤكد الرد بعد. أعد نفس طلب الاعتماد للتحقق من نتيجته دون تكراره.</p><button className="sf-secondary" disabled={busy} data-testid="retry-historical-approval" onClick={()=>void approve(pendingApproval)}>إعادة نفس طلب الاعتماد</button></div>}
-    {receipt && approvalIdentity.current===identity && <div role="status" data-testid="historical-approval-receipt"><p>اكتمل الاعتماد الخادمي للمستندات والقيود المراجعة.</p><p>الجلسة: {String(receipt.id)} — المستندات المستوردة: {Number(receipt.rows_imported)}</p><p>{receipt.accounting_block?'توجد فروقات محاسبية حاجبة؛ راجع التقرير قبل إغلاق الفترة.':'المطابقة دون فروقات مسجلة في نتيجة الاعتماد.'}</p></div>}
+    {receipt && approvalIdentity.current===identity && <div role="status" data-testid="historical-approval-receipt"><p>{receipt.review_status==='legacy_without_review_evidence'?'هذه نتيجة اعتماد سابقة؛ لم يُحفظ معها دليل المعاينة الخادمية بالإصدار الحالي.':'اكتمل الاعتماد الخادمي للمستندات والقيود المراجعة.'}</p><p>الجلسة: {String(receipt.id)} — المستندات المستوردة: {Number(receipt.rows_imported)}</p><p>{receipt.accounting_block?'توجد فروقات محاسبية حاجبة؛ راجع التقرير قبل إغلاق الفترة.':'المطابقة دون فروقات مسجلة في نتيجة الاعتماد.'}</p></div>}
   </section>;
 }

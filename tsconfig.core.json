@@ -66,6 +66,9 @@
     "tests/invoiceSave.test.ts",
     "tests/invoiceSaveFirestore.test.ts",
     "tests/ui/invoiceSave.spec.ts",
-    "tests/historicalImportCommit.test.ts"
+    "tests/historicalImportCommit.test.ts",
+    "tests/historicalRecovery.test.ts",
+    "tests/historicalRecoveryFirestore.test.ts",
+    "tests/ui/historicalRecovery.spec.ts"
   ]
 }

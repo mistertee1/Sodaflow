@@ -1,7 +1,9 @@
 import { test as base, expect, type Page } from '@playwright/test';
 import express from 'express';
+import { readFileSync } from 'node:fs';
+import { verifyAccountingRulesSource } from '../../../server/accountingSecurity';
 import { createApi } from '../../../server/api';
-import { MemoryStore, type Document } from '../../../src/domain/store';
+import { MemoryStore, type Document, type Store } from '../../../src/domain/store';
 import { Operations, type Actor } from '../../../src/domain/operations';
 import { INITIAL_SETTINGS } from '../../../src/data/initialData';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../../../src/types';
@@ -59,9 +61,10 @@ export async function openMerchant(page: Page, waitForCompany = true) {
   if (waitForCompany) await expect(page.locator('.sf-app-shell')).toBeVisible();
 }
 
-export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: boolean }>({
+export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: boolean; serverAuthority: boolean }>({
   controlsEnabled: [true, { option: true }],
-  merchant: [async ({ page, controlsEnabled }, use) => {
+  serverAuthority: [false, { option: true }],
+  merchant: [async ({ page, controlsEnabled, serverAuthority }, use) => {
     let records = defaultMerchantRecords(), store: MemoryStore | undefined;
     let failWrite = false, abortNext = false, failReads = false, failAck = false, clock = Date.now();
     const actor = { ...guestActor, authTime: Math.floor(clock / 1000) };
@@ -97,7 +100,9 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
       };
       store = new MemoryStore(records, () => { if (failWrite) { failWrite = false; throw Object.assign(Error('Synthetic cloud commit unavailable'), { code: 14 }); } });
       const app = express(); app.use(express.json({ limit: '10mb' }));
-      app.use('/api', createApi({ operations: new Operations(store, () => new Date(clock), undefined, undefined, controlsEnabled), verify: async value => { if (!issued.has(value)) throw Error('Invalid synthetic token'); return { ...actor }; } }));
+      const authority: Store = serverAuthority ? {authority:'server',transaction:work=>store!.transaction(work)} : store;
+      const verifyRules = serverAuthority ? async () => verifyAccountingRulesSource([{content:readFileSync('firestore.rules','utf8')}]) : undefined;
+      app.use('/api', createApi({ operations: new Operations(authority, () => new Date(clock), undefined, verifyRules, controlsEnabled), verify: async value => { if (!issued.has(value)) throw Error('Invalid synthetic token'); return { ...actor }; } }));
       server = app.listen(0, '127.0.0.1');
       await new Promise<void>((resolve, reject) => { server!.once('listening', resolve); server!.once('error', reject); });
       const address = server.address(); if (!address || typeof address === 'string') throw Error('Missing synthetic API address');

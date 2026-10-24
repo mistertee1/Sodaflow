@@ -159,6 +159,13 @@ test('Missing or changed Rules verification blocks reads, writes and cached retr
   assert.deepEqual(f.memory.dump(), before);
 });
 
+test('An old financial audit without a retained idempotency receipt cannot be overwritten by a schedule operation', async () => {
+  const f = await fixture(); await f.mutate(`${f.root}/audit_logs/audit-legacy-financial`, { id: 'audit-legacy-financial', org_id: f.org.id, action: 'journal.create', entity_id: 'legacy-journal', created_at: '2026-10-01T00:00:00Z' });
+  const before = f.memory.dump(); await assert.rejects(f.create('legacy-financial'), failure(409)); assert.deepEqual(f.memory.dump(), before);
+  const { schedule: p } = await f.create(); await assert.rejects(f.update(p.id, 1, { active: false }, 'legacy-financial'), failure(409));
+  assert.equal(f.memory.dump()[`${f.root}/export_schedules/${p.id}`].active, true); assert.deepEqual(f.memory.dump()[`${f.root}/audit_logs/audit-legacy-financial`], before[`${f.root}/audit_logs/audit-legacy-financial`]);
+});
+
 test('Actual API routes return no-store confirmed policies, reject anonymous/unverified/forged access and recheck Auth on retries', async () => {
   const f = await fixture(), app = express(); app.use(express.json());
   app.use('/api', createApi({ operations: f.operations, scheduledExports: f.service, verify: async token => token === 'unverified' ? { ...f.owner, emailVerified: false } : f.actor(token === 'owner' ? f.owner.uid : token) }));

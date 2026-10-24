@@ -13,18 +13,25 @@ let app: App, env: RulesTestEnvironment, store: ResilientStore;
 before(async () => {
   assert.match(process.env.FIRESTORE_EMULATOR_HOST || '', /^(127\.0\.0\.1|localhost):8091$/, 'Schedule tests write only to demo-sudaflow Emulator');
   env = await initializeTestEnvironment({ projectId: 'demo-sudaflow', firestore: { host: '127.0.0.1', port: 8091, rules: readFileSync('firestore.rules', 'utf8') } });
+  // Earlier permission fixtures deliberately leave malformed plan documents.
+  // This sequential suite starts from its own synthetic database state.
+  await env.clearFirestore();
   app = initializeApp({ projectId: 'demo-sudaflow' }, 'scheduled-export-management'); store = new ResilientStore(getFirestore(app));
 });
 after(async () => { if (env) await env.cleanup(); if (app) await deleteApp(app); });
 
 test('Firestore schedule policy, due item, receipt and audit commit once; direct SDK policy/queue/receipt access remains denied', async () => {
   const f = await scheduledExportsFixture(store, 'emulator-schedule-create'), db = getFirestore(app);
+  const legacyAudit = { id: 'audit-legacy-financial', org_id: f.org.id, action: 'journal.create', entity_id: 'legacy-journal', created_at: '2026-10-01T00:00:00Z' };
+  await db.doc(`${f.root}/audit_logs/audit-legacy-financial`).set(legacyAudit);
   const before = await f.operations.snapshot(f.org.id, f.owner, true), first = await f.create(), again = await f.create(); assert.deepEqual(again, first);
   const p = first.schedule, duePath = `scheduled_export_due/${scheduledExportDueKey(f.org.id, p.id)}`;
   const due = (await db.doc(duePath).get()).data()!; assert.equal(due.policy_revision, 1); assert.equal(due.next_run_at, p.next_run_at);
   assert.equal((await db.collection(`${f.root}/export_schedules`).get()).size, 1);
   assert.equal((await db.collection(`${f.root}/audit_logs`).where('action', '==', 'exportSchedule.create').get()).size, 1);
   assert.equal((await db.doc(`${f.root}/idempotency/schedule-create`).get()).data()!.response.schedule.id, p.id);
+  await assert.rejects(f.create('legacy-financial'), (error: any) => error.status === 409);
+  assert.deepEqual((await db.doc(`${f.root}/audit_logs/audit-legacy-financial`).get()).data(), legacyAudit);
   const after = await f.operations.snapshot(f.org.id, f.owner, true);
   for (const [name, rows] of Object.entries(before.collections)) if (name !== 'audit_logs') assert.deepEqual(after.collections[name], rows, name);
   const identities = [env.unauthenticatedContext(), env.authenticatedContext(f.owner.uid, { email: f.owner.email, email_verified: true }), env.authenticatedContext('Accountant', { email_verified: true }), env.authenticatedContext('outside', { email_verified: true, superAdmin: true })];

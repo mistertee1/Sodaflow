@@ -11,8 +11,8 @@
     "worker": "scheduled-policy-resume-20261024-1130",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
     "acquired_at": "2026-10-24T11:30:12.611Z",
-    "heartbeat_at": "2026-10-24T11:55:06.796266+00:00",
-    "expires_at": "2026-10-24T13:25:06.796266+00:00",
+    "heartbeat_at": "2026-10-24T12:00:31.817923+00:00",
+    "expires_at": "2026-10-24T13:30:31.817923+00:00",
     "purpose": "Excel4.2b.2a cloud schedule CRUD and due-index integration; no worker execution or production changes"
   },
   "milestones": [
@@ -2430,9 +2430,9 @@
   ],
   "last_report": "REPORT_SCHEDULED_EXPORT_POLICY.md",
   "next_steps": [
-    "Publish and verify pure scheduled export policy/calendar/expiry contracts as a separate dependent milestone.",
-    "Then wire protected persistence, atomic due-job claiming and live requester authorization before generation/publish/download; repair accounting worker snapshot-expiry gap, add API/Firestore/browser coverage.",
-    "Remaining legacy/evidence and final zero-difference financial/restore/operational acceptance remain incomplete. User alone merges; no production schedule/worker/deployment."
+    "Finish full CI acceptance of cloud schedule management; pure policy/calendar contracts already accepted on187c608b (CI40091171036).",
+    "Then4.2b.2b: atomic due claim/recovery with live requester access before generation/publish/download, private artifacts and expiry, plus API/Firestore/browser acceptance. No runtime schedule is enabled by policy storage.",
+    "Final legacy/evidence and zero-difference financial/restore/operational acceptance remain incomplete; user alone merges and deploys. Preserve paused Super Admin, Firebase-only sync, invoices and USD pricing; display-currency backlog remains isolated."
   ],
   "updated_at": "2026-10-24T11:38:33.680059+00:00",
   "deferred_requirements": [
@@ -2459,7 +2459,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.2b.1_scheduled_export_policy",
+  "active_substep": "Excel4.2b.2a_scheduled_export_cloud_management",
   "observed_main_sha": "be2523e6ee0538f874a4d12c0250df3328aa614b",
   "lease_history": [
     {
@@ -4022,8 +4022,8 @@
     ],
     "production_writes": 0,
     "checks": {
-      "focused_unit_api": 18,
-      "full_unit_api": 631,
+      "focused_unit_api": 19,
+      "full_unit_api": 632,
       "netlify_runtime": 16,
       "types": "passed",
       "core": "passed",
@@ -4031,6 +4031,17 @@
       "firestore_emulator": "pending_CI_4_new_tests",
       "full_UI": "pending_CI_existing_regressions",
       "production_audit": "pending_CI"
+    },
+    "first_ci": {
+      "run_id": 40091832037,
+      "source": "21988d029206e1ca1ac062f4df6f18aca8d29c75",
+      "conclusion": "failure",
+      "unit_api": 631,
+      "runtime": 16,
+      "emulator_passed": 58,
+      "emulator_failed": 4,
+      "ui": "not_run_after_Emulator_failure",
+      "cause": "New fixture creation inherited deliberately malformed Free plan left by an earlier permission suite; isolated demo database reset added, with no assertion or Rules weakening."
     }
   }
 }

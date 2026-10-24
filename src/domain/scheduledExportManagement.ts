@@ -125,6 +125,8 @@ export class ScheduledExportManagement {
         return { org_id: orgId, schedule: current as ExportSchedule, execution_enabled: false };
       }
       const schedule = candidate || updateExportSchedule(prior!, input, access);
+      const auditId = `audit-${id}`, auditPath = `${root}/audit_logs/${auditId}`;
+      ensure(!await tx.get(auditPath), 'معرّف العملية مرتبط بسجل تدقيق قائم؛ استخدم طلباً جديداً.', 409);
       const registryPath = `${root}/meta/export_schedule_control`;
       if (action === 'create') {
         ensure(!await tx.get(policyPath(orgId, schedule.id)), 'معرّف جدول التصدير مستخدم.', 409);
@@ -139,13 +141,13 @@ export class ScheduledExportManagement {
       const ratePath = `${root}/rate_limits/scheduled-export-${actor.uid}`, rate = await tx.get(ratePath), minute = at.slice(0, 16);
       ensure(rate?.minute !== minute || rate.count < 120, 'طلبات جداول كثيرة؛ حاول بعد دقيقة.', 429);
       const duePath = `scheduled_export_due/${scheduledExportDueKey(orgId, schedule.id)}`;
-      const auditId = `audit-${id}`, eventType = action === 'create' ? 'EXPORT_SCHEDULE_CREATED' : prior!.active && !schedule.active ? 'EXPORT_SCHEDULE_PAUSED' : !prior!.active && schedule.active ? 'EXPORT_SCHEDULE_RESUMED' : 'EXPORT_SCHEDULE_UPDATED';
+      const eventType = action === 'create' ? 'EXPORT_SCHEDULE_CREATED' : prior!.active && !schedule.active ? 'EXPORT_SCHEDULE_PAUSED' : !prior!.active && schedule.active ? 'EXPORT_SCHEDULE_RESUMED' : 'EXPORT_SCHEDULE_UPDATED';
       const response = { org_id: orgId, schedule, execution_enabled: false as const };
       tx.set(policyPath(orgId, schedule.id), schedule);
       if (schedule.active && schedule.next_run_at) tx.set(duePath, { id: scheduledExportDueKey(orgId, schedule.id), org_id: orgId, schedule_id: schedule.id, policy_revision: schedule.revision, next_run_at: schedule.next_run_at, updated_at: at });
       else tx.delete(duePath);
       tx.set(ratePath, { uid: actor.uid, minute, count: rate?.minute === minute ? rate.count + 1 : 1 });
-      tx.set(`${root}/audit_logs/${auditId}`, { id: auditId, org_id: orgId, action: command, event_type: eventType, actor_uid: actor.uid, entity_type: 'export_schedule', entity_id: schedule.id, operation_id: id, created_at: at, previous_value: prior || null, new_value: schedule });
+      tx.set(auditPath, { id: auditId, org_id: orgId, action: command, event_type: eventType, actor_uid: actor.uid, entity_type: 'export_schedule', entity_id: schedule.id, operation_id: id, created_at: at, previous_value: prior || null, new_value: schedule });
       tx.set(receiptPath, { action: command, actor_uid: actor.uid, fingerprint, response, created_at: at });
       return response;
     });

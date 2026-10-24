@@ -3,7 +3,7 @@
   "request_date": "2026-10-25",
   "base_main": "5025417f07011ff4b5c870ed10e5335ac0b661a5",
   "branch": "codex/free-v2-activation-20261025",
-  "status": "fixture_corrected_full_acceptance_and_rules_pipeline_pending",
+  "status": "source_accepted_rules_publication_blocked_external_credentials",
   "user_merges_only": true,
   "scope": [
     "Disable commercial subscription checks and quota everywhere in the current free release",
@@ -12,19 +12,15 @@
     "Separate Rules/index deployment from billing migration/admin bootstrap, test before publication"
   ],
   "authorization": "Latest user explicitly requests free service, Accounting V2 activation and publication of reviewed release Rules; prior automatic migration prohibition retained",
-  "lease": {
-    "worker": "free-v2-20261025",
-    "acquired_at": "2026-10-24T21:53:48.426013+00:00",
-    "heartbeat_at": "2026-10-24T21:53:48.426013+00:00",
-    "expires_at": "2026-10-24T23:53:48.426013+00:00"
-  },
+  "lease": null,
   "production": {
-    "writes": 0,
-    "rules_deployed": false,
-    "commercial_migrations": 0,
-    "real_financial_tests": 0,
-    "rules_request": "DEPLOY_REQUEST.json; acceptance must pass in deployment workflow before any write",
-    "customer_financial_writes": 0
+    "customer_document_writes": 0,
+    "financial_test_writes": 0,
+    "rules_deployed_by_this_run": false,
+    "indexes_deployed_by_this_run": false,
+    "billing_migrations": 0,
+    "claims_changes": 0,
+    "application_deployments": 0
   },
   "limits": [
     "No main merge or force push",
@@ -55,29 +51,91 @@
     "docs/free-v2/*"
   ],
   "checks": {
-    "focused_unit_api": 7,
-    "focused_failed": 0,
-    "focused_skipped": 0,
-    "full_check": "in_progress",
-    "firestore": "pending_CI_Java21",
-    "UI": "pending_CI",
     "unit_api": 699,
     "netlify_runtime": 16,
+    "firestore_emulator": 77,
+    "ui": 150,
+    "new_unit_api": 7,
+    "new_firestore": 3,
+    "new_ui": 2,
+    "failed": 0,
+    "skipped": 0,
+    "production_audit_vulnerabilities": 0,
     "types": "passed",
     "core": "passed",
     "build": "passed",
-    "firestore_emulator": 77,
-    "ui_passed": 149,
-    "ui_failed": 1,
-    "production_audit_vulnerabilities": 0,
-    "first_ci": 40136580694,
-    "first_source": "78deb133ede306a55010dee5d6201adae8e7784a",
-    "first_failure": "New UI synthetic customer and product omitted org_id; strict financial source reader correctly rejected them. Fixture repaired; source scope checks remain unchanged.",
-    "node22": {
-      "run_id": 40136580857,
-      "conclusion": "success"
-    }
+    "rules_fingerprint": "passed",
+    "emulator_project": "demo-sudaflow",
+    "emulator_host": "127.0.0.1:8091"
   },
   "pr": 147,
-  "source_commit": "78deb133ede306a55010dee5d6201adae8e7784a"
+  "source_commit": "e2b1e785c99d67690757ace109c50a2753aec3bd",
+  "source_tree": "1c2e2c6afd06b1a5a14b741257a2587085b71506",
+  "accepted_ci": {
+    "id": 40137484260,
+    "job": 121001988885,
+    "conclusion": "success",
+    "url": "https://github.com/mistertee1/Sodaflow/actions/runs/40137484260"
+  },
+  "node22_ci": {
+    "id": 40137484246,
+    "job": 121001988735,
+    "conclusion": "success",
+    "url": "https://github.com/mistertee1/Sodaflow/actions/runs/40137484246"
+  },
+  "deployment": {
+    "workflow": 40137481236,
+    "url": "https://github.com/mistertee1/Sodaflow/actions/runs/40137481236",
+    "acceptance_job": 121001979702,
+    "acceptance_conclusion": "success",
+    "acceptance_checks": {
+      "unit_api": 699,
+      "netlify_runtime": 16,
+      "firestore_emulator": 77,
+      "ui": 150,
+      "new_unit_api": 7,
+      "new_firestore": 3,
+      "new_ui": 2,
+      "failed": 0,
+      "skipped": 0,
+      "production_audit_vulnerabilities": 0,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "rules_fingerprint": "passed",
+      "emulator_project": "demo-sudaflow",
+      "emulator_host": "127.0.0.1:8091"
+    },
+    "deploy_job": 121003834105,
+    "deploy_conclusion": "failure",
+    "failed_step": "Prepare Firebase credentials",
+    "reason": "FIREBASE_SERVICE_ACCOUNT_JSON was unavailable to this GitHub Actions job",
+    "exact_error": "Missing repository secret FIREBASE_SERVICE_ACCOUNT_JSON; no Rules or customer data changed",
+    "failed_at": "2026-10-24T22:20:29Z",
+    "readiness_step": "skipped",
+    "publication_step": "skipped",
+    "deployed_hash_verification_step": "skipped",
+    "rules_published_by_this_run": false,
+    "indexes_published_by_this_run": false,
+    "current_production_rules_hash": "unverified",
+    "customer_document_writes": 0,
+    "financial_test_writes": 0,
+    "billing_migrations": 0,
+    "claims_or_admin_bootstrap": 0,
+    "application_deployments": 0,
+    "rules_sha256_expected": "cff4fdb5acb85fa753dba530a3ed06b6e4970d7869d2559d651b3c88aa30e435",
+    "indexes_sha256_expected": "73d856cd86c8e8cec90563cb4c2c7ebc43a828f0c0bce725b75dd7b830dcde66"
+  },
+  "released_at": "2026-10-24T22:22:34.900500+00:00",
+  "last_completed_stage": "Free access across V2 reports/exports and verified new-company V2 activation, actual synthetic acceptance",
+  "unmerged_branch": "codex/free-v2-activation-20261025",
+  "report": "https://github.com/mistertee1/Sodaflow/blob/codex/free-v2-activation-20261025/docs/free-v2/REPORT.md",
+  "remaining": [
+    "User review and merge PR147; application deployment is not proven by source acceptance",
+    "Make FIREBASE_SERVICE_ACCOUNT_JSON available to the reviewed GitHub Actions deployment workflow without publishing its value",
+    "Rerun reviewed Rules workflow and confirm actual deployed hash, original database and indexes",
+    "Activate an existing company only after its documented inventory costs and reconciliation; do not globally rewrite version flags"
+  ],
+  "source_complete": true,
+  "production_activation_complete": false
 }

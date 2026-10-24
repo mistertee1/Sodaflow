@@ -4455,5 +4455,18 @@
       "paid_resources": 0
     },
     "download_disposition": "signed attachment for JSON and workbook artifacts"
+  },
+  "latest_user_release_request": {
+    "date": "2026-10-25",
+    "scope": "Free service and verified Accounting V2 with Rules publication",
+    "branch": "codex/free-v2-activation-20261025",
+    "pr": 147,
+    "progress": "docs/free-v2/PROGRESS.json",
+    "status": "source_accepted_rules_publication_blocked_external_credentials",
+    "source": "e2b1e785c99d67690757ace109c50a2753aec3bd",
+    "preserve_prior_milestones": true,
+    "accepted_ci": 40137484260,
+    "deployment_workflow": 40137481236,
+    "lease_released_at": "2026-10-24T22:22:34.900500+00:00"
   }
 }

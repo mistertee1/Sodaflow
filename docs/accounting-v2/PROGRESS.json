@@ -2383,7 +2383,7 @@
           "id": "Excel4.2",
           "scope": "Auditor package and scheduled export permissions/expiry",
           "status": "in_progress",
-          "branch": "codex/accounting-v2-excel4-auditor-package-20261024",
+          "branch": "codex/accounting-v2-export-live-authorization-20261024",
           "pr": null,
           "substeps": [
             {
@@ -2422,6 +2422,55 @@
                   "conclusion": "success"
                 }
               }
+            },
+            {
+              "id": "Excel4.2b.1",
+              "scope": "Pure IANA calendar, permissions and retention contracts",
+              "status": "implemented_ci_passed",
+              "pr": 143,
+              "source_commit": "187c608bca28622220ee036382aa72bd43345d34"
+            },
+            {
+              "id": "Excel4.2b.2a",
+              "scope": "Atomic cloud schedule management and private due index; execution remains disabled",
+              "status": "implemented_ci_passed",
+              "pr": 143,
+              "source_commit": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
+              "ci": {
+                "run_id": 40092180614,
+                "commit_sha": "b04e65ffe64475dc10f5ab58d33958f1a764c8a0",
+                "conclusion": "success",
+                "unit_api": 632,
+                "netlify_runtime": 16,
+                "firestore_emulator": 62,
+                "ui": 137,
+                "failed": 0,
+                "skipped": 0,
+                "production_audit_vulnerabilities": 0,
+                "node22": {
+                  "run_id": 40092180619,
+                  "conclusion": "success"
+                }
+              }
+            },
+            {
+              "id": "Excel4.2b.2b.1",
+              "scope": "Live Auth and transactional export build/publication/download authorization",
+              "status": "implemented_local_check_passed_ci_pending",
+              "branch": "codex/accounting-v2-export-live-authorization-20261024",
+              "report": "REPORT_LIVE_EXPORT_AUTHORIZATION.md",
+              "checks": {
+                "focused_worker_unit_api": 21,
+                "focused_failed": 0,
+                "full_check": "passed",
+                "firestore_emulator": "requires_CI_Java21_4_new_tests",
+                "full_UI": "requires_CI_existing_regressions",
+                "unit_api": 649,
+                "netlify_runtime": 16,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed"
+              }
             }
           ]
         }
@@ -2430,11 +2479,11 @@
   ],
   "last_report": "REPORT_SCHEDULED_EXPORT_MANAGEMENT.md",
   "next_steps": [
-    "Complete live authorization around export generation, artifact publication and download; add real synthetic permission-revocation and Firestore regression tests.",
-    "Then atomic scheduled due claiming/recovery and worker/type integration with private expiry, before management/download UI and execution-enabled contract.",
+    "Verify live export authorization source with full check and CI (including 4 new Firestore tests), then record exact source evidence.",
+    "Implement atomic scheduled due claiming/recovery and worker/type integration with private expiry, before management/download UI and execution-enabled contract.",
     "Remaining legacy/evidence and zero-difference financial/restore/operational commercial acceptance remain incomplete. User alone merges; no production execution or deployment."
   ],
-  "updated_at": "2026-10-24T14:56:38.981Z",
+  "updated_at": "2026-10-24T15:09:44.538300+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -4113,9 +4162,26 @@
     "completed_at": "2026-10-24T14:56:07.189Z"
   },
   "live_export_authorization": {
-    "status": "in_progress",
+    "status": "implemented_local_check_passed_ci_pending",
     "base_pr": 143,
     "branch": "codex/accounting-v2-export-live-authorization-20261024",
-    "scope": "Prevent filtered-empty accounting exports and revoked/private artifact access around existing worker generation/publication/download; scheduler claim/UI remain next"
+    "scope": "Prevent filtered-empty accounting exports and revoked/private artifact access around existing worker generation/publication/download; scheduler claim/UI remain next",
+    "report": "REPORT_LIVE_EXPORT_AUTHORIZATION.md",
+    "plan": "PLAN_LIVE_EXPORT_AUTHORIZATION.md",
+    "base_commit": "4c2c65c8599059e3f310db8bf5cdecc6a26f8823",
+    "reviewed_main": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
+    "checks": {
+      "focused_worker_unit_api": 21,
+      "focused_failed": 0,
+      "full_check": "passed",
+      "firestore_emulator": "requires_CI_Java21_4_new_tests",
+      "full_UI": "requires_CI_existing_regressions",
+      "unit_api": 649,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed"
+    },
+    "production_writes": 0
   }
 }

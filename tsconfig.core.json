@@ -76,6 +76,9 @@
     "tests/scheduledExportPolicy.test.ts",
     "tests/scheduledExportManagement.test.ts",
     "tests/scheduledExportManagementFirestore.test.ts",
-    "tests/helpers/scheduledExports.ts"
+    "tests/helpers/scheduledExports.ts",
+    "tests/exportLiveAuthorization.test.ts",
+    "tests/exportLiveAuthorizationFirestore.test.ts",
+    "tests/helpers/liveExports.ts"
   ]
 }

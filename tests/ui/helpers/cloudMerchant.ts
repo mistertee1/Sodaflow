@@ -8,6 +8,10 @@ import { Operations, type Actor } from '../../../src/domain/operations';
 import { INITIAL_SETTINGS } from '../../../src/data/initialData';
 import { DEFAULT_ORGANIZATION_COUNTERS } from '../../../src/types';
 import { getDefaultChartOfAccounts } from '../../../src/services/accountingService';
+import { ScheduledExportManagement } from '../../../src/domain/scheduledExportManagement';
+import { LargeExportWorker } from '../../../src/domain/largeExportWorker';
+import { ServerLargeExportBuilder } from '../../../server/largeExportWorker';
+import { TestExportArtifacts } from '../../helpers/liveExports';
 
 import { guestId, guestActor } from '../../fixtures/cloudIdentity';
 export { guestId, guestActor } from '../../fixtures/cloudIdentity';
@@ -29,6 +33,10 @@ interface MerchantHarness {
   seed(records: Records): void;
   records(): Records;
   executeCommand(action: string, data: Document, operationId?: string): Promise<Document>;
+  createSchedule(input: Document, operationId?: string): Promise<Document>;
+  updateSchedule(id: string, revision: number, updates: Document, operationId?: string): Promise<Document>;
+  runExportWorker(): Promise<Document | null>;
+  disableExportAccount(): void;
   failNextWrite(): void;
   abortAfterCommit(): void;
   failCloudReads(): void;
@@ -90,6 +98,19 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
     });
     const requests: string[] = [], mutations: Document[] = [];
     let server: ReturnType<ReturnType<typeof express>['listen']> | undefined;
+    let exportWorker: LargeExportWorker, exportAccountDisabled = false;
+    const artifacts = new TestExportArtifacts();
+    artifacts.signedUrl = async (path, expires) => {
+      if (!artifacts.files.has(path)) throw Error('Missing synthetic artifact');
+      artifacts.signed.push({ path, expires: expires.toISOString() });
+      return `https://private-export.invalid/${encodeURIComponent(path)}?expires=${expires.toISOString()}`;
+    };
+    await page.context().route('https://private-export.invalid/**', async route => {
+      const url = new URL(route.request().url()), path = decodeURIComponent(url.pathname.slice(1));
+      const file = artifacts.files.get(path), expiry = url.searchParams.get('expires');
+      if (!file || !expiry || Date.parse(expiry) <= clock) { await route.fulfill({ status: 410, body: 'Expired synthetic export' }); return; }
+      await route.fulfill({ status: 200, contentType: file.mimeType, headers: { 'Content-Disposition': `attachment; filename="${file.filename}"`, 'Cache-Control': 'no-store' }, body: Buffer.from(file.bytes) });
+    });
     let backendUrl: string;
     const initializeBackend = async () => {
       if (server) return;
@@ -98,11 +119,16 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
         [`${root}/meta/counters`]: { ...DEFAULT_ORGANIZATION_COUNTERS, ...records[`${root}/meta/counters`] },
         [`user_organizations/${actor.uid}/orgs/${guestId}`]: { org_id: guestId },
       };
-      store = new MemoryStore(records, () => { if (failWrite) { failWrite = false; throw Object.assign(Error('Synthetic cloud commit unavailable'), { code: 14 }); } });
+      store = new MemoryStore(records, next => { if (failWrite && JSON.stringify(next) !== JSON.stringify(store!.dump())) { failWrite = false; throw Object.assign(Error('Synthetic cloud commit unavailable'), { code: 14 }); } });
       const app = express(); app.use(express.json({ limit: '10mb' }));
       const authority: Store = serverAuthority ? {authority:'server',transaction:work=>store!.transaction(work)} : store;
       const verifyRules = serverAuthority ? async () => verifyAccountingRulesSource([{content:readFileSync('firestore.rules','utf8')}]) : undefined;
-      app.use('/api', createApi({ operations: new Operations(authority, () => new Date(clock), undefined, verifyRules, controlsEnabled), verify: async value => { if (!issued.has(value)) throw Error('Invalid synthetic token'); return { ...actor }; } }));
+      const operations = new Operations(authority, () => new Date(clock), undefined, verifyRules, controlsEnabled);
+      const lookupAccount = async (uid: string) => ({ uid, emailVerified: true, disabled: uid === actor.uid && exportAccountDisabled });
+      const exportAuthorization = { lookupAccount, now: () => new Date(clock), verifySecurity: verifyRules || (async () => {}) };
+      exportWorker = new LargeExportWorker(authority, artifacts, new ServerLargeExportBuilder(operations, exportAuthorization), () => new Date(clock));
+      const scheduledExports = new ScheduledExportManagement(authority, lookupAccount, undefined, () => new Date(clock), verifyRules);
+      app.use('/api', createApi({ operations, scheduledExports, exportWorker, exportAuthorization, verify: async value => { if (!issued.has(value)) throw Error('Invalid synthetic token'); return { ...actor }; } }));
       server = app.listen(0, '127.0.0.1');
       await new Promise<void>((resolve, reject) => { server!.once('listening', resolve); server!.once('error', reject); });
       const address = server.address(); if (!address || typeof address === 'string') throw Error('Missing synthetic API address');
@@ -142,6 +168,18 @@ export const test = base.extend<{ merchant: MerchantHarness; controlsEnabled: bo
         if (!response.ok) throw Error(result.error || 'Synthetic second-client command failed.');
         return result;
       },
+      createSchedule: async (input, operationId = crypto.randomUUID()) => {
+        if (!server || !token) throw Error('Open the signed-in synthetic API first.');
+        const response = await fetch(`${backendUrl}/api/organizations/${guestId}/export-schedules`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ input, operationId }) });
+        const value = await response.json(); if (!response.ok) throw Error(value.error); return value;
+      },
+      updateSchedule: async (id, revision, updates, operationId = crypto.randomUUID()) => {
+        if (!server || !token) throw Error('Open the signed-in synthetic API first.');
+        const response = await fetch(`${backendUrl}/api/organizations/${guestId}/export-schedules/${encodeURIComponent(id)}`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ expected_revision: revision, updates, operationId }) });
+        const value = await response.json(); if (!response.ok) throw Error(value.error); return value;
+      },
+      runExportWorker: async () => { if (!server || !serverAuthority) throw Error('Use a server-authority synthetic harness.'); clock = await page.evaluate(() => Date.now()); return exportWorker.runNext(); },
+      disableExportAccount: () => { exportAccountDisabled = true; },
       failNextWrite: () => { failWrite = true; }, abortAfterCommit: () => { abortNext = true; },
       failCloudReads: () => { failReads = true; }, recoverCloudReads: () => { failReads = false; },
       failNextAcknowledgement: () => { failAck = true; },

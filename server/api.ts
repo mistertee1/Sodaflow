@@ -120,6 +120,7 @@ export function createApi(options?: { operations?: Operations; verify?: Verify; 
     return new Organizations(service().store, resolveSubscription, undefined, controlsEnabled).create(actor, req.body.name, req.body.settings || {}, identifier(req.body.operationId), req.body.initial);
   }));
   router.get('/organizations/:orgId/export-schedules', route((req, actor) => { ensure(Object.keys(req.query).length === 0, 'مرشحات جداول التصدير غير صالحة.'); return schedules().list(req.params.orgId, actor); }));
+  router.get('/organizations/:orgId/export-job-history', route((req, actor) => { ensure(Object.keys(req.query).length === 0, 'مرشحات سجل التصدير غير صالحة.'); return schedules().history(req.params.orgId, actor); }));
   router.post('/organizations/:orgId/export-schedules', route((req, actor) => { ensure(Object.keys(req.query).length === 0, 'مرشحات جداول التصدير غير صالحة.'); return schedules().create(req.params.orgId, actor, req.body); }));
   router.post('/organizations/:orgId/export-schedules/:scheduleId', route((req, actor) => { ensure(Object.keys(req.query).length === 0, 'مرشحات جداول التصدير غير صالحة.'); return schedules().update(req.params.orgId, actor, req.params.scheduleId, req.body); }));
   router.get('/organizations/:orgId/historical-import/sessions/:sessionId', route((req, actor) => { ensure(Object.keys(req.query).length === 0, 'مرشحات استرداد الاستيراد التاريخي غير صالحة.'); return service().historicalImportRecovery(req.params.orgId, actor, req.params.sessionId); }));

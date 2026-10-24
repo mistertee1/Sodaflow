@@ -2,12 +2,13 @@ import { auth } from '../lib/firebase';
 import { canonical, type Command, type OperationResult } from '../domain/operations';
 import { BusinessError } from '../domain/validation';
 
-export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function api<T>(path: string, init: RequestInit = {}, assertContext?: () => void): Promise<T> {
   const user = auth.currentUser;
   if (!user) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
   const request = async (forceRefresh = false) => {
     const token = await user.getIdToken(forceRefresh);
     if (auth.currentUser?.uid !== user.uid) throw new BusinessError('تغيّرت جلسة الدخول. أعد المحاولة.', 401, 'session_changed');
+    assertContext?.(); // Token refresh may outlast a company/session switch.
     try {
       return await fetch(`/api${path}`, { ...init, cache: 'no-store', headers: { ...(init.body instanceof Blob ? {} : { 'Content-Type': 'application/json' }), ...init.headers, Authorization: `Bearer ${token}` }, signal: init.signal || AbortSignal.timeout(60000) });
     } catch { throw new BusinessError('تعذر تأكيد الحفظ من الخادم. أعد المحاولة بنفس البيانات بعد عودة الاتصال.', 503); }
@@ -49,6 +50,31 @@ export async function platformMutation<T>(path: string, payload: Record<string, 
     return result;
   } catch (error) {
     if (error instanceof BusinessError && error.status < 500 && error.status !== 429 && error.code !== 'session_changed') await acknowledgeIntent({ ...intent, operationId: id }, uid);
+    throw error;
+  }
+}
+/** Durable retry identity plus a caller-owned organization/session fence. */
+export async function organizationMutation<T>(orgId: string, path: string, payload: Record<string, unknown>, assertScope: () => void): Promise<T> {
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new BusinessError('تسجيل الدخول مطلوب.', 401);
+  const check = () => { requireSession(uid); assertScope(); };
+  check();
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical({ path, payload })));
+  const fingerprint = Array.from(new Uint8Array(bytes), n => n.toString(16).padStart(2, '0')).join('');
+  check();
+  const intent = { organizationId: orgId, fingerprint };
+  const { operationId: id } = await api<{ operationId: string }>('/operation-intents', { method: 'POST', body: JSON.stringify(intent) });
+  check(); // Never send a stale business write after a slow intent response.
+  try {
+    const result = await api<T>(path, { method: 'POST', body: JSON.stringify({ ...payload, operationId: id }) }, check);
+    check();
+    await acknowledgeIntent({ ...intent, operationId: id }, uid);
+    check();
+    return result;
+  } catch (error) {
+    if (error instanceof BusinessError && error.status < 500 && error.status !== 429 && !['session_changed', 'scope_changed'].includes(error.code || '')) {
+      check(); await acknowledgeIntent({ ...intent, operationId: id }, uid);
+    }
     throw error;
   }
 }

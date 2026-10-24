@@ -22,7 +22,8 @@ import type { FinancialAccount } from '../domain/cashManagement';
 import type { OperationalReportTypes, OperationalView, LedgerQuery, ReportPeriod } from '../domain/operationalReports';
 import type { CostInput } from '../domain/inventoryCost';
 import type { Change, Document } from '../domain/store';
-import { api, operationId } from '../services/businessApi';
+import { api, operationId, organizationMutation } from '../services/businessApi';
+import type { ExportScheduleInput, ExportScheduleUpdates, ExportScheduleList, ExportScheduleMutation, ExportJobHistory, ExportJobView, ExportDownload } from '../types/exportSchedules';
 import { firebaseCommand, firebaseSnapshot, watchFirebaseRevision } from '../services/firebaseSync';
 import { cloudOrganizations } from '../services/cloudOrganizations';
 import { hasPermission, type ActionType } from '../services/rbacService';
@@ -34,6 +35,11 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  loadExportSchedules: (expectedOrgId: string) => Promise<ExportScheduleList>;
+  loadExportJobHistory: (expectedOrgId: string) => Promise<ExportJobHistory>;
+  createExportSchedule: (input: ExportScheduleInput, expectedOrgId: string) => Promise<ExportScheduleMutation>;
+  updateExportSchedule: (id: string, revision: number, updates: ExportScheduleUpdates, expectedOrgId: string) => Promise<ExportScheduleMutation>;
+  getExportDownload: (job: ExportJobView, expectedOrgId: string) => Promise<ExportDownload>;
   approvalPolicies: ApprovalPolicy[];
   saveApprovalPolicy:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<ApprovalPolicy>;
   recurringCashSources:RecurringCashSource[];
@@ -458,7 +464,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   const importDataJson = async (json: string) => { await run('backup.restore', { backup: JSON.parse(json) }); await refresh(); return true; };
   const nothing = async () => {};
+  const exportScope = (expectedOrgId: string) => {
+    const id = activeOrg.current, epoch = session.current, uid = userRef.current?.uid;
+    const check = () => {
+      if (!uid || userRef.current?.uid !== uid || id !== activeOrg.current || epoch !== session.current || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة أو جلسة الدخول؛ حدّث بيانات التصدير.', 409, 'scope_changed');
+    };
+    check();
+    return { id: id!, check, path: `/organizations/${encodeURIComponent(id!)}` };
+  };
   const value: AppContextType = {
+    loadExportSchedules: async expectedOrgId => {
+      const scope = exportScope(expectedOrgId), result = await api<ExportScheduleList>(`${scope.path}/export-schedules`); scope.check();
+      if (result.org_id !== scope.id || !Array.isArray(result.schedules) || result.schedules.some(row => row.org_id !== scope.id)) throw new BusinessError('نتيجة جداول التصدير غير مطابقة للمؤسسة.', 409);
+      return result;
+    },
+    loadExportJobHistory: async expectedOrgId => {
+      const scope = exportScope(expectedOrgId), result = await api<ExportJobHistory>(`${scope.path}/export-job-history`); scope.check();
+      if (result.org_id !== scope.id || !Array.isArray(result.jobs) || result.jobs.some(row => row.org_id !== scope.id)) throw new BusinessError('نتيجة سجل التصدير غير مطابقة للمؤسسة.', 409);
+      return result;
+    },
+    createExportSchedule: async (input, expectedOrgId) => {
+      const scope = exportScope(expectedOrgId), result = await organizationMutation<ExportScheduleMutation>(scope.id, `${scope.path}/export-schedules`, { input }, scope.check); scope.check();
+      if (result.org_id !== scope.id || result.schedule.org_id !== scope.id) throw new BusinessError('نتيجة حفظ الجدول غير مطابقة للمؤسسة.', 409);
+      return result;
+    },
+    updateExportSchedule: async (id, revision, updates, expectedOrgId) => {
+      const scope = exportScope(expectedOrgId), result = await organizationMutation<ExportScheduleMutation>(scope.id, `${scope.path}/export-schedules/${encodeURIComponent(id)}`, { expected_revision: revision, updates }, scope.check); scope.check();
+      if (result.org_id !== scope.id || result.schedule.org_id !== scope.id || result.schedule.id !== id) throw new BusinessError('نتيجة تعديل الجدول غير مطابقة للمؤسسة.', 409);
+      return result;
+    },
+    getExportDownload: async (job, expectedOrgId) => {
+      const scope = exportScope(expectedOrgId);
+      if (job.org_id !== scope.id || !['accounting_export_jobs', 'company_export_jobs'].includes(job.collection)) throw new BusinessError('ملف التصدير من مؤسسة أخرى.', 409);
+      const result = await api<ExportDownload>(`${scope.path}/export-jobs/${job.collection}/${encodeURIComponent(job.id)}/download`); scope.check();
+      let url: URL; try { url = new URL(result.url); } catch { throw new BusinessError('رابط التنزيل غير صالح.', 502); }
+      if (url.protocol !== 'https:' || url.username || url.password || !Number.isFinite(Date.parse(result.expires_at)) || Date.parse(result.expires_at) <= Date.now()) throw new BusinessError('رابط التنزيل غير آمن أو منتهي.', 502);
+      return result;
+    },
     taxConfigurations: rows<TaxConfiguration>('tax_configurations'),
     saveTaxConfiguration: (data, updating, expectedOrgId, requestId) => activeOrg.current === expectedOrgId
       ? run<TaxConfiguration>(updating ? 'taxConfiguration.update' : 'taxConfiguration.create', data, requestId)

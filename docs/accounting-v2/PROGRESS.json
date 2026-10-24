@@ -11,8 +11,8 @@
     "worker": "scheduled-export-ui-resume-20261024-2010",
     "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
     "acquired_at": "2026-10-24T20:08:21.000Z",
-    "heartbeat_at": "2026-10-24T20:08:21.000Z",
-    "expires_at": "2026-10-24T21:08:21.000Z",
+    "heartbeat_at": "2026-10-24T20:23:29.675911+00:00",
+    "expires_at": "2026-10-24T21:23:29.675911+00:00",
     "purpose": "Complete newest whitelisted history, cloud schedule management and authorized download UI; synthetic acceptance only; no production activation"
   },
   "milestones": [
@@ -2492,19 +2492,43 @@
                   "conclusion": "success"
                 }
               }
+            },
+            {
+              "id": "Excel4.2b.2b.3",
+              "scope": "Whitelisted newest export-job history and allowed schedule kinds; cloud retry-safe management UI and authorized short-lived download links; no production worker activation",
+              "status": "implemented_local_check_passed_ci_pending",
+              "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+              "pr": 145,
+              "report": "REPORT_SCHEDULED_EXPORT_UI.md",
+              "checks": {
+                "new_unit_api": 11,
+                "focused_management_and_history": 30,
+                "unit_api": 692,
+                "netlify_runtime": 16,
+                "types": "passed",
+                "core": "passed",
+                "build": "passed",
+                "targeted_UI": 16,
+                "new_UI": 11,
+                "failed": 0,
+                "skipped": 0,
+                "firestore_emulator": "pending_CI_3_new_cases",
+                "full_UI": "pending_CI",
+                "production_audit": "pending_CI"
+              }
             }
           ]
         }
       ]
     }
   ],
-  "last_report": "REPORT_SCHEDULED_EXPORT_DISPATCH.md",
+  "last_report": "REPORT_SCHEDULED_EXPORT_UI.md",
   "next_steps": [
-    "Excel4.2b.2b.3: cloud management/history/authorized-download UI, real API/Emulator/browser acceptance on the PR merge result. Dispatcher681/16/71/137 is accepted and must not be repeated without relevant changes.",
-    "Private artifact provider IAM and free deployment/runtime acceptance remain separate and unverified. No automatic worker activation, environment writes, paid resources, Rules/claims or production financial test writes.",
-    "Finish documented legacy/evidence and zero-difference financial/backup/restore/operational acceptance. User alone reviews/merges PR145; preserve Firebase-only sync, invoices, USD pricing, inventory, identity and paused Super Admin."
+    "Verify current UI source with CI on the main merge result, including 3 new history Emulator cases and complete UI regressions; do not inherit dispatcher acceptance.",
+    "Then complete the remaining Legacy Migration Package and any outstanding evidence in the PRD.",
+    "Operational acceptance still requires reviewed environment indexes, actual private provider/IAM, periodic execution and authenticated zero-difference financial/backup/restore/user acceptance. No main merge, production activation or deployment by this automation."
   ],
-  "updated_at": "2026-10-24T20:08:21.000Z",
+  "updated_at": "2026-10-24T20:23:29.675911+00:00",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3762,8 +3786,8 @@
     "worker": "scheduled-export-ui-resume-20261024-2010",
     "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
     "acquired_at": "2026-10-24T20:08:21.000Z",
-    "heartbeat_at": "2026-10-24T20:08:21.000Z",
-    "expires_at": "2026-10-24T21:08:21.000Z",
+    "heartbeat_at": "2026-10-24T20:23:29.675911+00:00",
+    "expires_at": "2026-10-24T21:23:29.675911+00:00",
     "purpose": "Complete newest whitelisted history, cloud schedule management and authorized download UI; synthetic acceptance only; no production activation",
     "status": "in_progress",
     "base_pr": 145,
@@ -4372,7 +4396,7 @@
     }
   },
   "scheduled_export_ui": {
-    "status": "in_progress",
+    "status": "implemented_local_check_passed_ci_pending",
     "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
     "base_source": "ad78eb3c13f3498b5d74cbeb0e98d661c9eb2b63",
     "base_pr": 145,
@@ -4396,9 +4420,37 @@
       "tsconfig.core.json (new strict test includes only)",
       "docs/accounting-v2/PROGRESS.json",
       "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_UI.md",
-      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_UI.md"
+      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_UI.md",
+      "firestore.indexes.json (two reviewed history query indexes only; not deployed)"
     ],
     "production_writes": 0,
-    "checks": "not_run_yet"
+    "checks": {
+      "new_unit_api": 11,
+      "focused_management_and_history": 30,
+      "unit_api": 692,
+      "netlify_runtime": 16,
+      "types": "passed",
+      "core": "passed",
+      "build": "passed",
+      "targeted_UI": 16,
+      "new_UI": 11,
+      "failed": 0,
+      "skipped": 0,
+      "firestore_emulator": "pending_CI_3_new_cases",
+      "full_UI": "pending_CI",
+      "production_audit": "pending_CI"
+    },
+    "report": "REPORT_SCHEDULED_EXPORT_UI.md",
+    "plan": "PLAN_SCHEDULED_EXPORT_UI.md",
+    "reviewed_main": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
+    "reviewed_head": "bec17fb371b4db6426fef285c755e8fd1ae67c91",
+    "deployment_limits": {
+      "execution_enabled": false,
+      "history_query_indexes": "source_only_not_deployed",
+      "private_provider_IAM": "not_verified",
+      "signed_links_already_issued": "remain_valid_until_short_expiry",
+      "production_writes": 0,
+      "paid_resources": 0
+    }
   }
 }

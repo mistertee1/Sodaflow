@@ -83,6 +83,9 @@
     "tests/scheduledExportDispatch.test.ts",
     "tests/scheduledExportDispatchFirestore.test.ts",
     "tests/exportUploadRecovery.test.ts",
-    "tests/helpers/scheduledDispatch.ts"
+    "tests/helpers/scheduledDispatch.ts",
+    "tests/scheduledExportUIApi.test.ts",
+    "tests/scheduledExportHistoryFirestore.test.ts",
+    "tests/ui/scheduledExports.spec.ts"
   ]
 }

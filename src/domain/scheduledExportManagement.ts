@@ -4,6 +4,7 @@ import type { Document, Store, Transaction } from './store';
 import { BusinessError, ensure, identifier } from './validation';
 import { loadSubscription, type LegacySubscriptionPolicy } from './subscriptions';
 import { createDefaultSubscription } from '../lib/plans';
+import type { ExportScheduleList, ExportJobHistory, ExportJobView, ScheduledExportKind } from '../types/exportSchedules';
 import {
   assertScheduledExportAccess, createExportSchedule, updateExportSchedule,
   type ExportSchedule, type ScheduledExportAccess,
@@ -12,9 +13,6 @@ import {
 export interface ScheduledAccountIdentity { uid: string; emailVerified: boolean; disabled: boolean; }
 /** A trusted Firebase Admin lookup; no caller-provided identity or access flags. */
 export type ScheduledAccountLookup = (uid: string) => Promise<ScheduledAccountIdentity | undefined>;
-export interface ExportScheduleList {
-  org_id: string; generated_at: string; schedules: ExportSchedule[]; execution_enabled: false;
-}
 export const MAX_EXPORT_SCHEDULES = 20;
 export const scheduledExportDueKey = (orgId: string, scheduleId: string) =>
   createHash('sha256').update(canonical({ org_id: identifier(orgId), schedule_id: identifier(scheduleId) })).digest('hex');
@@ -33,6 +31,12 @@ function flatFields(value: unknown): Document {
   return value as Document;
 }
 const policyPath = (orgId: string, id: string) => `organizations/${identifier(orgId)}/export_schedules/${identifier(id)}`;
+function allowedKinds(access: ScheduledExportAccess): ScheduledExportKind[] {
+  return (['accounting', 'auditor', 'company'] as const).filter(kind => {
+    try { assertScheduledExportAccess(kind, access); return true; }
+    catch (error) { if (error instanceof BusinessError && error.status === 403) return false; throw error; }
+  });
+}
 
 /** Cloud policy management only. Saving a due index never executes an export. */
 export class ScheduledExportManagement {
@@ -85,7 +89,37 @@ export class ScheduledExportManagement {
         schedules.push(row as ExportSchedule);
       }
       schedules.sort((a, b) => a.id.localeCompare(b.id));
-      return { org_id: orgId, generated_at: now.toISOString(), schedules, execution_enabled: false };
+      return { org_id: orgId, generated_at: now.toISOString(), schedules, allowed_kinds: allowedKinds(access), execution_enabled: false };
+    });
+  }
+
+  async history(orgId: string, actor: Actor): Promise<ExportJobHistory> {
+    identifier(orgId); const account = await this.account(actor);
+    return this.store.transaction(async tx => {
+      const now = this.now(), access = await this.access(tx, orgId, actor, account, now);
+      assertScheduledExportAccess(access.role === 'Owner' ? 'company' : 'accounting', access);
+      const kinds = allowedKinds(access), jobs: ExportJobView[] = [];
+      for (const kind of kinds) {
+        const collection = kind === 'company' ? 'company_export_jobs' : 'accounting_export_jobs';
+        const filters = [...(kind === 'company' ? [] : [{ field: 'kind', value: kind }]), ...(access.role !== 'Owner' ? [{ field: 'requested_by', value: actor.uid }] : [])];
+        const rows = await tx.list(`organizations/${orgId}/${collection}`, { limit: 100, orderBy: 'created_at', direction: 'desc', where: filters });
+        for (const row of rows) {
+          ensure(row.org_id === orgId && (collection === 'company_export_jobs' ? row.kind === 'company' : ['accounting', 'auditor'].includes(row.kind)), 'دليل مؤسسة أو نوع مهمة التصدير غير مطابق.', 409);
+          if (!kinds.includes(row.kind) || access.role !== 'Owner' && row.requested_by !== actor.uid) continue;
+          identifier(row.id); identifier(row.requested_by);
+          ensure(['queued', 'running', 'completed', 'failed', 'cancelled', 'expired'].includes(row.status) && typeof row.created_at === 'string' && Number.isFinite(Date.parse(row.created_at)) && typeof row.updated_at === 'string' && Number.isFinite(Date.parse(row.updated_at)), 'دليل سجل التصدير غير صالح.', 409);
+          const expiry = typeof row.expires_at === 'string' && Number.isFinite(Date.parse(row.expires_at)) ? row.expires_at : undefined;
+          const artifact = row.artifact, filename = typeof artifact?.filename === 'string' && /^[A-Za-z0-9._-]{1,120}$/.test(artifact.filename) ? artifact.filename : undefined;
+          const job: ExportJobView = { id: row.id, org_id: orgId, collection, kind: row.kind, requested_by: row.requested_by, origin: row.schedule_id ? 'scheduled' : 'manual', status: row.status, created_at: row.created_at, updated_at: row.updated_at, progress: Number.isFinite(row.progress) ? Math.max(0, Math.min(100, row.progress)) : 0, download_available: row.status === 'completed' && !!filename && !!expiry && Date.parse(expiry) > now.getTime() };
+          if (expiry) job.expires_at = expiry;
+          if (filename) job.filename = filename;
+          if (Number.isSafeInteger(artifact?.byte_size) && artifact.byte_size > 0 && artifact.byte_size <= 25000000) job.byte_size = artifact.byte_size;
+          if (row.schedule_id) { job.schedule_id = identifier(row.schedule_id); ensure(Number.isSafeInteger(row.policy_revision) && row.policy_revision >= 1, 'إصدار سجل الجدولة غير صالح.', 409); job.policy_revision = row.policy_revision; if (typeof row.scheduled_for === 'string' && Number.isFinite(Date.parse(row.scheduled_for))) job.scheduled_for = row.scheduled_for; }
+          jobs.push(job);
+        }
+      }
+      jobs.sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id));
+      return { org_id: orgId, generated_at: now.toISOString(), jobs: jobs.slice(0, 100), limit: 100 };
     });
   }
 

@@ -1,6 +1,6 @@
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldPath } from 'firebase-admin/firestore';
-import type { Document, Store, Transaction } from '../src/domain/store';
+import type { Document, Store, Transaction, ListOptions } from '../src/domain/store';
 import { clean } from '../src/domain/store';
 import { ensure } from '../src/domain/validation';
 
@@ -10,10 +10,11 @@ export class FirestoreStore implements Store {
   transaction<T>(work: (tx: Transaction) => Promise<T>): Promise<T> {
     return this.db.runTransaction(async native => {
       const writes = new Map<string, Document | null>();
-      const list = async (path: string, field?: string, value?: unknown, options?: {limit?:number;orderBy?:string}) => {
+      const list = async (path: string, field?: string, value?: unknown, options?: ListOptions) => {
         const records: Document[] = [];
-        const pageLimit=Math.min(options?.limit||1000,1000);let query = this.db.collection(path).orderBy(options?.orderBy||FieldPath.documentId()).limit(pageLimit);
+        const pageLimit=Math.min(options?.limit||1000,1000);let query = this.db.collection(path).orderBy(options?.orderBy||FieldPath.documentId(),options?.direction||'asc').limit(pageLimit);
         if (field) query = query.where(field, '==', value);
+        for (const filter of options?.where || []) query = query.where(filter.field, '==', filter.value);
         for (;;) {
           const page = await native.get(query);
           records.push(...page.docs.map(d => ({ ...d.data(), ...(d.data().id || d.data().code ? {} : { id: d.id }) })));

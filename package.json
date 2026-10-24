@@ -12,7 +12,7 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test": "node scripts/run-unit-tests.mjs",
-    "test:rules": "node --import tsx --test --test-concurrency=1 tests/firestore.test.ts tests/platformFirestore.test.ts tests/serverAuthorityFirestore.test.ts tests/platformPauseFirestore.test.ts tests/usdReferenceFirestore.test.ts tests/productUniquenessFirestore.test.ts tests/invoiceSaveFirestore.test.ts tests/historicalReviewFirestore.test.ts tests/historicalRecoveryFirestore.test.ts tests/auditorPackageFirestore.test.ts tests/scheduledExportManagementFirestore.test.ts tests/exportLiveAuthorizationFirestore.test.ts tests/scheduledExportDispatchFirestore.test.ts",
+    "test:rules": "node --import tsx --test --test-concurrency=1 tests/firestore.test.ts tests/platformFirestore.test.ts tests/serverAuthorityFirestore.test.ts tests/platformPauseFirestore.test.ts tests/usdReferenceFirestore.test.ts tests/productUniquenessFirestore.test.ts tests/invoiceSaveFirestore.test.ts tests/historicalReviewFirestore.test.ts tests/historicalRecoveryFirestore.test.ts tests/auditorPackageFirestore.test.ts tests/scheduledExportManagementFirestore.test.ts tests/exportLiveAuthorizationFirestore.test.ts tests/scheduledExportDispatchFirestore.test.ts tests/scheduledExportHistoryFirestore.test.ts",
     "test:emulator": "firebase emulators:exec --config firebase.emulator.json --project demo-sudaflow --only firestore \"npm run test:rules\"",
     "test:ui": "node --import tsx node_modules/@playwright/test/cli.js test",
     "check": "npm run lint && npm run lint:core && npm test && npm run test:netlify && npm run build",

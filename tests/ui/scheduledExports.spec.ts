@@ -76,11 +76,17 @@ test('Accountant schedule choices come from current API grants and exclude the f
   await panel.getByLabel('اسم جدول التصدير', { exact: true }).fill('جدول المراجع'); await panel.getByLabel('نوع ملف الجدول').selectOption('auditor');
   await panel.getByRole('button', { name: 'حفظ جدول التصدير', exact: true }).click(); await expect(panel.getByRole('status')).toContainText('تم تأكيد حفظ الجدول'); expect((await policies(page))[0]).toMatchObject({ kind: 'auditor', created_by: guestActor.uid });
 });
-test('Full company schedule is owner-only and pins the data period to the complete package', async ({ page }) => {
+test('Full company schedule pins the complete period and its separately requested private JSON file downloads correctly', async ({ page }, testInfo) => {
   const panel = await openSchedules(page); await panel.getByLabel('اسم جدول التصدير', { exact: true }).fill('شركة كاملة'); await panel.getByLabel('نوع ملف الجدول').selectOption('company');
   await expect(panel.getByLabel('فترة بيانات الجدول')).toBeDisabled(); await expect(panel.getByLabel('فترة بيانات الجدول')).toHaveValue('full');
   await panel.getByLabel('ساعات الاحتفاظ بملف الجدول').fill('2'); await panel.getByRole('button', { name: 'حفظ جدول التصدير', exact: true }).click();
   await expect(panel.getByRole('status')).toContainText('تم تأكيد حفظ الجدول'); expect((await policies(page))[0]).toMatchObject({ kind: 'company', period_kind: 'full', retention_hours: 2 });
+  const queued = await cloudMerchant(page).executeCommand('largeExport.request', { kind: 'company' }, 'company-ui-file');
+  expect((await cloudMerchant(page).runExportWorker())?.status).toBe('completed');
+  await panel.getByRole('button', { name: 'تحديث بيانات الجداول' }).click(); const row = panel.getByTestId(`export-job-${queued.result.id}`);
+  await row.getByRole('button', { name: 'تجهيز رابط التنزيل' }).click(); const waiting = page.waitForEvent('download'); await row.getByRole('link', { name: 'تنزيل الملف', exact: true }).click();
+  const file = await waiting, path = testInfo.outputPath('company-private.json'); await file.saveAs(path);
+  expect(file.suggestedFilename()).toMatch(/\.json$/); const snapshot = JSON.parse(await readFile(path, 'utf8')); expect(snapshot.schema_version).toBe(3); expect(snapshot.org.id).toBe(guestId); expect(snapshot.collections.accounts.length).toBeGreaterThan(0);
 });
 test('Cloud read and write failures show a retry state without claiming that a schedule was saved', async ({ page }) => {
   const panel = await openSchedules(page); cloudMerchant(page).failCloudReads(); await panel.getByRole('button', { name: 'تحديث بيانات الجداول' }).click(); await expect(panel.getByRole('alert')).toContainText('خدمة Firebase غير متاحة');

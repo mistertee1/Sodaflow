@@ -16,7 +16,7 @@ export class FirebaseLargeExportArtifacts implements LargeExportArtifactStore{
   private bucket=adminServices().bucket;
   async put(path:string,content:{bytes:Uint8Array;mimeType:string}){await this.bucket.file(path).save(Buffer.from(content.bytes),{resumable:false,metadata:{contentType:content.mimeType,cacheControl:'private,no-store',metadata:{sudaflowExport:'true'}}});}
   async delete(path:string){await this.bucket.file(path).delete({ignoreNotFound:true});}
-  async signedUrl(path:string,expiresAt:Date){const [url]=await this.bucket.file(path).getSignedUrl({action:'read',expires:expiresAt});return url;}
+  async signedUrl(path:string,expiresAt:Date){const [url]=await this.bucket.file(path).getSignedUrl({action:'read',expires:expiresAt,responseDisposition:'attachment'});return url;}
 }
 
 export class ServerLargeExportBuilder implements LargeExportContentBuilder{

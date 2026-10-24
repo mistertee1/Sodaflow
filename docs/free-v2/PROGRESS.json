@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "request_date": "2026-10-25",
+  "base_main": "5025417f07011ff4b5c870ed10e5335ac0b661a5",
+  "branch": "codex/free-v2-activation-20261025",
+  "status": "checkpoint_before_implementation",
+  "user_merges_only": true,
+  "scope": [
+    "Disable commercial subscription checks and quota everywhere in the current free release",
+    "Keep canonical roles, tenant isolation, financial proof and Firebase-only persistence",
+    "New companies start with Accounting V2 only after matching deployed Rules verification; existing-company activation keeps cost/reconciliation proofs",
+    "Separate Rules/index deployment from billing migration/admin bootstrap, test before publication"
+  ],
+  "authorization": "Latest user explicitly requests free service, Accounting V2 activation and publication of reviewed release Rules; prior automatic migration prohibition retained",
+  "lease": {
+    "worker": "free-v2-20261025",
+    "acquired_at": "2026-10-24T21:53:48.426013+00:00",
+    "heartbeat_at": "2026-10-24T21:53:48.426013+00:00",
+    "expires_at": "2026-10-24T23:53:48.426013+00:00"
+  },
+  "production": {
+    "writes": 0,
+    "rules_deployed": false,
+    "commercial_migrations": 0,
+    "real_financial_tests": 0
+  },
+  "limits": [
+    "No main merge or force push",
+    "No password reuse, secret export or login fallback",
+    "Do not invent historical product costs or globally flip existing accounting versions",
+    "Do not modify another live lease or scheduled UI stage",
+    "No reactivation of the paused automation"
+  ]
+}

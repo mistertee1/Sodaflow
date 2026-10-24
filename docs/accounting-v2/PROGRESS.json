@@ -8,12 +8,12 @@
   "active_branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
   "overall_status": "in_progress_not_commercially_ready",
   "lease": {
-    "worker": "accounting-scheduled-policy-20261024-1011",
+    "worker": "scheduled-policy-resume-20261024-1130",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
-    "acquired_at": "2026-10-24T10:11:01.487Z",
-    "heartbeat_at": "2026-10-24T10:11:01.487Z",
-    "expires_at": "2026-10-24T10:56:01.487Z",
-    "purpose": "Publish and verify isolated Excel4.2b.1 calendar/permission/expiry contracts; no runtime scheduling or production execution"
+    "acquired_at": "2026-10-24T11:30:12.611Z",
+    "heartbeat_at": "2026-10-24T11:30:12.611Z",
+    "expires_at": "2026-10-24T13:00:12.611Z",
+    "purpose": "Resume durable scheduled export calendar/access/idempotency/expiry contracts; no runtime or production scheduling until integration acceptance"
   },
   "milestones": [
     {
@@ -2434,7 +2434,7 @@
     "Then wire protected persistence, atomic due-job claiming and live requester authorization before generation/publish/download; repair accounting worker snapshot-expiry gap, add API/Firestore/browser coverage.",
     "Remaining legacy/evidence and final zero-difference financial/restore/operational acceptance remain incomplete. User alone merges; no production schedule/worker/deployment."
   ],
-  "updated_at": "2026-10-24T10:11:01.487Z",
+  "updated_at": "2026-10-24T11:30:12.611Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3556,6 +3556,16 @@
       "purpose": "Excel4.2a protected bounded Auditor Package with source references, dual-book GL, audit and reconciliation; synthetic tests only",
       "released_at": "2026-10-24T10:10:01.161Z",
       "status": "completed"
+    },
+    {
+      "worker": "accounting-scheduled-policy-20261024-1011",
+      "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
+      "acquired_at": "2026-10-24T10:11:01.487Z",
+      "heartbeat_at": "2026-10-24T10:11:01.487Z",
+      "expires_at": "2026-10-24T10:56:01.487Z",
+      "purpose": "Publish and verify isolated Excel4.2b.1 calendar/permission/expiry contracts; no runtime scheduling or production execution",
+      "observed_expired_at": "2026-10-24T11:30:12.611Z",
+      "handoff": "Explicit user continuation. Previously prepared source was not present in the published branch; reconstruct and verify from current GitHub base."
     }
   ],
   "last_lease": {
@@ -3580,7 +3590,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Excel4.2b.1 scheduled export policy/recurrence/expiry contracts prepared in isolated worktree; publish and verify next. Then wire API/Firestore claim/worker/download/UI in Excel4.2b.2 before enabling scheduled exports.",
+  "next": "Complete and test pure calendar/live-access/occurrence/retention contracts from the accepted PR142 base. After acceptance, wire server API, Firestore claim, worker, secure download and UI without automatic production activation.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3968,12 +3978,16 @@
     "completed_at": "2026-10-24T10:10:01.161Z"
   },
   "scheduled_export_policy": {
-    "status": "implemented_local_checks_passed_CI_pending",
+    "status": "checkpoint_before_reconstructed_source",
     "branch": "codex/accounting-v2-excel4-scheduled-export-contracts-20261024",
     "base_pr": 142,
     "base_source": "9e86c6a44472fccf6d12a9dfb8b9c55933d96c5d",
     "scope": "Pure calendar/access/idempotency-key/expiry contracts only; no API, persisted policy, claim, worker integration, download or UI yet",
     "checks": {
+      "status": "requires_fresh_source_verification"
+    },
+    "production_writes": 0,
+    "previous_unpublished_local_check_claim": {
       "full_local_unit_api": 609,
       "netlify_runtime": 16,
       "types": "passed",
@@ -3981,6 +3995,13 @@
       "build": "passed",
       "final_focused_policy_tests": 13
     },
-    "production_writes": 0
+    "owned_paths": [
+      "src/domain/scheduledExportPolicy.ts",
+      "tests/scheduledExportPolicy.test.ts",
+      "tsconfig.core.json (strict contract regression inclusion)",
+      "docs/accounting-v2/PROGRESS.json",
+      "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_POLICY.md",
+      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_POLICY.md"
+    ]
   }
 }

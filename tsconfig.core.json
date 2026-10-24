@@ -62,6 +62,10 @@
     "tests/usdReferenceFirestore.test.ts",
     "tests/productUniqueness.test.ts",
     "tests/productUniquenessFirestore.test.ts",
-    "tests/ui/productUniqueness.spec.ts"
+    "tests/ui/productUniqueness.spec.ts",
+    "tests/invoiceSave.test.ts",
+    "tests/invoiceSaveFirestore.test.ts",
+    "tests/ui/invoiceSave.spec.ts",
+    "tests/historicalImportCommit.test.ts"
   ]
 }

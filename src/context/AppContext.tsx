@@ -1,3 +1,7 @@
+import type { ManagementDimension, DimensionKind } from '../domain/managementDimensions';
+import type { BudgetPlan } from '../domain/managementBudgets';
+import type { RecurringCashSource, ScheduledCashSource } from '../domain/managementCashSources';
+import type { ApprovalPolicy } from '../domain/approvalPolicies';
 import type { OpeningInput } from '../domain/openingBalances';
 import type { OpeningTerms } from '../domain/openingSources';
 import type { OwnerEquityInput } from '../domain/ownerEquity';
@@ -30,8 +34,29 @@ import { BusinessError } from '../domain/validation';
 import { invoiceQuotaReached } from '../domain/subscriptions';
 
 interface AppContextType {
+  approvalPolicies: ApprovalPolicy[];
+  saveApprovalPolicy:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<ApprovalPolicy>;
+  recurringCashSources:RecurringCashSource[];
+  scheduledCashSources:ScheduledCashSource[];
+  saveRecurringCashSource:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<RecurringCashSource>;
+  saveScheduledCashSource:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<ScheduledCashSource>;
+  budgets: BudgetPlan[];
+  saveBudget:(data:Document,updating:boolean,expectedOrgId:string,requestId:string)=>Promise<BudgetPlan>;
+  loadBudgetReport:(budgetId:string)=>Promise<Awaited<ReturnType<Operations['budgetReport']>>>;
+  loadCashForecast:(input:{asOf?:string;days?:number})=>Promise<Awaited<ReturnType<Operations['cashForecastReport']>>>;
+  loadAccountingHealth:(asOf?:string)=>Promise<Awaited<ReturnType<Operations['accountingHealth']>>>;
+  loadAccountingAssistance:(asOf?:string)=>Promise<Awaited<ReturnType<Operations['accountingAssistance']>>>;
+  loadOwnerFinancialSummary:(asOf?:string)=>Promise<Awaited<ReturnType<Operations['ownerFinancialSummary']>>>;
+  branches: ManagementDimension[];
+  costCenters: ManagementDimension[];
+  projects: ManagementDimension[];
+  saveDimension: (kind: DimensionKind, data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<ManagementDimension>;
+
   taxConfigurations: TaxConfiguration[];
   saveTaxConfiguration: (data: Document, updating: boolean, expectedOrgId: string, requestId: string) => Promise<TaxConfiguration>;
+  loadBranchProfitAndLoss: (branchId:string, period:{start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['branchProfitAndLoss']>>>;
+  loadProductProfitability: (period:{start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['productProfitability']>>>;
+  loadCustomerProfitability: (period:{start?:string;end?:string}) => Promise<Awaited<ReturnType<Operations['customerProfitability']>>>;
   fixedAssets: Document[];
   fixedAssetDepreciations: Document[];
   previewFixedAsset: (request: FixedAssetPreviewRequest, expectedOrgId: string) => Promise<FixedAssetPreview>;
@@ -421,8 +446,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   const createCompanyExport = async (presetId?:string) => {
     const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('اختر مؤسسة أولاً.');
-    if(snapshot.current.role!=='Owner'||snapshot.current.org.owner_uid!==(userRef.current?.uid||guestActor.uid))throw new BusinessError('تصدير الشركة الكامل متاح لمالك المؤسسة الفعلي فقط.',403);
-    const full=id===guestId?await getGuest().snapshot(id,guestActor,true):await firebaseSnapshot(id,true);
+    if(snapshot.current.role!=='Owner'||snapshot.current.org.owner_uid!==userRef.current?.uid)throw new BusinessError('تصدير الشركة الكامل متاح لمالك المؤسسة الفعلي فقط.',403);
+    const full=await firebaseSnapshot(id,true);
     if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد التصدير.',409);
     const json=JSON.stringify(full,null,2),byte_size=new TextEncoder().encode(json).length; if(byte_size>900000)throw new BusinessError('التصدير المباشر الكامل محدود بـ900KB؛ استخدم مهمة التصدير الكبيرة.',413);
     const collection_counts=Object.fromEntries(Object.entries(full.collections).map(([name,records])=>[name,(records as Document[]).length])),filename=`sudaflow-company-${id}-${new Date().toISOString().slice(0,10)}.json`;
@@ -498,11 +523,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     saveRecurringCashSource:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<RecurringCashSource>(updating?'recurringCashSource.update':'recurringCashSource.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح مصدر التوقع.',409)),
     saveScheduledCashSource:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<ScheduledCashSource>(updating?'scheduledCashSource.update':'scheduledCashSource.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح مصدر التوقع.',409)),
     saveBudget:(data,updating,expectedOrgId,requestId)=>activeOrg.current===expectedOrgId?run<BudgetPlan>(updating?'budget.update':'budget.create',data,requestId):Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح الميزانية.',409)),
-    loadBudgetReport:async budgetId=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const value=id===guestId&&!userRef.current?await getGuest().budgetReport(id,guestActor,budgetId):await api<Awaited<ReturnType<Operations['budgetReport']>>>(`/organizations/${encodeURIComponent(id)}/reports/budget-vs-actual?budgetId=${encodeURIComponent(budgetId)}`);if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return value;},
-    loadCashForecast:async input=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams({...input.asOf?{asOf:input.asOf}:{},...input.days?{days:String(input.days)}:{}}),value=id===guestId&&!userRef.current?await getGuest().cashForecastReport(id,guestActor,input):await api<Awaited<ReturnType<Operations['cashForecastReport']>>>(`/organizations/${encodeURIComponent(id)}/reports/cash-forecast?${params}`);if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التوقع.',409);return value;},
-    loadAccountingHealth:async asOf=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams(asOf?{asOf}:{}),value=id===guestId&&!userRef.current?await getGuest().accountingHealth(id,guestActor,asOf):await api<Awaited<ReturnType<Operations['accountingHealth']>>>(`/organizations/${encodeURIComponent(id)}/reports/accounting-health?${params}`);if(id!==activeOrg.current||epoch!==session.current||value.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث مركز الصحة.',409);return value;},
-    loadAccountingAssistance:async asOf=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams(asOf?{asOf}:{}),value=id===guestId&&!userRef.current?await getGuest().accountingAssistance(id,guestActor,asOf):await api<Awaited<ReturnType<Operations['accountingAssistance']>>>(`/organizations/${encodeURIComponent(id)}/reports/accounting-assistance?${params}`);if(id!==activeOrg.current||epoch!==session.current||value.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث مساعد المحاسبة.',409);return value;},
-    loadOwnerFinancialSummary:async asOf=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams(asOf?{asOf}:{}),value=id===guestId&&!userRef.current?await getGuest().ownerFinancialSummary(id,guestActor,asOf):await api<Awaited<ReturnType<Operations['ownerFinancialSummary']>>>(`/organizations/${encodeURIComponent(id)}/reports/owner-financial-summary?${params}`);if(id!==activeOrg.current||epoch!==session.current||value.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث ملخص المالك.',409);return value;},
+    loadBudgetReport:async budgetId=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const value=await api<Awaited<ReturnType<Operations['budgetReport']>>>(`/organizations/${encodeURIComponent(id)}/reports/budget-vs-actual?budgetId=${encodeURIComponent(budgetId)}`);if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return value;},
+    loadCashForecast:async input=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams({...input.asOf?{asOf:input.asOf}:{},...input.days?{days:String(input.days)}:{}}),value=await api<Awaited<ReturnType<Operations['cashForecastReport']>>>(`/organizations/${encodeURIComponent(id)}/reports/cash-forecast?${params}`);if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التوقع.',409);return value;},
+    loadAccountingHealth:async asOf=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams(asOf?{asOf}:{}),value=await api<Awaited<ReturnType<Operations['accountingHealth']>>>(`/organizations/${encodeURIComponent(id)}/reports/accounting-health?${params}`);if(id!==activeOrg.current||epoch!==session.current||value.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث مركز الصحة.',409);return value;},
+    loadAccountingAssistance:async asOf=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams(asOf?{asOf}:{}),value=await api<Awaited<ReturnType<Operations['accountingAssistance']>>>(`/organizations/${encodeURIComponent(id)}/reports/accounting-assistance?${params}`);if(id!==activeOrg.current||epoch!==session.current||value.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث مساعد المحاسبة.',409);return value;},
+    loadOwnerFinancialSummary:async asOf=>{const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');const params=new URLSearchParams(asOf?{asOf}:{}),value=await api<Awaited<ReturnType<Operations['ownerFinancialSummary']>>>(`/organizations/${encodeURIComponent(id)}/reports/owner-financial-summary?${params}`);if(id!==activeOrg.current||epoch!==session.current||value.organizationId!==id)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث ملخص المالك.',409);return value;},
     saveDimension: (kind, data, updating, expectedOrgId, requestId) => {
       if (activeOrg.current !== expectedOrgId) return Promise.reject(new BusinessError('تغيرت المؤسسة؛ أعد فتح إدارة الأبعاد.', 409));
       return run<ManagementDimension>(updating ? 'dimension.update' : 'dimension.create', { ...data, kind }, requestId);
@@ -510,19 +535,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadBranchProfitAndLoss: async (branchId, period) => {
       const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
       const params=new URLSearchParams({branchId,...(period.start?{start:period.start}:{}),...(period.end?{end:period.end}:{})});
-      const report=id===guestId&&!userRef.current?await getGuest().branchProfitAndLoss(id,guestActor,branchId,period):await api<Awaited<ReturnType<Operations['branchProfitAndLoss']>>>(`/organizations/${encodeURIComponent(id)}/reports/branch-profit-loss?${params}`);
+      const report=await api<Awaited<ReturnType<Operations['branchProfitAndLoss']>>>(`/organizations/${encodeURIComponent(id)}/reports/branch-profit-loss?${params}`);
       if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return report;
     },
     loadProductProfitability: async period => {
       const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
       const params=new URLSearchParams({...period.start?{start:period.start}:{},...period.end?{end:period.end}:{}});
-      const report=id===guestId&&!userRef.current?await getGuest().productProfitability(id,guestActor,period):await api<Awaited<ReturnType<Operations['productProfitability']>>>(`/organizations/${encodeURIComponent(id)}/reports/product-profitability?${params}`);
+      const report=await api<Awaited<ReturnType<Operations['productProfitability']>>>(`/organizations/${encodeURIComponent(id)}/reports/product-profitability?${params}`);
       if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return report;
     },
     loadCustomerProfitability: async period => {
       const id=activeOrg.current,epoch=session.current;if(!id)throw new BusinessError('المؤسسة غير متاحة.');
       const params=new URLSearchParams({...period.start?{start:period.start}:{},...period.end?{end:period.end}:{}});
-      const report=id===guestId&&!userRef.current?await getGuest().customerProfitability(id,guestActor,period):await api<Awaited<ReturnType<Operations['customerProfitability']>>>(`/organizations/${encodeURIComponent(id)}/reports/customer-profitability?${params}`);
+      const report=await api<Awaited<ReturnType<Operations['customerProfitability']>>>(`/organizations/${encodeURIComponent(id)}/reports/customer-profitability?${params}`);
       if(id!==activeOrg.current||epoch!==session.current)throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ حدّث التقرير.',409);return report;
     },
     creditNotes: rows<Document>('credit_notes'), customerRefunds: rows<Document>('customer_refunds'),
@@ -555,20 +580,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     exportPresets:rows<Document>('export_presets'),dataTransferHistory:rows<Document>('audit_logs').filter(row=>['DATA_EXPORT_CREATED','DATA_IMPORT_STARTED'].includes(row.event_type)).sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))),
     saveExportPreset:input=>run('exportPreset.save',input),deleteExportPreset:async id=>{await run('exportPreset.delete',{id});},createCompanyExport,
     commitHistoricalImport: (input, expectedOrgId, id) => {
-      if (!userRef.current || activeOrg.current === guestId) return Promise.reject(new BusinessError('الاعتماد التاريخي يتطلب حساباً مسجلاً وخدمة الخادم.',403,'accounting_server_required'));
+      if (!userRef.current) return Promise.reject(new BusinessError('الاعتماد التاريخي يتطلب حساباً مسجلاً وخدمة الخادم.',403,'accounting_server_required'));
       if (activeOrg.current !== expectedOrgId || !/^[a-f0-9]{64}$/.test(input.expected_review_sha256)) return Promise.reject(new BusinessError('تغيرت المؤسسة أو بصمة المعاينة؛ أعد المعاينة.',409));
       return run('historicalImport.commit',input,id);
     },
     previewHistoricalImport: async (request, expectedOrgId) => {
       const id = activeOrg.current, epoch = session.current;
-      if (!userRef.current || id === guestId) throw new BusinessError('المعاينة التاريخية المحمية تتطلب حساباً مسجلاً وخدمة الخادم.', 403, 'accounting_server_required');
+      if (!userRef.current) throw new BusinessError('المعاينة التاريخية المحمية تتطلب حساباً مسجلاً وخدمة الخادم.', 403, 'accounting_server_required');
       if (!id || id !== expectedOrgId) throw new BusinessError('تغيرت المؤسسة؛ أعد المعاينة.', 409);
       const preview = await api<Awaited<ReturnType<Operations['historicalImportPreview']>>>(`/organizations/${encodeURIComponent(id)}/historical-import/preview`, {method: 'POST', body: JSON.stringify(request)});
       if (id !== activeOrg.current || epoch !== session.current || preview.org_id !== id) throw new BusinessError('تغيرت المؤسسة أو الجلسة؛ أعد المعاينة.', 409);
       return preview;
     },
     stageHistoricalImport: async (input, id) => {
-      if (!userRef.current || activeOrg.current === guestId) throw new BusinessError('الاستيراد التاريخي المحمي يتطلب خدمة الخادم وحساباً مسجلاً؛ وضع الضيف للمراجعة فقط.', 403, 'accounting_server_required');
+      if (!userRef.current) throw new BusinessError('الاستيراد التاريخي المحمي يتطلب خدمة الخادم وحساباً مسجلاً؛ وضع الضيف للمراجعة فقط.', 403, 'accounting_server_required');
       return run('historicalImport.stage', input as unknown as Document, id);
     },
     stageMasterImport: input => run('masterImport.stage',input as unknown as Document),

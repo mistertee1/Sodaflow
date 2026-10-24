@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import ExcelJS from 'exceljs';
 import { fakeFirebase } from './helpers/historicalAuth';
 import { periodGuestFixture } from './helpers/accountingPeriods';
-import { guestId, guestActor } from '../../src/services/guestStore';
+import { guestId, guestActor } from '../fixtures/cloudIdentity';
 import { MemoryStore } from '../../src/domain/store';
 import { Operations } from '../../src/domain/operations';
 import { createHistoricalImportTemplate } from '../../src/services/historicalImportWorkbook';

@@ -132,6 +132,30 @@ function monthKey(now: Date, timeZone: string) {
 /** Strict by default for embedded callers; the production API injects its reviewed release policy. */
 export class Operations {
   constructor(public store: Store, private now: () => Date = () => new Date(), private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = (_saved, orgId) => createDefaultSubscription(orgId), private verifyCostingSecurity?: () => Promise<void>, public readonly controlsEnabled = true) {}
+  async historicalImportPreview(orgId:string,actor:Actor,request:{input:import('./historicalImportCommit').HistoricalImportCommitInput;operationId:string}) {
+    ensure(request && typeof request==='object' && !Array.isArray(request) && Object.keys(request).every(key=>['input','operationId'].includes(key)),'حقول المعاينة التاريخية غير صالحة.');
+    assertHistoricalImportCommitPayload(request.input);identifier(request.operationId);
+    ensure(this.store.authority==='server','المعاينة التاريخية المحمية تتطلب خدمة الخادم.',403);
+    const now=this.now();
+    // Never recursively validate an approval token while constructing its read-only evidence.
+    const {expected_review_sha256:_ignored,...input}=request.input;
+    return this.store.transaction(async tx=>{
+      const reads:Document[]=[];
+      const capture=(kind:string,path:string,value:unknown,options:unknown=null)=>{reads.push({kind,path,options,value:value??null});return value;};
+      const sorted=(rows:Document[])=>[...rows].sort((a,b)=>canonical(a).localeCompare(canonical(b)));
+      const readOnly:Store={authority:'server',transaction:async work=>work({
+        get:async path=>{const value=await tx.get(path);if(path===`organizations/${orgId}/idempotency/${request.operationId}`)ensure(!value,'معرف الاعتماد مستخدم بالفعل؛ حدّث الجلسة.',409);capture('get',path,value);return value;},
+        list:async(path,options)=>{const rows=await tx.list(path,options);capture('list',path,sorted(rows),options??null);return rows;},find:async(path,field,value)=>{const rows=await tx.find(path,field,value);capture('find',path,sorted(rows),{field,value});return rows;},
+        set:()=>{},delete:()=>{},
+      })};
+      const proposal=await new Operations(readOnly,()=>now,this.subscriptionPolicy,this.verifyCostingSecurity).execute(orgId,actor,{action:'historicalImport.commit',operationId:request.operationId,data:input});
+      const evidence=canonical({schema_version:1,orgId,actorUid:actor.uid,operationId:request.operationId,input,reads:reads.sort((a,b)=>canonical(a).localeCompare(canonical(b)))});
+      const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(evidence));
+      const review_sha256=Array.from(new Uint8Array(digest),n=>n.toString(16).padStart(2,'0')).join('');
+      return clean({review_sha256,dry_run:true,org_id:orgId,session_id:request.input.id,reviewed_at:now.toISOString(),approval_input:request.input,operation_id:request.operationId,proposed_result:proposal.result,proposed_changes:proposal.changes});
+    });
+  }
+
   async openingPreview(orgId:string,actor:Actor,request:{input:OpeningInput;terms:OpeningTerms[]}) {
     ensure(request && typeof request==='object' && !Array.isArray(request) && Object.keys(request).every(key=>['input','terms'].includes(key)),'حقول طلب معاينة الأرصدة غير صالحة أو محمية.');
     ensure(request.input && typeof request.input==='object' && !Array.isArray(request.input) && Array.isArray(request.terms) && request.terms.length<=97,'بيانات الأرصدة والاستحقاقات مطلوبة للمعاينة.');
@@ -868,6 +892,7 @@ export class Operations {
           result = { ...org, accounting_version: 2, accounting_activated_at: iso, updated_at: iso }; set(root, result); break;
         }
         case 'invoice.create': {
+          const dimensions = dimensionTags(data);
           assertOpenPeriod(data.issue_date, settings);
           ensure(['dual', 'single_sdg', 'single_usd', 'single_foreign'].includes(data.currency_mode), 'نمط العملة غير صالح.');
           if (data.due_date) ensure(dateOnly(data.due_date) >= dateOnly(data.issue_date), 'تاريخ الاستحقاق قبل الإصدار.');
@@ -925,7 +950,7 @@ export class Operations {
           const id = `inv-${command.operationId}`;
           const rawCustomerPhone = typeof customer.phone === 'string' ? customer.phone : '';
           const customerPhone = normalizeWhatsAppPhone(rawCustomerPhone, customer.preferred_currency, 'SDG');
-          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customerPhone ? '+' + customerPhone : rawCustomerPhone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as Invoice;
+          const invoice: Invoice = { ...pick(data, ['issue_date', 'due_date', 'currency_mode', 'discount_type', 'discount_value', 'notes', 'payment_instructions']), ...dimensions, ...stamp, id, invoice_number: `${prefix}${String(number).padStart(4, '0')}`, customer_id: customer.id, customer_name: customer.name, customer_phone: customerPhone ? '+' + customerPhone : rawCustomerPhone, customer_address: customer.address || '', ...financials, ...(taxEvidence?{tax_evidence:taxEvidence}:{}), ...(discountApproval?{approval_evidence:discountApproval}:{}), credit_decision: creditDecision, paid_amount_sdg: 0, paid_amount_usd: 0, status: 'sent', operation_id: command.operationId, updated_at: iso } as unknown as Invoice;
           invoice.receivable_currency = receivableCurrency(invoice);
           let cogsSdg = 0, cogsUsd = 0;
           for (const item of invoice.items) item.cost_status = item.product_id ? 'unknown' : 'not_tracked';
@@ -1203,6 +1228,9 @@ export class Operations {
       const previousState = Object.fromEntries(changes.filter(change => beforeValues.has(change.path)).map(change => [change.path, pick(beforeValues.get(change.path)!, auditFields)]));
       const newState = Object.fromEntries(changes.filter(change => !change.path.includes('/meta/')).map(change => [change.path, change.value ? pick(change.value, auditFields) : null]));
       const audit = {...(isEquity?{reauthentication:{auth_time:actor.authTime},owner_equity_evidence:{event_id:result.id,journal_id:result.journal_id,sequence:result.sequence,quote:result.quote}}:{}), ...(isTaxConfiguration?{reauthentication:{auth_time:actor.authTime},tax_configuration_evidence:{configuration_id:result.id,revision:result.revision,version_id:`${result.id}-r${result.revision}`}}:{}), ...(openingProof?{opening_evidence:openingProof,...(command.action==='opening.commit'?{reauthentication:{auth_time:actor.authTime}}:{})}:{}), ...(command.action==='period.reopen'?{reauthentication:{auth_time:actor.authTime}}:{}), ...(command.action==='settings.update' && Object.prototype.hasOwnProperty.call(data.updates,'period_lock_date')?{legacy_period_lock:{previous:settings.period_lock_date||null,new:data.updates.period_lock_date||null}}:{}), ...(command.action === 'correctionDocument.export' ? { event_type: 'DATA_EXPORT_CREATED', export_metadata: { format: 'pdf', document_type: result.document_type, document_id: result.document.id, source_id: result.source.id, schema_version: result.schema_version, record_count: 1 } } : {}), ...(command.action === 'operational.export' ? { export_metadata: { report: data.view, period: result.period, account_code: data.query?.accountCode || '', currency: data.query?.currency || 'SDG/USD' } } : {}), ...(command.action === 'payables.export' ? { export_metadata: { report: 'payables', period: result.period } } : {}), actor_role: storedRole, effective_actor_role: role, platform_controls_enabled: this.controlsEnabled, reason: isEquity?result.input.reason:isOpening?result.reason:data.reason || '', cost_evidence: costEvidence, previous_state: previousState, new_state: newState, id: `audit-${command.operationId}`, org_id: orgId, actor_uid: actor.uid, actor_email: actor.email, action: command.action, entity_type: command.action.split('.')[0], entity_id: result.id || result.code || data.id || orgId, operation_id: command.operationId, created_at: iso, details: `عملية ${command.action}` };
+      if(command.action==='historicalImport.stage')Object.assign(audit,{event_type:'DATA_IMPORT_STARTED',import_metadata:{import_type:result.import_type,file_name:result.file_name,file_hash:result.file_hash,rows_total:result.rows_total,rows_imported:0,rows_failed:result.rows_failed,status:result.status,schema_version:result.schema_version,accounting_block:result.accounting_block,rows_sha256:result.rows_sha256}});
+      if(command.action==='historicalImport.commit')Object.assign(audit,{event_type:'DATA_IMPORT_COMPLETED',import_metadata:{import_session_id:result.id,import_type:result.import_type,file_hash:result.file_hash,rows_total:result.rows_total,rows_imported:result.rows_imported,rows_failed:result.rows_failed,status:result.status,completion_code:result.completion_code,schema_version:result.schema_version,accounting_block:result.accounting_block,journals_created:result.journals_created,invoices_created:result.invoices_created||0,payments_created:result.payments_created||0,inventory_movements_created:result.inventory_movements_created||0,rows_sha256:result.rows_sha256,document_evidence_sha256:result.document_evidence_sha256,reconciliation:result.reconciliation}});
+      if(command.action==='historicalImport.commit')Object.assign((audit as Document).import_metadata,{purchase_bills_created:result.purchase_bills_created||0,supplier_payments_created:result.supplier_payments_created||0});
       if(isOpening)ensure(new TextEncoder().encode(JSON.stringify(audit)).length<=650000,'حجم تدقيق الأرصدة يتجاوز حد المستند.',413);
       tx.set(`${root}/audit_logs/${audit.id}`, audit);
       const visible = changes.filter(c => {

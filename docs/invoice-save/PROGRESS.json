@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "repository": "mistertee1/Sodaflow",
+  "baseMain": "307949a60f47aeeddc6ad3d44a1d35dd7e73edf7",
+  "workBranch": "codex/invoice-save-diagnostics-20261023",
+  "activeRunId": null,
+  "leaseUntil": null,
+  "updatedAt": "2026-10-24T05:20:00Z",
+  "status": "accepted_on_descendant_v2_stack_pending_user_merge",
+  "userRequest": "Fix screenshot invoice save service_unavailable; avoid direct conflicts with other agent. Continue manual global display currency after independent bug fix.",
+  "evidence": {
+    "netlifyHealth": 200,
+    "netlifyReadiness": 200,
+    "firebaseProject": "sodaflow",
+    "firestoreDatabase": "(default)",
+    "anonymousSession": 401,
+    "mainCI": 39997902785,
+    "mainFailure": "npm ci: missing mkdirp@0.5.6 from merged lockfile",
+    "productionFinancialWrites": 0,
+    "rootCause": "invoice.create journal tagging referenced undefined dimensions; ReferenceError reproduced on main using synthetic screenshot inputs",
+    "focusedRegression": {
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    "productionCalculationStatus": 200,
+    "productionDeploymentVerified": false
+  },
+  "otherAgent": {
+    "branch": "codex/inventory-purchasing-workspace-20261023",
+    "head": "6bde6814c4babf27a47bb15e834beb94a12b0ed0",
+    "mainCheckpointLeaseExpired": "2026-10-23T18:21:57.832Z",
+    "policy": "Do not modify inventory purchasing UI/source or the accounting checkpoint. Skip direct conflicts."
+  },
+  "ownedPaths": [
+    "docs/invoice-save",
+    "src/domain/operations.ts (invoice dimensions, restore already-reviewed missing historical preview/audit only)",
+    "src/context/AppContext.tsx (restore existing contracts and authenticated cloud adapters only)",
+    "server/accountingRulesHash.ts (fingerprint of unchanged reviewed main Rules)",
+    "package-lock.json (missing mkdirp entry only)",
+    "package.json and tsconfig.core.json (regression registration)",
+    "tests/invoiceSave* and tests/helpers/invoiceSave.ts",
+    "tests/ui/invoiceSave.spec.ts",
+    "tests/ui/historicalStagingCloud.spec.ts and historicalWorkbook.spec.ts (cloud test compatibility)",
+    "src/domain/salesCorrections.ts (restore calculated refund approval evidence dropped by merge)"
+  ],
+  "userMergesOnly": true,
+  "rulesChanged": false,
+  "next": [
+    "User reviews the final integrated Accounting V2 stack; standalone PR136 retains inherited main gaps that were repaired in descendant PR137–140.",
+    "Do not publish the duplicate local UI fixture repairs; the other agent completed and accepted them in PR140.",
+    "Resume the latest V2 historical session/receipt recovery milestone after respecting its current lease. Preserve the unmerged global currency branch for later integration without overwriting other agent work."
+  ],
+  "lastSourceCommit": "e2a1ffd4b79c5d3d63268f118a47e0a0006d7ca1",
+  "acceptance": {
+    "source": "e0e5ffb03ef6ec1d2b8f652e8efb9aefd2843d62",
+    "pr": 140,
+    "ci": 40063035249,
+    "node22CI": 40063035248,
+    "unitApi": 564,
+    "netlifyRuntime": 16,
+    "firestoreEmulator": 56,
+    "browser": 128,
+    "failed": 0,
+    "skipped": 0,
+    "productionAuditVulnerabilities": 0,
+    "invoiceEmulator": "passed",
+    "mobileInvoiceFirstSaveAndRetry": "passed",
+    "sourceAncestry": "e2a1ffd is ancestor of accepted descendant"
+  }
+}

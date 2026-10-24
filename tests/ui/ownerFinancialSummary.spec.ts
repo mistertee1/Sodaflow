@@ -1,11 +1,11 @@
-import {test,expect,type Page} from '@playwright/test';
+import { test, expect, type Page, seedCloudMerchant, openMerchant } from './helpers/cloudMerchant';
 import {periodGuestFixture} from './helpers/accountingPeriods';
 
 async function open(page:Page,role:'Owner'|'Accountant'='Owner'){
   const records=await periodGuestFixture(true,role),root='organizations/local-guest-org';
   records[`${root}/recurring_cash_sources/rent`]={id:'rent',org_id:'local-guest-org',name:'إيجار شهري',frequency:'monthly',next_date:'2026-10-20',amount_sdg:100,amount_usd:0,status:'active',revision:1,created_by:'guest',created_at:'2026-10-01T00:00:00Z',updated_by:'guest',updated_at:'2026-10-01T00:00:00Z'};
   records[`${root}/fixed_assets/asset`]={id:'asset',org_id:'local-guest-org',name:'حاسوب المكتب',status:'active',next_depreciation_sequence:1,schedule:[{sequence:1,date:'2026-10-31',depreciation_sdg:10,depreciation_usd:0}]};
-  await page.addInitScript(records=>{localStorage.setItem('mohasbasd_guest_session','true');localStorage.setItem('sudanese_merchant_has_seen_tour_v2','true');localStorage.setItem('sudaflow_guest_transactions_v3',JSON.stringify(records));},records);await page.goto('/');await page.locator('#tab-accounting').click();
+  await seedCloudMerchant(page, records);await openMerchant(page);await page.locator('#tab-accounting').click();
 }
 
 test('E3 Owner refreshes the financial summary and sees review-only recurring reminders',async({page})=>{

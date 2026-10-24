@@ -14,16 +14,19 @@ export interface ExportAuthorizationOptions {
   verifySecurity?: () => Promise<void>;
   subscriptionPolicy?: LegacySubscriptionPolicy;
   now?: () => Date;
+  controlsEnabled?: boolean;
 }
 
 /** Trusted Auth plus transactional entitlement reads, never client-supplied access flags. */
 export class LiveExportAuthorization {
   readonly now: () => Date;
+  readonly controlsEnabled: boolean;
   readonly subscriptionPolicy: LegacySubscriptionPolicy;
   private lookup: ScheduledAccountLookup;
   private verify: () => Promise<void>;
   constructor(private store: Store, options: ExportAuthorizationOptions = {}) {
     this.now = options.now || (() => new Date());
+    this.controlsEnabled = options.controlsEnabled ?? true;
     this.lookup = options.lookupAccount || firebaseScheduledAccountLookup;
     this.verify = options.verifySecurity || verifyDeployedAccountingRules;
     this.subscriptionPolicy = options.subscriptionPolicy || resolveSubscription;
@@ -42,9 +45,9 @@ export class LiveExportAuthorization {
   async access(tx: Transaction, orgId: string, kind: ScheduledExportKind, identity: ScheduledAccountIdentity) {
     identifier(orgId);
     const actor: Actor = { uid: identity.uid, email: 'export-worker@sudaflow.internal', emailVerified: identity.emailVerified };
-    const { org, role } = await membership(tx, orgId, actor);
-    const now = this.now(), subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy);
-    const access: ScheduledExportAccess = { authority: 'server', orgId, ownerUid: org.owner_uid, uid: actor.uid, role, emailVerified: identity.emailVerified, accountEnabled: !identity.disabled, activeMember: true, organizationActive: org.status === 'active', accountingVersion: Number(org.accounting_version), subscriptionStatus: subscription.effective_status || subscription.status, subscriptionEnd: subscription.subscription_end ?? null, features: subscription.features, now };
+    const { org, storedRole: role } = await membership(tx, orgId, actor, false, this.controlsEnabled);
+    const now = this.now(), subscription = await loadSubscription(tx, orgId, org, now, this.subscriptionPolicy, this.controlsEnabled);
+    const access: ScheduledExportAccess = { authority: 'server', orgId, ownerUid: org.owner_uid, uid: actor.uid, role, emailVerified: identity.emailVerified, accountEnabled: !identity.disabled, activeMember: true, organizationActive: !this.controlsEnabled || org.status === 'active', accountingVersion: Number(org.accounting_version), subscriptionStatus: subscription.effective_status || subscription.status, subscriptionEnd: subscription.subscription_end ?? null, features: subscription.features, now };
     assertScheduledExportAccess(kind, access);
     return { org, role, actor, access };
   }

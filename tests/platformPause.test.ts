@@ -42,7 +42,7 @@ test('paused controls give every assigned role full tenant access without changi
     const snapshot = await f.operations.snapshot(f.org.id, actor, true);
     assert.equal(snapshot.platform_controls_enabled, false); assert.equal(snapshot.role, role);
     for (const feature of ['accounting', 'inventory_tracking', 'multi_currency', 'audit_trail', 'advanced_reports']) assert.equal(snapshot.subscription.features[feature], true);
-    assert.equal(snapshot.subscription.max_members, 999999);
+    assert.equal(snapshot.subscription.max_members, Number.MAX_SAFE_INTEGER);
     assert.ok(snapshot.collections.accounts.length > 0); assert.ok(snapshot.collections.audit_logs.length > 0);
     assert.equal(snapshot.org.status, 'suspended'); assert.equal(snapshot.org.subscriptionStatus, 'expired');
     assert.deepEqual(f.store.dump()[`${f.root}/members/${actor.uid}`], original[`${f.root}/members/${actor.uid}`]);
@@ -167,6 +167,6 @@ test('paused registration ignores an incomplete disabled plan without rewriting 
   const org = await new Organizations(store, undefined, undefined, false).create(actor, 'شركة جديدة', {}, 'registration', true);
   assert.equal(org.owner_uid, actor.uid); assert.equal(org.planId, 'Free'); assert.equal(org.maxUsers, 2);
   assert.deepEqual(store.dump()['plans/Free'], { active: false });
-  assert.equal((await new Operations(store, undefined, undefined, undefined, false).snapshot(org.id, actor)).subscription.max_members, 999999);
+  assert.equal((await new Operations(store, undefined, undefined, undefined, false).snapshot(org.id, actor)).subscription.max_members, Number.MAX_SAFE_INTEGER);
   await assert.rejects(new Organizations(store).create({ ...actor, uid: 'strict-new-owner' }, 'تسجيل صارم', {}, 'strict-registration', true), (error: any) => error.status === 503);
 });

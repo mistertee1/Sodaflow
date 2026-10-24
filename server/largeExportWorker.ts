@@ -1,3 +1,4 @@
+import platformControls from '../src/config/platform-controls.json';
 import type { Document, Store, Transaction } from '../src/domain/store';
 import { LargeExportWorker, type LargeExportArtifactStore, type LargeExportContentBuilder } from '../src/domain/largeExportWorker';
 import { Operations, type Actor } from '../src/domain/operations';
@@ -22,7 +23,7 @@ export class FirebaseLargeExportArtifacts implements LargeExportArtifactStore{
 export class ServerLargeExportBuilder implements LargeExportContentBuilder{
   private authorization: LiveExportAuthorization;
   private cleanupSecurity:()=>Promise<void>;
-  constructor(private operations:Operations, options:ExportAuthorizationOptions={}){this.authorization=new LiveExportAuthorization(operations.store,options);this.cleanupSecurity=options.verifySecurity||verifyDeployedAccountingRules;}
+  constructor(private operations:Operations, options:ExportAuthorizationOptions={}){this.authorization=new LiveExportAuthorization(operations.store,{controlsEnabled:operations.controlsEnabled,...options});this.cleanupSecurity=options.verifySecurity||verifyDeployedAccountingRules;}
   async authorizeCleanup(){
     ensure(this.operations.store.authority==='server','تنظيف ملفات التصدير يتطلب خدمة الخادم.',403);
     try{await this.cleanupSecurity();}catch(error){if(error instanceof BusinessError)throw error;throw new BusinessError('تعذر تأكيد حماية تنظيف الملفات.',503,'accounting_rules_not_verified');}
@@ -37,7 +38,7 @@ export class ServerLargeExportBuilder implements LargeExportContentBuilder{
         // The same transaction proves access and reads the backup. A filtered
         // read-only snapshot is never mistaken for permission to export zero rows.
         const readOnly:Store={authority:'server',transaction:async work=>work({...tx,set:()=>{throw Error('Export is read-only');},delete:()=>{throw Error('Export is read-only');}})};
-        const snapshot=await new Operations(readOnly,this.authorization.now,this.authorization.subscriptionPolicy).snapshot(job.org_id,current.actor,true);
+        const snapshot=await new Operations(readOnly,this.authorization.now,this.authorization.subscriptionPolicy,undefined,this.authorization.controlsEnabled).snapshot(job.org_id,current.actor,true);
         const bytes=new TextEncoder().encode(JSON.stringify(snapshot));return{bytes,filename:`sudaflow-company-${job.org_id}-${at.slice(0,10)}.json`,mimeType:'application/json',recordCount:Object.values(snapshot.collections).reduce((sum,rows)=>sum+(rows as Document[]).length,0)};
       }
       if(job.kind==='auditor'){
@@ -57,7 +58,7 @@ export class ServerLargeExportBuilder implements LargeExportContentBuilder{
   }
 }
 
-export function firebaseLargeExportWorker(){const store:Store=new FirestoreStore(adminServices().db),operations=new Operations(store,undefined,resolveSubscription,verifyDeployedAccountingRules);return new LargeExportWorker(store,new FirebaseLargeExportArtifacts(),new ServerLargeExportBuilder(operations));}
+export function firebaseLargeExportWorker(){const store:Store=new FirestoreStore(adminServices().db),operations=new Operations(store,undefined,resolveSubscription,verifyDeployedAccountingRules,platformControls.enabled);return new LargeExportWorker(store,new FirebaseLargeExportArtifacts(),new ServerLargeExportBuilder(operations));}
 
 export async function authorizedLargeExportDownload(store:Store,worker:LargeExportWorker,orgId:string,collection:string,jobId:string,actor:Actor,options:ExportAuthorizationOptions={}){
   identifier(orgId);identifier(jobId);ensure(['company_export_jobs','accounting_export_jobs'].includes(collection),'مجموعة التصدير غير صالحة.');ensure(actor.emailVerified===true,'البريد غير مؤكد.',403);

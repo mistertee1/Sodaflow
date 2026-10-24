@@ -1,3 +1,4 @@
+import platformControls from '../src/config/platform-controls.json';
 import type { Document, Store, Transaction } from '../src/domain/store';
 import { BusinessError, ensure, identifier } from '../src/domain/validation';
 import { scheduledExportDueKey } from '../src/domain/scheduledExportManagement';
@@ -129,4 +130,4 @@ export class ScheduledExportDispatcher {
   }
 }
 
-export const firebaseScheduledExportDispatcher = () => new ScheduledExportDispatcher(new FirestoreStore(adminServices().db));
+export const firebaseScheduledExportDispatcher = () => new ScheduledExportDispatcher(new FirestoreStore(adminServices().db),{controlsEnabled:platformControls.enabled});

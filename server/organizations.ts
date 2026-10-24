@@ -16,7 +16,8 @@ export class Organizations {
     private store: Store,
     private subscriptionPolicy: (saved: Document | undefined, orgId: string) => OrgSubscription = resolveSubscription,
     private now: () => Date = () => new Date(),
-    private controlsEnabled = true
+    private controlsEnabled = true,
+    private verifyNewAccountingRules?: () => Promise<void>,
   ) {}
   list(actor: Actor) {
     ensure(actor.emailVerified === true && actor.email, 'أكّد بريدك الإلكتروني قبل الوصول إلى المؤسسات.', 403);
@@ -39,18 +40,22 @@ export class Organizations {
     return this.store.transaction(async tx => {
       const previous = await tx.get(`organizations/${id}`);
       if (previous) { ensure(previous.owner_uid === actor.uid, 'المؤسسة موجودة لمالك آخر.', 409); return previous; }
-      const now = new Date().toISOString();
+      if (this.verifyNewAccountingRules) {
+        ensure(this.store.authority === 'server', 'إنشاء مؤسسة V2 يتطلب خدمة الخادم.', 403);
+        await this.verifyNewAccountingRules();
+      }
+      const now = this.now().toISOString();
       // Registration must not depend on an unfinished/disabled commercial catalog while paused.
       const free = this.controlsEnabled ? await tx.get('plans/Free') || defaultPlatformPlans(now)[0] : defaultPlatformPlans(now)[0];
       ensure(!this.controlsEnabled || free.active, 'التسجيل الجديد متوقف حالياً. تواصل مع إدارة المنصة.', 503);
       const usagePath = `user_organizations/${actor.uid}/meta/creation`, usage = await tx.get(usagePath);
       ensure(!usage || usage.day !== now.slice(0, 10) || usage.count < 5, 'تم بلوغ حد إنشاء المؤسسات اليومي.', 429);
       const settings = validateSettings({ ...INITIAL_SETTINGS, ...input, business_name: text(name, 200, true), logo_url: input.logo_url || '' });
-      const org = { id, name: settings.business_name, display_name: settings.business_name, searchName: settings.business_name.normalize('NFKC').toLowerCase(), base_currency: settings.primary_currency, secondary_currency: settings.secondary_currency, timezone: settings.timezone || 'Africa/Khartoum', fiscal_year: settings.fiscal_year || now.slice(0, 4), status: 'active', owner_uid: actor.uid, schema_version: 3, settings, planId: 'Free', subscriptionStatus: 'active', subscriptionStart: now, subscriptionEnd: null, renewalAt: null, billingRevision: 1, maxUsers: free.limits.maxUsers, maxBranches: free.limits.maxBranches, maxWarehouses: free.limits.maxWarehouses, subscriptionMetadata: { method: 'registration', version: 1 }, created_at: now, updated_at: now };
+      const org = { ...(this.verifyNewAccountingRules ? { accounting_version: 2, accounting_activated_at: now } : {}), id, name: settings.business_name, display_name: settings.business_name, searchName: settings.business_name.normalize('NFKC').toLowerCase(), base_currency: settings.primary_currency, secondary_currency: settings.secondary_currency, timezone: settings.timezone || 'Africa/Khartoum', fiscal_year: settings.fiscal_year || now.slice(0, 4), status: 'active', owner_uid: actor.uid, schema_version: 3, settings, planId: 'Free', subscriptionStatus: 'active', subscriptionStart: now, subscriptionEnd: null, renewalAt: null, billingRevision: 1, maxUsers: free.limits.maxUsers, maxBranches: free.limits.maxBranches, maxWarehouses: free.limits.maxWarehouses, subscriptionMetadata: { method: 'registration', version: 1 }, created_at: now, updated_at: now };
       const member = { uid: actor.uid, org_id: id, email: actor.email, display_name: actor.name || name, role: 'Owner', status: 'active', joined_at: now };
       tx.set(`organizations/${id}`, { ...org, subscriptionEndMillis: null });
       tx.set(`organizations/${id}/members/${actor.uid}`, member);
-      tx.set(`subscriptionEvents/registration-${id}`, { id: `registration-${id}`, organizationId: id, action: 'subscription.created', previousValue: null, newValue: { planId: 'Free', subscriptionStatus: 'active', subscriptionEnd: null }, performedBy: actor.uid, performedByEmail: actor.email, createdAt: now, reason: 'إنشاء شركة بالباقة المجانية', method: 'registration', operationId });
+      if (this.controlsEnabled) tx.set(`subscriptionEvents/registration-${id}`, { id: `registration-${id}`, organizationId: id, action: 'subscription.created', previousValue: null, newValue: { planId: 'Free', subscriptionStatus: 'active', subscriptionEnd: null }, performedBy: actor.uid, performedByEmail: actor.email, createdAt: now, reason: 'إنشاء شركة بالباقة المجانية', method: 'registration', operationId });
       tx.set(`user_organizations/${actor.uid}/orgs/${id}`, { org_id: id, role: 'Owner', joined_at: now });
       tx.set(`organizations/${id}/meta/counters`, { ...DEFAULT_ORGANIZATION_COUNTERS, updated_at: now });
       tx.set(`organizations/${id}/meta/subscription`, createDefaultSubscription(id));
@@ -82,7 +87,11 @@ export class Organizations {
       ensure(['Admin', 'Accountant', 'Sales', 'Cashier', 'Viewer'].includes(invite.role), 'دور الدعوة غير صالح.');
       const inviter = await membership(tx, orgId, { uid: invite.inviter_uid, email: '', emailVerified: true }, false, this.controlsEnabled);
       ensure(inviter.role === 'Owner' || inviter.role === 'Admin' && invite.role !== 'Admin', 'صلاحية مُصدر الدعوة لم تعد متاحة.', 403);
-      const now = new Date().toISOString();
+      if (this.verifyNewAccountingRules) {
+        ensure(this.store.authority === 'server', 'إنشاء مؤسسة V2 يتطلب خدمة الخادم.', 403);
+        await this.verifyNewAccountingRules();
+      }
+      const now = this.now().toISOString();
       const member = { uid: actor.uid, org_id: orgId, email: actor.email, display_name: actor.name || actor.email.split('@')[0], role: invite.role, status: 'active', joined_at: now, invitation_id: invitationId, invited_by: invite.invited_by };
       tx.set(`${root}/members/${actor.uid}`, member); tx.set(`${root}/invitations/${invitationId}`, { ...invite, status: 'accepted', accepted_by: actor.uid, accepted_at: now });
       tx.set(`user_organizations/${actor.uid}/orgs/${orgId}`, { org_id: orgId, role: invite.role, joined_at: now });

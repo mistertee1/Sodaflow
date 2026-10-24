@@ -11,8 +11,9 @@
     "worker": "accounting-ui-recovery-20261024-0422",
     "branch": "codex/accounting-v2-ui-integration-20261024",
     "acquired_at": "2026-10-24T04:18:07.479Z",
-    "expires_at": "2026-10-24T05:03:07.479Z",
-    "purpose": "Restore missing D/E/Excel accounting tabs and diagnose residual credit/dimension/report UI acceptance failures"
+    "expires_at": "2026-10-24T05:17:14.392Z",
+    "purpose": "Restore missing D/E/Excel accounting tabs and diagnose residual credit/dimension/report UI acceptance failures",
+    "heartbeat_at": "2026-10-24T04:32:14.392Z"
   },
   "milestones": [
     {
@@ -2393,7 +2394,7 @@
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
   ],
-  "updated_at": "2026-10-24T04:18:07.479Z",
+  "updated_at": "2026-10-24T04:32:14.392Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3690,7 +3691,7 @@
     }
   },
   "ui_integration": {
-    "status": "in_progress",
+    "status": "source_repaired_browser_acceptance_running",
     "base_pr": 139,
     "root_cause": "AccountingView lost imports, tab state variants, protected tab buttons and mounted D/E/Excel centers",
     "previous_ci": [
@@ -3702,6 +3703,7 @@
       "credit workflow",
       "dimension posting UI",
       "comparison report controls"
-    ]
+    ],
+    "cause_detail": "Confirmed missing AccountingView center wiring plus obsolete guest/localStorage fixtures; credit/dimension/comparison controls already existed and were not overwritten."
   }
 }

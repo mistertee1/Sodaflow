@@ -8,11 +8,11 @@
   "active_branch": "codex/accounting-v2-historical-review-required-20261023",
   "overall_status": "in_progress",
   "lease": {
-    "worker": "historical-review-required-20261023-2320",
+    "worker": "accounting-review-acceptance-20261024-0414",
     "branch": "codex/accounting-v2-historical-review-required-20261023",
-    "acquired_at": "2026-10-23T23:17:42.921Z",
-    "expires_at": "2026-10-24T00:02:42.921Z",
-    "purpose": "Enforce historical approval review at server entry before idempotency; keep dry-run capability private"
+    "acquired_at": "2026-10-24T04:13:58.884Z",
+    "expires_at": "2026-10-24T04:58:58.884Z",
+    "purpose": "Resume cancelled browser acceptance, finish prepared Firestore review test and recover latest Accounting V2 milestone"
   },
   "milestones": [
     {
@@ -2393,7 +2393,7 @@
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
   ],
-  "updated_at": "2026-10-23T23:22:05.356Z",
+  "updated_at": "2026-10-24T04:13:58.884Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3517,21 +3517,15 @@
   },
   "automation_id": "6ac979a221608191aee2f5a17a2b0a8e",
   "last_run": {
-    "worker": "approval-ci-retry-20261023",
-    "branch": "codex/accounting-v2-excel4-historical-approval-ui-20261023",
-    "acquired_at": "2026-10-23T17:22:21Z",
-    "expires_at": "2026-10-23T17:42:21.000Z",
-    "purpose": "Record passing approval regressions and retry unrelated receipt UI failure",
-    "released_at": "2026-10-23T17:22:24Z",
-    "pr": 126,
-    "status": "approval_regressions_passed_full_CI_retry_pending",
-    "ci": {
-      "run_id": 39986838841,
-      "commit_sha": "7ea927906ce74ac33ac1f3f9f5c3f1fce4455d40",
-      "conclusion": "failure_retry_requested",
-      "reason": "All historical import UI scenarios passed; unrelated receipt app.spec.ts:139 failed waiting title,99 UI passed"
-    },
-    "next": "Verify rerun39986838841. If receipt UI fails again investigate without weakening assertions; only close PR126 after full green CI. Then reviewed-contract enforcement and safe session/receipt recovery."
+    "worker": "accounting-review-acceptance-20261024-0414",
+    "branch": "codex/accounting-v2-historical-review-required-20261023",
+    "acquired_at": "2026-10-24T04:13:58.884Z",
+    "expires_at": "2026-10-24T04:58:58.884Z",
+    "purpose": "Resume cancelled browser acceptance, finish prepared Firestore review test and recover latest Accounting V2 milestone",
+    "started_at": "2026-10-24T04:13:58.884Z",
+    "status": "resuming_cancelled_acceptance",
+    "pr": 139,
+    "source_commit": "ec074fe1c32a77d924820e5fc157345112bf5b6a"
   },
   "acceptance_environment": {
     "provider": "Render",
@@ -3588,9 +3582,9 @@
       "ci": {
         "run_id": 40038692077,
         "commit_sha": "a1c747073fa8247f5141a64f313d5b04c2eb85af",
-        "conclusion": "in_progress",
+        "conclusion": "cancelled",
         "emulator": "passed",
-        "ui": "running"
+        "ui": "cancelled_requires_log_review"
       }
     }
   },
@@ -3647,11 +3641,11 @@
       "current_ci": {
         "run_id": 40038101273,
         "commit_sha": "e0673c1c12ada6e15459f45d9fb6b1520a74d636",
-        "conclusion": "in_progress",
+        "conclusion": "cancelled",
         "check": "passed",
         "production_audit_vulnerabilities": 0,
         "emulator": "passed",
-        "ui": "running"
+        "ui": "cancelled_requires_log_review"
       }
     },
     "production_activation": false,
@@ -3678,7 +3672,11 @@
       "core": "passed",
       "build": "passed",
       "final_historical_tests": 20,
-      "ci": "pending"
+      "ci": {
+        "run_id": 40039303158,
+        "commit_sha": "ec074fe1c32a77d924820e5fc157345112bf5b6a",
+        "conclusion": "cancelled"
+      }
     }
   }
 }

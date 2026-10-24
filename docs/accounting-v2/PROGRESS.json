@@ -5,15 +5,15 @@
   "base_main_sha": "491a3f99eeead58cf68fd5d158a350c6b9eb391f",
   "user_merges_only": true,
   "active_milestone": "Excel4.2",
-  "active_branch": "codex/accounting-v2-export-live-authorization-20261024",
+  "active_branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
   "overall_status": "in_progress_not_commercially_ready",
   "lease": {
-    "worker": "accounting-scheduled-dispatch-20261024-1526",
+    "worker": "scheduled-dispatch-resume-20261024-1630",
     "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
-    "acquired_at": "2026-10-24T15:24:24.000Z",
-    "heartbeat_at": "2026-10-24T15:24:24.000Z",
-    "expires_at": "2026-10-24T16:09:24.000Z",
-    "purpose": "Atomic due-to-job dispatch, live authorization, replay/recovery and private orphan cleanup; synthetic tests only; production execution disabled"
+    "acquired_at": "2026-10-24T16:35:40.934120+00:00",
+    "heartbeat_at": "2026-10-24T16:35:40.934120+00:00",
+    "expires_at": "2026-10-24T18:05:40.934120+00:00",
+    "purpose": "Atomic scheduled due-to-job dispatch, worker fencing and durable upload/orphan cleanup; synthetic acceptance only; execution remains disabled"
   },
   "milestones": [
     {
@@ -2529,7 +2529,7 @@
       "planned_stage": "final_acceptance"
     }
   ],
-  "active_substep": "Excel4.2b.2b.2_scheduled_due_claim_pending",
+  "active_substep": "Excel4.2b.2b.2_scheduled_dispatch",
   "observed_main_sha": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
   "lease_history": [
     {
@@ -3685,6 +3685,16 @@
           "conclusion": "success"
         }
       }
+    },
+    {
+      "worker": "accounting-scheduled-dispatch-20261024-1526",
+      "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+      "acquired_at": "2026-10-24T15:24:24.000Z",
+      "heartbeat_at": "2026-10-24T15:24:24.000Z",
+      "expires_at": "2026-10-24T16:09:24.000Z",
+      "purpose": "Atomic due-to-job dispatch, live authorization, replay/recovery and private orphan cleanup; synthetic tests only; production execution disabled",
+      "resumed_after_expiry_at": "2026-10-24T16:35:40.934120+00:00",
+      "note": "Dispatch branch points to checkpoint f178dcf with no dispatcher implementation; resume from durable GitHub snapshot only."
     }
   ],
   "last_lease": {
@@ -4282,5 +4292,31 @@
       "already_signed_urls_revocation": "valid_until_short_expiry",
       "storage_delete_failure_orphan_recovery": "next_milestone"
     }
+  },
+  "scheduled_export_dispatch": {
+    "status": "checkpoint_before_implementation",
+    "branch": "codex/accounting-v2-scheduled-export-dispatch-20261024",
+    "base_commit": "f178dcf5ccbfdac1d83965b1347c0801a6ddef9a",
+    "base_pr": 144,
+    "reviewed_main": "41df163223ae4f8783b3cf633fa3cd5d42f631f1",
+    "scope": "Atomic due-to-job dispatch, deterministic occurrence receipts, bounded active jobs, safe skipped slots, worker upload intent/fencing/orphan recovery and disabled-by-default once runner; UI and production activation separate",
+    "owned_paths": [
+      "server/scheduledExportDispatch.ts",
+      "server/scheduledExportDispatchRunner.ts",
+      "src/domain/largeExportWorker.ts (claim/fencing/upload cleanup only)",
+      "src/domain/largeExportJobs.ts (scheduled type metadata only if required)",
+      "server/largeExportWorker.ts (factory wiring only if required)",
+      "tests/scheduledExportDispatch.test.ts",
+      "tests/scheduledExportDispatchFirestore.test.ts",
+      "tests/exportUploadRecovery.test.ts",
+      "tests/helpers/scheduledDispatch.ts",
+      "package.json (once runner and Emulator registration only)",
+      "tsconfig.core.json (strict test inclusion only)",
+      "docs/accounting-v2/PROGRESS.json",
+      "docs/accounting-v2/PLAN_SCHEDULED_EXPORT_DISPATCH.md",
+      "docs/accounting-v2/REPORT_SCHEDULED_EXPORT_DISPATCH.md"
+    ],
+    "production_writes": 0,
+    "checks": "not_run_yet"
   }
 }

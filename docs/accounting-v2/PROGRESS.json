@@ -2393,7 +2393,7 @@
     "Implement Excel4.1e historical document evidence workbook/UI, reviewed staging/preview/commit and legacy migration package; then Excel4.2 auditor package/scheduled exports. Render acceptance remains independent.",
     "User reviews and merges PR #112 then PR #114; no deployment or main writes"
   ],
-  "updated_at": "2026-10-24T04:13:58.884Z",
+  "updated_at": "2026-10-24T04:16:49.606Z",
   "deferred_requirements": [
     {
       "prd_sections": [
@@ -3496,7 +3496,7 @@
     ],
     "note": "C4.3 PR46 and C5.1 PR47 implemented and verified; no main write, PR merge, deployment or production mutation. Other agents' main/shared changes reviewed and preserved."
   },
-  "next": "Enforce required historical review safely with unchanged dry-run and idempotent retry contracts; then recover historical session/receipt across reload, remaining Excel4 and independent authenticated acceptance.",
+  "next": "Repair inherited missing Accounting D/E/Excel UI wiring and preserved credit/dimension/report controls; verify complete stack including new Firestore historical review contract. Then session/receipt recovery and remaining Excel4.",
   "integration_tracking_resolution": {
     "base_branch": "codex/accounting-v2-c2-opening-integration",
     "base_sha": "d4b1810e579be3de8d85bacf7bbaf3f05bc2ee88",
@@ -3676,6 +3676,16 @@
         "run_id": 40039303158,
         "commit_sha": "ec074fe1c32a77d924820e5fc157345112bf5b6a",
         "conclusion": "cancelled"
+      },
+      "firestore_review_contract": "prepared_source_requires_emulator_CI",
+      "previous_ci": {
+        "run_id": 40039303158,
+        "conclusion": "cancelled",
+        "unit_api": 564,
+        "netlify_runtime": 16,
+        "production_audit_vulnerabilities": 0,
+        "emulator": "passed_before_new_review_test",
+        "ui": "failed_missing_accounting_UI_tabs_then_job_timeout"
       }
     }
   }

@@ -1,0 +1,53 @@
+import { before, after, test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { initializeApp, deleteApp, type App } from 'firebase-admin/app';
+import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { initializeTestEnvironment, type RulesTestEnvironment } from '@firebase/rules-unit-testing';
+import { ResilientStore } from '../server/resilientStore';
+import { Organizations } from '../server/organizations';
+import { verifyAccountingRulesSource } from '../server/accountingSecurity';
+import { Operations, type Actor } from '../src/domain/operations';
+import { INITIAL_SETTINGS } from '../src/data/initialData';
+import { reconcileFinancialData, type FinancialData } from '../src/domain/reconciliation';
+
+let app: App, db: Firestore, env: RulesTestEnvironment, rules: string;
+before(async () => {
+  assert.match(process.env.FIRESTORE_EMULATOR_HOST || '', /^(127\.0\.0\.1|localhost):8091$/, 'Synthetic historical writes only to the demo-sudaflow Emulator');
+  rules = await readFile('firestore.rules', 'utf8');
+  env = await initializeTestEnvironment({ projectId: 'demo-sudaflow', firestore: { host: '127.0.0.1', port: 8091, rules } });
+  app = initializeApp({ projectId: 'demo-sudaflow' }, 'historical-review-required'); db = getFirestore(app);
+});
+after(async () => { if (env) await env.cleanup(); if (app) await deleteApp(app); });
+
+test('Firestore requires reviewed historical approval and serializes concurrent receipt retries without partial writes', async () => {
+  const store = new ResilientStore(db), now = new Date('2026-10-23T10:00:00Z');
+  const actor: Actor = { uid: 'historical-review-owner', email: 'historical-review@example.test', emailVerified: true };
+  const org = await new Organizations(store).create(actor, 'مراجعة تاريخية اصطناعية', INITIAL_SETTINGS, 'historical-review-org', true);
+  const root = `organizations/${org.id}`;
+  await db.doc(root).update({ accounting_version: 2, planId: 'Enterprise', subscriptionEnd: '2027-01-01' });
+  await db.doc(`${root}/accounting_periods/2026`).set({ id: '2026', org_id: org.id, schema_version: 1, start_date: '2026-01-01', end_date: '2026-01-31', status: 'OPEN', revision: 1, created_by: actor.uid, created_at: '2026-01-01', operation_id: 'fixture-period' });
+  const ops = new Operations(store, () => now, undefined, async () => verifyAccountingRulesSource([{ content: rules }]));
+  const session = (await ops.execute(org.id, actor, { action: 'historicalImport.stage', operationId: 'historical-stage', data: { file_name: 'reviewed.xlsx', file_hash: 'a'.repeat(64), schema_version: 1, rows: [{ row_number: 1, kind: 'journal', reference: 'REVIEWED-HISTORY-1', date: '2026-01-10', currency: 'SDG', branch_id: 'main', lines: [{ account_code: '5200', debit: 100, credit: 0 }, { account_code: '4100', debit: 0, credit: 100 }] }] } })).result;
+  const input = { id: session.id, expected_rows_sha256: session.rows_sha256, expected_validation_context_sha256: session.validation_context_sha256, reason: 'اعتماد دليل مراجع اصطناعي' };
+  const command = { action: 'historicalImport.commit', operationId: 'historical-approved', data: input };
+  const countersBefore = (await db.doc(`${root}/meta/counters`).get()).data();
+  const reviewRequired = (error: any) => error.status === 409 && error.code === 'historical_review_required';
+  await assert.rejects(ops.execute(org.id, actor, command), reviewRequired);
+  assert.deepEqual((await db.doc(`${root}/meta/counters`).get()).data(), countersBefore);
+  assert.equal((await db.collection(`${root}/journal_entries`).get()).size, 0);
+  assert.equal((await db.doc(`${root}/idempotency/${command.operationId}`).get()).exists, false);
+  const review = await ops.historicalImportPreview(org.id, actor, { input, operationId: command.operationId });
+  assert.deepEqual((await db.doc(`${root}/meta/counters`).get()).data(), countersBefore);
+  assert.equal((await db.collection(`${root}/journal_entries`).get()).size, 0);
+  const approved = { ...command, data: { ...input, expected_review_sha256: review.review_sha256 } };
+  const [one, two] = await Promise.all([ops.execute(org.id, actor, approved), ops.execute(org.id, actor, approved)]);
+  assert.deepEqual(two, one); assert.equal(one.result.reconciliation.findings_count, 0);
+  assert.equal((await db.collection(`${root}/journal_entries`).get()).size, 1);
+  const audits = (await db.collection(`${root}/audit_logs`).where('event_type', '==', 'DATA_IMPORT_COMPLETED').get()).docs;
+  assert.equal(audits.length, 1); assert.equal(audits[0].data().import_metadata.review_sha256, review.review_sha256);
+  await assert.rejects(ops.execute(org.id, actor, command), reviewRequired);
+  assert.deepEqual(await ops.execute(org.id, actor, approved), one);
+  const snapshot = await ops.snapshot(org.id, actor, true);
+  assert.deepEqual(reconcileFinancialData(snapshot.collections as FinancialData, snapshot.settings), []);
+});
